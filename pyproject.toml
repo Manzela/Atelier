@@ -5,7 +5,7 @@
 
 [project]
 name = "atelier-workspace"
-version = "0.1.0-alpha"
+version = "0.1.1-alpha"
 description = "Atelier — autonomous design agent (workspace root)"
 authors = [{ name = "Daniel Manzela", email = "hello@atelier.dev" }]
 readme = "README.md"
