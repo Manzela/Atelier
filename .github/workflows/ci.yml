@@ -1,15 +1,22 @@
 name: CI
 
-# Minimum-viable CI for credit conservation.
-# Additional workflows deferred per ROADMAP (added back when content exists to test):
-#   - eval.yml         — Phase 2 W2 (when atelier-eval has runner code)
-#   - docs.yml         — Phase 3 W3 (when mkdocs.yml exists)
-#   - codeql.yml       — Post-launch (Dependabot alerts cover MVP)
-#   - stale.yml        — Post-launch (no community traffic yet to manage)
+# Minimum-viable CI for credit conservation across the user's GitHub Pro quota
+# (Atelier is public so its minutes are free; other repos share the same quota
+# so we still keep this lean).
+#
+# Triggers reduced from initial scaffold:
+#   - push: only to `main` (post-merge sanity check; phase/* push skipped — phases ship via PR)
+#   - pull_request: only to `main` and `phase/*` (gated entry points)
+#
+# Workflows deferred per ROADMAP (added back when content exists to test):
+#   - eval.yml         → Phase 2 W2 (when atelier-eval has runner code)
+#   - docs.yml         → Phase 3 W3 (when mkdocs.yml exists)
+#   - codeql.yml       → Post-launch (Dependabot alerts + secret scanning cover MVP)
+#   - stale.yml        → Post-launch (no community traffic yet to manage)
 
 on:
   push:
-    branches: [main, "phase/*"]
+    branches: [main]              # was: [main, "phase/*"]
   pull_request:
     branches: [main, "phase/*"]
   workflow_dispatch:
@@ -28,13 +35,14 @@ env:
   PYTHONUNBUFFERED: "1"
 
 jobs:
-  # ─── Detect changes — skip jobs when their target dir is untouched ────
+  # ─── Detect changes ──────────────────────────────────────────────────
   changes:
     name: Detect changes
     runs-on: ubuntu-latest
     outputs:
       core: ${{ steps.filter.outputs.core }}
       eval: ${{ steps.filter.outputs.eval }}
+      ci_config: ${{ steps.filter.outputs.ci_config }}
       docs_only: ${{ steps.filter.outputs.docs_only }}
     steps:
       - uses: actions/checkout@v4
@@ -47,11 +55,16 @@ jobs:
               - 'pyproject.toml'
             eval:
               - 'atelier-eval/**'
+            ci_config:
+              - '.github/workflows/**'
+              - '.pre-commit-config.yaml'
+              - 'pyproject.toml'
+              - 'package.json'
             docs_only:
               - 'docs/**'
               - '*.md'
 
-  # ─── Pre-commit hooks (catches most issues; cheap to run) ────────────
+  # ─── Pre-commit (always runs; cheap; catches most issues) ────────────
   precommit:
     name: pre-commit
     runs-on: ubuntu-latest
@@ -78,12 +91,12 @@ jobs:
       - name: Run pre-commit
         run: pre-commit run --all-files --show-diff-on-failure
 
-  # ─── Python lint + typecheck + unit tests (only when src changes) ────
+  # ─── Python lint + tests (only when core/eval src changes) ───────────
   python:
     name: Python ${{ matrix.suite }}
     runs-on: ubuntu-latest
     needs: [changes, precommit]
-    if: needs.changes.outputs.core == 'true' || needs.changes.outputs.eval == 'true'
+    if: needs.changes.outputs.core == 'true' || needs.changes.outputs.eval == 'true' || needs.changes.outputs.ci_config == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -94,14 +107,20 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
-      - name: Skip if subfolder has no pyproject.toml yet
+      - name: Skip if subfolder has no source code yet
         id: check
         run: |
-          if [ -f "atelier-${{ matrix.suite }}/pyproject.toml" ]; then
-            echo "ready=true" >> "$GITHUB_OUTPUT"
+          if [ -f "atelier-${{ matrix.suite }}/pyproject.toml" ] && [ -d "atelier-${{ matrix.suite }}/src" ]; then
+            # Source dir must have actual .py files beyond __init__.py
+            count=$(find "atelier-${{ matrix.suite }}/src" -name "*.py" -not -name "__init__.py" -not -name "__version__.py" | wc -l)
+            if [ "$count" -gt 0 ]; then
+              echo "ready=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "ready=false" >> "$GITHUB_OUTPUT"
+              echo "atelier-${{ matrix.suite }}/src has only stubs — skipping (Phase 1 D3+ deliverable)"
+            fi
           else
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "atelier-${{ matrix.suite }}/pyproject.toml not present yet — Phase 1 deliverable"
           fi
       - name: Install dependencies
         if: steps.check.outputs.ready == 'true'
@@ -112,26 +131,26 @@ jobs:
       - name: Ruff lint
         if: steps.check.outputs.ready == 'true'
         working-directory: atelier-${{ matrix.suite }}
-        run: ruff check src tests || true
+        run: ruff check src tests
       - name: Ruff format check
         if: steps.check.outputs.ready == 'true'
         working-directory: atelier-${{ matrix.suite }}
-        run: ruff format --check src tests || true
+        run: ruff format --check src tests
       - name: mypy strict
         if: steps.check.outputs.ready == 'true'
         working-directory: atelier-${{ matrix.suite }}
-        run: mypy --strict src || true
+        run: mypy --strict src
       - name: Unit tests
         if: steps.check.outputs.ready == 'true'
         working-directory: atelier-${{ matrix.suite }}
         run: |
-          if [ -d tests/unit ]; then
+          if [ -d tests/unit ] && [ "$(find tests/unit -name 'test_*.py' | wc -l)" -gt 0 ]; then
             pytest tests/unit/ -v --tb=short
           else
-            echo "No unit tests yet"
+            echo "No unit tests yet — skipping"
           fi
 
-  # ─── Docs link check — only on docs PRs (cheap) ──────────────────────
+  # ─── Docs link check (only on docs-only PRs; cheap) ──────────────────
   docs-links:
     name: Markdown link check
     runs-on: ubuntu-latest
@@ -159,19 +178,17 @@ jobs:
     needs: [precommit, python, docs-links]
     if: always()
     steps:
-      - name: Verify all required jobs passed (or skipped intentionally)
+      - name: Verify required jobs passed (or skipped intentionally)
         run: |
-          # precommit must always succeed
           if [[ "${{ needs.precommit.result }}" != "success" ]]; then
             echo "precommit failed: ${{ needs.precommit.result }}"
             exit 1
           fi
-          # python + docs-links may be skipped (when no relevant changes)
-          for j in python docs-links; do
+          for j_name in "python" "docs-links"; do
             r="${{ needs.python.result }}"
-            [[ "$j" == "docs-links" ]] && r="${{ needs.docs-links.result }}"
+            [[ "$j_name" == "docs-links" ]] && r="${{ needs.docs-links.result }}"
             if [[ "$r" == "failure" || "$r" == "cancelled" ]]; then
-              echo "$j failed: $r"
+              echo "$j_name failed: $r"
               exit 1
             fi
           done

@@ -1,159 +1,72 @@
-# Dependabot config for Atelier
-# https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+# Dependabot — minimum-credit configuration
+# Reduced from initial scaffold: monthly schedule, grouped PRs, only ecosystems
+# with real deps right now. Additional ecosystems added back per ROADMAP as
+# their content lands:
+#   - pip /atelier-eval         → re-enable Phase 2 W2
+#   - npm /atelier-dashboard    → re-enable Phase 2 W2
+#   - docker /atelier-deploy    → re-enable Phase 1 D5+
+#   - terraform /atelier-deploy → re-enable Phase 1 D2
 
 version: 2
-updates:
-  # ─── Python (workspace root) ───────────────────────────────────────────────
-  - package-ecosystem: "pip"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "08:00"
-      timezone: "UTC"
-    open-pull-requests-limit: 10
-    labels:
-      - "dependencies"
-      - "python"
-    commit-message:
-      prefix: "chore(deps)"
-      include: "scope"
-    groups:
-      production-dependencies:
-        patterns:
-          - "*"
-        exclude-patterns:
-          - "ruff"
-          - "mypy"
-          - "pytest*"
-          - "pre-commit"
-          - "detect-secrets"
-      development-dependencies:
-        patterns:
-          - "ruff"
-          - "mypy"
-          - "pytest*"
-          - "pre-commit"
-          - "detect-secrets"
-    reviewers:
-      - "Manzela"
 
-  # ─── Python (atelier-core) ────────────────────────────────────────────────
+updates:
+  # ─── Python (atelier-core only — workspace root has minimal deps) ────
   - package-ecosystem: "pip"
     directory: "/atelier-core"
     schedule:
-      interval: "weekly"
+      interval: "monthly"           # was: weekly
       day: "monday"
       time: "08:00"
       timezone: "UTC"
-    open-pull-requests-limit: 5
-    labels:
-      - "dependencies"
-      - "python"
-      - "atelier-core"
-    commit-message:
-      prefix: "chore(deps)"
-      prefix-development: "chore(deps-dev)"
-      include: "scope"
-
-  # ─── Python (atelier-eval) ────────────────────────────────────────────────
-  - package-ecosystem: "pip"
-    directory: "/atelier-eval"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "08:00"
-      timezone: "UTC"
-    open-pull-requests-limit: 5
-    labels:
-      - "dependencies"
-      - "python"
-      - "atelier-eval"
-    commit-message:
-      prefix: "chore(deps)"
-      prefix-development: "chore(deps-dev)"
-      include: "scope"
-
-  # ─── npm (workspace root + workspaces) ────────────────────────────────────
-  - package-ecosystem: "npm"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "08:00"
-      timezone: "UTC"
-    open-pull-requests-limit: 10
-    labels:
-      - "dependencies"
-      - "npm"
+    open-pull-requests-limit: 3     # hard cap to avoid CI flood
+    labels: ["dependencies", "python"]
     commit-message:
       prefix: "chore(deps)"
       prefix-development: "chore(deps-dev)"
       include: "scope"
     groups:
-      development-dependencies:
-        dependency-type: "development"
-      production-dependencies:
-        dependency-type: "production"
+      python-all:                   # group ALL python bumps into 1 PR/month
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]   # major bumps require manual review
 
-  # ─── npm (atelier-dashboard) ──────────────────────────────────────────────
+  # ─── npm (workspace root: commitlint + prettier + typescript only) ──
   - package-ecosystem: "npm"
-    directory: "/atelier-dashboard"
+    directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
       day: "monday"
       time: "08:00"
       timezone: "UTC"
-    open-pull-requests-limit: 5
-    labels:
-      - "dependencies"
-      - "npm"
-      - "atelier-dashboard"
+    open-pull-requests-limit: 2
+    labels: ["dependencies", "npm"]
     commit-message:
       prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
       include: "scope"
+    groups:
+      npm-all:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
-  # ─── GitHub Actions ───────────────────────────────────────────────────────
+  # ─── GitHub Actions (security-critical; quarterly) ──────────────────
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
       day: "monday"
       time: "08:00"
       timezone: "UTC"
-    labels:
-      - "dependencies"
-      - "github-actions"
+    open-pull-requests-limit: 2
+    labels: ["dependencies", "github-actions"]
     commit-message:
       prefix: "ci(deps)"
       include: "scope"
-
-  # ─── Docker ───────────────────────────────────────────────────────────────
-  - package-ecosystem: "docker"
-    directory: "/atelier-deploy/docker"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "08:00"
-      timezone: "UTC"
-    labels:
-      - "dependencies"
-      - "docker"
-    commit-message:
-      prefix: "chore(deps)"
-      include: "scope"
-
-  # ─── Terraform ────────────────────────────────────────────────────────────
-  - package-ecosystem: "terraform"
-    directory: "/atelier-deploy/terraform"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "08:00"
-      timezone: "UTC"
-    labels:
-      - "dependencies"
-      - "terraform"
-    commit-message:
-      prefix: "chore(deps)"
-      include: "scope"
+    groups:
+      actions-all:
+        patterns: ["*"]
