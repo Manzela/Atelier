@@ -18,10 +18,7 @@
     "npm": ">=10.0.0"
   },
   "workspaces": [
-    "atelier-dashboard",
-    "atelier-action",
-    "atelier-figma-plugin",
-    "atelier-chrome-extension"
+    "atelier-dashboard"
   ],
   "scripts": {
     "lint": "npm run lint --workspaces --if-present",

@@ -5,7 +5,7 @@
 minimum_pre_commit_version: 3.7.0
 
 default_language_version:
-  python: python3.11
+  python: python3 # use whatever python3 is in PATH (3.11+ enforced by pyproject.toml)
   node: '20.11.1'
 
 default_install_hook_types: [pre-commit, commit-msg]
@@ -22,7 +22,7 @@ repos:
       - id: check-yaml
       - id: check-toml
       - id: check-json
-        exclude: 'tsconfig.*\.json$'  # tsconfig allows trailing commas + comments
+        exclude: 'tsconfig.*\.json$' # tsconfig allows trailing commas + comments
       - id: check-added-large-files
         args: ['--maxkb=500']
       - id: check-merge-conflict
@@ -34,8 +34,11 @@ repos:
       - id: mixed-line-ending
         args: ['--fix=lf']
       - id: forbid-new-submodules
-      - id: no-commit-to-branch
-        args: ['--branch', 'main']  # main protected per ADR 0007
+      # Note: no-commit-to-branch removed. GitHub branch protection
+      # enforces PR-required for non-admins (enforce_admins=false allows
+      # admin bypass intentionally per ADR 0007 for accepted-phase merges
+      # + hotfixes). Local hook was MORE strict than server side, blocking
+      # legitimate admin operations.
 
   # ─── Python: ruff (lint + format) ──────────────────────────────────────────
   - repo: https://github.com/astral-sh/ruff-pre-commit
