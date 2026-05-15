@@ -1,6 +1,11 @@
 # CLAUDE.md — Sprint Invariants (auto-loaded)
 
-> **NEW CONVERSATION? READ THIS FIRST**: [`docs/superpowers/specs/SESSION-COMPLETE-2026-05-14-atelier-pre-sprint-bootstrap.md`](docs/superpowers/specs/SESSION-COMPLETE-2026-05-14-atelier-pre-sprint-bootstrap.md) — the canonical handoff from the brainstorm + scaffold session. Survives context loss. Read it on every new conversation, then run the 90-second restoration ritual below, then pick the next unblocked feature from `features.json`.
+> **NEW CONVERSATION? READ THESE TWO FIRST (in order)**:
+>
+> 1. [`docs/superpowers/specs/SESSION-COMPLETE-2026-05-14-atelier-pre-sprint-bootstrap.md`](docs/superpowers/specs/SESSION-COMPLETE-2026-05-14-atelier-pre-sprint-bootstrap.md) — canonical handoff from the brainstorm + scaffold session
+> 2. [`docs/sprint/INSIGHTS-2026-05-15.md`](docs/sprint/INSIGHTS-2026-05-15.md) — compact session insights from the pre-D1 wrap (operational lessons + D1 must-do list)
+>
+> Then run the 90-second restoration ritual below, then pick the next unblocked feature from `features.json`.
 
 > This file is automatically loaded into every Claude Code session in this repository. It encodes the non-negotiable discipline of the Atelier sprint per PRD §11 Strategy v2. Read it at session start; respect it throughout.
 
