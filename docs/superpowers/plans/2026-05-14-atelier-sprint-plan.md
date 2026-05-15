@@ -4,15 +4,37 @@
 
 **Goal:** Build Atelier — autonomous design agent — in a 21-day sprint (2026-05-15 → 2026-06-04) for the Google for Startups AI Agents Challenge 2026 (deadline 2026-06-05; we file 2026-06-03 noon).
 
-**Architecture:** Three-layer stacked: **PIP (Pre-Generation Intake)** → **Campaign Orchestrator (RLRD)** → **8-node atomic DAG**. Wraps `agent-dag-pipeline` (lockfile-pinned consume per ADR 0001) on Google ADK 2.0 Beta. Cloud Run jobs for runtime; Agent Engine Sessions / Memory Bank / A2A as services. 13 novel contributions (N1-N13), 5 quantified 10× axes.
+**Architecture:** Three-layer stacked: **PIP (Pre-Generation Intake)** → **WRAI (Web-Research-Augmented Intake, N14)** → **Campaign Orchestrator (RLRD)** → **8-node atomic DAG with BriefSpec-conditional axis weighting (N15)**. Wraps `agent-dag-pipeline` (lockfile-pinned consume per ADR 0001) on Google ADK 2.0 Beta. Cloud Run jobs for runtime; Agent Engine Sessions / Memory Bank / A2A as services. **15 novel contributions (N1-N15)**, 5 quantified 10× axes. Anchor Discipline (ADR 0012) binds BriefSpec to every subagent's cached prefix.
 
 **Tech Stack:** Python 3.11 + ADK 2.0 Beta + Vertex AI (Gemini 3 family + Gemma 4 + text-embedding-005 + multimodal-embedding) + Anthropic Claude (Opus 4.7 + Sonnet 4.6 + Haiku 4.5) via Vertex Model Garden + Firebase (Hosting + Remote Config + Analytics) + Identity Platform + Apigee AI Gateway + Vertex Memory Bank + Vector Search 2.0 + BigQuery + Cloud KMS + Stitch MCP + A2UI v0.9. TypeScript dashboards (React + Vite). GitHub Actions for CI/CD.
 
 ---
 
+## Audit Addendum — 2026-05-15 (+22 features, ADRs 0011-0013)
+
+The audit at `audit/findings.md` + `audit/audit-plan.md` (approved 2026-05-15) added 22 features distributed across the sprint without changing the day-by-day base plan below. New feature IDs F0199-F0220, all P0, with explicit dependencies on existing features. Summary by day:
+
+| Day        | Features                                 | What lands                                                                                                                                                                                                                                                                                                       |
+| ---------- | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D2 May 16  | F0199, F0200, F0220                      | ADK dispatch wrapper (BriefSpec in cached prefix per ADR 0012 Rule 1) + unit test asserting BriefSpec presence + CI lint rule for mechanical Anchor Discipline enforcement                                                                                                                                       |
+| D8 May 22  | F0201, F0202                             | `atelier amend` CLI command (versioned BriefSpec per ADR 0012 Rule 3) + in-flight + converged surface re-validation on amendment                                                                                                                                                                                 |
+| D10 May 24 | F0209, F0210, F0215                      | AxisWeights data contract + compute_axis_weights() + axis_weights_heuristic.yaml (N15 ADR 0013) + ConsensusAgent + Det Gate consume AxisWeights + Relevance judge BriefSpec-grounded (ADR 0012 Rule 2)                                                                                                           |
+| D11 May 25 | F0211, F0212                             | 20 calibration runs across visual_register × convergence_bar matrix + Det Gate Lighthouse threshold function of compliance_level + Pa11y for regulatory tier (P1-4)                                                                                                                                              |
+| D12 May 26 | F0213, F0214                             | CSC-D constitution registry: apple-grade.md + brutalist.md + selection logic + CSC-D selects per BriefSpec.visual_register (P1-6)                                                                                                                                                                                |
+| D13 May 27 | F0203, F0204, F0205, F0206, F0207, F0208 | Skip-Path Resolver precedence (ADR 0012 Rule 4) + WRAI sub-stack: Vertex AI Search Grounding integration + domain trust scorer + 8 query templates + Findings Synthesizer (Gemini 3 Flash) + one-shot user review UI + per-tenant 7-day cache + 12 unit tests + 3 integration tests + Model Armor (N14 ADR 0011) |
+| D17 May 31 | F0216                                    | Brand/Copy/Motion/Coherence judges receive BriefSpec.intent as constraint header (P2-8)                                                                                                                                                                                                                          |
+| D18 Jun 1  | F0217, F0218                             | PADI emits runtime_config (enabled_judges + enabled_gates + axis_weights + csc_d_constitution); pipeline graph reads runtime_config; disabled nodes skip (P2-9)                                                                                                                                                  |
+| D19 Jun 2  | F0219                                    | Top-3 most-discriminative intake answers selected for Relevance grounding (P2-10)                                                                                                                                                                                                                                |
+
+**Worktree consequence**: Phase 1 worktree (`phase/1`) gets F0199-F0200-F0220 (3 features). Phase 2 worktree gets F0201-F0215 + F0203-F0214 + WRAI sub-stack (15 features). Phase 3 worktree gets F0216-F0219 (4 features).
+
+**Acceptance gates unchanged**: Phase 1 / 2 / 3 acceptance criteria from `docs/runbooks/README.md` still apply; the new features add depth, not new gates.
+
+---
+
 ## Plan structure
 
-Phase 1 (W1, May 15-21) gets day-by-day with bite-sized TDD tasks for D1-D2 and feature-brief format for D3-D7. Weeks 2-3 are daily themes + feature lists + acceptance gates. The full atomic feature list (194 entries) lives in `features.json` — this plan refers to features by ID.
+Phase 1 (W1, May 15-21) gets day-by-day with bite-sized TDD tasks for D1-D2 and feature-brief format for D3-D7. Weeks 2-3 are daily themes + feature lists + acceptance gates. The full atomic feature list (**205 entries** as of 2026-05-15 audit; was 183) lives in `features.json` — this plan refers to features by ID. See "Audit Addendum" section below for the +22 features added by audit deliverable.
 
 **Worktree convention** (per ADR 0007):
 

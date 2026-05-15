@@ -6,14 +6,15 @@
     "owner": "Daniel Manzela (strategy) + Claude Opus 4.7 MAX (builder)",
     "sprint_window": "2026-05-15 to 2026-06-04",
     "submission_target": "2026-06-03 noon",
-    "total_features": 183,
+    "total_features": 205,
     "completion_metric": "passes: true on all P0 features by 2026-06-03",
     "tier_legend": {
       "P0": "must ship MVP",
       "P1": "post-launch within Phase 1.5",
       "P2": "defer to v1.1+"
     },
-    "see_also": "docs/superpowers/plans/2026-05-14-atelier-sprint-plan.md for day-by-day TDD bite-sized tasks per feature"
+    "see_also": "docs/superpowers/plans/2026-05-14-atelier-sprint-plan.md for day-by-day TDD bite-sized tasks per feature",
+    "audit_addendum": "2026-05-15 audit: +22 features for ADR 0011 WRAI (N14) + ADR 0012 Anchor Discipline + ADR 0013 Conditional Axis Weighting (N15). See audit/audit-plan.md for bucket mapping."
   },
   "features": [
     {
@@ -31,7 +32,6 @@
       "day": "Pre-sprint",
       "notes": "Initial commit + 2nd workflow tightening commit + secrets README. 84 files committed."
     },
-
     {
       "id": "F0001a",
       "phase": 1,
@@ -89,7 +89,6 @@
       "passes": false,
       "day": "D1 May 15"
     },
-
     {
       "id": "F0006",
       "phase": 1,
@@ -155,7 +154,6 @@
       "passes": false,
       "day": "D2 May 16"
     },
-
     {
       "id": "F0013",
       "phase": 1,
@@ -228,7 +226,6 @@
       "passes": false,
       "day": "D3 May 17"
     },
-
     {
       "id": "F0021",
       "phase": 1,
@@ -283,7 +280,6 @@
       "passes": false,
       "day": "D4 May 18"
     },
-
     {
       "id": "F0027",
       "phase": 1,
@@ -338,7 +334,6 @@
       "passes": false,
       "day": "D5 May 19"
     },
-
     {
       "id": "F0033",
       "phase": 1,
@@ -439,7 +434,6 @@
       "passes": false,
       "day": "D6 May 20"
     },
-
     {
       "id": "F0043",
       "phase": 1,
@@ -514,7 +508,6 @@
       "human_approved": null,
       "day": "D7 May 21"
     },
-
     {
       "id": "F0060",
       "phase": 2,
@@ -641,7 +634,6 @@
       "passes": false,
       "day": "D8 May 22"
     },
-
     {
       "id": "F0074",
       "phase": 2,
@@ -732,7 +724,6 @@
       "passes": false,
       "day": "D9 May 23"
     },
-
     {
       "id": "F0084",
       "phase": 2,
@@ -823,7 +814,6 @@
       "passes": false,
       "day": "D10 May 24"
     },
-
     {
       "id": "F0094",
       "phase": 2,
@@ -879,7 +869,6 @@
       "passes": false,
       "day": "D11 May 25"
     },
-
     {
       "id": "F0100",
       "phase": 2,
@@ -970,7 +959,6 @@
       "passes": false,
       "day": "D12 May 26"
     },
-
     {
       "id": "F0110",
       "phase": 2,
@@ -1052,7 +1040,6 @@
       "passes": false,
       "day": "D13 May 27"
     },
-
     {
       "id": "F0119",
       "phase": 2,
@@ -1175,7 +1162,6 @@
       "human_approved": null,
       "day": "D14 May 28"
     },
-
     {
       "id": "F0140",
       "phase": 3,
@@ -1266,7 +1252,6 @@
       "passes": false,
       "day": "D15 May 29"
     },
-
     {
       "id": "F0150",
       "phase": 3,
@@ -1321,7 +1306,6 @@
       "passes": false,
       "day": "D16 May 30"
     },
-
     {
       "id": "F0156",
       "phase": 3,
@@ -1403,7 +1387,6 @@
       "passes": false,
       "day": "D17 May 31"
     },
-
     {
       "id": "F0165",
       "phase": 3,
@@ -1503,7 +1486,6 @@
       "passes": false,
       "day": "D18 Jun 1"
     },
-
     {
       "id": "F0176",
       "phase": 3,
@@ -1563,7 +1545,6 @@
       "passes": false,
       "day": "D19 Jun 2"
     },
-
     {
       "id": "F0182",
       "phase": 3,
@@ -1671,7 +1652,6 @@
       "human_approved": null,
       "day": "D20 Jun 3"
     },
-
     {
       "id": "F0193",
       "phase": 3,
@@ -1699,7 +1679,6 @@
       "passes": false,
       "day": "D21 Jun 4"
     },
-
     {
       "id": "F0196",
       "phase": 4,
@@ -1732,6 +1711,226 @@
       "human_approved": null,
       "day": "Jun 5",
       "notes": "Daniel-led"
+    },
+    {
+      "id": "F0199",
+      "phase": 1,
+      "tier": "P0",
+      "name": "ADK dispatch wrapper: BriefSpec in cached prefix for every subagent (ADR 0012 Rule 1)",
+      "depends_on": ["F0009"],
+      "passes": false,
+      "day": "D2 May 16",
+      "notes": "P0-1 audit fix; reads brief_spec_current.json from .atelier/ and prepends to subagent system messages"
+    },
+    {
+      "id": "F0200",
+      "phase": 1,
+      "tier": "P0",
+      "name": "Unit test: every subagent's first system message contains serialized BriefSpec",
+      "depends_on": ["F0199"],
+      "passes": false,
+      "day": "D2 May 16",
+      "notes": "P0-1 acceptance criterion; CI fails if BriefSpec missing"
+    },
+    {
+      "id": "F0201",
+      "phase": 2,
+      "tier": "P0",
+      "name": "atelier amend CLI: focused PIP re-intake + BriefSpec versioning + history.jsonl (ADR 0012 Rule 3)",
+      "depends_on": ["F0009", "F0114"],
+      "passes": false,
+      "day": "D8 May 22",
+      "notes": "P0-3 audit fix; produces brief_spec_v<N+1>.json + brief_spec_current.json symlink"
+    },
+    {
+      "id": "F0202",
+      "phase": 2,
+      "tier": "P0",
+      "name": "In-flight + converged surface re-validation on BriefSpec amendment",
+      "depends_on": ["F0201"],
+      "passes": false,
+      "day": "D8 May 22",
+      "notes": "P0-3 audit fix; Cross-Surface Coherence Validator re-scores converged surfaces against new BriefSpec; regrandfathers passes; requeues failures"
+    },
+    {
+      "id": "F0203",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Skip-Path Resolver: precedence rule descriptor > brief-parsed > Memory Bank > defaults (ADR 0012 Rule 4)",
+      "depends_on": ["F0111"],
+      "passes": false,
+      "day": "D13 May 27",
+      "notes": "P1-7 audit fix; folds into F0111; resolve_skip_path returns ResolvedAnswer with source provenance"
+    },
+    {
+      "id": "F0204",
+      "phase": 2,
+      "tier": "P0",
+      "name": "WRAI: Vertex AI Search Grounding integration via google-cloud-aiplatform[search]",
+      "depends_on": ["F0114"],
+      "passes": false,
+      "day": "D13 May 27",
+      "notes": "N14 ADR 0011; per-tenant isolation built-in"
+    },
+    {
+      "id": "F0205",
+      "phase": 2,
+      "tier": "P0",
+      "name": "WRAI: domain trust scorer + config/research-trust.yaml whitelist + denylist",
+      "depends_on": ["F0204"],
+      "passes": false,
+      "day": "D13 May 27",
+      "notes": "N14 ADR 0011; PageRank-derived 0-1 trust score; findings <0.6 flagged"
+    },
+    {
+      "id": "F0206",
+      "phase": 2,
+      "tier": "P0",
+      "name": "WRAI: 8 query templates per project type + Findings Synthesizer prompt (Gemini 3 Flash)",
+      "depends_on": ["F0204", "F0205"],
+      "passes": false,
+      "day": "D13 May 27",
+      "notes": "N14 ADR 0011; produces ResearchFindings (applied_standards, inspirations, suggested_overrides, risk_warnings, citations)"
+    },
+    {
+      "id": "F0207",
+      "phase": 2,
+      "tier": "P0",
+      "name": "WRAI: one-shot user review UI in dashboard + --no-research opt-out flag",
+      "depends_on": ["F0206"],
+      "passes": false,
+      "day": "D13 May 27",
+      "notes": "N14 ADR 0011; per-finding accept/skip; aggregate summary"
+    },
+    {
+      "id": "F0208",
+      "phase": 2,
+      "tier": "P0",
+      "name": "WRAI: per-tenant 7-day cache with KMS isolation + 12 unit tests + 3 integration tests + Model Armor",
+      "depends_on": ["F0207"],
+      "passes": false,
+      "day": "D13 May 27",
+      "notes": "N14 ADR 0011 acceptance: per-tenant cache test + 20 prompt-injection patterns blocked + p95 latency<=13s + p95 cost<=$0.10"
+    },
+    {
+      "id": "F0209",
+      "phase": 2,
+      "tier": "P0",
+      "name": "AxisWeights data contract + compute_axis_weights() + config/axis_weights_heuristic.yaml (N15 ADR 0013)",
+      "depends_on": ["F0009"],
+      "passes": false,
+      "day": "D10 May 24",
+      "notes": "N15 MJG; visual_register x compliance_level x convergence_bar -> AxisWeights with provenance"
+    },
+    {
+      "id": "F0210",
+      "phase": 2,
+      "tier": "P0",
+      "name": "ConsensusAgent + Det Gate consume AxisWeights instead of constants",
+      "depends_on": ["F0209", "F0092"],
+      "passes": false,
+      "day": "D10 May 24",
+      "notes": "N15 ADR 0013; replaces fixed-floors table in PRD §6.4"
+    },
+    {
+      "id": "F0211",
+      "phase": 2,
+      "tier": "P0",
+      "name": "AxisWeights calibration: 20 runs across visual_register x convergence_bar matrix",
+      "depends_on": ["F0210"],
+      "passes": false,
+      "day": "D11 May 25",
+      "notes": "N15 ADR 0013 acceptance: ConsensusAgent decision matches expert human rating on 18+/20 fixtures; final table committed in axis_weights_heuristic.yaml + calibration evidence in atelier-eval/data/axis_weights_calibration_2026-05-29.jsonl"
+    },
+    {
+      "id": "F0212",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Det Gate LIGHTHOUSE_A11Y threshold function of BriefSpec.compliance_level + Pa11y for regulatory tier",
+      "depends_on": ["F0210"],
+      "passes": false,
+      "day": "D11 May 25",
+      "notes": "P1-4 audit fix; 4 fixtures (none/AA/AAA/regulatory) -> 4 different threshold sets; AAA + axe AAA ruleset; regulatory + Pa11y + accessibility statement output"
+    },
+    {
+      "id": "F0213",
+      "phase": 2,
+      "tier": "P0",
+      "name": "CSC-D constitution registry: apple-grade.md + brutalist.md + selection logic",
+      "depends_on": ["F0009"],
+      "passes": false,
+      "day": "D12 May 26",
+      "notes": "P1-6 audit fix; brutalist constitution authored; 30 brutalist references calibrated"
+    },
+    {
+      "id": "F0214",
+      "phase": 2,
+      "tier": "P0",
+      "name": "CSC-D selects constitution from BriefSpec.visual_register at iteration start",
+      "depends_on": ["F0213"],
+      "passes": false,
+      "day": "D12 May 26",
+      "notes": "P1-6 acceptance: brutalist register -> CSC-D scores brutalist candidates above apple-grade-rejecting baseline"
+    },
+    {
+      "id": "F0215",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Relevance judge prompt binds to BriefSpec.intent + visual_register + intake_transcript top-3 (ADR 0012 Rule 2)",
+      "depends_on": ["F0085", "F0199"],
+      "passes": false,
+      "day": "D10 May 24",
+      "notes": "P0-2 audit fix; 5-fixture test asserts judge demotes off-intent candidates that pass other axes"
+    },
+    {
+      "id": "F0216",
+      "phase": 3,
+      "tier": "P0",
+      "name": "Brand/Copy/Motion/Coherence judges receive BriefSpec.intent as constraint header",
+      "depends_on": ["F0215"],
+      "passes": false,
+      "day": "D17 May 31",
+      "notes": "P2-8 audit fix; A/B run on 50 fixtures shows judge agreement up >=5% with BriefSpec context"
+    },
+    {
+      "id": "F0217",
+      "phase": 3,
+      "tier": "P0",
+      "name": "PADI emits runtime_config: enabled_judges + enabled_gates + axis_weights + csc_d_constitution",
+      "depends_on": ["F0209", "F0214"],
+      "passes": false,
+      "day": "D18 Jun 1",
+      "notes": "P2-9 audit fix; data-viz dashboard fixture skips Motion judge; marketing landing page fixture skips Information-density check"
+    },
+    {
+      "id": "F0218",
+      "phase": 3,
+      "tier": "P0",
+      "name": "Pipeline graph reads runtime_config; disabled nodes skip",
+      "depends_on": ["F0217"],
+      "passes": false,
+      "day": "D18 Jun 1",
+      "notes": "P2-9 acceptance; touches every node should-I-run check"
+    },
+    {
+      "id": "F0219",
+      "phase": 3,
+      "tier": "P0",
+      "name": "Top-3 most-discriminative intake answers selected for Relevance grounding",
+      "depends_on": ["F0215"],
+      "passes": false,
+      "day": "D19 Jun 2",
+      "notes": "P2-10 audit fix; side-by-side eval shows judge-with-transcript vs judge-without improves agreement with human raters by >=3%"
+    },
+    {
+      "id": "F0220",
+      "phase": 1,
+      "tier": "P0",
+      "name": "CI lint rule: atelier-eval/src/atelier_eval/lints/anchor_discipline.py (ADR 0012 mechanical enforcement)",
+      "depends_on": ["F0199"],
+      "passes": false,
+      "day": "D2 May 16",
+      "notes": "P0-1+P0-2 enforcement; rejects PRs that ship judge/gate/subagent code ignoring BriefSpec; runs in pre-commit + CI"
     }
   ]
 }

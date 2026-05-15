@@ -1,9 +1,10 @@
 # 0011. Web-Research-Augmented Intake (WRAI) as N14 novel contribution
 
-**Status:** Proposed (awaits user approval)
+**Status:** Accepted (approved 2026-05-15)
 **Date:** 2026-05-15
 **Decision-makers:** Daniel Manzela (+ Claude Opus 4.7 MAX as builder)
 **Supersedes:** none (extends ADR 0004 PIP)
+**Related:** ADR 0012 (Anchor Discipline), ADR 0013 (Conditional Axis Weighting)
 
 ## Context
 

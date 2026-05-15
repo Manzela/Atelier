@@ -198,3 +198,49 @@ This addition supersedes part of the original ADR 0011 (anchor discipline) by el
 ## Approval gate
 
 Per the audit skill: **stop here. Do not implement.** User must approve, request edits, or pick a subset before any P0/P1/P2 item moves to a feature branch.
+
+---
+
+## Pass 4 — Approval landed (2026-05-15)
+
+User approved ALL buckets and greenlit all decisions. Spec absorption commit `<TBD>` lands the following:
+
+### Decisions ratified
+
+- **ADR 0011** — Web-Research-Augmented Intake (N14): status Proposed → **Accepted**
+- **ADR 0012 (NEW)** — Anchor Discipline (BriefSpec Everywhere): consolidates P0-1, P0-2, P0-3, P1-7 under 4 binding rules. Mechanically enforced via CI lint rule.
+- **ADR 0013 (NEW)** — BriefSpec-Conditional Axis Weighting (N15 MJG): formal specification + 5×5 register×axis heuristic table + 20-run calibration plan
+- **ADR 0004 extended** — adds amendment protocol (versioned per ADR 0012 Rule 3) + skip-path precedence (per ADR 0012 Rule 4)
+
+### Features queued (+22 in features.json: F0199–F0220)
+
+| Day        | New feature IDs                          | Audit bucket                              |
+| ---------- | ---------------------------------------- | ----------------------------------------- |
+| D2 May 16  | F0199, F0200, F0220                      | P0-1 + CI lint enforcement                |
+| D8 May 22  | F0201, F0202                             | P0-3 amendment protocol                   |
+| D10 May 24 | F0209, F0210, F0215                      | N15 axis weighting + P0-2 Relevance judge |
+| D11 May 25 | F0211, F0212                             | N15 calibration + P1-4 compliance gate    |
+| D12 May 26 | F0213, F0214                             | P1-6 CSC-D constitution registry          |
+| D13 May 27 | F0203, F0204, F0205, F0206, F0207, F0208 | P1-7 + WRAI full stack (N14)              |
+| D17 May 31 | F0216                                    | P2-8 5 judges BriefSpec-aware             |
+| D18 Jun 1  | F0217, F0218                             | P2-9 PADI dynamic config                  |
+| D19 Jun 2  | F0219                                    | P2-10 intake transcript wiring            |
+
+`features.json._meta.total_features`: 183 → 205. Sprint plan updated with Audit Addendum section. Original day-by-day base plan preserved unchanged — additions are dependency-graph composed, not a rewrite.
+
+### Source flag deferred
+
+`autonomous_agent_principles.md §3` was cited in the original audit-trigger context but the file does not exist in `~/RX-Research Project/AutonomousAgent/docs/`. Flagged for user confirmation; no action taken — does not block any of the approved work.
+
+### Status
+
+**Spec absorption complete.** Implementation begins per the standard sprint discipline (TDD-per-feature, worktree-per-phase, commit-per-feature). The audit deliverables themselves remain in `audit/` as historical record of the gap-closure rationale; future contributors reading them see the design evolution from PRD-only to PRD + ADR 0011-0013 + 22 features.
+
+Next session entry point per `docs/sprint/INSIGHTS-2026-05-15.md` D1 must-do list, now extended:
+
+1. Read SESSION-COMPLETE + INSIGHTS
+2. Read this audit + the 3 new ADRs (0011, 0012, 0013)
+3. Resolve P2 blocker (vite security PRs #21/#22)
+4. Begin F0001a → F0001b → F0001c (worktree setup) per existing plan
+5. Then F0004 BriefSpec data contract (already on D1 schedule), F0009 data_contracts.py
+6. Then **F0199 ADK dispatch wrapper** (NEW — first audit feature) on D2

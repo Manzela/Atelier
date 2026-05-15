@@ -268,3 +268,19 @@ This is a substantive design extension. Treated as **Gap 0** (highest priority �
 - **N12 RLRD** rationale strengthened by both: research findings travel with the BriefSpec across sessions, demonstrating the discipline at the anchor level (not just the state-file level)
 
 **Failure-handling discipline preserved**: WRAI is fail-soft (research unavailable → BriefSpec proceeds; user notified) and fail-loud where it must be (synthesis hallucinates citation → Reviewer subagent verifies every URL is reachable + matches `research-trust.yaml`; prompt injection in fetched content → Apigee Model Armor blocks).
+
+---
+
+## Pass 4 — Final state (2026-05-15)
+
+User approved ALL audit buckets + all 3 ADRs (0011 WRAI / 0012 Anchor Discipline / 0013 Conditional Axis Weighting). Spec absorption complete:
+
+- All 10 gaps now have a corresponding ADR + feature(s) in features.json (F0199–F0220, +22 features, total 205)
+- ADR 0011 status Proposed → Accepted
+- ADR 0012 (NEW) consolidates 4 of the P0/P1 gaps under a single Anchor Discipline with mechanical CI enforcement via `atelier-eval/src/atelier_eval/lints/anchor_discipline.py`
+- ADR 0013 (NEW) formalizes N15 MJG (Metastrategic Judging Gap) — first paper-publishable closure of an unaddressed agent failure mode
+- ADR 0004 (PIP) extended with amendment protocol + skip-path precedence
+- Sprint plan annotated with "Audit Addendum" section preserving the original day-by-day plan + listing all +22 additions by day with audit-bucket attribution
+- `features.json._meta.audit_addendum` field documents the provenance for future maintainers
+
+The audit deliverables (this file + `audit-plan.md`) become historical record. Future sessions read SESSION-COMPLETE + INSIGHTS-2026-05-15 + the 3 new ADRs to understand the design evolution.

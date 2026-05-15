@@ -66,9 +66,35 @@ PIP characteristics:
 - Cons: User can't see/edit the inferred answers; can't approve the immutable BriefSpec; loses the trust-building demo moment
 - Why rejected: Transparency + immutability are load-bearing for the convergence guarantee
 
+## Amendment protocol (added 2026-05-15 per ADR 0012 Rule 3)
+
+Per ADR 0012 (Anchor Discipline) Rule 3, BriefSpec amendments are **versioned, never in-place**. Operationally:
+
+- **Trigger**: User runs `atelier amend` (CLI) or `Amend BriefSpec` action in dashboard
+- **Re-intake**: PIP re-asks **only the questions whose answers the user wants to change** (focused re-intake, not full 13-question replay)
+- **WRAI re-run**: Vertex AI Search Grounding re-runs **only for affected fields** (e.g., changing `compliance_level` triggers compliance-standards research; changing `visual_register` triggers register-references research)
+- **New BriefSpec version**: Produced as `brief_spec_v<N+1>.json` (immutable); `brief_spec_current.json` symlink updated; entry appended to `brief_spec_history.jsonl`
+- **In-flight surfaces** (state == GENERATING): pause; resume against new BriefSpec
+- **Converged surfaces** (state == CONVERGED): flagged `coherence_review_required: true`; re-validated against new BriefSpec by Cross-Surface Coherence Validator on next campaign tick. Surfaces that still pass → `regrandfathered: true`. Surfaces that fail → returned to queue.
+- **Surface Manifest** carries a `brief_spec_version: int` field per surface so each surface is bound to the BriefSpec version under which it was generated
+
+## Skip-path precedence rule (added 2026-05-15 per ADR 0012 Rule 4)
+
+When PIP's Skip-Path Resolver finds an answer for the same question in multiple sources, the precedence is fixed:
+
+1. **Descriptor** (`.atelier.yaml`) — explicit, version-controlled
+2. **Brief-NLP-parsed** — extracted from user's free-form brief by Gemini 3 Flash
+3. **Memory Bank** — answer from prior projects (statistical)
+4. **Defaults** — schema defaults
+
+Rationale: explicit user intent (descriptor) beats statistical inference (Memory Bank). Implementation in `atelier-core/src/atelier/intake/skip_path.py` exposes `resolve_skip_path()` returning a `ResolvedAnswer` with source provenance for traceability.
+
 ## References
 
 - [PRD §6.1 PIP Layer](../superpowers/specs/2026-05-14-atelier-prd.md)
+- [ADR 0011 — Web-Research-Augmented Intake](0011-web-research-augmented-intake.md) — adds WRAI between intake and lock
+- [ADR 0012 — Anchor Discipline](0012-anchor-discipline-briefspec-everywhere.md) — Rules 3 + 4 specify amendment + skip-path precedence
+- [ADR 0013 — Conditional Axis Weighting](0013-conditional-axis-weighting.md) — consumes BriefSpec for per-project axis weights
 - Columbia DAPLab — 9 Critical Failure Patterns of Coding Agents (Jan 2026)
 - DesignPref (Nov 2025) — designer disagreement is intrinsic
 - Anthropic two-prompt harness pattern (Nov 2025) — recursive influence
