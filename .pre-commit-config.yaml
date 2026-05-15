@@ -1,0 +1,149 @@
+# Pre-commit hooks for Atelier
+# Per CLAUDE.md sprint invariants: compile-then-commit gate.
+# Run on every commit; CI re-runs to catch hooks bypassed locally.
+
+minimum_pre_commit_version: 3.7.0
+
+default_language_version:
+  python: python3.11
+  node: '20.11.1'
+
+default_install_hook_types: [pre-commit, commit-msg]
+default_stages: [pre-commit]
+
+repos:
+  # ─── Standard hygiene ──────────────────────────────────────────────────────
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: '\.md$'
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-json
+        exclude: 'tsconfig.*\.json$'  # tsconfig allows trailing commas + comments
+      - id: check-added-large-files
+        args: ['--maxkb=500']
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: check-symlinks
+      - id: destroyed-symlinks
+      - id: detect-private-key
+        exclude: 'tests/.*fixtures/'
+      - id: mixed-line-ending
+        args: ['--fix=lf']
+      - id: forbid-new-submodules
+      - id: no-commit-to-branch
+        args: ['--branch', 'main']  # main protected per ADR 0007
+
+  # ─── Python: ruff (lint + format) ──────────────────────────────────────────
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+
+  # ─── Python: mypy (strict type checking) ───────────────────────────────────
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.13.0
+    hooks:
+      - id: mypy
+        files: '^atelier-core/src/.*\.py$|^atelier-eval/src/.*\.py$'
+        additional_dependencies:
+          - pydantic>=2.6
+          - types-PyYAML
+          - types-requests
+
+  # ─── Python: pytest fast subset (<10s) ────────────────────────────────────
+  - repo: local
+    hooks:
+      - id: pytest-fast
+        name: pytest fast subset
+        entry: pytest -x --no-header -q -m "unit and not slow"
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+
+  # ─── Secrets: detect-secrets ──────────────────────────────────────────────
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: |
+          (?x)^(
+            package-lock\.json|
+            package\.json|
+            atelier-core/tests/fixtures/.*|
+            \.secrets\.baseline
+          )$
+
+  # ─── Markdown lint ─────────────────────────────────────────────────────────
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.42.0
+    hooks:
+      - id: markdownlint
+        args: ['--config', '.markdownlint.yaml', '--fix']
+        exclude: 'CHANGELOG\.md$|claude-progress\.txt$'
+
+  # ─── YAML lint ─────────────────────────────────────────────────────────────
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.35.1
+    hooks:
+      - id: yamllint
+        args: ['--strict', '--config-file=.yamllint.yaml']
+
+  # ─── Shell: shellcheck ─────────────────────────────────────────────────────
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.10.0.1
+    hooks:
+      - id: shellcheck
+        args: ['--severity=warning']
+
+  # ─── Shell: shfmt ──────────────────────────────────────────────────────────
+  - repo: https://github.com/scop/pre-commit-shfmt
+    rev: v3.10.0-1
+    hooks:
+      - id: shfmt
+        args: ['-i', '2', '-ci', '-w']
+
+  # ─── Prettier (TS/JS/JSX/TSX/JSON/MD) ──────────────────────────────────────
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v4.0.0-alpha.8
+    hooks:
+      - id: prettier
+        files: '\.(js|jsx|ts|tsx|json|yml|yaml|md)$'
+        exclude: |
+          (?x)^(
+            package-lock\.json|
+            CHANGELOG\.md|
+            site/|
+            _site/
+          )
+
+  # ─── Conventional Commits ──────────────────────────────────────────────────
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.4.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: [feat, fix, docs, chore, refactor, test, perf, security, build, ci, revert]
+
+  # ─── Custom: ban silent error suppression (per CLAUDE.md invariant) ────────
+  - repo: local
+    hooks:
+      - id: no-bare-except
+        name: ban bare except / silent pass
+        entry: |
+          bash -c '
+            set -euo pipefail
+            # Ban bare `except:` and `except Exception: pass`
+            if grep -RnE "^\s*except\s*:|^\s*except\s+Exception\s*:\s*pass" --include="*.py" atelier-core/src atelier-eval/src 2>/dev/null; then
+              echo "ERROR: bare except: or silent pass detected (per CLAUDE.md invariant)"
+              exit 1
+            fi
+          '
+        language: system
+        pass_filenames: false

@@ -1,0 +1,123 @@
+name: 🐛 Bug Report
+description: Report something that's broken or behaving incorrectly
+title: "bug: <short description>"
+labels: ["bug", "needs-triage"]
+assignees:
+  - Manzela
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug report. The more detail you provide, the faster we can fix it.
+
+        **For security vulnerabilities, please use [private security advisories](https://github.com/Manzela/atelier/security/advisories/new) instead.**
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Clear, concise description of the bug. What did you observe?
+      placeholder: When I run X, Atelier responds with Y instead of Z...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+      description: What behavior did you expect instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Minimal, complete steps. Include code snippets, configs, or commands.
+      placeholder: |
+        1. Run `atelier intake --campaign "..."`
+        2. Answer the questions with values X, Y, Z
+        3. Observe the error during N3c Deterministic Gate
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / Output
+      description: Sanitized logs (strip secrets and PII). Atelier session ID if applicable.
+      render: shell
+
+  - type: input
+    id: session-id
+    attributes:
+      label: Atelier session ID (optional)
+      description: We can trace this in BigQuery to investigate.
+      placeholder: e.g., 550e8400-e29b-41d4-a716-446655440000
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - Critical (blocks all use)
+        - High (blocks important use case)
+        - Medium (workaround exists)
+        - Low (cosmetic / minor inconvenience)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: subsystem
+    attributes:
+      label: Affected subsystem
+      multiple: true
+      options:
+        - intake (PIP)
+        - campaign (Campaign Orchestrator)
+        - dag (8-node atomic DAG)
+        - judge (consensus + DEMAS-D)
+        - gate (Lighthouse / axe / visual-diff / responsive)
+        - flywheel (DPO + LoRA)
+        - adk (ADK integration)
+        - tools (Stitch MCP, design.md MCP, etc.)
+        - render (A2UI renderers)
+        - memory (Memory Bank, Vector Search)
+        - eval (benchmarks, scoring)
+        - deploy (Cloud Run, Terraform)
+        - dashboard (observability UI)
+        - action / figma / chrome (extensions)
+        - docs
+        - other
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Atelier version
+      placeholder: e.g., v0.2.0-beta or commit SHA
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: e.g., macOS 14.5 / Python 3.11.9 / Node 20.11.1 / Cloud Run us-central1
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Pre-flight
+      options:
+        - label: I have searched [existing issues](https://github.com/Manzela/atelier/issues) and confirmed this is not a duplicate
+          required: true
+        - label: I have stripped secrets and PII from logs/output
+          required: true
+        - label: I agree to follow the [Code of Conduct](../CODE_OF_CONDUCT.md)
+          required: true

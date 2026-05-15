@@ -1,0 +1,63 @@
+Atelier — Autonomous Design Agent
+Copyright 2026 Daniel Manzela
+
+This product includes software developed by:
+
+  Daniel Manzela (https://github.com/Manzela)
+  Apache License 2.0
+  Original work for the Atelier autonomous design agent.
+
+This product builds on architectural patterns and depends on the following
+upstream projects (consumed via lockfile-pinned dependencies — wrap-don't-fork
+per ADR 0001):
+
+  agent-dag-pipeline
+  https://github.com/Manzela/agent-dag-pipeline
+  Apache License 2.0
+  Author: Daniel Manzela
+  Provides: Gate-Agent ABC pattern, DEMAS Provenance Matrix, 3-tier DPO
+  flywheel, Hebbian prompt mutator, ADK integration wrappers (gate_agent,
+  pipeline, runner, callbacks, eval, guardrails, tools, agent_card, deploy).
+  Atelier consumes via `pip install agent-dag-pipeline==<pinned>` and
+  subclasses public APIs without modifying upstream source.
+
+  hermes-agent
+  https://github.com/NousResearch/hermes-agent
+  MIT License
+  Author: Nous Research
+  Inspired: skills system, MEMORY/SOUL files, sandboxing tier model,
+  panic/resume primitives, Atropos GRPO+LoRA training pattern, two-prompt
+  harness adoption. Atelier mirrors patterns; does NOT run hermes-agent
+  as a process or import its code directly.
+
+  google-adk
+  https://github.com/google/adk-python
+  Apache License 2.0
+  Author: Google LLC
+  Provides: SequentialAgent, ParallelAgent, LoopAgent, MCPToolset,
+  rubric_based_*_v1 evaluators, Skills for Agents, adk optimize (GEPA),
+  adk conformance, adk eval CLI. Atelier consumes via
+  `pip install google-adk --pre` lockfile-pinned.
+
+  Stitch MCP
+  https://stitch.googleapis.com/mcp
+  Google Labs / DeepMind product
+  Atelier consumes via ADK's `MCPToolset` HTTP client — no source dependency.
+
+  Anthropic two-prompt harness pattern
+  https://github.com/anthropics/claude-quickstarts/tree/main/autonomous-coding
+  Apache License 2.0
+  Author: Anthropic, PBC
+  Pattern adopted for the build sprint discipline (initializer + coding
+  agent + JSON ledger + end-to-end test before next feature).
+
+The Apache License Version 2.0 governs the use of this software. The licenses
+of all third-party dependencies are listed in their respective package metadata
+and reproduced in their entirety in the source distributions of those packages.
+
+For a complete list of dependencies and their licenses, run:
+
+  pip-licenses --order=license --format=markdown    # Python deps
+  npx license-checker --summary                       # Node deps
+
+Source repository: https://github.com/Manzela/atelier

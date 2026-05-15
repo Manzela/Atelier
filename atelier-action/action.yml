@@ -1,0 +1,41 @@
+name: 'Atelier Design QA'
+description: 'Run Atelier convergence on UI files in this PR; post verdict comment'
+author: 'Daniel Manzela'
+branding:
+  icon: 'check-circle'
+  color: 'blue'
+
+inputs:
+  api-key:
+    description: 'Atelier API key (get one at atelier.dev/settings/api-keys)'
+    required: true
+  paths:
+    description: 'Glob patterns for UI files to evaluate (default: HTML/JSX/TSX/CSS/Vue/Svelte)'
+    required: false
+    default: '**/*.{html,jsx,tsx,css,vue,svelte,astro}'
+  convergence-bar:
+    description: 'Convergence threshold: ship-it (≥85%) | production (≥95%) | perfectionist (100%)'
+    required: false
+    default: 'production'
+  comment-on-pr:
+    description: 'Post verdict as PR comment'
+    required: false
+    default: 'true'
+  fail-on-non-convergence:
+    description: 'Fail the action if any surface fails to converge'
+    required: false
+    default: 'false'
+
+outputs:
+  surfaces-evaluated:
+    description: 'Number of UI surfaces evaluated'
+  surfaces-converged:
+    description: 'Number that converged at the requested threshold'
+  composite-score:
+    description: 'Aggregate D-O-R-A-V composite score across all surfaces'
+  report-url:
+    description: 'URL to full report on atelier.dev'
+
+runs:
+  using: 'node20'
+  main: 'dist/index.js'

@@ -1,0 +1,223 @@
+# Atelier — .gitignore
+# Comprehensive ignore for Python + Node + GCP + IDE + OS
+
+# ─── Python ─────────────────────────────────────────────────────────────────
+
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+.python-version
+
+# Testing
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.benchmarks/
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+.ruff_cache/
+
+# Jupyter
+.ipynb_checkpoints
+profile_default/
+ipython_config.py
+
+# ─── Node / TypeScript ──────────────────────────────────────────────────────
+
+node_modules/
+jspm_packages/
+.npm
+.eslintcache
+.stylelintcache
+.yarn-integrity
+.pnp.*
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+package-lock.json.bak
+
+# Build outputs
+.next/
+out/
+build/
+dist/
+.nuxt/
+.cache/
+.parcel-cache/
+.svelte-kit/
+.turbo/
+.vercel/
+.netlify/
+
+# ─── Worktrees (per ADR 0007 — Worktree-per-phase branching) ────────────────
+
+.worktrees/
+
+# ─── GCP / Secrets ──────────────────────────────────────────────────────────
+
+# sops-encrypted secrets are committed; plaintext counterparts are not
+secrets/*.env
+secrets/*.json
+secrets/*.txt
+secrets/*.pem
+secrets/*.key
+!secrets/*.sops
+!secrets/*.template.txt
+!secrets/README.md
+!secrets/.gitignore
+
+# Service account keys — never commit
+*.gcp-service-account*.json
+*.json.key
+gcp-credentials.json
+.gcloudignore
+
+# Application Default Credentials
+application_default_credentials.json
+
+# Terraform
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+.terraform/
+.terraform.lock.hcl
+crash.log
+crash.*.log
+
+# Kubernetes
+kubeconfig
+*.kubeconfig
+
+# ─── Atelier sprint state ───────────────────────────────────────────────────
+
+# Logs are gitignored (rotated locally; retained in Cloud Logging in prod)
+logs/
+*.log
+
+# Local LiteLLM / Apigee config dumps
+litellm-cache/
+.litellm/
+
+# Per-tenant local state for testing
+.atelier-local/
+.atelier-test/
+
+# ─── IDE ────────────────────────────────────────────────────────────────────
+
+.idea/
+.vscode/
+!.vscode/settings.json.example
+!.vscode/extensions.json.example
+*.swp
+*.swo
+*.swn
+*~
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# ─── OS ─────────────────────────────────────────────────────────────────────
+
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ─── Misc ───────────────────────────────────────────────────────────────────
+
+# Backup files
+*.bak
+*.backup
+*.tmp
+*.temp
+*~
+
+# Environment variables (use .env.example as template)
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Lock file backups
+*.lock.bak
+
+# Profiling data
+.prof
+*.prof
+
+# Local database files
+*.db
+*.sqlite
+*.sqlite3
+!atelier-eval/data/golden_sets/*.sqlite
+
+# Local model artifacts (LoRA weights cached locally; production = Vertex Endpoints)
+models/local/
+*.lora
+*.safetensors
+!atelier-core/tests/fixtures/*.safetensors
+
+# Trajectory captures (production = BigQuery; local = gitignored)
+trajectories/
+!trajectories/.gitkeep
+
+# Compiled docs
+site/
+_site/
+
+# Cypress / Playwright artifacts
+cypress/videos/
+cypress/screenshots/
+playwright-report/
+test-results/
+.playwright-cache/
+
+# License check outputs
+licenses-summary.csv
+licenses-summary.json

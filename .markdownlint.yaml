@@ -1,0 +1,43 @@
+# markdownlint config for Atelier docs
+# https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md
+
+default: true
+
+# Line length — disabled (we have many tables and code blocks)
+MD013: false
+
+# Multiple consecutive blank lines — allow 2
+MD012:
+  maximum: 2
+
+# Allow inline HTML (we use it in some docs for tables and badges)
+MD033: false
+
+# First line in file should be a top-level heading — relax for files like CLAUDE.md
+MD041: false
+
+# Heading style — atx (#) only
+MD003:
+  style: atx
+
+# Unordered list style — dash (-) only
+MD004:
+  style: dash
+
+# Code block style — fenced
+MD046:
+  style: fenced
+
+# Code fence style — backtick
+MD048:
+  style: backtick
+
+# Allow long URLs in references
+MD034: false
+
+# Allow link text to differ from URL
+MD039: true
+
+# Trailing punctuation in headings — allow ! ? :
+MD026:
+  punctuation: '.,;'

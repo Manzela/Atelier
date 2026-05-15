@@ -1,0 +1,20 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Questions / General Discussion
+    url: https://github.com/Manzela/atelier/discussions
+    about: For questions, ideas, or general discussion. Bugs and feature requests have dedicated templates.
+  - name: 🔒 Security Vulnerability
+    url: https://github.com/Manzela/atelier/security/advisories/new
+    about: Privately report a security vulnerability. Do NOT file public issues for security concerns.
+  - name: 🌐 atelier.dev
+    url: https://atelier.dev
+    about: Product home, sign-up, and live demos.
+  - name: 📖 Documentation
+    url: https://docs.atelier.dev
+    about: User guides, API reference, and architecture documentation.
+  - name: 📊 Public Benchmark Scoreboard
+    url: https://bench.atelier.dev
+    about: Submit your own agent for benchmarking.
+  - name: 📈 Calibration Drift Dashboard
+    url: https://calibration.atelier.dev
+    about: Live judge calibration transparency.

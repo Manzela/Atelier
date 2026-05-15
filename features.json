@@ -1,0 +1,113 @@
+{
+  "_meta": {
+    "schema_version": 1,
+    "format": "Anthropic two-prompt harness JSON ledger (Nov 2025 pattern)",
+    "purpose": "Atomic feature ledger for the 21-day sprint. Coding agent picks next unblocked unstarted feature, runs end-to-end test before touching the next. JSON not Markdown so Claude is less likely to silently rewrite.",
+    "owner": "Daniel Manzela + Claude Opus 4.7 MAX",
+    "sprint_window": "2026-05-15 to 2026-06-04",
+    "submission_target": "2026-06-03 noon",
+    "total_features": "TBD — populated D1 of sprint",
+    "completion_metric": "passes: true on all P0 features by 2026-06-03"
+  },
+  "features": [
+    {
+      "id": "F0001",
+      "phase": 1,
+      "tier": "P0",
+      "name": "Initialize repo with full SDLC scaffold",
+      "depends_on": [],
+      "passes": true,
+      "axes_passed": ["scaffold_complete", "ci_green", "docs_present"],
+      "iteration_count": 1,
+      "human_approved": true,
+      "started_at": "2026-05-14T00:00:00Z",
+      "completed_at": "2026-05-14T00:00:00Z",
+      "notes": "Initial commit. PRD + ADRs + governance docs + CI/CD + sprint state files all in place."
+    },
+    {
+      "id": "F0002",
+      "phase": 1,
+      "tier": "P0",
+      "name": "GCP project + Terraform foundation (identity_platform, apigee skeleton, cloud_run, vertex_ai, memory_bank, vector_search, bigquery, kms, monitoring)",
+      "depends_on": ["F0001"],
+      "passes": false,
+      "axes_passed": [],
+      "iteration_count": 0,
+      "human_approved": null,
+      "started_at": null,
+      "completed_at": null,
+      "notes": "Sprint D2 deliverable. Requires Daniel to file Vertex AI Provisioned Throughput quota request."
+    },
+    {
+      "id": "F0003",
+      "phase": 1,
+      "tier": "P0",
+      "name": "Port agent-dag-pipeline ADK plumbing (lockfile-pinned consume per ADR 0001)",
+      "depends_on": ["F0001"],
+      "passes": false,
+      "axes_passed": [],
+      "iteration_count": 0,
+      "human_approved": null,
+      "started_at": null,
+      "completed_at": null,
+      "notes": "Sprint D3. pip install agent-dag-pipeline + subclass GateAgent ABC + import DEMAS provenance + 3-tier flywheel patterns. NEVER modify upstream."
+    },
+    {
+      "id": "F0004",
+      "phase": 1,
+      "tier": "P0",
+      "name": "N1 Brief Parser node (deterministic gate + LLM agent)",
+      "depends_on": ["F0003"],
+      "passes": false,
+      "axes_passed": [],
+      "iteration_count": 0,
+      "human_approved": null,
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "id": "F0005",
+      "phase": 1,
+      "tier": "P0",
+      "name": "N2 Source Resolver node (descriptor + Memory Bank + DESIGN.md lint)",
+      "depends_on": ["F0003"],
+      "passes": false,
+      "axes_passed": [],
+      "iteration_count": 0,
+      "human_approved": null,
+      "started_at": null,
+      "completed_at": null
+    },
+    {
+      "id": "F0006",
+      "phase": 1,
+      "tier": "P0",
+      "name": "Pydantic v2 frozen data contracts (TenantContext, BriefSpec, SurfaceManifest, CandidateUI, GateOutcome, JudgeVote, ConsensusResult, CoherenceVerdict, TrajectoryRecord)",
+      "depends_on": ["F0003"],
+      "passes": false,
+      "axes_passed": [],
+      "iteration_count": 0,
+      "human_approved": null,
+      "started_at": null,
+      "completed_at": null
+    }
+  ],
+  "_pending_population": {
+    "remaining_features_to_define": "~194",
+    "definition_will_happen": "Sprint D1 (May 15) when writing-plans skill produces the day-by-day implementation plan. The plan will decompose every PRD deliverable into atomic features that follow this schema.",
+    "schema_for_new_features": {
+      "id": "F<NNNN> — zero-padded sequential",
+      "phase": "1 | 2 | 3",
+      "tier": "P0 (must ship MVP) | P1 (post-launch within Phase 1.5) | P2 (defer)",
+      "name": "Imperative subject ≤80 chars",
+      "depends_on": "[<feature-id>, ...] — list of feature IDs that must complete first",
+      "passes": "boolean — true only when end-to-end test passes",
+      "axes_passed": "[<axis>, ...] — which acceptance axes are green",
+      "iteration_count": "integer — increments on each Generator-Fixer cycle",
+      "human_approved": "boolean | null — set true when Daniel signs off",
+      "started_at": "RFC 3339 UTC | null",
+      "completed_at": "RFC 3339 UTC | null",
+      "notes": "string | null — any context for future sessions"
+    }
+  }
+}

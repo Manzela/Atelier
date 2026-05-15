@@ -1,0 +1,183 @@
+# pyproject.toml — workspace root for Atelier
+# This file configures repo-wide Python tooling (ruff, mypy, pytest, pre-commit).
+# Subpackage-specific config lives in atelier-core/pyproject.toml and
+# atelier-eval/pyproject.toml.
+
+[project]
+name = "atelier-workspace"
+version = "0.1.0-alpha"
+description = "Atelier — autonomous design agent (workspace root)"
+authors = [{ name = "Daniel Manzela", email = "hello@atelier.dev" }]
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.11,<3.13"
+keywords = [
+    "ai-agent",
+    "autonomous-design",
+    "ui-ux",
+    "google-adk",
+    "vertex-ai",
+    "design-system",
+    "rl",
+    "dpo",
+    "stitch-mcp",
+    "a2ui",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+[project.urls]
+Homepage = "https://atelier.dev"
+Documentation = "https://docs.atelier.dev"
+Repository = "https://github.com/Manzela/atelier"
+Issues = "https://github.com/Manzela/atelier/issues"
+Changelog = "https://github.com/Manzela/atelier/blob/main/CHANGELOG.md"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = [
+    ".worktrees",
+    "atelier-core/src/atelier/skills/*/SKILL.md",
+    "node_modules",
+    "site",
+    "_site",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # Pyflakes
+    "I",      # isort
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "UP",     # pyupgrade
+    "N",      # pep8-naming
+    "S",      # flake8-bandit (security)
+    "BLE",    # flake8-blind-except
+    "FBT",    # flake8-boolean-trap
+    "C90",    # mccabe complexity
+    "DTZ",    # flake8-datetimez
+    "EXE",    # flake8-executable
+    "ICN",    # flake8-import-conventions
+    "G",      # flake8-logging-format
+    "PIE",    # flake8-pie
+    "T20",    # flake8-print
+    "PT",     # flake8-pytest-style
+    "RET",    # flake8-return
+    "SIM",    # flake8-simplify
+    "TID",    # flake8-tidy-imports
+    "TCH",    # flake8-type-checking
+    "ARG",    # flake8-unused-arguments
+    "PTH",    # flake8-use-pathlib
+    "ERA",    # eradicate
+    "PL",     # Pylint
+    "TRY",    # tryceratops
+    "RUF",    # Ruff-specific
+]
+ignore = [
+    "E501",   # Line too long (handled by formatter)
+    "S101",   # Use of assert (allowed in tests)
+    "PLR0913", # Too many arguments (Pydantic models)
+    "TRY003",  # Avoid specifying long messages outside the exception class
+    "TRY301",  # Abstract raise to an inner function
+]
+unfixable = ["F401", "F841"]  # Don't auto-remove unused imports/variables
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101", "PLR2004", "ARG001", "ARG002"]  # asserts + magic numbers + unused args ok in tests
+"atelier-core/src/atelier/skills/**/*.py" = ["T20"]  # print() ok in skills (CLI output)
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+docstring-code-format = true
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+disallow_untyped_defs = true
+disallow_any_unimported = true
+disallow_any_generics = true
+no_implicit_optional = true
+check_untyped_defs = true
+plugins = ["pydantic.mypy"]
+exclude = [
+    "^.worktrees/",
+    "^atelier-deploy/terraform/",
+    "^node_modules/",
+    "^site/",
+]
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+disallow_any_decorated = false
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["atelier-core/tests", "atelier-eval/tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "--showlocals",
+    "--tb=short",
+]
+markers = [
+    "unit: fast unit tests (<30s total)",
+    "integration: integration tests requiring docker compose (~5min)",
+    "eval: eval suite tests (long-running, may need GPU)",
+    "slow: tests that take more than 5 seconds",
+    "external: tests that hit external services (Vertex AI, Stitch MCP)",
+]
+filterwarnings = [
+    "error",
+    "ignore::DeprecationWarning:google.*",
+    "ignore::DeprecationWarning:opentelemetry.*",
+]
+
+[tool.coverage.run]
+source = ["atelier-core/src", "atelier-eval/src"]
+branch = true
+omit = ["*/tests/*", "*/__init__.py", "*/skills/*"]
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
+]

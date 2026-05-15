@@ -1,0 +1,114 @@
+name: 📉 Eval Regression / Failure
+description: Report a regression on WebGen-Bench, Design2Code, calibration drift, or other eval suite failures
+title: "eval: <benchmark>: <short description>"
+labels: ["eval-regression", "needs-triage"]
+assignees:
+  - Manzela
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Eval regressions are first-class issues. We treat any drop > 3% on a benchmark as a regression that blocks release.
+
+  - type: dropdown
+    id: benchmark
+    attributes:
+      label: Affected benchmark
+      options:
+        - WebGen-Bench (484 tasks)
+        - Design2Code (Stanford NAACL 2025)
+        - Web2Code (NeurIPS 2024)
+        - ScreenSpot
+        - FrontendBench
+        - Calibration golden set (frozen, 100 tasks)
+        - Adversarial set (held-out, 50 tasks)
+        - Designer-in-residence sessions
+        - Internal smoke / integration tests
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: previous-score
+    attributes:
+      label: Previous score
+      placeholder: e.g., 51.4 on commit a1b2c3d
+    validations:
+      required: true
+
+  - type: input
+    id: current-score
+    attributes:
+      label: Current score
+      placeholder: e.g., 47.8 on commit d4e5f6g
+    validations:
+      required: true
+
+  - type: input
+    id: delta
+    attributes:
+      label: Score delta
+      placeholder: e.g., -3.6 (-7%)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - Critical (drop > 5% on headline benchmark — blocks release)
+        - High (drop > 3% on any tracked benchmark)
+        - Medium (drop > 1% but within noise on some axes)
+        - Low (within noise; flagged for investigation)
+    validations:
+      required: true
+
+  - type: input
+    id: bisect-range
+    attributes:
+      label: Suspected commit range
+      placeholder: e.g., a1b2c3d..d4e5f6g (use git bisect to narrow)
+
+  - type: textarea
+    id: per-axis-breakdown
+    attributes:
+      label: Per-axis score breakdown
+      description: For multi-axis benchmarks, where did the regression land?
+      placeholder: |
+        Brand: -1%
+        A11y: -8% (← culprit)
+        Motion: 0%
+        Token-fidelity: 0%
+        Coherence: -2%
+      render: yaml
+
+  - type: textarea
+    id: failing-tasks
+    attributes:
+      label: Failing tasks (top 5)
+      description: Which specific tasks regressed?
+      render: markdown
+
+  - type: textarea
+    id: traces
+    attributes:
+      label: Cloud Trace / Langfuse links
+      description: Trace IDs for the failing runs.
+
+  - type: textarea
+    id: hypothesis
+    attributes:
+      label: Root-cause hypothesis
+      description: What do you think changed? Pre-investigation guess is OK.
+
+  - type: checkboxes
+    id: triage
+    attributes:
+      label: Triage checklist
+      options:
+        - label: I have run `pytest tests/eval/ --baseline=<previous-good-commit>` to confirm
+        - label: I have checked the Atelier calibration dashboard for judge drift
+        - label: I have checked Cloud Monitoring for related infrastructure incidents
+        - label: I have checked REJECTED.md to ensure this isn't a known dead-end being re-tried

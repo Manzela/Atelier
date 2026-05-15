@@ -1,0 +1,52 @@
+name: 📖 Documentation Issue
+description: Report incorrect, unclear, or missing documentation
+title: "docs: <short description>"
+labels: ["documentation"]
+assignees:
+  - Manzela
+
+body:
+  - type: input
+    id: location
+    attributes:
+      label: Documentation location
+      description: Path or URL of the doc with the issue
+      placeholder: e.g., docs/superpowers/specs/2026-05-14-atelier-prd.md §6.3 OR docs.atelier.dev/getting-started
+    validations:
+      required: true
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: Issue type
+      options:
+        - Incorrect information
+        - Outdated (still references old behavior)
+        - Unclear / confusing
+        - Missing (should exist but doesn't)
+        - Broken link
+        - Typo / grammar
+        - Code example doesn't work
+    validations:
+      required: true
+
+  - type: textarea
+    id: current
+    attributes:
+      label: Current state
+      description: What does the doc currently say (or fail to say)?
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What it should say
+      description: Suggested correction or addition
+
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contribution
+      options:
+        - label: I am willing to submit a PR with the fix

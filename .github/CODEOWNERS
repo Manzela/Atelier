@@ -1,0 +1,61 @@
+# CODEOWNERS for Atelier
+# https://docs.github.com/en/repositories/managing-your-repositories-settings-and-features/customizing-your-repository/about-code-owners
+#
+# Even as a solo project, CODEOWNERS declares ownership zones.
+# Required reviewers for matched paths are auto-requested.
+
+# Default — Maintainer reviews everything not otherwise specified
+*                                       @Manzela
+
+# Documentation
+/docs/                                  @Manzela
+/README.md                              @Manzela
+/CHANGELOG.md                           @Manzela
+/ROADMAP.md                             @Manzela
+/SECURITY.md                            @Manzela
+/CONTRIBUTING.md                        @Manzela
+/CODE_OF_CONDUCT.md                     @Manzela
+/GOVERNANCE.md                          @Manzela
+/NOTICE                                 @Manzela
+/LICENSE                                @Manzela
+
+# Architecture Decision Records — extra scrutiny
+/docs/decisions/                        @Manzela
+/docs/superpowers/specs/                @Manzela
+
+# Sprint state — auto-edited by Claude Code; review for drift
+/CLAUDE.md                              @Manzela
+/DECISIONS.md                           @Manzela
+/REJECTED.md                            @Manzela
+/features.json                          @Manzela
+/claude-progress.txt                    @Manzela
+/docs/sprint/                           @Manzela
+
+# Engine
+/atelier-core/                          @Manzela
+
+# Eval suite + benchmarks
+/atelier-eval/                          @Manzela
+
+# Infrastructure
+/atelier-deploy/                        @Manzela
+/atelier-deploy/terraform/              @Manzela
+
+# Dashboards + extensions
+/atelier-dashboard/                     @Manzela
+/atelier-action/                        @Manzela
+/atelier-figma-plugin/                  @Manzela
+/atelier-chrome-extension/              @Manzela
+
+# CI/CD
+/.github/                               @Manzela
+/.github/workflows/                     @Manzela
+
+# Pre-commit + linting + formatting
+/.pre-commit-config.yaml                @Manzela
+/.markdownlint.yaml                     @Manzela
+/.yamllint.yaml                         @Manzela
+/pyproject.toml                         @Manzela
+/package.json                           @Manzela
+/release-please-config.json             @Manzela
+/.release-please-manifest.json          @Manzela

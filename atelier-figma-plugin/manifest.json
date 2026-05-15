@@ -1,0 +1,35 @@
+{
+  "name": "Atelier",
+  "id": "atelier-design-agent",
+  "api": "1.0.0",
+  "main": "src/main.ts",
+  "ui": "src/ui.html",
+  "editorType": ["figma", "figjam"],
+  "menu": [
+    {
+      "name": "Generate from brief",
+      "command": "generate"
+    },
+    {
+      "name": "Audit current selection",
+      "command": "audit"
+    },
+    {
+      "name": "Pull from Atelier project",
+      "command": "pull"
+    },
+    {
+      "separator": true
+    },
+    {
+      "name": "Settings",
+      "command": "settings"
+    }
+  ],
+  "networkAccess": {
+    "allowedDomains": [
+      "https://api.atelier.dev",
+      "https://atelier.dev"
+    ]
+  }
+}

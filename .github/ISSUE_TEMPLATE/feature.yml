@@ -1,0 +1,116 @@
+name: ✨ Feature Request
+description: Suggest a new capability or improvement
+title: "feat: <short description>"
+labels: ["enhancement", "needs-triage"]
+assignees:
+  - Manzela
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for proposing an improvement. We prioritize features that align with the [PRD](../docs/superpowers/specs/2026-05-14-atelier-prd.md) and [ROADMAP](../ROADMAP.md).
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What problem does this solve? Who has it? Why now?
+      placeholder: As a designer working on multi-page campaigns, I currently have to...
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How should this work? Be specific.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What other approaches did you consider? Why is the proposal better?
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - Small (≤1 day)
+        - Medium (≤1 week)
+        - Large (>1 week — likely needs an ADR)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: subsystem
+    attributes:
+      label: Affected subsystem(s)
+      multiple: true
+      options:
+        - intake (PIP)
+        - campaign (Campaign Orchestrator)
+        - dag (8-node atomic DAG)
+        - judge (consensus + DEMAS-D)
+        - gate (Lighthouse / axe / visual-diff / responsive)
+        - flywheel (DPO + LoRA)
+        - adk (ADK integration)
+        - tools (Stitch MCP, design.md MCP, etc.)
+        - render (A2UI renderers)
+        - memory (Memory Bank, Vector Search)
+        - eval (benchmarks, scoring)
+        - deploy (Cloud Run, Terraform)
+        - dashboard (observability UI)
+        - action / figma / chrome (extensions)
+        - docs
+        - other / new
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority (your assessment)
+      options:
+        - P0 (blocks core use case)
+        - P1 (high impact, no workaround)
+        - P2 (nice to have)
+        - P3 (someday)
+    validations:
+      required: true
+
+  - type: textarea
+    id: success-criteria
+    attributes:
+      label: Success criteria
+      description: How will we know this is done? Falsifiable acceptance criteria.
+      placeholder: |
+        - [ ] Feature X works on input Y
+        - [ ] Eval score improves by ≥N%
+        - [ ] Documentation updated
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Are you willing to contribute?
+      options:
+        - label: I am willing to submit a PR for this
+        - label: I can help test/validate this
+        - label: I just want to suggest this; someone else should implement
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Pre-flight
+      options:
+        - label: I have searched [existing issues](https://github.com/Manzela/atelier/issues) and confirmed this is not a duplicate
+          required: true
+        - label: I have read the [PRD](../docs/superpowers/specs/2026-05-14-atelier-prd.md) and [ROADMAP](../ROADMAP.md) to confirm this is in scope
+          required: true
+        - label: I agree to follow the [Code of Conduct](../CODE_OF_CONDUCT.md)
+          required: true

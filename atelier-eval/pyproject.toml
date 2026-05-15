@@ -1,0 +1,33 @@
+[build-system]
+requires = ["hatchling>=1.18"]
+build-backend = "hatchling.build"
+
+[project]
+name = "atelier-eval"
+version = "0.1.0a0"
+description = "Atelier evaluation suite — benchmark adapters and public scoreboard"
+readme = "README.md"
+authors = [{ name = "Daniel Manzela", email = "hello@atelier.dev" }]
+license = { file = "../LICENSE" }
+requires-python = ">=3.11,<3.13"
+
+# Phase 2 W2 will populate full dep list.
+dependencies = [
+    "pydantic>=2.6,<3",
+    "pyyaml>=6.0,<7",
+    "httpx>=0.27,<1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.6.9,<1",
+    "mypy>=1.13,<2",
+    "pytest>=8.3,<9",
+    "pytest-asyncio>=0.24,<1",
+]
+
+[project.scripts]
+atelier-eval = "atelier_eval.runner:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/atelier_eval"]

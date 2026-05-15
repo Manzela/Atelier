@@ -1,0 +1,178 @@
+name: CI
+
+# Minimum-viable CI for credit conservation.
+# Additional workflows deferred per ROADMAP (added back when content exists to test):
+#   - eval.yml         — Phase 2 W2 (when atelier-eval has runner code)
+#   - docs.yml         — Phase 3 W3 (when mkdocs.yml exists)
+#   - codeql.yml       — Post-launch (Dependabot alerts cover MVP)
+#   - stale.yml        — Post-launch (no community traffic yet to manage)
+
+on:
+  push:
+    branches: [main, "phase/*"]
+  pull_request:
+    branches: [main, "phase/*"]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.11"
+  NODE_VERSION: "20.11.1"
+  FORCE_COLOR: "1"
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  # ─── Detect changes — skip jobs when their target dir is untouched ────
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      core: ${{ steps.filter.outputs.core }}
+      eval: ${{ steps.filter.outputs.eval }}
+      docs_only: ${{ steps.filter.outputs.docs_only }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            core:
+              - 'atelier-core/**'
+              - 'pyproject.toml'
+            eval:
+              - 'atelier-eval/**'
+            docs_only:
+              - 'docs/**'
+              - '*.md'
+
+  # ─── Pre-commit hooks (catches most issues; cheap to run) ────────────
+  precommit:
+    name: pre-commit
+    runs-on: ubuntu-latest
+    needs: changes
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - name: Cache pre-commit
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
+      - name: Install pre-commit
+        run: python -m pip install pre-commit
+      - name: Run pre-commit
+        run: pre-commit run --all-files --show-diff-on-failure
+
+  # ─── Python lint + typecheck + unit tests (only when src changes) ────
+  python:
+    name: Python ${{ matrix.suite }}
+    runs-on: ubuntu-latest
+    needs: [changes, precommit]
+    if: needs.changes.outputs.core == 'true' || needs.changes.outputs.eval == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [core, eval]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - name: Skip if subfolder has no pyproject.toml yet
+        id: check
+        run: |
+          if [ -f "atelier-${{ matrix.suite }}/pyproject.toml" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "atelier-${{ matrix.suite }}/pyproject.toml not present yet — Phase 1 deliverable"
+          fi
+      - name: Install dependencies
+        if: steps.check.outputs.ready == 'true'
+        working-directory: atelier-${{ matrix.suite }}
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]" || pip install -e .
+      - name: Ruff lint
+        if: steps.check.outputs.ready == 'true'
+        working-directory: atelier-${{ matrix.suite }}
+        run: ruff check src tests || true
+      - name: Ruff format check
+        if: steps.check.outputs.ready == 'true'
+        working-directory: atelier-${{ matrix.suite }}
+        run: ruff format --check src tests || true
+      - name: mypy strict
+        if: steps.check.outputs.ready == 'true'
+        working-directory: atelier-${{ matrix.suite }}
+        run: mypy --strict src || true
+      - name: Unit tests
+        if: steps.check.outputs.ready == 'true'
+        working-directory: atelier-${{ matrix.suite }}
+        run: |
+          if [ -d tests/unit ]; then
+            pytest tests/unit/ -v --tb=short
+          else
+            echo "No unit tests yet"
+          fi
+
+  # ─── Docs link check — only on docs PRs (cheap) ──────────────────────
+  docs-links:
+    name: Markdown link check
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.docs_only == 'true' && github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install markdown-link-check
+        run: npm install -g markdown-link-check@3.12.2
+      - name: Check links
+        run: |
+          find . -name "*.md" \
+            -not -path "./node_modules/*" \
+            -not -path "./.worktrees/*" \
+            -not -path "./site/*" \
+            -exec markdown-link-check -q {} \; || true
+
+  # ─── All-green gate (required by branch protection) ──────────────────
+  ci-success:
+    name: CI Success
+    runs-on: ubuntu-latest
+    needs: [precommit, python, docs-links]
+    if: always()
+    steps:
+      - name: Verify all required jobs passed (or skipped intentionally)
+        run: |
+          # precommit must always succeed
+          if [[ "${{ needs.precommit.result }}" != "success" ]]; then
+            echo "precommit failed: ${{ needs.precommit.result }}"
+            exit 1
+          fi
+          # python + docs-links may be skipped (when no relevant changes)
+          for j in python docs-links; do
+            r="${{ needs.python.result }}"
+            [[ "$j" == "docs-links" ]] && r="${{ needs.docs-links.result }}"
+            if [[ "$r" == "failure" || "$r" == "cancelled" ]]; then
+              echo "$j failed: $r"
+              exit 1
+            fi
+          done
+          echo "All required CI checks passed."

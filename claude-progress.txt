@@ -1,0 +1,56 @@
+Atelier Sprint — Append-Only Progress Narrative
+================================================
+
+Per Anthropic's published two-prompt harness pattern (Nov 2025), this file is
+an append-only narrative across all Claude Code sessions in the sprint. New
+sessions append, never rewrite. Provides multi-session continuity that survives
+context compaction.
+
+Format per session entry:
+
+  ## YYYY-MM-DD <session start time UTC> — Session N
+  Goal: <what this session set out to do>
+  Worked on:
+    - <task/file with brief outcome>
+    - <task/file with brief outcome>
+  Blockers encountered:
+    - <blocker, if any> → <how resolved or escalated>
+  Tests at session end: <pass/fail counts>
+  Cost at session end: <cumulative USD>
+  RESUME-HERE: <file:line + intent if mid-feature>
+  Next session priority: <one-line>
+
+================================================
+
+## 2026-05-14 22:00 UTC — Session 0 (Pre-Sprint Bootstrap)
+Goal: Lock the PRD, build the repo scaffold, push to GitHub.
+Worked on:
+  - Wrote canonical PRD at docs/superpowers/specs/2026-05-14-atelier-prd.md (831 → 1100+ lines after principles audit)
+  - Self-reviewed PRD; replaced "see Cluster D" external references with companion-doc paths
+  - Audited AutonomousAgent docs; folded 8 high-level principles into PRD: wrap-don't-fork, worktree-per-phase, spec-governance sections, glossary, panic+resume, failure trichotomy, comprehensive limits.yaml, egress allowlist enumeration
+  - Built repo scaffold:
+    - LICENSE (Apache-2.0)
+    - NOTICE (attribution to agent-dag-pipeline + hermes-agent + google-adk + Stitch + Anthropic harness)
+    - README.md (hero, badges, ASCII architecture, 13 contributions, 10X thesis, quick-start, project layout, submission target, live demos, pricing, inheritance, roadmap)
+    - CHANGELOG.md (Keep-a-Changelog 1.1.0)
+    - ROADMAP.md (sprint plan + phase gates + post-launch versions)
+    - SECURITY.md (vulnerability reporting, severity, scope, PGP key URL)
+    - CODE_OF_CONDUCT.md (Contributor Covenant 2.1)
+    - GOVERNANCE.md (roles, decision-making, wrap-don't-fork governance, release process)
+    - CONTRIBUTING.md (dev env, branching, commits, PR process, testing, code style, ADR proposal)
+    - .gitignore + .editorconfig + .gitattributes + .nvmrc + .python-version
+    - CLAUDE.md (sprint invariants, auto-loaded)
+    - DECISIONS.md (10 locked architectural decisions, auto-injected)
+    - REJECTED.md (failed approaches with rationale; pre-populated with 6 architectural rejections from research synthesis)
+    - features.json (Anthropic harness JSON ledger; F0001 marked passes:true; ~194 remaining to populate D1)
+    - claude-progress.txt (this file)
+Blockers encountered:
+  - Vertex API filter triggered on a large parallel write batch; switched to smaller 3-5 file batches → resolved
+Tests at session end: N/A (no code yet)
+Cost at session end: ~$50 (estimate; actual recorded D1 in COST_LEDGER.md)
+RESUME-HERE: continue building remaining root files (.pre-commit-config.yaml, commitlint.config.js, release-please-config.json, pyproject.toml workspace root, package.json workspace root, init.sh) then .github/ tree (CODEOWNERS, dependabot, PR template, ISSUE_TEMPLATE/, workflows/), then ADRs 0001-0010, then sprint state files (STATUS.md, CHECKPOINTS.md, BLOCKERS.md, COST_LEDGER.md, ROADMAP.md), then companion specs (strategy-v2, mvp-scope, repo-structure, 10x-checklist, prelaunch-checklist, launch-motion, risk-register), then conventions + runbooks + arch + eval/data docs, then subfolder skeletons. Then git init + commit + gh repo create + push.
+Next session priority: Complete repo scaffold + push to GitHub at github.com/Manzela/atelier (public, Apache-2.0).
+
+================================================
+
+(Future session entries append below this line.)
