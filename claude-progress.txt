@@ -54,3 +54,24 @@ Next session priority: Complete repo scaffold + push to GitHub at github.com/Man
 ================================================
 
 (Future session entries append below this line.)
+
+================================================
+
+## 2026-05-14 EOD UTC — Session 0 ENDED (Pre-Sprint Bootstrap COMPLETE)
+Goal: End the bootstrap session deliberately at ~858K context with a comprehensive handoff doc that survives context loss.
+Worked on:
+  - Wrote SESSION-COMPLETE-2026-05-14-atelier-pre-sprint-bootstrap.md (the canonical handoff for D1+; mirrors AutonomousAgent SESSION-COMPLETE pattern)
+  - Updated CLAUDE.md to reference SESSION-COMPLETE as first-read for new conversations
+  - Updated STATUS.md to point to the handoff doc + literal D1 first commands
+  - Committed + pushed to main
+Blockers encountered: None — clean session end.
+Tests at session end: N/A (no source code yet; Phase 1 D3+ deliverable)
+Cost at session end (estimate): ~$50 of $5K budget; ~1.0% cumulative
+RESUME-HERE: NEW conversation begins by reading SESSION-COMPLETE doc, running 90-second restoration ritual, then executing Task 1.1 in the sprint plan (create phase/1 worktree). NO mid-feature resumption needed.
+Next session priority: Sprint D1 (2026-05-15 Wed morning) — F0001a Create phase/1 worktree → F0001b run init.sh → F0002 verify-prereqs.sh → F0003 install agent-dag-pipeline + ADK lockfile-pinned → F0004 BriefSpec data contract.
+
+CONTEXT BUDGET WARNING for next session: Don't try to load this entire conversation's history. The SESSION-COMPLETE doc is the canonical replacement. ~33K tokens to load PRD + plan + CLAUDE.md + DECISIONS.md + REJECTED.md + this file is the prefix; cache it on first subagent dispatch.
+
+================================================
+
+(Future session entries append below this line.)

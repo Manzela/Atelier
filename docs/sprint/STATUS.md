@@ -1,38 +1,70 @@
 # Sprint Status
 
-**Last updated**: 2026-05-14T22:30Z
-**Current phase**: Pre-Sprint Bootstrap (Phase 0)
-**Active branch**: `main` (will switch to `phase/1` on D1, 2026-05-15)
-**Active worktree**: none yet (will be `.worktrees/phase1-foundation/` on D1)
+**Last updated**: 2026-05-14 EOD UTC
+**Current phase**: Pre-Sprint Bootstrap COMPLETE — D1 begins 2026-05-15 (Wed) morning
+**Active branch**: `main` (4 commits)
+**Active worktree**: none yet (D1 first action: create `.worktrees/phase1-foundation/`)
 **Days to submission**: 20 (target 2026-06-03 noon, official deadline 2026-06-05)
 
 ---
 
-## Right now
+## NEW SESSION? READ FIRST
 
-Atelier repo just scaffolded with full SDLC infrastructure. PRD locked at v1. Ready to push to `github.com/Manzela/atelier` and begin Phase 1 sprint on **2026-05-15 (Wed)**.
+1. **Canonical handoff**: [`docs/superpowers/specs/SESSION-COMPLETE-2026-05-14-atelier-pre-sprint-bootstrap.md`](../superpowers/specs/SESSION-COMPLETE-2026-05-14-atelier-pre-sprint-bootstrap.md) — survives context loss; captures everything from the brainstorm + scaffold session
+2. **PRD**: [`docs/superpowers/specs/2026-05-14-atelier-prd.md`](../superpowers/specs/2026-05-14-atelier-prd.md) — 1100+ lines, the source of truth
+3. **Sprint plan**: [`docs/superpowers/plans/2026-05-14-atelier-sprint-plan.md`](../superpowers/plans/2026-05-14-atelier-sprint-plan.md) — day-by-day for D1-D2, feature briefs D3-D7, daily themes D8-D21
+4. **CLAUDE.md** at repo root — auto-loaded sprint invariants
+5. **DECISIONS.md** at repo root — 10 locked decisions
 
-## Next session priority
+Then run the 90-second restoration ritual (in CLAUDE.md), then pick the next unblocked feature from `features.json`:
 
-**D1 of sprint (2026-05-15 Wed)**:
+```bash
+cat features.json | jq '.features[] | select(.passes == false and (.depends_on | length == 0 or all(.[]; . as $d | $features.features | any(.id == $d and .passes == true)))) | {id, name, day}' | head -10
+```
 
-1. `git worktree add .worktrees/phase1-foundation phase/1`
-2. Run `./init.sh` in the phase1 worktree
-3. Verify pre-commit hooks active in worktree
-4. Open Phase 1 plan: `docs/superpowers/plans/2026-05-14-atelier-sprint-plan.md` (created by writing-plans skill from PRD)
-5. Pick the first feature from `features.json` (currently F0002: GCP project + Terraform foundation)
-6. File Vertex AI quota requests (P-1, P-2 from PRD §23)
+---
+
+## D1 first action (Wed May 15 morning)
+
+```bash
+cd "$HOME/Professional Profile/atelier"
+git checkout main
+git pull
+git branch phase/1 main
+git worktree add .worktrees/phase1-foundation phase/1
+cd .worktrees/phase1-foundation
+pre-commit install
+pre-commit install --hook-type commit-msg
+git log --oneline -5  # should show 5 commits including SESSION-COMPLETE
+```
+
+Then proceed to **Task 1.1 in the sprint plan** (`docs/superpowers/plans/2026-05-14-atelier-sprint-plan.md`).
+
+---
 
 ## Phase progress
 
-- [ ] Phase 1: Foundation (W1, May 15-21) — gate: end-to-end on 1 surface, deployed to staging
+- [ ] Phase 1: Foundation (W1, May 15-21) — gate: 1-surface end-to-end + Cloud Run staging deploy
 - [ ] Phase 2: 10× Mechanisms (W2, May 22-28) — gate: 12-surface autonomous campaign + WebGen-Bench ≥ 51 + 5 beta tenants
-- [ ] Phase 3: Production Polish + 10× Validation (W3, May 29 - Jun 4) — gate: WebGen-Bench ≥ 60, all 13 N-contributions evidenced, public launch + G4S submission
+- [ ] Phase 3: Production Polish (W3, May 29 - Jun 4) — gate: all 13 N-contributions evidenced + G4S submission filed Jun 3 noon
 
 ## Active blockers
 
-None at this moment. See [BLOCKERS.md](BLOCKERS.md) for live escalation queue.
+None at session-end. See [BLOCKERS.md](BLOCKERS.md) for live escalation queue. Pre-D1 user actions are in SESSION-COMPLETE §8 (file Vertex quota requests, etc.).
 
-## Recent commits (last 5)
+## Recent commits (last 5 on main)
 
-(populated from `git log --oneline -5` after first commit)
+```
+861d592  docs(plan): add 21-day sprint implementation plan + populate features.json
+f85c68a  docs(secrets): document GCP Secret Manager pattern + add deny-by-default gitignore
+d692bdd  ci: minimize workflow credit usage across GitHub Pro quota
+00d7df1  chore: initial repo scaffold for Atelier autonomous design agent
+```
+
+(SESSION-COMPLETE commit will follow this STATUS update.)
+
+## Cost at session end
+
+- ~$50 of $5K (1.0%) — pre-sprint bootstrap session
+- Cache-hit-rate: N/A (no subagent dispatches yet)
+- D1 daily target: ~$80-150
