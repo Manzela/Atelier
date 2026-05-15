@@ -68,7 +68,7 @@ Plus a **6th axis surfaced by N13 PIP**: **first-shot convergence rate ≥ 40%**
 
 ---
 
-## 5. Novel contributions (13)
+## 5. Novel contributions (15)
 
 Each contribution is independently defensible against peer review and competitively unowned at the commercial level.
 
@@ -98,13 +98,18 @@ Each contribution is independently defensible against peer review and competitiv
 
 **N13. PIP — Pre-Generation Intake Protocol.** Adaptive-depth (atomic 2-3 / small 5-7 / large 10-12 / greenfield 12-15 questions), DAPLab-pattern-mapped (each of 9 failure patterns has a preempting question), visual-option-driven (4 mockup thumbnails for "what visual feel?"), skip-when-answered (descriptor / Memory Bank / brief-parsed) intake before any generation. Produces an **immutable BriefSpec** the agent commits to. **First commercial autonomous design agent to ship structured pre-generation intake** — directly closes silent-error-suppression and business-logic-mismatch failure modes.
 
+**N14. WRAI — Web-Research-Augmented Intake.** Between PIP Q&A completion and BriefSpec lock, the agent dispatches 5-8 parallel Vertex AI Search Grounding queries derived from the draft BriefSpec (industry best practices, current compliance standards, stack-specific patterns, visual-register references, competitor analysis, failure-mode warnings). Findings synthesized into structured `ResearchFindings` (applied_standards, inspirations, suggested_overrides, risk_warnings, citations) with per-source trust scores and one-shot user review before lock. Domain whitelist + Apigee Model Armor sanitization + per-tenant 7-day cache. **First commercial autonomous design agent to ship web-research-augmented intake** — anchors aren't bounded by user knowledge; agent surfaces what the user doesn't know they don't know (e.g., WCAG 2.2 added rule 2.4.11) before BriefSpec is locked. See ADR 0011.
+
+**N15. MJG — Metastrategic Judging Gap closure (BriefSpec-conditional axis weighting).** Per-axis floors and weights for the 5-judge ConsensusAgent + Det Gate are derived from `BriefSpec.visual_register × compliance_level × convergence_bar`, not constants. A data-viz dashboard weights a11y + visual-clarity higher; a marketing landing page weights brand-fidelity + originality higher; a brutalist register downgrades brand-fidelity floor in service of memorability. **Closes a failure mode that DAPLab's 9 patterns do not document** (the patterns are implementation failures; this is a metastrategic evaluation failure). First commercial autonomous design agent to ship per-project judge weighting. Audit trail in `audit/findings.md` Gap 1.
+
 **Combined defense:**
 
 - N1+N2+N5 = methodology paper ("Process Supervision with Deterministic Preconditions and Evolutionary Search for Personalized Autonomous Design Convergence")
-- N3+N6+N13 = personalization + intake paper
+- N3+N6+N13+N14 = personalization + intake + research-augmented intake paper
 - N4+N7 = product moat (broad deployment)
 - N8+N9+N10+N11 = ecosystem moat (transparency, standards, community)
 - N12 = recursive discipline (the same patterns we use, we ship)
+- N15 = metastrategic-judging-gap closure (publishable as standalone — first paper to formalize the gap and ship a closure)
 
 ---
 
@@ -155,8 +160,18 @@ PIP Router (assesses scope: atomic/small/large/greenfield)
   → Skip-Path Resolver (descriptor + Memory Bank + brief-parsed)
     → Adaptive Question Sequencer (one Q at a time, visual options
       for design questions)
-      → BriefSpec Synthesizer (immutable JSON, user-approved,
-        initializes DECISIONS.md + design-system.lock.md)
+      → WRAI: Web-Research-Augmented Intake (N14) — Vertex AI Search
+        Grounding × 5-8 parallel queries derived from draft BriefSpec
+        → Trust Scorer (whitelist/PageRank/denylist; 0-1 per source)
+        → Apigee Model Armor sanitization
+        → Findings Synthesizer (Gemini 3 Flash → ResearchFindings:
+          applied_standards, inspirations, suggested_overrides,
+          risk_warnings, citations)
+        → User Review (one-shot summary; per-finding accept/skip;
+          --no-research opt-out for power users)
+      → BriefSpec Synthesizer (immutable JSON with research_findings
+        embedded, user-approved, initializes DECISIONS.md +
+        design-system.lock.md)
 ```
 
 **Question catalog (13 questions, mapped 1:1 to DAPLab patterns):**
