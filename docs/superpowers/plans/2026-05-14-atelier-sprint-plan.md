@@ -2001,7 +2001,7 @@ git push origin main --tags
 
 Plan complete and saved to `docs/superpowers/plans/2026-05-14-atelier-sprint-plan.md`.
 
-`features.json` will be populated with the full ~194 atomic feature entries in a follow-up commit (one feature per task above × 6-12 atomic tasks per day × 21 days ≈ 194).
+`features.json` will be populated with the full 183 atomic feature entries in a follow-up commit (one feature per task above × 6-12 atomic tasks per day × 21 days = 183).
 
 **Two execution options:**
 

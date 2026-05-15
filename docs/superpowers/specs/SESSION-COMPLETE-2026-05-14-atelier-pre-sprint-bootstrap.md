@@ -56,7 +56,7 @@ This is the **single source of truth** for everything decided and built in the b
 - Brainstorming + spec authoring (PRD §1-29, 1100+ lines)
 - 10 Architecture Decision Records (MADR format)
 - Full SDLC scaffold (LICENSE, README, CHANGELOG, ROADMAP, SECURITY, CONTRIBUTING, CODE_OF_CONDUCT, GOVERNANCE, NOTICE)
-- Sprint discipline files (CLAUDE.md, DECISIONS.md, REJECTED.md, features.json with 198 atomic features, claude-progress.txt, init.sh)
+- Sprint discipline files (CLAUDE.md, DECISIONS.md, REJECTED.md, features.json with 183 atomic features, claude-progress.txt, init.sh)
 - Comprehensive `limits.yaml` schema (PRD §27)
 - 21-day sprint plan with day-by-day TDD tasks for D1-D2 + feature briefs D3-D7 + daily themes D8-D21
 - GitHub repo created at `github.com/Manzela/atelier` (public, Apache-2.0)
@@ -115,7 +115,7 @@ The full PRD lives at [`docs/superpowers/specs/2026-05-14-atelier-prd.md`](2026-
 | §9 | Data contracts | 11 Pydantic frozen models + 10 enums |
 | §10 | Inheritance map | Wrap-don't-fork detail (ADR 0001 lineage) |
 | §11 | Strategy v2 | Sprint execution discipline (mirrored in CLAUDE.md) |
-| §12 | MVP scope | 52 deliverables — see plan for atomic decomposition into 198 features |
+| §12 | MVP scope | 52 deliverables — see plan for atomic decomposition into 183 features |
 | §13 | Repository structure | Three-subfolder split: atelier-core, atelier-eval, atelier-deploy + atelier-dashboard, atelier-action, atelier-figma-plugin, atelier-chrome-extension |
 | §14 | CI/CD | GitHub Actions: ci.yml + release.yml (minimum-viable per workflow-credit conservation) |
 | §15 | 21-day sprint plan | Day-by-day plan in `docs/superpowers/plans/2026-05-14-atelier-sprint-plan.md` |
@@ -193,7 +193,7 @@ GOVERNANCE.md                   # roles + decision-making + wrap-don't-fork gove
 CLAUDE.md                       # sprint invariants (auto-loaded into every session)
 DECISIONS.md                    # 10 locked architectural decisions (auto-injected into subagent dispatches)
 REJECTED.md                     # 6 pre-emptive architectural rejections + future failed-approach log
-features.json                   # 198 atomic feature ledger (Anthropic JSON pattern)
+features.json                   # 183 atomic feature ledger (Anthropic JSON pattern)
 claude-progress.txt             # append-only narrative across all sessions
 init.sh                         # one-time bootstrap
 
@@ -252,7 +252,7 @@ main             4       86 (LICENSE + 84 source/docs + sprint plan + features.j
 | `00d7df1` | `chore: initial repo scaffold for Atelier autonomous design agent` (84 files) |
 | `d692bdd` | `ci: minimize workflow credit usage across GitHub Pro quota` (closed 19 over-eager Dependabot PRs; tightened CI triggers; reduced Dependabot to monthly grouped, only ecosystems with real deps; ignored major bumps; dropped 4 deferred workflows) |
 | `f85c68a` | `docs(secrets): document GCP Secret Manager pattern + add deny-by-default gitignore` |
-| `861d592` | `docs(plan): add 21-day sprint implementation plan + populate features.json` (2,231-line plan + 198 atomic features) |
+| `861d592` | `docs(plan): add 21-day sprint implementation plan + populate features.json` (2,231-line plan + 183 atomic features) |
 
 ### 7.3 Repo configuration on GitHub
 
@@ -482,7 +482,7 @@ Future sessions reading the conversation transcript will encounter "Cluster A", 
 - **Cluster B (v1→v4)**: Novel contributions (4 → 7 → 9 → 11 → 12 → 13), tech stack unification (no Langfuse/Statsig/PostHog), recursive long-running discipline, pre-generation intake protocol
 - **Cluster C**: System architecture (PIP outer + Campaign Orchestrator middle + 8-node atomic DAG inner)
 - **Strategy v1 → v2**: Sprint execution discipline (Anthropic two-prompt harness + JSON ledgers + 4-tier subagent + 9 DAPLab counters + Ralph Loop + lockfile + hard rules)
-- **Cluster D**: MVP scope (52→198 features) + 21-day sprint plan + 10× outcome checklist + launch motion + risk register
+- **Cluster D**: MVP scope (52→183 features) + 21-day sprint plan + 10× outcome checklist + launch motion + risk register
 
 The PRD §1-29 IS the consolidated final state. The clusters are historical artifacts of the brainstorm. **Don't try to reconstruct them; refer to PRD sections.**
 
@@ -553,7 +553,7 @@ atelier/
 ├── CLAUDE.md                                        (8.4K sprint invariants, auto-loaded)
 ├── DECISIONS.md                                     (5.1K 10 locked decisions)
 ├── REJECTED.md                                      (6.6K 6 pre-emptive rejections)
-├── features.json                                    (198 atomic features)
+├── features.json                                    (183 atomic features)
 ├── claude-progress.txt                              (Session 0 narrative)
 ├── init.sh                                          (one-time bootstrap, executable)
 ├── pyproject.toml                                   (workspace root: ruff + mypy + pytest configs)
