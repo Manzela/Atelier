@@ -145,15 +145,15 @@ User-facing rule: **agent always acknowledges degradation.** Trust > apparent ca
 
 When dispatching subagents:
 
-| Tier | Model | Budget |
-|---|---|---|
-| Orchestrator (main session) | Opus 4.7 MAX | — |
-| Planner subagent | Opus 4.7 MAX | 10 tool calls, 5K output tokens |
-| Implementer subagent (routine) | Sonnet 4.6 | 50 tool calls, 30K output tokens |
-| Implementer subagent (novel) | Opus 4.7 MAX | 50 tool calls, 30K output tokens |
-| Reviewer subagent | Opus 4.7 MAX | 30 tool calls, 5K output tokens |
-| Evaluator subagent | Sonnet 4.6 | 40 tool calls |
-| Lint/grep/format | Haiku 4.5 | 20 tool calls |
+| Tier                           | Model        | Budget                           |
+| ------------------------------ | ------------ | -------------------------------- |
+| Orchestrator (main session)    | Opus 4.7 MAX | —                                |
+| Planner subagent               | Opus 4.7 MAX | 10 tool calls, 5K output tokens  |
+| Implementer subagent (routine) | Sonnet 4.6   | 50 tool calls, 30K output tokens |
+| Implementer subagent (novel)   | Opus 4.7 MAX | 50 tool calls, 30K output tokens |
+| Reviewer subagent              | Opus 4.7 MAX | 30 tool calls, 5K output tokens  |
+| Evaluator subagent             | Sonnet 4.6   | 40 tool calls                    |
+| Lint/grep/format               | Haiku 4.5    | 20 tool calls                    |
 
 Every subagent dispatch carries the cached PRD/architecture/DECISIONS prefix (~33K tokens, 1h TTL breakpoint). Subagents return ≤500 word distilled summaries with a mandatory `gaps.md` section.
 
@@ -165,14 +165,14 @@ Reviewer subagent must emit a strict **"DONE"** token (Ralph Loop pattern) befor
 
 Six eval surfaces with explicit cadences:
 
-| Surface | Cadence |
-|---|---|
-| Smoke tests | Every commit (pre-commit + CI) |
-| Integration suite | Every PR (CI gate) |
-| WebGen-Bench full (484 tasks) | Nightly + on-tag |
-| Calibration golden set (100 tasks) | Weekly Mon 03:17 UTC |
-| Adversarial set (50 tasks held-out) | Pre-release |
-| Designer-in-residence sessions | Weekly |
+| Surface                             | Cadence                        |
+| ----------------------------------- | ------------------------------ |
+| Smoke tests                         | Every commit (pre-commit + CI) |
+| Integration suite                   | Every PR (CI gate)             |
+| WebGen-Bench full (484 tasks)       | Nightly + on-tag               |
+| Calibration golden set (100 tasks)  | Weekly Mon 03:17 UTC           |
+| Adversarial set (50 tasks held-out) | Pre-release                    |
+| Designer-in-residence sessions      | Weekly                         |
 
 Results published to `bench.atelier.dev` + `calibration.atelier.dev`.
 

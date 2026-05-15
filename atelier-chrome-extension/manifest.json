@@ -25,14 +25,7 @@
       "run_at": "document_idle"
     }
   ],
-  "permissions": [
-    "activeTab",
-    "contextMenus",
-    "storage"
-  ],
-  "host_permissions": [
-    "https://api.atelier.dev/*",
-    "https://atelier.dev/*"
-  ],
+  "permissions": ["activeTab", "contextMenus", "storage"],
+  "host_permissions": ["https://api.atelier.dev/*", "https://atelier.dev/*"],
   "options_page": "src/options.html"
 }

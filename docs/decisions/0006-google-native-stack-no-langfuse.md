@@ -22,40 +22,40 @@ Critical context: **the Google for Startups AI Agents Challenge 2026 explicitly 
 
 **Atelier ships on a unified Google-native stack.** Every layer that can be Google-native is Google-native. Two non-Google components total: Stripe (no Google billing platform) and Telegram (already owned from hermes-agent inheritance).
 
-| Layer | Google-native | Replaces |
-|---|---|---|
-| Multi-agent orchestration | ADK 2.0 Beta (`SequentialAgent`, `ParallelAgent`, `LoopAgent`, `MCPToolset`, `rubric_based_*_v1`, Skills for Agents) | Custom orchestrator |
-| Cross-session memory | `VertexAiMemoryBankService` | Custom MEMORY/SOUL persistence |
-| Pattern embeddings | Vertex Vector Search 2.0 + multimodal-embedding | Self-hosted Chroma/FAISS |
-| Multi-axis evaluation | `rubric_based_final_response_quality_v1` + `adk eval` | Custom eval harness |
-| Prompt optimization | `adk optimize` (GEPA) | Custom Hebbian mutator backend |
-| Replay testing | `adk conformance` | Custom replay harness |
-| MCP integration | `MCPToolset` | Custom MCP client wrapper |
-| Auth (multi-tenant public users) | **Identity Platform** | Auth0 / Clerk / custom |
-| Per-tenant isolation | **IAM Conditions on session resources** | Custom RBAC |
-| Cost / rate-limit / model routing | **Apigee AI Gateway** | **LiteLLM Proxy** |
-| Safety | **Model Armor** + **Gemini-as-judge plugin** | Llama Prompt Guard 2 |
-| **Observability — traces** | **Cloud Trace + OTel GenAI semconv** | **Langfuse** |
-| **Observability — metrics + SLOs** | **Cloud Monitoring** | Datadog / Grafana |
-| **Observability — logs** | **Cloud Logging** | ELK / Loki |
-| **Observability — prompt UI** | **Vertex AI Studio Tracing UI + Atelier Dashboard** | **Langfuse UI** |
-| **Feature flags + A/B tests** | **Firebase Remote Config + A/B Testing** | **Statsig / GrowthBook** |
-| **Product analytics** | **Firebase Analytics + GA4 + BigQuery Export + Looker Studio** | **PostHog** |
-| Auth at edge | Identity Platform / Firebase Auth | — |
-| Per-IP rate limits | Cloud Armor | — |
-| Hot UI state | Agent Engine Sessions (capped) + Firestore | — |
-| Trajectory captures | BigQuery + GCS coldline | — |
-| Per-tenant LoRA serving | **Vertex AI Endpoints with Multi-Tuning** | **GKE Autopilot S-LoRA self-hosted** |
-| Tuning (SFT + DPO) | Vertex AI tuning jobs | Custom training pipeline |
-| Runtime hosting | Cloud Run jobs (per ADR 0002) | — |
-| Deployment | `adk deploy cloud_run --with_ui --a2a` | Custom deploy scripts |
-| Secrets | Secret Manager + Cloud KMS for BYOK | sops + age (only for repo configs) |
-| Docs site hosting | **Firebase Hosting** | Vercel / Netlify / GH Pages |
-| Status page | Self-built static on Firebase Hosting | StatusPage.io |
-| Alerting | Cloud Monitoring → Telegram + email | PagerDuty (defer to enterprise tier) |
-| Compliance evidence | Google's compliance reports + manual evidence | Vanta (defer to month 6) |
-| Container registry | Artifact Registry | Docker Hub / GHCR |
-| CI/CD | GitHub Actions → Cloud Build → WIF → Cloud Run | — |
+| Layer                              | Google-native                                                                                                        | Replaces                             |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| Multi-agent orchestration          | ADK 2.0 Beta (`SequentialAgent`, `ParallelAgent`, `LoopAgent`, `MCPToolset`, `rubric_based_*_v1`, Skills for Agents) | Custom orchestrator                  |
+| Cross-session memory               | `VertexAiMemoryBankService`                                                                                          | Custom MEMORY/SOUL persistence       |
+| Pattern embeddings                 | Vertex Vector Search 2.0 + multimodal-embedding                                                                      | Self-hosted Chroma/FAISS             |
+| Multi-axis evaluation              | `rubric_based_final_response_quality_v1` + `adk eval`                                                                | Custom eval harness                  |
+| Prompt optimization                | `adk optimize` (GEPA)                                                                                                | Custom Hebbian mutator backend       |
+| Replay testing                     | `adk conformance`                                                                                                    | Custom replay harness                |
+| MCP integration                    | `MCPToolset`                                                                                                         | Custom MCP client wrapper            |
+| Auth (multi-tenant public users)   | **Identity Platform**                                                                                                | Auth0 / Clerk / custom               |
+| Per-tenant isolation               | **IAM Conditions on session resources**                                                                              | Custom RBAC                          |
+| Cost / rate-limit / model routing  | **Apigee AI Gateway**                                                                                                | **LiteLLM Proxy**                    |
+| Safety                             | **Model Armor** + **Gemini-as-judge plugin**                                                                         | Llama Prompt Guard 2                 |
+| **Observability — traces**         | **Cloud Trace + OTel GenAI semconv**                                                                                 | **Langfuse**                         |
+| **Observability — metrics + SLOs** | **Cloud Monitoring**                                                                                                 | Datadog / Grafana                    |
+| **Observability — logs**           | **Cloud Logging**                                                                                                    | ELK / Loki                           |
+| **Observability — prompt UI**      | **Vertex AI Studio Tracing UI + Atelier Dashboard**                                                                  | **Langfuse UI**                      |
+| **Feature flags + A/B tests**      | **Firebase Remote Config + A/B Testing**                                                                             | **Statsig / GrowthBook**             |
+| **Product analytics**              | **Firebase Analytics + GA4 + BigQuery Export + Looker Studio**                                                       | **PostHog**                          |
+| Auth at edge                       | Identity Platform / Firebase Auth                                                                                    | —                                    |
+| Per-IP rate limits                 | Cloud Armor                                                                                                          | —                                    |
+| Hot UI state                       | Agent Engine Sessions (capped) + Firestore                                                                           | —                                    |
+| Trajectory captures                | BigQuery + GCS coldline                                                                                              | —                                    |
+| Per-tenant LoRA serving            | **Vertex AI Endpoints with Multi-Tuning**                                                                            | **GKE Autopilot S-LoRA self-hosted** |
+| Tuning (SFT + DPO)                 | Vertex AI tuning jobs                                                                                                | Custom training pipeline             |
+| Runtime hosting                    | Cloud Run jobs (per ADR 0002)                                                                                        | —                                    |
+| Deployment                         | `adk deploy cloud_run --with_ui --a2a`                                                                               | Custom deploy scripts                |
+| Secrets                            | Secret Manager + Cloud KMS for BYOK                                                                                  | sops + age (only for repo configs)   |
+| Docs site hosting                  | **Firebase Hosting**                                                                                                 | Vercel / Netlify / GH Pages          |
+| Status page                        | Self-built static on Firebase Hosting                                                                                | StatusPage.io                        |
+| Alerting                           | Cloud Monitoring → Telegram + email                                                                                  | PagerDuty (defer to enterprise tier) |
+| Compliance evidence                | Google's compliance reports + manual evidence                                                                        | Vanta (defer to month 6)             |
+| Container registry                 | Artifact Registry                                                                                                    | Docker Hub / GHCR                    |
+| CI/CD                              | GitHub Actions → Cloud Build → WIF → Cloud Run                                                                       | —                                    |
 
 ## Consequences
 

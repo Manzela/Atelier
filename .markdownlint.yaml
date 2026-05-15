@@ -41,3 +41,18 @@ MD039: true
 # Trailing punctuation in headings — allow ! ? :
 MD026:
   punctuation: '.,;'
+
+# Allow code fences without language (we use ``` for shell commands often)
+MD040: false
+
+# Allow blank lines inside blockquotes (used in narrative quoting)
+MD028: false
+
+# Allow emphasis-as-heading (used for "(empty)" placeholders)
+MD036: false
+
+# Allow multiple H1 headings (long docs use H1 per top-level section)
+MD025: false
+
+# Allow duplicate headings (common in long docs: "EOD checkpoint" repeated per day)
+MD024: false

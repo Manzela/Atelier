@@ -4,15 +4,15 @@ This project uses **git worktrees with one branch per sprint phase**. See [ADR 0
 
 ## Branches
 
-| Branch | Purpose | Lifecycle |
-|---|---|---|
-| `main` | Accepted-and-tagged work only | Permanent; `--no-ff` merge per phase + tag `phaseN-accepted` |
-| `phase/1` | Phase 1 Foundation development | Created Day 1; merged to `main` at `phase1-accepted`; deletable after merge |
-| `phase/2` | Phase 2 10× Mechanisms development | Created when `phase1-accepted` is tagged |
-| `phase/3` | Phase 3 Production Polish development | Created when `phase2-accepted` is tagged |
-| `feat/<short-desc>` | Feature branch off active phase | Branched from `phase/N`; merged back to `phase/N` via PR |
-| `fix/<short-desc>` | Bug-fix branch off active phase | Same as `feat/` |
-| `hotfix/<short-desc>` | Urgent fix to accepted code | Branched from `main`; merged to `main` + cherry-picked to active phase branch |
+| Branch                | Purpose                               | Lifecycle                                                                     |
+| --------------------- | ------------------------------------- | ----------------------------------------------------------------------------- |
+| `main`                | Accepted-and-tagged work only         | Permanent; `--no-ff` merge per phase + tag `phaseN-accepted`                  |
+| `phase/1`             | Phase 1 Foundation development        | Created Day 1; merged to `main` at `phase1-accepted`; deletable after merge   |
+| `phase/2`             | Phase 2 10× Mechanisms development    | Created when `phase1-accepted` is tagged                                      |
+| `phase/3`             | Phase 3 Production Polish development | Created when `phase2-accepted` is tagged                                      |
+| `feat/<short-desc>`   | Feature branch off active phase       | Branched from `phase/N`; merged back to `phase/N` via PR                      |
+| `fix/<short-desc>`    | Bug-fix branch off active phase       | Same as `feat/`                                                               |
+| `hotfix/<short-desc>` | Urgent fix to accepted code           | Branched from `main`; merged to `main` + cherry-picked to active phase branch |
 
 ## Worktree layout
 
@@ -102,6 +102,7 @@ git push
 ## Branch protection on `main`
 
 Configured at repo settings (set on D1):
+
 - Require PR for all changes
 - Require ≥ 1 approval (even solo, for discipline)
 - Require status checks to pass before merging: `CI Success`

@@ -127,16 +127,16 @@ docs(adr): 0011 a2ui-flutter-renderer-strategy
 
 ### What we look for in a PR
 
-| Aspect | Requirement |
-|---|---|
-| **Tests** | New code has tests. Bug fixes have a regression test. Coverage doesn't drop. |
-| **Docs** | If you change behavior, you change docs. New public API → docstring + example. |
-| **Types** | All public functions have type hints. `mypy --strict` passes. |
-| **Style** | `ruff format` + `ruff check` pass. No silent `except:` or bare `pass`. |
-| **Commits** | Conventional Commits format. One concept per commit. Body explains WHY. |
-| **Security** | No secrets in code. Pre-commit `detect-secrets` passes. |
-| **Performance** | No regression > 10% on smoke benchmarks. New hot path → microbenchmark. |
-| **Compatibility** | No breaking change without an ADR + major version bump. |
+| Aspect            | Requirement                                                                    |
+| ----------------- | ------------------------------------------------------------------------------ |
+| **Tests**         | New code has tests. Bug fixes have a regression test. Coverage doesn't drop.   |
+| **Docs**          | If you change behavior, you change docs. New public API → docstring + example. |
+| **Types**         | All public functions have type hints. `mypy --strict` passes.                  |
+| **Style**         | `ruff format` + `ruff check` pass. No silent `except:` or bare `pass`.         |
+| **Commits**       | Conventional Commits format. One concept per commit. Body explains WHY.        |
+| **Security**      | No secrets in code. Pre-commit `detect-secrets` passes.                        |
+| **Performance**   | No regression > 10% on smoke benchmarks. New hot path → microbenchmark.        |
+| **Compatibility** | No breaking change without an ADR + major version bump.                        |
 
 ## Testing
 

@@ -16,9 +16,9 @@ name: CI
 
 on:
   push:
-    branches: [main]              # was: [main, "phase/*"]
+    branches: [main] # was: [main, "phase/*"]
   pull_request:
-    branches: [main, "phase/*"]
+    branches: [main, 'phase/*']
   workflow_dispatch:
 
 concurrency:
@@ -29,10 +29,10 @@ permissions:
   contents: read
 
 env:
-  PYTHON_VERSION: "3.11"
-  NODE_VERSION: "20.11.1"
-  FORCE_COLOR: "1"
-  PYTHONUNBUFFERED: "1"
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '20.11.1'
+  FORCE_COLOR: '1'
+  PYTHONUNBUFFERED: '1'
 
 jobs:
   # ─── Detect changes ──────────────────────────────────────────────────

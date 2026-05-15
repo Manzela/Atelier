@@ -4,11 +4,11 @@
 
 Atelier follows semantic versioning. Security fixes are backported to:
 
-| Version | Supported |
-|---|---|
-| `v1.x.y` (current stable) | ✅ |
+| Version                             | Supported                                                        |
+| ----------------------------------- | ---------------------------------------------------------------- |
+| `v1.x.y` (current stable)           | ✅                                                               |
 | `v0.x.y` (alpha/beta during sprint) | ⚠️ Best-effort during 2026-05-15 → 2026-06-04 sprint window only |
-| `< v0.1.0` | ❌ |
+| `< v0.1.0`                          | ❌                                                               |
 
 ## Reporting a vulnerability
 
@@ -21,6 +21,7 @@ Use one of the following private channels:
 3. **Encrypted form** — [atelier.dev/security/report](https://atelier.dev/security/report)
 
 Include in your report:
+
 - Description of the vulnerability
 - Steps to reproduce
 - Impact assessment (what an attacker could do)
@@ -41,12 +42,12 @@ We follow **coordinated disclosure**:
 
 ## Severity definitions
 
-| Severity | Examples | Response time |
-|---|---|---|
-| **Critical** | Remote code execution, authentication bypass, secret exposure across tenants, data exfiltration | 48 hours acknowledgment, 7 days fix |
-| **High** | Privilege escalation within a tenant, persistent XSS in dashboard, judge reward hacking enabling drift, prompt injection bypassing Model Armor | 5 days acknowledgment, 30 days fix |
-| **Medium** | Information disclosure (non-secret), DoS without amplification, CSRF on non-critical endpoints | 14 days acknowledgment, 60 days fix |
-| **Low** | Best-practice deviations, non-exploitable misconfigurations | 30 days acknowledgment, 90 days fix |
+| Severity     | Examples                                                                                                                                       | Response time                       |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| **Critical** | Remote code execution, authentication bypass, secret exposure across tenants, data exfiltration                                                | 48 hours acknowledgment, 7 days fix |
+| **High**     | Privilege escalation within a tenant, persistent XSS in dashboard, judge reward hacking enabling drift, prompt injection bypassing Model Armor | 5 days acknowledgment, 30 days fix  |
+| **Medium**   | Information disclosure (non-secret), DoS without amplification, CSRF on non-critical endpoints                                                 | 14 days acknowledgment, 60 days fix |
+| **Low**      | Best-practice deviations, non-exploitable misconfigurations                                                                                    | 30 days acknowledgment, 90 days fix |
 
 ## Out of scope
 
@@ -95,9 +96,9 @@ The PGP key will be published before the v1.0.0 release on 2026-06-03.
 
 ## Past security advisories
 
-| Date | ID | Severity | Component | Resolution |
-|---|---|---|---|---|
-| _(none yet)_ | | | | |
+| Date         | ID  | Severity | Component | Resolution |
+| ------------ | --- | -------- | --------- | ---------- |
+| _(none yet)_ |     |          |           |            |
 
 ## Compliance posture
 

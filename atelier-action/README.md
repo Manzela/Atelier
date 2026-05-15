@@ -29,9 +29,9 @@ jobs:
       - uses: Manzela/atelier-action@v1
         with:
           api-key: ${{ secrets.ATELIER_API_KEY }}
-          convergence-bar: 'production'  # or 'ship-it' or 'perfectionist'
+          convergence-bar: 'production' # or 'ship-it' or 'perfectionist'
           comment-on-pr: 'true'
-          fail-on-non-convergence: 'false'  # set true to enforce as PR gate
+          fail-on-non-convergence: 'false' # set true to enforce as PR gate
 ```
 
 ## See also

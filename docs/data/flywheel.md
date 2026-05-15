@@ -30,13 +30,13 @@ Improved judge in next session
 
 Fast runtime feedback before a full LoRA training cycle. Wraps `adk optimize` (GEPA):
 
-| Failure pattern | Mutation type | Effect |
-|---|---|---|
-| `LIGHTHOUSE_A11Y_FAIL` | APPEND_CONSTRAINT | Adds "ARIA labels on iconic controls; alt text on images" to the Generator prompt |
-| `TOKEN_DRIFT` | APPEND_CONSTRAINT | Adds "use only tokens from {project_design_md_path}" to the Generator prompt |
-| `BRAND_INCONSISTENT` | BOOST_EXAMPLE | Injects highest-scoring exemplar from this project's T2 set |
-| `LOW_ORIGINALITY` | ADJUST_TEMPERATURE | Increases LLM creativity (temperature 0.3 → 0.6) |
-| `MOTION_NO_REDUCED_VARIANT` | APPEND_CONSTRAINT | Adds "prefers-reduced-motion alternate must exist; reveals fire once per session" |
+| Failure pattern             | Mutation type      | Effect                                                                            |
+| --------------------------- | ------------------ | --------------------------------------------------------------------------------- |
+| `LIGHTHOUSE_A11Y_FAIL`      | APPEND_CONSTRAINT  | Adds "ARIA labels on iconic controls; alt text on images" to the Generator prompt |
+| `TOKEN_DRIFT`               | APPEND_CONSTRAINT  | Adds "use only tokens from {project_design_md_path}" to the Generator prompt      |
+| `BRAND_INCONSISTENT`        | BOOST_EXAMPLE      | Injects highest-scoring exemplar from this project's T2 set                       |
+| `LOW_ORIGINALITY`           | ADJUST_TEMPERATURE | Increases LLM creativity (temperature 0.3 → 0.6)                                  |
+| `MOTION_NO_REDUCED_VARIANT` | APPEND_CONSTRAINT  | Adds "prefers-reduced-motion alternate must exist; reveals fire once per session" |
 
 ## Training trigger
 
@@ -52,12 +52,12 @@ Per-project LoRA training is curriculum-based:
 
 ## Reward signals (per limits.dpo_rewards.weights)
 
-| Signal | Weight | Source |
-|---|---|---|
-| `user_explicit_accept` | 1.0 | User clicked "ship it" |
-| `user_implicit_accept` | 0.3 | User didn't reject within 24h |
-| `judge_self_consistency` | 0.2 | Generator agreement with judge across iterations |
-| `convergence_completion` | 0.5 | Session reached convergence vs timeout |
+| Signal                   | Weight | Source                                           |
+| ------------------------ | ------ | ------------------------------------------------ |
+| `user_explicit_accept`   | 1.0    | User clicked "ship it"                           |
+| `user_implicit_accept`   | 0.3    | User didn't reject within 24h                    |
+| `judge_self_consistency` | 0.2    | Generator agreement with judge across iterations |
+| `convergence_completion` | 0.5    | Session reached convergence vs timeout           |
 
 Reward horizon: 8 iterations. Sessions < 3 iterations excluded from training.
 

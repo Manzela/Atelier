@@ -11,25 +11,25 @@ The full architectural design lives in [`../superpowers/specs/2026-05-14-atelier
 
 ## Key concepts
 
-| Concept | Where to read |
-|---|---|
-| 3-layer stacked architecture (PIP / Campaign Orchestrator / 8-node DAG) | PRD §6 |
-| 13 novel contributions (N1-N13) | PRD §5 |
-| Inheritance from agent-dag-pipeline + hermes-agent + ADK | PRD §10, ADR 0001 |
-| Cloud Run vs Agent Engine | PRD §6 + §8, ADR 0002 |
-| Tiered sandboxing | PRD §6.7, ADR 0003 |
-| Pre-Generation Intake Protocol | PRD §6.1, ADR 0004 |
-| Recursive Long-Running Discipline | PRD §6.2, ADR 0005 |
-| Google-native stack | PRD §8, ADR 0006 |
-| Worktree-per-phase branching | PRD §28, ADR 0007, conventions/branching.md |
-| Multi-judge consensus + DEMAS-D Provenance | PRD §6.3-§6.4, ADR 0008 |
-| Public calibration dashboard | PRD §16, ADR 0009 |
-| A2UI v0.9 native output | PRD §6.3 N4 + §6.7 ADR 0010 |
-| `limits.yaml` single source of truth | PRD §27 |
-| Sprint plan + acceptance gates | PRD §15, ROADMAP.md, docs/sprint/ROADMAP.md |
-| Strategy v2 execution discipline | PRD §11, CLAUDE.md |
-| Failure-handling trichotomy (fail-loud / fail-soft / self-heal) | PRD §21 |
-| Panic + Resume CLI primitives | PRD §22 |
+| Concept                                                                 | Where to read                               |
+| ----------------------------------------------------------------------- | ------------------------------------------- |
+| 3-layer stacked architecture (PIP / Campaign Orchestrator / 8-node DAG) | PRD §6                                      |
+| 13 novel contributions (N1-N13)                                         | PRD §5                                      |
+| Inheritance from agent-dag-pipeline + hermes-agent + ADK                | PRD §10, ADR 0001                           |
+| Cloud Run vs Agent Engine                                               | PRD §6 + §8, ADR 0002                       |
+| Tiered sandboxing                                                       | PRD §6.7, ADR 0003                          |
+| Pre-Generation Intake Protocol                                          | PRD §6.1, ADR 0004                          |
+| Recursive Long-Running Discipline                                       | PRD §6.2, ADR 0005                          |
+| Google-native stack                                                     | PRD §8, ADR 0006                            |
+| Worktree-per-phase branching                                            | PRD §28, ADR 0007, conventions/branching.md |
+| Multi-judge consensus + DEMAS-D Provenance                              | PRD §6.3-§6.4, ADR 0008                     |
+| Public calibration dashboard                                            | PRD §16, ADR 0009                           |
+| A2UI v0.9 native output                                                 | PRD §6.3 N4 + §6.7 ADR 0010                 |
+| `limits.yaml` single source of truth                                    | PRD §27                                     |
+| Sprint plan + acceptance gates                                          | PRD §15, ROADMAP.md, docs/sprint/ROADMAP.md |
+| Strategy v2 execution discipline                                        | PRD §11, CLAUDE.md                          |
+| Failure-handling trichotomy (fail-loud / fail-soft / self-heal)         | PRD §21                                     |
+| Panic + Resume CLI primitives                                           | PRD §22                                     |
 
 ## Subpackage architecture
 

@@ -9,6 +9,7 @@ This document describes how decisions are made on the Atelier project.
 A Maintainer has commit access to `main`, can approve PRs, can release versions, and is expected to participate in technical decisions.
 
 **Current Maintainer**:
+
 - Daniel Manzela ([@Manzela](https://github.com/Manzela))
 
 ### Core Contributor
@@ -16,6 +17,7 @@ A Maintainer has commit access to `main`, can approve PRs, can release versions,
 A Core Contributor has had at least 5 substantial contributions accepted, has demonstrated good judgment in code review, and may be elevated to Maintainer at the existing Maintainers' discretion.
 
 **Current Core Contributors**:
+
 - _(none yet — first cohort post-launch)_
 
 ### Contributor

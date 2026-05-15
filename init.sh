@@ -14,10 +14,13 @@ YELLOW="\033[0;33m"
 RED="\033[0;31m"
 RESET="\033[0m"
 
-log()    { echo -e "${GREEN}[init]${RESET} $*"; }
-warn()   { echo -e "${YELLOW}[warn]${RESET} $*"; }
-error()  { echo -e "${RED}[error]${RESET} $*" >&2; }
-fatal()  { error "$*"; exit 1; }
+log() { echo -e "${GREEN}[init]${RESET} $*"; }
+warn() { echo -e "${YELLOW}[warn]${RESET} $*"; }
+error() { echo -e "${RED}[error]${RESET} $*" >&2; }
+fatal() {
+  error "$*"
+  exit 1
+}
 
 # ─── Banner ─────────────────────────────────────────────────────────────────
 cat <<'BANNER'
@@ -93,7 +96,7 @@ if ! command -v pre-commit >/dev/null 2>&1; then
   python3 -m pip install --user pre-commit
 fi
 pre-commit install
-pre-commit install --hook-type commit-msg  # for commitlint
+pre-commit install --hook-type commit-msg # for commitlint
 log "  ✓ pre-commit hooks installed (run-on-commit + commit-msg)"
 
 # ─── 5. Python dependencies ─────────────────────────────────────────────────

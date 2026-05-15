@@ -10,6 +10,7 @@
 
 ```markdown
 ### YYYY-MM-DD — <short title>
+
 **Spec section affected**: §X.Y of `docs/superpowers/specs/2026-05-14-atelier-prd.md`
 **ADR if applicable**: NNNN
 **What the spec says**: <verbatim or summary>

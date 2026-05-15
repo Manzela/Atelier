@@ -10,51 +10,51 @@ Atelier's evaluation discipline implements **three grader types** per Anthropic'
 
 ### Code-based (Layer 1 — Deterministic Gate, N1 DGF-D2C)
 
-| Grader | What it measures | Threshold |
-|---|---|---|
-| Lighthouse a11y | WCAG 2.1 compliance | ≥ 90 |
-| Lighthouse perf | Performance score (LCP, CLS, INP) | ≥ 90 |
-| Lighthouse best practices | Standard web practices | ≥ 90 |
-| axe-core | A11y violations beyond Lighthouse | 0 violations |
-| Token-fidelity grep | Hex/font/spacing values outside DESIGN.md | 0 drift |
-| Semantic-HTML linter | Heading hierarchy, ARIA on iconic controls, alt text, semantic landmarks | strict pass |
-| Playwright visual-diff | Pixel mismatch vs reference screenshot | ≤ 2% |
-| Responsive snapshot | Render correctness at 375 / 768 / 1280 / 1920 px | all 4 pass |
-| ADK tool-trajectory | Verifies the agent called the right tools in the right order | exact / ordered match |
+| Grader                    | What it measures                                                         | Threshold             |
+| ------------------------- | ------------------------------------------------------------------------ | --------------------- |
+| Lighthouse a11y           | WCAG 2.1 compliance                                                      | ≥ 90                  |
+| Lighthouse perf           | Performance score (LCP, CLS, INP)                                        | ≥ 90                  |
+| Lighthouse best practices | Standard web practices                                                   | ≥ 90                  |
+| axe-core                  | A11y violations beyond Lighthouse                                        | 0 violations          |
+| Token-fidelity grep       | Hex/font/spacing values outside DESIGN.md                                | 0 drift               |
+| Semantic-HTML linter      | Heading hierarchy, ARIA on iconic controls, alt text, semantic landmarks | strict pass           |
+| Playwright visual-diff    | Pixel mismatch vs reference screenshot                                   | ≤ 2%                  |
+| Responsive snapshot       | Render correctness at 375 / 768 / 1280 / 1920 px                         | all 4 pass            |
+| ADK tool-trajectory       | Verifies the agent called the right tools in the right order             | exact / ordered match |
 
 ### Model-based (Layer 2 — LLM Design Judge, N2 DEMAS-D + N3 PerJudge)
 
 K = 5 specialized rubric judges, each with DEMAS-D Provenance Matrix:
 
-| Judge | Axis | Provenance variables | Threshold (composite floor: 0.7) |
-|---|---|---|---|
-| Brand-judge | Brand fidelity | Rendered DOM + DESIGN.md tokens + DESIGN_PRINCIPLES_APPLE.md | 0.7 |
-| Copy-judge | Voice + tone | Text content + voice rubric | 0.7 |
-| Motion-judge | Motion correctness | Animation rules + JS event listeners + `prefers-reduced-motion` results | 0.7 |
-| Token-fidelity-judge | Token coherence | Rendered hex/rgb/font/spacing + DESIGN.md token set | 0.8 |
-| Cross-screen-coherence-judge | Pattern reuse vs prior surfaces | This surface + top-5-most-similar prior + DECISIONS.md | 0.7 |
+| Judge                        | Axis                            | Provenance variables                                                    | Threshold (composite floor: 0.7) |
+| ---------------------------- | ------------------------------- | ----------------------------------------------------------------------- | -------------------------------- |
+| Brand-judge                  | Brand fidelity                  | Rendered DOM + DESIGN.md tokens + DESIGN_PRINCIPLES_APPLE.md            | 0.7                              |
+| Copy-judge                   | Voice + tone                    | Text content + voice rubric                                             | 0.7                              |
+| Motion-judge                 | Motion correctness              | Animation rules + JS event listeners + `prefers-reduced-motion` results | 0.7                              |
+| Token-fidelity-judge         | Token coherence                 | Rendered hex/rgb/font/spacing + DESIGN.md token set                     | 0.8                              |
+| Cross-screen-coherence-judge | Pattern reuse vs prior surfaces | This surface + top-5-most-similar prior + DECISIONS.md                  | 0.7                              |
 
 Each uses ADK's `rubric_based_final_response_quality_v1`. Bayesian-weighted vote with confidence interval (per ADR 0008).
 
 ### Human (Layer 3 — Calibration + Sign-off)
 
-| Grader | When | Set size |
-|---|---|---|
+| Grader                 | When                                                                  | Set size                              |
+| ---------------------- | --------------------------------------------------------------------- | ------------------------------------- |
 | Calibration golden set | Weekly recalibration cron (per limits.calibration.recalibration_cron) | 100 frozen tasks per axis = 500 total |
-| Adversarial held-out | Pre-release | 50 tasks |
-| Designer-in-residence | Weekly during sprint, as available post-launch | Real project briefs |
-| Telegram approval gate | Per limits.approval rules (high-stakes pages) | ad-hoc |
+| Adversarial held-out   | Pre-release                                                           | 50 tasks                              |
+| Designer-in-residence  | Weekly during sprint, as available post-launch                        | Real project briefs                   |
+| Telegram approval gate | Per limits.approval rules (high-stakes pages)                         | ad-hoc                                |
 
 ## Eval cadences
 
-| Surface | Cadence | What it catches |
-|---|---|---|
-| Pre-commit smoke | Every commit | Imports broken, types wrong, basic flow broken |
-| CI integration | Every PR | Cross-component breakage |
-| WebGen-Bench full (484 tasks) | Nightly (manual trigger only — workflow_dispatch) + on-tag | Headline benchmark regression |
-| Calibration golden set | Weekly Mon 03:17 UTC | Judge calibration drift (N8) |
-| Adversarial held-out | Pre-release | Eval-set Goodharting check |
-| Designer-in-residence | Per session | Real-world quality + testimonial capture |
+| Surface                       | Cadence                                                    | What it catches                                |
+| ----------------------------- | ---------------------------------------------------------- | ---------------------------------------------- |
+| Pre-commit smoke              | Every commit                                               | Imports broken, types wrong, basic flow broken |
+| CI integration                | Every PR                                                   | Cross-component breakage                       |
+| WebGen-Bench full (484 tasks) | Nightly (manual trigger only — workflow_dispatch) + on-tag | Headline benchmark regression                  |
+| Calibration golden set        | Weekly Mon 03:17 UTC                                       | Judge calibration drift (N8)                   |
+| Adversarial held-out          | Pre-release                                                | Eval-set Goodharting check                     |
+| Designer-in-residence         | Per session                                                | Real-world quality + testimonial capture       |
 
 ## Anti-Goodhart defenses
 

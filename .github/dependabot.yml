@@ -11,62 +11,62 @@ version: 2
 
 updates:
   # ─── Python (atelier-core only — workspace root has minimal deps) ────
-  - package-ecosystem: "pip"
-    directory: "/atelier-core"
+  - package-ecosystem: 'pip'
+    directory: '/atelier-core'
     schedule:
-      interval: "monthly"           # was: weekly
-      day: "monday"
-      time: "08:00"
-      timezone: "UTC"
-    open-pull-requests-limit: 3     # hard cap to avoid CI flood
-    labels: ["dependencies", "python"]
+      interval: 'monthly' # was: weekly
+      day: 'monday'
+      time: '08:00'
+      timezone: 'UTC'
+    open-pull-requests-limit: 3 # hard cap to avoid CI flood
+    labels: ['dependencies', 'python']
     commit-message:
-      prefix: "chore(deps)"
-      prefix-development: "chore(deps-dev)"
-      include: "scope"
+      prefix: 'chore(deps)'
+      prefix-development: 'chore(deps-dev)'
+      include: 'scope'
     groups:
-      python-all:                   # group ALL python bumps into 1 PR/month
-        patterns: ["*"]
-        update-types: ["minor", "patch"]
+      python-all: # group ALL python bumps into 1 PR/month
+        patterns: ['*']
+        update-types: ['minor', 'patch']
     ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]   # major bumps require manual review
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major'] # major bumps require manual review
 
   # ─── npm (workspace root: commitlint + prettier + typescript only) ──
-  - package-ecosystem: "npm"
-    directory: "/"
+  - package-ecosystem: 'npm'
+    directory: '/'
     schedule:
-      interval: "monthly"
-      day: "monday"
-      time: "08:00"
-      timezone: "UTC"
+      interval: 'monthly'
+      day: 'monday'
+      time: '08:00'
+      timezone: 'UTC'
     open-pull-requests-limit: 2
-    labels: ["dependencies", "npm"]
+    labels: ['dependencies', 'npm']
     commit-message:
-      prefix: "chore(deps)"
-      prefix-development: "chore(deps-dev)"
-      include: "scope"
+      prefix: 'chore(deps)'
+      prefix-development: 'chore(deps-dev)'
+      include: 'scope'
     groups:
       npm-all:
-        patterns: ["*"]
-        update-types: ["minor", "patch"]
+        patterns: ['*']
+        update-types: ['minor', 'patch']
     ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
 
   # ─── GitHub Actions (security-critical; quarterly) ──────────────────
-  - package-ecosystem: "github-actions"
-    directory: "/"
+  - package-ecosystem: 'github-actions'
+    directory: '/'
     schedule:
-      interval: "monthly"
-      day: "monday"
-      time: "08:00"
-      timezone: "UTC"
+      interval: 'monthly'
+      day: 'monday'
+      time: '08:00'
+      timezone: 'UTC'
     open-pull-requests-limit: 2
-    labels: ["dependencies", "github-actions"]
+    labels: ['dependencies', 'github-actions']
     commit-message:
-      prefix: "ci(deps)"
-      include: "scope"
+      prefix: 'ci(deps)'
+      include: 'scope'
     groups:
       actions-all:
-        patterns: ["*"]
+        patterns: ['*']

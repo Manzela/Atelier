@@ -8,7 +8,7 @@ submission_target: Google for Startups AI Agents Challenge 2026
 submission_deadline: 2026-06-05
 internal_target_deadline: 2026-06-03
 sprint_window: 2026-05-15 → 2026-06-04
-build_budget_usd: 5000  # Claude Opus 4.7 MAX capacity via Vertex AI
+build_budget_usd: 5000 # Claude Opus 4.7 MAX capacity via Vertex AI
 license: Apache-2.0
 related_specs:
   - /Users/danielmanzela/Professional Profile/agent-dag-pipeline (architectural reference, ~75% ADK reuse)
@@ -44,7 +44,7 @@ The 21-day sprint window is **2026-05-15 → 2026-06-04** with submission filed 
 
 ## 3. Problem statement
 
-Every shipped autonomous-design tool in May 2026 — Stitch, Vercel v0, Subframe, Lovable.dev, Bolt.new, Replit Agent v2, Devin, Builder.io Fusion, Tempo Labs — terminates at *generation*, not at *convergence*. The verification step in Google's own Antigravity codelab is literally called **"Vibe Check"** — manual human eyeballing. None auto-runs Lighthouse, axe-core, visual-regression, or responsive-snapshot gates and re-generates until pass. None ships a multi-axis design judge. None fine-tunes on user-specific accept/reject signals. None mirrors the deterministic-gate-first DAG architecture validated in production codegen agents.
+Every shipped autonomous-design tool in May 2026 — Stitch, Vercel v0, Subframe, Lovable.dev, Bolt.new, Replit Agent v2, Devin, Builder.io Fusion, Tempo Labs — terminates at _generation_, not at _convergence_. The verification step in Google's own Antigravity codelab is literally called **"Vibe Check"** — manual human eyeballing. None auto-runs Lighthouse, axe-core, visual-regression, or responsive-snapshot gates and re-generates until pass. None ships a multi-axis design judge. None fine-tunes on user-specific accept/reject signals. None mirrors the deterministic-gate-first DAG architecture validated in production codegen agents.
 
 Meanwhile, **WebGen-Bench (NeurIPS 2025)** establishes that even the strongest current agent (WebGen-Agent at 51.9%) leaves nearly half of generated sites failing automated quality criteria, and **DesignPref (Nov 2025, 12k pairwise UI judgments by 20 professional designers)** proves that designer disagreement is intrinsic (Krippendorff's α = 0.25), making **personalized judges scientifically required** — yet no shipped agent personalizes.
 
@@ -56,13 +56,13 @@ The whitespace is not "better generation." The whitespace is **closed-loop conve
 
 Atelier delivers 10× over the strongest commercial baseline (Subframe + Devin + v0 stack) along **5 simultaneous axes**, every one falsifiable:
 
-| # | Axis | MVP target | Baseline | 10× evidence |
-|---|---|---|---|---|
-| 1 | **Convergence quality at first declared-done** | ≥ 95% (Lighthouse Perf/A11y/BP ≥ 90, axe = 0, visual-diff ≤ 2%, responsive on 4 breakpoints) | Today: ~0% formal across commercial tools (no tool gates) | Quantified vs zero |
-| 2 | **Iterations to convergence** | ≤ 3 autonomous loops | Reflexion typical 5–10; commercial requires ~80+ human-bounded cycles | Beats published research |
-| 3 | **Human-in-loop time** | ≤ 60 sec to gate-passing output | Subframe / v0 / Stitch: ~5–15 min per page | Order of magnitude |
-| 4 | **Cross-session pattern reuse** (compounding learning) | ≥ 60% reuse rate after 100 sessions | Today: 0% across commercial tools | Compounding moat |
-| 5 | **WebGen-Bench (published benchmark)** | ≥ +25 pts vs Claude-3.5 baseline (26.4 → ≥ 51.4); stretch ≥ 77 with first-project LoRA | SOTA WebGen-Agent: 51.9% | Beats published SOTA by ≥ 25 pts (stretch) |
+| #   | Axis                                                   | MVP target                                                                                   | Baseline                                                              | 10× evidence                               |
+| --- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------ |
+| 1   | **Convergence quality at first declared-done**         | ≥ 95% (Lighthouse Perf/A11y/BP ≥ 90, axe = 0, visual-diff ≤ 2%, responsive on 4 breakpoints) | Today: ~0% formal across commercial tools (no tool gates)             | Quantified vs zero                         |
+| 2   | **Iterations to convergence**                          | ≤ 3 autonomous loops                                                                         | Reflexion typical 5–10; commercial requires ~80+ human-bounded cycles | Beats published research                   |
+| 3   | **Human-in-loop time**                                 | ≤ 60 sec to gate-passing output                                                              | Subframe / v0 / Stitch: ~5–15 min per page                            | Order of magnitude                         |
+| 4   | **Cross-session pattern reuse** (compounding learning) | ≥ 60% reuse rate after 100 sessions                                                          | Today: 0% across commercial tools                                     | Compounding moat                           |
+| 5   | **WebGen-Bench (published benchmark)**                 | ≥ +25 pts vs Claude-3.5 baseline (26.4 → ≥ 51.4); stretch ≥ 77 with first-project LoRA       | SOTA WebGen-Agent: 51.9%                                              | Beats published SOTA by ≥ 25 pts (stretch) |
 
 Plus a **6th axis surfaced by N13 PIP**: **first-shot convergence rate ≥ 40%** (vs ≤ 25% without PIP, vs ~5–15% commercial baseline) and a **7th axis surfaced by N12 RLRD**: **multi-surface campaign success ≥ 85% on 12-surface campaign, ≥ 70% on 50-surface** (vs ~0% commercial — none handle campaigns autonomously).
 
@@ -72,7 +72,7 @@ Plus a **6th axis surfaced by N13 PIP**: **first-shot convergence rate ≥ 40%**
 
 Each contribution is independently defensible against peer review and competitively unowned at the commercial level.
 
-**N1. DGF-D2C — Deterministic-Gate-First Design-to-Convergence.** Process supervision with deterministic preconditions: every node fires a zero-LLM, O(1) gate before any probabilistic agent. Lighthouse / axe / token-fidelity / semantic-HTML / visual-diff / responsive gates run *before* the design judge sees anything, eliminating attention dilution and judge oscillation. WebGen-Agent uses VLM scorer + Step-GRPO but no deterministic pre-gate. **Publishable at NeurIPS D&B or ICLR.**
+**N1. DGF-D2C — Deterministic-Gate-First Design-to-Convergence.** Process supervision with deterministic preconditions: every node fires a zero-LLM, O(1) gate before any probabilistic agent. Lighthouse / axe / token-fidelity / semantic-HTML / visual-diff / responsive gates run _before_ the design judge sees anything, eliminating attention dilution and judge oscillation. WebGen-Agent uses VLM scorer + Step-GRPO but no deterministic pre-gate. **Publishable at NeurIPS D&B or ICLR.**
 
 **N2. DEMAS-D — Per-axis Provenance Matrix Design Judge.** Each design axis (a11y, brand, motion, copy, semantics, tokens) receives **only** its relevant ground-truth variables, never the full DOM. Solves the "judge overwhelmed by full page context when scoring just contrast" problem that Stitch/v0/Lovable architectures all suffer from. Direct port of agent-dag-pipeline's DEMAS Provenance Matrix retargeted to UI.
 
@@ -99,6 +99,7 @@ Each contribution is independently defensible against peer review and competitiv
 **N13. PIP — Pre-Generation Intake Protocol.** Adaptive-depth (atomic 2-3 / small 5-7 / large 10-12 / greenfield 12-15 questions), DAPLab-pattern-mapped (each of 9 failure patterns has a preempting question), visual-option-driven (4 mockup thumbnails for "what visual feel?"), skip-when-answered (descriptor / Memory Bank / brief-parsed) intake before any generation. Produces an **immutable BriefSpec** the agent commits to. **First commercial autonomous design agent to ship structured pre-generation intake** — directly closes silent-error-suppression and business-logic-mismatch failure modes.
 
 **Combined defense:**
+
 - N1+N2+N5 = methodology paper ("Process Supervision with Deterministic Preconditions and Evolutionary Search for Personalized Autonomous Design Convergence")
 - N3+N6+N13 = personalization + intake paper
 - N4+N7 = product moat (broad deployment)
@@ -160,23 +161,24 @@ PIP Router (assesses scope: atomic/small/large/greenfield)
 
 **Question catalog (13 questions, mapped 1:1 to DAPLab patterns):**
 
-| Q# | Question | Visual options | DAPLab pattern preempted |
-|---|---|---|---|
-| 1 | "Reference images / live URL / Figma file? If no, what's the visual feel?" | 4 mockup thumbnails (editorial / dense-data / playful / brutalist) | 1 — UI grounding mismatch |
-| 2 | "Multi-surface project? One shared design system or federated?" | Single-system vs federated diagram | 2 — State management failures |
-| 3 | "In ONE sentence: what's the single thing this should make easier?" | (text only) | 3 — Business-logic mismatch |
-| 4 | "Existing DESIGN.md / tokens / brand guide?" | Color-palette swatch grid | 4 — Schema errors |
-| 5 | "Output stack?" | Stack logos (React, Vue, Svelte, vanilla HTML, etc.) | 5 — API integration failures |
-| 6 | "Compliance level?" (WCAG AA default / AAA / regulatory / none) | (text only) | 6 — Security vulnerabilities |
-| 7 | "Existing component library to reuse?" | (text only) | 7 — Repeated code |
-| 8 | "Process surfaces sequentially or parallel?" | Sequential vs parallel diagram | 8 — Codebase awareness loss |
-| 9 | "Convergence bar?" (Ship-it ≥85% / Production ≥95% / Perfectionist 100%) | (text only) | 9 — Silent error suppression |
-| 10 | (Campaign only) "Timeline?" Today / week / multi-week | (text only) | — |
-| 11 | (Campaign only) "Budget cap per session / per campaign?" | (text only) | — |
-| 12 | (Campaign only) "Failure policy?" Skip / ask for help / best-effort + flag | (text only) | — |
-| 13 | (Greenfield only) "Brand-from-scratch? Primary user? Business goal?" | (text only) | — |
+| Q#  | Question                                                                   | Visual options                                                     | DAPLab pattern preempted      |
+| --- | -------------------------------------------------------------------------- | ------------------------------------------------------------------ | ----------------------------- |
+| 1   | "Reference images / live URL / Figma file? If no, what's the visual feel?" | 4 mockup thumbnails (editorial / dense-data / playful / brutalist) | 1 — UI grounding mismatch     |
+| 2   | "Multi-surface project? One shared design system or federated?"            | Single-system vs federated diagram                                 | 2 — State management failures |
+| 3   | "In ONE sentence: what's the single thing this should make easier?"        | (text only)                                                        | 3 — Business-logic mismatch   |
+| 4   | "Existing DESIGN.md / tokens / brand guide?"                               | Color-palette swatch grid                                          | 4 — Schema errors             |
+| 5   | "Output stack?"                                                            | Stack logos (React, Vue, Svelte, vanilla HTML, etc.)               | 5 — API integration failures  |
+| 6   | "Compliance level?" (WCAG AA default / AAA / regulatory / none)            | (text only)                                                        | 6 — Security vulnerabilities  |
+| 7   | "Existing component library to reuse?"                                     | (text only)                                                        | 7 — Repeated code             |
+| 8   | "Process surfaces sequentially or parallel?"                               | Sequential vs parallel diagram                                     | 8 — Codebase awareness loss   |
+| 9   | "Convergence bar?" (Ship-it ≥85% / Production ≥95% / Perfectionist 100%)   | (text only)                                                        | 9 — Silent error suppression  |
+| 10  | (Campaign only) "Timeline?" Today / week / multi-week                      | (text only)                                                        | —                             |
+| 11  | (Campaign only) "Budget cap per session / per campaign?"                   | (text only)                                                        | —                             |
+| 12  | (Campaign only) "Failure policy?" Skip / ask for help / best-effort + flag | (text only)                                                        | —                             |
+| 13  | (Greenfield only) "Brand-from-scratch? Primary user? Business goal?"       | (text only)                                                        | —                             |
 
 **Adaptive depth:**
+
 - Atomic single-surface task: questions 1, 3, 5 (= 3 questions)
 - Small campaign (5-15 surfaces): adds 2, 4, 9 (= 6 questions)
 - Large campaign (50+ surfaces): adds 6, 7, 8, 10, 11, 12 (= 12 questions)
@@ -204,6 +206,7 @@ PIP Router (assesses scope: atomic/small/large/greenfield)
 ```
 
 **Cross-Surface Coherence Validator** runs after each surface converges:
+
 - Token use matches `design-system.lock.md`
 - Pattern reuse with prior surfaces ≥ 30% threshold
 - No DECISIONS.md contradictions
@@ -285,11 +288,11 @@ Phase 2 — Sequential  │
 
 **Loop discipline:**
 
-| Loop | Where | Exit | Iter cap |
-|---|---|---|---|
-| EvoDesign K-candidate | N3a | All K candidates generated | K from `limits.evodesign.k` (MVP K=6) |
-| Generator↔Fixer (deterministic gate convergence) | N3a → N3c → N3e → N3a | All deterministic gates green for at least one candidate | `limits.det_loop_max_iter` (default 5) |
-| Judge↔Fixer (LLM judge convergence) | N3d → N3e → N3a | ConsensusResult.decision == CONVERGED | `limits.judge_loop_max_iter` (default 3) |
+| Loop                                             | Where                 | Exit                                                     | Iter cap                                 |
+| ------------------------------------------------ | --------------------- | -------------------------------------------------------- | ---------------------------------------- |
+| EvoDesign K-candidate                            | N3a                   | All K candidates generated                               | K from `limits.evodesign.k` (MVP K=6)    |
+| Generator↔Fixer (deterministic gate convergence) | N3a → N3c → N3e → N3a | All deterministic gates green for at least one candidate | `limits.det_loop_max_iter` (default 5)   |
+| Judge↔Fixer (LLM judge convergence)              | N3d → N3e → N3a       | ConsensusResult.decision == CONVERGED                    | `limits.judge_loop_max_iter` (default 3) |
 
 Hard outer cap: `limits.outer_loop_max_iter` (default 8).
 
@@ -297,13 +300,13 @@ Hard outer cap: `limits.outer_loop_max_iter` (default 8).
 
 Adapting agent-dag-pipeline's O-R-A-V to design:
 
-| Axis | What it measures | Model tier | Threshold |
-|---|---|---|---|
-| **Brand-fidelity** | Adherence to DESIGN_PRINCIPLES_APPLE.md + DESIGN.md tokens | Gemini 3 Flash + Brand-judge LoRA | 0.7 |
-| **Originality** | Distinctness from generic AI-slop / template repetition | Gemini 3 Flash | 0.6 |
-| **Relevance** | Alignment between generated UI and BriefSpec | Gemini 3 Flash + project-specific LoRA | 0.7 |
-| **Accessibility** | Lighthouse a11y + axe + semantic-HTML (deterministic) + a11y-judge (probabilistic) | Det gate + Gemini 3 Flash | Det: 0 errors / Probabilistic: 0.8 |
-| **Visual-clarity** | Information hierarchy, scan-ability, cognitive load | Gemini 3 Flash + multimodal-embedding | 0.7 |
+| Axis               | What it measures                                                                   | Model tier                             | Threshold                          |
+| ------------------ | ---------------------------------------------------------------------------------- | -------------------------------------- | ---------------------------------- |
+| **Brand-fidelity** | Adherence to DESIGN_PRINCIPLES_APPLE.md + DESIGN.md tokens                         | Gemini 3 Flash + Brand-judge LoRA      | 0.7                                |
+| **Originality**    | Distinctness from generic AI-slop / template repetition                            | Gemini 3 Flash                         | 0.6                                |
+| **Relevance**      | Alignment between generated UI and BriefSpec                                       | Gemini 3 Flash + project-specific LoRA | 0.7                                |
+| **Accessibility**  | Lighthouse a11y + axe + semantic-HTML (deterministic) + a11y-judge (probabilistic) | Det gate + Gemini 3 Flash              | Det: 0 errors / Probabilistic: 0.8 |
+| **Visual-clarity** | Information hierarchy, scan-ability, cognitive load                                | Gemini 3 Flash + multimodal-embedding  | 0.7                                |
 
 Composite: weighted vote (Bayesian-weighted by confidence interval), per-axis floors enforced (any axis < threshold = REJECT).
 
@@ -311,11 +314,11 @@ Composite: weighted vote (Bayesian-weighted by confidence interval), per-axis fl
 
 Three layers, each with explicit responsibility:
 
-| Layer | Responsibility | Tools |
-|---|---|---|
-| **Layer 1: Deterministic gates** (must pass) | Lighthouse Perf/A11y/BP ≥ 90, axe = 0 errors, token-fidelity grep clean, semantic-HTML linter clean, prefers-reduced-motion alternate exists, responsive on 4 breakpoints | Lighthouse CI, axe-core, custom grep, html-validate, Playwright |
-| **Layer 2: LLM design judge** (D-O-R-A-V) | Brand / Copy / Motion / Token / Coherence axes via 5 specialized rubric judges; DEMAS-D Provenance Matrix per axis | ADK `rubric_based_final_response_quality_v1` + per-project LoRAs (S-LoRA on Vertex AI Endpoints) |
-| **Layer 3: Optional human approval** (Telegram) | Final "ship it" for high-stakes pages per `limits.approval` rules | Telegram inline-keyboard buttons (inherits hermes-agent pattern) |
+| Layer                                           | Responsibility                                                                                                                                                            | Tools                                                                                            |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| **Layer 1: Deterministic gates** (must pass)    | Lighthouse Perf/A11y/BP ≥ 90, axe = 0 errors, token-fidelity grep clean, semantic-HTML linter clean, prefers-reduced-motion alternate exists, responsive on 4 breakpoints | Lighthouse CI, axe-core, custom grep, html-validate, Playwright                                  |
+| **Layer 2: LLM design judge** (D-O-R-A-V)       | Brand / Copy / Motion / Token / Coherence axes via 5 specialized rubric judges; DEMAS-D Provenance Matrix per axis                                                        | ADK `rubric_based_final_response_quality_v1` + per-project LoRAs (S-LoRA on Vertex AI Endpoints) |
+| **Layer 3: Optional human approval** (Telegram) | Final "ship it" for high-stakes pages per `limits.approval` rules                                                                                                         | Telegram inline-keyboard buttons (inherits hermes-agent pattern)                                 |
 
 Phase 4 RL fine-tunes the LLM Design Judge (Layer 2) on accumulated trajectories.
 
@@ -323,11 +326,11 @@ Phase 4 RL fine-tunes the LLM Design Judge (Layer 2) on accumulated trajectories
 
 **Soft loop (Phase 1+, runs continuously, no GPU):**
 
-| Nudge | Trigger | Action | Tunable |
-|---|---|---|---|
-| Pattern curator | Every 6h | Agent re-reads project Memory Bank, scores patterns for keep/promote/forget | `limits.nudges.pattern_curator_interval` |
-| Skill extractor | After complex campaign (≥ 10 surfaces converged) | Reflect on trajectory; if reusable, write `/skills/<slug>/SKILL.md` | `limits.nudges.skill_extractor_min_surfaces` |
-| Vector consolidator | Nightly 03:17 UTC | Cluster Vector Search 2.0 embeddings, summarize via LiteLLM, promote to Memory Bank, prune low-score > 90d | `limits.nudges.vector_consolidator_cron` |
+| Nudge               | Trigger                                          | Action                                                                                                     | Tunable                                      |
+| ------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| Pattern curator     | Every 6h                                         | Agent re-reads project Memory Bank, scores patterns for keep/promote/forget                                | `limits.nudges.pattern_curator_interval`     |
+| Skill extractor     | After complex campaign (≥ 10 surfaces converged) | Reflect on trajectory; if reusable, write `/skills/<slug>/SKILL.md`                                        | `limits.nudges.skill_extractor_min_surfaces` |
+| Vector consolidator | Nightly 03:17 UTC                                | Cluster Vector Search 2.0 embeddings, summarize via LiteLLM, promote to Memory Bank, prune low-score > 90d | `limits.nudges.vector_consolidator_cron`     |
 
 **Hard loop (Phase 1.5 within MVP for first-project; Phase 2+ for all projects):**
 
@@ -354,13 +357,13 @@ DPO preference pairs → LoRA fine-tuning → improved per-project judge
 
 ### 6.7 Tiered Sandboxing (5 tiers, inherits hermes-agent + agent-dag-pipeline)
 
-| Tier | Tools | Boundary |
-|---|---|---|
-| `in_process` | file reads, grep, ls, AST validation | runs in agent process; host FS read-only |
-| `shell_sandbox` | shell, git, jq | Docker container, --cap-drop=ALL, --network=none, RO host FS, writable /workspace only |
-| `browser_sandbox` | Playwright actions, Lighthouse, axe-core | Docker container, network allowlisted per call, --memory=2g --cpus=2.0 |
-| `external_https` | Stitch MCP, GitHub MCP, Context7 MCP | in-process httpx with egress allowlist enforcement |
-| `cloud_sandbox` | arbitrary code execution (model-generated CSS/JS), Vertex AI Endpoints (LoRA serving), Vertex AI Tuning Manager | Modal/Daytona ephemeral microVM, network restricted, max 10-min lifetime |
+| Tier              | Tools                                                                                                           | Boundary                                                                               |
+| ----------------- | --------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `in_process`      | file reads, grep, ls, AST validation                                                                            | runs in agent process; host FS read-only                                               |
+| `shell_sandbox`   | shell, git, jq                                                                                                  | Docker container, --cap-drop=ALL, --network=none, RO host FS, writable /workspace only |
+| `browser_sandbox` | Playwright actions, Lighthouse, axe-core                                                                        | Docker container, network allowlisted per call, --memory=2g --cpus=2.0                 |
+| `external_https`  | Stitch MCP, GitHub MCP, Context7 MCP                                                                            | in-process httpx with egress allowlist enforcement                                     |
+| `cloud_sandbox`   | arbitrary code execution (model-generated CSS/JS), Vertex AI Endpoints (LoRA serving), Vertex AI Tuning Manager | Modal/Daytona ephemeral microVM, network restricted, max 10-min lifetime               |
 
 First-match wins; unknown tools fall through to `shell_sandbox` (default-deny).
 
@@ -386,6 +389,7 @@ Any violation = explicit non-convergence response on this surface; surface marke
 ### 7.2 Cost model
 
 **Per-session unit economics** (target):
+
 - 50 LLM predictions × $0.20/1K (under 1M Agent Engine tier) = $0.01 platform cost
 - Token costs: ~$0.10–0.50/session via Apigee model routing (Pro for Generator, Flash for judges, Flash-Lite for gate auxiliaries)
 - **Total per-session cost: < $0.50 in MVP, < $0.10 with judge LoRA (Phase 2)**
@@ -399,6 +403,7 @@ Any violation = explicit non-convergence response on this surface; surface marke
 **OTel GenAI semconv** (`gen_ai.*` spans/events) → **Cloud Trace** + **Cloud Monitoring** + **Cloud Logging** + **Vertex AI Studio Tracing UI** + **Atelier Dashboard** (custom UX layer). **No Langfuse** (Google-native covers ~95%, Langfuse adds sprawl + conflicts with "Use of Google Cloud" judging criterion).
 
 **Every span carries:**
+
 - `gen_ai.system` = "atelier"
 - `gen_ai.operation.name` = `generate_candidate` | `judge_axis` | `gate_check` | `mutator_apply` | `consensus_vote` | `final_render` | `pip_question` | `coherence_check`
 - `gen_ai.request.model` = e.g., `gemini-3-1-pro`, `atelier-judge-brand-v3-loraN`
@@ -426,23 +431,23 @@ Set in `limits.yaml` from sprint week 1, enforced by Cloud Monitoring alerts →
 
 Atelier agent processes can ONLY reach these external endpoints. Every other outbound is blocked at the network layer.
 
-| Endpoint | Purpose |
-|---|---|
-| `*.aiplatform.googleapis.com` | Vertex AI (Gemini, Memory Bank, Vector Search, Tuning, Endpoints) |
-| `stitch.googleapis.com` | Stitch MCP for UI generation |
-| `api.github.com` | GitHub MCP (PR creation, repo metadata) |
-| `api.context7.com` | Context7 MCP (library docs verification) |
-| `*.firebaseio.com`, `firestore.googleapis.com` | Firestore for hot UI state |
-| `bigquery.googleapis.com`, `bigquerystorage.googleapis.com` | BigQuery for trajectory writes |
-| `storage.googleapis.com` | GCS for trajectory cold storage + KMS key references |
-| `secretmanager.googleapis.com` | Secret Manager for platform secrets |
-| `cloudkms.googleapis.com` | Cloud KMS for BYOK envelope encryption |
-| `cloudtrace.googleapis.com`, `monitoring.googleapis.com`, `logging.googleapis.com` | Observability |
-| `apigee.googleapis.com` | Apigee gateway control |
-| `api.telegram.org` | Telegram bot (async tasks + approval gates) |
-| `api.stripe.com` | Stripe billing |
-| `*.run.app` (own services only) | Internal Cloud Run service-to-service |
-| Per-call Playwright targets | User-supplied URLs for visual-diff (per-session allowlist, expires after session) |
+| Endpoint                                                                           | Purpose                                                                           |
+| ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `*.aiplatform.googleapis.com`                                                      | Vertex AI (Gemini, Memory Bank, Vector Search, Tuning, Endpoints)                 |
+| `stitch.googleapis.com`                                                            | Stitch MCP for UI generation                                                      |
+| `api.github.com`                                                                   | GitHub MCP (PR creation, repo metadata)                                           |
+| `api.context7.com`                                                                 | Context7 MCP (library docs verification)                                          |
+| `*.firebaseio.com`, `firestore.googleapis.com`                                     | Firestore for hot UI state                                                        |
+| `bigquery.googleapis.com`, `bigquerystorage.googleapis.com`                        | BigQuery for trajectory writes                                                    |
+| `storage.googleapis.com`                                                           | GCS for trajectory cold storage + KMS key references                              |
+| `secretmanager.googleapis.com`                                                     | Secret Manager for platform secrets                                               |
+| `cloudkms.googleapis.com`                                                          | Cloud KMS for BYOK envelope encryption                                            |
+| `cloudtrace.googleapis.com`, `monitoring.googleapis.com`, `logging.googleapis.com` | Observability                                                                     |
+| `apigee.googleapis.com`                                                            | Apigee gateway control                                                            |
+| `api.telegram.org`                                                                 | Telegram bot (async tasks + approval gates)                                       |
+| `api.stripe.com`                                                                   | Stripe billing                                                                    |
+| `*.run.app` (own services only)                                                    | Internal Cloud Run service-to-service                                             |
+| Per-call Playwright targets                                                        | User-supplied URLs for visual-diff (per-session allowlist, expires after session) |
 
 **No other endpoint is reachable.** Adding a new endpoint requires an ADR + explicit allowlist update.
 
@@ -452,12 +457,12 @@ Atelier agent processes can ONLY reach these external endpoints. Every other out
 
 ### 7.6 Compliance roadmap
 
-| Milestone | Status | Date |
-|---|---|---|
-| GDPR + EU AI Act limited-risk transparency | MVP launch | 2026-06-05 |
-| SOC 2 Type 2 (via Vanta or Drata) | Evidence collection wired day-0; certification | 2026-12 (month 6) |
-| ISO 27001 | When first enterprise contract demands | TBD |
-| ISO 42001 (AI-specific governance) | At scale, as differentiator | TBD |
+| Milestone                                  | Status                                         | Date              |
+| ------------------------------------------ | ---------------------------------------------- | ----------------- |
+| GDPR + EU AI Act limited-risk transparency | MVP launch                                     | 2026-06-05        |
+| SOC 2 Type 2 (via Vanta or Drata)          | Evidence collection wired day-0; certification | 2026-12 (month 6) |
+| ISO 27001                                  | When first enterprise contract demands         | TBD               |
+| ISO 42001 (AI-specific governance)         | At scale, as differentiator                    | TBD               |
 
 ### 7.7 Pricing
 
@@ -630,31 +635,32 @@ All models frozen, schema-versioned (`schema_version` field never decreases, fie
 **Architectural principle (per AutonomousAgent ADR 0001 lineage)**: Atelier **consumes upstream code via lockfile-pinned dependencies and wraps it with our own deployment, configuration, security, and observability layers — we do NOT fork upstream internals.** Preserves upgrade paths, eliminates merge friction, keeps us aligned with upstream evolution.
 
 Specifically:
+
 - **`agent-dag-pipeline`** → consumed via `pip install agent-dag-pipeline==<pinned-version>` in `requirements.lock`. We import its ADK integration classes (`agent_dag.adk.gate_agent.GateAgent`, etc.) and subclass them. We never modify the package's source.
 - **`google-adk`** v2.0 Beta → consumed via `pip install google-adk --pre` lockfile-pinned. We use its primitives (`SequentialAgent`, `ParallelAgent`, `LoopAgent`, `MCPToolset`, `rubric_based_*`, `MemoryService`). We never modify it.
 - **`hermes-agent`** → **inheritance is pattern-only, not code-import.** We mirror its skills system, MEMORY/SOUL files, sandboxing tier model, panic/resume primitives, heartbeat, and Atropos GRPO+LoRA training pattern in our own code. We do not run hermes-agent as a process.
 - **Stitch MCP** → consumed via the published HTTP MCP endpoint at `https://stitch.googleapis.com/mcp` through ADK's `MCPToolset`. No source-level dependency.
 - **All other services** (Identity Platform, Apigee, Cloud Run, Memory Bank, Vector Search 2.0, BigQuery, KMS, Vertex AI Tuning + Endpoints) → managed Google services consumed via SDKs.
 
-| Component | Source | Consumption mode | Atelier wrapping layer |
-|---|---|---|---|
-| GateAgent ABC + GateDecision + GateResult | agent-dag-pipeline `agent_dag/adk/gate_agent.py` (215 LOC) | `pip install` lockfile-pinned | Subclass with Atelier-specific node implementations |
-| Pipeline composition (Sequential + Parallel + Loop) | agent-dag-pipeline `agent_dag/adk/pipeline.py` + ADK 2.0 `LoopAgent` | 80% | Add `LoopAgent` for EvoDesign |
-| Runner + SessionService | agent-dag-pipeline `agent_dag/adk/runner.py` (70 LOC) | 100% | Direct reuse |
-| Lifecycle callbacks (integrity / flywheel / telemetry) | agent-dag-pipeline `agent_dag/adk/callbacks.py` (114 LOC) | 90% | Adapt for design context |
-| Eval framework | agent-dag-pipeline `agent_dag/adk/eval.py` (132 LOC) + ADK `rubric_based_*` | 80% | Adapt to D-O-R-A-V rubric |
-| Model Armor guardrails | agent-dag-pipeline `agent_dag/adk/guardrails.py` (153 LOC) | 100% | Direct reuse |
-| Tool callbacks (sacred-label scrubber, prompt-injection regex) | agent-dag-pipeline `agent_dag/adk/tools.py` (118 LOC) | 90% | Adapt SACRED_LABELS for design |
-| A2A Agent Card | agent-dag-pipeline `agent_dag/adk/agent_card.py` (53 LOC) | 50% | New skills declared |
-| Vertex AI deployment | agent-dag-pipeline `agent_dag/adk/deploy.py` (108 LOC) | 100% | Direct reuse, change requirements |
-| 3-tier flywheel + DPO preference pairs + Hebbian mutator | agent-dag-pipeline `agent_dag/flywheel/` | 90% | Adapt scoring metrics to design |
-| Telegram gateway + skills + MEMORY/SOUL + sandboxing tiers + panic + heartbeat | hermes-agent | 70% | Domain-adapt for design |
-| Atropos GRPO + LoRA training pipeline | hermes-agent | 100% | Direct reuse |
-| LoopAgent + ParallelAgent + Skills for Agents + MCPToolset + rubric_based_*_v1 + adk optimize (GEPA) + adk conformance | ADK 2.0 Beta | 100% | Direct consume |
-| Vertex Memory Bank + Sessions + Vector Search 2.0 + Tuning jobs + Endpoints with Multi-Tuning | GEAP managed services | 100% | Direct consume |
-| Two-prompt harness (initializer + coding agent + JSON ledger) | Anthropic published pattern | 100% | Direct adopt |
-| Atelier-original code (8 nodes + EvoDesign + CSC-D + ConsensusAgent + 5 judges + 6 mutation operators + dashboard + A2UI renderers + WebContainer + bench adapters + PIP + Campaign Orchestrator + Cross-Surface Coherence) | new | — | ~6,000–8,000 LOC |
-| Documentation, ADRs, runbooks, eval cases, terraform, CI/CD | new | — | ~10,000 LOC equivalent |
+| Component                                                                                                                                                                                                                   | Source                                                                      | Consumption mode              | Atelier wrapping layer                              |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- | ----------------------------- | --------------------------------------------------- |
+| GateAgent ABC + GateDecision + GateResult                                                                                                                                                                                   | agent-dag-pipeline `agent_dag/adk/gate_agent.py` (215 LOC)                  | `pip install` lockfile-pinned | Subclass with Atelier-specific node implementations |
+| Pipeline composition (Sequential + Parallel + Loop)                                                                                                                                                                         | agent-dag-pipeline `agent_dag/adk/pipeline.py` + ADK 2.0 `LoopAgent`        | 80%                           | Add `LoopAgent` for EvoDesign                       |
+| Runner + SessionService                                                                                                                                                                                                     | agent-dag-pipeline `agent_dag/adk/runner.py` (70 LOC)                       | 100%                          | Direct reuse                                        |
+| Lifecycle callbacks (integrity / flywheel / telemetry)                                                                                                                                                                      | agent-dag-pipeline `agent_dag/adk/callbacks.py` (114 LOC)                   | 90%                           | Adapt for design context                            |
+| Eval framework                                                                                                                                                                                                              | agent-dag-pipeline `agent_dag/adk/eval.py` (132 LOC) + ADK `rubric_based_*` | 80%                           | Adapt to D-O-R-A-V rubric                           |
+| Model Armor guardrails                                                                                                                                                                                                      | agent-dag-pipeline `agent_dag/adk/guardrails.py` (153 LOC)                  | 100%                          | Direct reuse                                        |
+| Tool callbacks (sacred-label scrubber, prompt-injection regex)                                                                                                                                                              | agent-dag-pipeline `agent_dag/adk/tools.py` (118 LOC)                       | 90%                           | Adapt SACRED_LABELS for design                      |
+| A2A Agent Card                                                                                                                                                                                                              | agent-dag-pipeline `agent_dag/adk/agent_card.py` (53 LOC)                   | 50%                           | New skills declared                                 |
+| Vertex AI deployment                                                                                                                                                                                                        | agent-dag-pipeline `agent_dag/adk/deploy.py` (108 LOC)                      | 100%                          | Direct reuse, change requirements                   |
+| 3-tier flywheel + DPO preference pairs + Hebbian mutator                                                                                                                                                                    | agent-dag-pipeline `agent_dag/flywheel/`                                    | 90%                           | Adapt scoring metrics to design                     |
+| Telegram gateway + skills + MEMORY/SOUL + sandboxing tiers + panic + heartbeat                                                                                                                                              | hermes-agent                                                                | 70%                           | Domain-adapt for design                             |
+| Atropos GRPO + LoRA training pipeline                                                                                                                                                                                       | hermes-agent                                                                | 100%                          | Direct reuse                                        |
+| LoopAgent + ParallelAgent + Skills for Agents + MCPToolset + rubric*based*\*\_v1 + adk optimize (GEPA) + adk conformance                                                                                                    | ADK 2.0 Beta                                                                | 100%                          | Direct consume                                      |
+| Vertex Memory Bank + Sessions + Vector Search 2.0 + Tuning jobs + Endpoints with Multi-Tuning                                                                                                                               | GEAP managed services                                                       | 100%                          | Direct consume                                      |
+| Two-prompt harness (initializer + coding agent + JSON ledger)                                                                                                                                                               | Anthropic published pattern                                                 | 100%                          | Direct adopt                                        |
+| Atelier-original code (8 nodes + EvoDesign + CSC-D + ConsensusAgent + 5 judges + 6 mutation operators + dashboard + A2UI renderers + WebContainer + bench adapters + PIP + Campaign Orchestrator + Cross-Surface Coherence) | new                                                                         | —                             | ~6,000–8,000 LOC                                    |
+| Documentation, ADRs, runbooks, eval cases, terraform, CI/CD                                                                                                                                                                 | new                                                                         | —                             | ~10,000 LOC equivalent                              |
 
 **Total Atelier-original: ~20,000 LOC** — achievable in 3 weeks with $5K Opus capacity.
 
@@ -710,13 +716,13 @@ Full SDLC documentation: README + CHANGELOG + ROADMAP + SECURITY + CONTRIBUTING 
 
 ## 14. CI/CD (GitHub Actions)
 
-| Workflow | Trigger | Steps | Gate |
-|---|---|---|---|
-| `ci.yml` | every PR + push | lint + typecheck + unit + integration + security (CodeQL, secret scan, license) + build | All green or PR blocked |
-| `eval.yml` | nightly + on-tag | full WebGen-Bench (484) + Design2Code (484) + calibration golden set + adversarial set; results to bench.atelier.dev + calibration.atelier.dev | Nightly: alerts. On-tag: blocks release if regression |
-| `deploy.yml` | on-tag | Cloud Build → Artifact Registry → Workload Identity Federation → staging → smoke → manual approval → prod | Manual approval before prod |
-| `release.yml` | on push to main | release-please: scan Conventional Commits → bump version → CHANGELOG → GitHub Release → publish npm | Auto |
-| `docs.yml` | on push to main + docs PR | mkdocs build → Firebase Hosting deploy | Auto |
+| Workflow      | Trigger                   | Steps                                                                                                                                          | Gate                                                  |
+| ------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `ci.yml`      | every PR + push           | lint + typecheck + unit + integration + security (CodeQL, secret scan, license) + build                                                        | All green or PR blocked                               |
+| `eval.yml`    | nightly + on-tag          | full WebGen-Bench (484) + Design2Code (484) + calibration golden set + adversarial set; results to bench.atelier.dev + calibration.atelier.dev | Nightly: alerts. On-tag: blocks release if regression |
+| `deploy.yml`  | on-tag                    | Cloud Build → Artifact Registry → Workload Identity Federation → staging → smoke → manual approval → prod                                      | Manual approval before prod                           |
+| `release.yml` | on push to main           | release-please: scan Conventional Commits → bump version → CHANGELOG → GitHub Release → publish npm                                            | Auto                                                  |
+| `docs.yml`    | on push to main + docs PR | mkdocs build → Firebase Hosting deploy                                                                                                         | Auto                                                  |
 
 Pre-commit hooks: ruff format + check, mypy strict, prettier + eslint, pytest fast subset, commitlint, detect-secrets, markdownlint.
 
@@ -757,16 +763,16 @@ Full timeline in companion doc: `docs/superpowers/specs/2026-05-14-atelier-launc
 
 Full register in companion doc: `docs/superpowers/specs/2026-05-14-atelier-risk-register.md`. Highest risks summarized:
 
-| Risk | Probability | Impact | Mitigation |
-|---|---|---|---|
-| Vertex AI quota for Gemini 3.1 Pro denied/delayed | Medium | High | File request D2; fallback to Gemini 3.0 Flash for Generator until granted |
-| Stitch MCP rate-limited during live demo | High | Medium | Pre-recorded backup demo segments; live Atelier with Gemini direct fallback |
-| WebGen-Bench score doesn't beat 51.9 | Medium | High | MVP target is ≥51 (matches SOTA); alternative pitch leans on 12 other 10× axes |
-| Daniel sick / unavailable on Jun 5 | Low | Critical | Pre-record demo Jun 3; submission already filed Jun 3; Calendly bookable |
-| Critical Anthropic harness regression | Low | High | Buffer 1 day per sprint week for diagnosis; suspect harness/cache before our code |
-| Cost overrun on $5K Opus | Medium | Medium | Daily ledger check; downgrade routine work to Sonnet; cache-hit-rate watch |
-| G4S 2026 rules differ from 2025 | Medium | Medium | Read 2026 rulebook D1; adjust within 24h if material shift |
-| Live launch day Cloud Run / Vertex outage | Low | High | Status page + Telegram alerts; backup region (europe-west4); manual fallback |
+| Risk                                              | Probability | Impact   | Mitigation                                                                        |
+| ------------------------------------------------- | ----------- | -------- | --------------------------------------------------------------------------------- |
+| Vertex AI quota for Gemini 3.1 Pro denied/delayed | Medium      | High     | File request D2; fallback to Gemini 3.0 Flash for Generator until granted         |
+| Stitch MCP rate-limited during live demo          | High        | Medium   | Pre-recorded backup demo segments; live Atelier with Gemini direct fallback       |
+| WebGen-Bench score doesn't beat 51.9              | Medium      | High     | MVP target is ≥51 (matches SOTA); alternative pitch leans on 12 other 10× axes    |
+| Daniel sick / unavailable on Jun 5                | Low         | Critical | Pre-record demo Jun 3; submission already filed Jun 3; Calendly bookable          |
+| Critical Anthropic harness regression             | Low         | High     | Buffer 1 day per sprint week for diagnosis; suspect harness/cache before our code |
+| Cost overrun on $5K Opus                          | Medium      | Medium   | Daily ledger check; downgrade routine work to Sonnet; cache-hit-rate watch        |
+| G4S 2026 rules differ from 2025                   | Medium      | Medium   | Read 2026 rulebook D1; adjust within 24h if material shift                        |
+| Live launch day Cloud Run / Vertex outage         | Low         | High     | Status page + Telegram alerts; backup region (europe-west4); manual fallback      |
 
 ---
 
@@ -788,11 +794,11 @@ Full register in companion doc: `docs/superpowers/specs/2026-05-14-atelier-risk-
 
 Per AutonomousAgent ADR pattern: every Atelier operation maps to exactly one of three failure modes. **Never invent a fourth.** User-facing rule: agent **always acknowledges degradation** — trust > apparent capability.
 
-| Mode | When to use | Examples in Atelier |
-|---|---|---|
-| **Fail-loud** (alert + halt) | Security failures, budget breach, data corruption, training cost overruns, judge calibration drift > threshold | Scrubber blocked secret leak; Apigee budget cap hit; BigQuery KMS key missing; LoRA training cost overrun mid-run; calibration golden set drops > 3% correlation |
-| **Fail-soft** (degrade + log + acknowledge to user) | Tool errors, transient unavailability, snapshot failure, single trajectory drop | Stitch MCP rate-limited (fall back to direct Gemini); Memory Bank temporarily unreachable (operate without cross-session); Lighthouse timeout (use cached score); single judge axis times out (proceed with partial consensus + flag); A2UI renderer unavailable for one target (render others, note gap) |
-| **Self-heal** (retry silently with bounded backoff) | Transient 429/503, rate limits, container restarts within frequency budget | Vertex AI 429 → exponential backoff per `limits.retries.vertex_*`; Cloud Run cold-start; transient OTel collector unavailability |
+| Mode                                                | When to use                                                                                                    | Examples in Atelier                                                                                                                                                                                                                                                                                       |
+| --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Fail-loud** (alert + halt)                        | Security failures, budget breach, data corruption, training cost overruns, judge calibration drift > threshold | Scrubber blocked secret leak; Apigee budget cap hit; BigQuery KMS key missing; LoRA training cost overrun mid-run; calibration golden set drops > 3% correlation                                                                                                                                          |
+| **Fail-soft** (degrade + log + acknowledge to user) | Tool errors, transient unavailability, snapshot failure, single trajectory drop                                | Stitch MCP rate-limited (fall back to direct Gemini); Memory Bank temporarily unreachable (operate without cross-session); Lighthouse timeout (use cached score); single judge axis times out (proceed with partial consensus + flag); A2UI renderer unavailable for one target (render others, note gap) |
+| **Self-heal** (retry silently with bounded backoff) | Transient 429/503, rate limits, container restarts within frequency budget                                     | Vertex AI 429 → exponential backoff per `limits.retries.vertex_*`; Cloud Run cold-start; transient OTel collector unavailability                                                                                                                                                                          |
 
 Hard cap: **3 self-heal retries per operation**, then escalate to fail-soft. **No silent suppression.** Bare `except:` and silent `pass` are banned via Ruff E722 + custom AST check pre-commit (per Strategy v2 invariants).
 
@@ -809,6 +815,7 @@ atelier panic [--teardown]
 ```
 
 Effects:
+
 - Halts all in-flight tool calls + pending convergence loops
 - Drains queued nudges
 - Refuses new requests at API layer (HTTP 503)
@@ -825,6 +832,7 @@ atelier resume [--from-snapshot=<gcs-path>]
 ```
 
 Effects:
+
 - Re-enables API layer
 - Restores in-flight session state from latest snapshot (or specified snapshot)
 - Re-queues nudges with restored cron schedule
@@ -844,35 +852,35 @@ Lists what blocks each phase gate from progressing. Updated as items resolve.
 
 ### Pre-Sprint (must complete by 2026-05-15 D1 of sprint)
 
-| # | Action | Owner | Blocking gate |
-|---|---|---|---|
-| P-1 | File Vertex AI quota request: Gemini 3.1 Pro provisioned throughput | Daniel | Sprint D5 (Generator integration) |
-| P-2 | File Agent Engine session-write quota increase (default 100/min/region → request 1000/min/region) | Daniel | Sprint D7 (multi-tenant deploy) |
-| P-3 | Activate Tier 1 models in Vertex AI Model Garden: Haiku 4.5, Gemini 3.1 Pro, Gemini 3 Flash, Gemini 3 Flash-Lite, text-embedding-005, multimodal-embedding, Gemma 4 26B-A4B-it | Daniel | Sprint D5+ |
-| P-4 | Confirm Vertex AI Endpoints with Multi-Tuning is enabled | Daniel | Sprint W2 (LoRA serving) |
-| P-5 | Confirm Vertex AI Tuning Manager is enabled | Daniel | Sprint W3 (DPO + LoRA fine-tune) |
-| P-6 | Read G4S 2026 official rulebook (publishes ~late May 2026) | Daniel | Sprint W3 (submission package) |
+| #   | Action                                                                                                                                                                         | Owner  | Blocking gate                     |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------ | --------------------------------- |
+| P-1 | File Vertex AI quota request: Gemini 3.1 Pro provisioned throughput                                                                                                            | Daniel | Sprint D5 (Generator integration) |
+| P-2 | File Agent Engine session-write quota increase (default 100/min/region → request 1000/min/region)                                                                              | Daniel | Sprint D7 (multi-tenant deploy)   |
+| P-3 | Activate Tier 1 models in Vertex AI Model Garden: Haiku 4.5, Gemini 3.1 Pro, Gemini 3 Flash, Gemini 3 Flash-Lite, text-embedding-005, multimodal-embedding, Gemma 4 26B-A4B-it | Daniel | Sprint D5+                        |
+| P-4 | Confirm Vertex AI Endpoints with Multi-Tuning is enabled                                                                                                                       | Daniel | Sprint W2 (LoRA serving)          |
+| P-5 | Confirm Vertex AI Tuning Manager is enabled                                                                                                                                    | Daniel | Sprint W3 (DPO + LoRA fine-tune)  |
+| P-6 | Read G4S 2026 official rulebook (publishes ~late May 2026)                                                                                                                     | Daniel | Sprint W3 (submission package)    |
 
 ### Pre-Beta (must complete by 2026-05-28 W2 gate)
 
-| # | Action | Owner |
-|---|---|---|
-| B-1 | Identity Platform tenant configuration + sign-in providers (Google + GitHub + email) | Daniel |
-| B-2 | Designer-in-residence outreach (target 5 designers, capture 3+ testimonials) | Daniel |
-| B-3 | Privacy Policy + ToS legal-template review (Termly or iubenda) | Daniel + attorney |
+| #   | Action                                                                               | Owner             |
+| --- | ------------------------------------------------------------------------------------ | ----------------- |
+| B-1 | Identity Platform tenant configuration + sign-in providers (Google + GitHub + email) | Daniel            |
+| B-2 | Designer-in-residence outreach (target 5 designers, capture 3+ testimonials)         | Daniel            |
+| B-3 | Privacy Policy + ToS legal-template review (Termly or iubenda)                       | Daniel + attorney |
 
 ### Pre-Launch (must complete by 2026-06-03 submission)
 
-| # | Action | Owner |
-|---|---|---|
-| L-1 | Co-marketing 1-pager sent to Google Cloud DA (Steren Giannini, Romin Irani, or Allen Day) | Daniel |
-| L-2 | arXiv preprint draft submitted | Daniel + Claude |
-| L-3 | 4-min demo video recorded (vertical + horizontal) + 2-min backup + 60-sec elevator pitch | Daniel + Claude |
-| L-4 | Twitter announcement thread drafted (12 tweets) | Daniel + Claude |
-| L-5 | Hacker News Show HN post drafted | Daniel + Claude |
-| L-6 | Product Hunt launch scheduled | Daniel |
-| L-7 | Calendly office hours configured (Jun 5 throughout day) | Daniel |
-| L-8 | ≥500 waitlist signups target (via build-in-public Twitter thread) | Daniel |
+| #   | Action                                                                                    | Owner           |
+| --- | ----------------------------------------------------------------------------------------- | --------------- |
+| L-1 | Co-marketing 1-pager sent to Google Cloud DA (Steren Giannini, Romin Irani, or Allen Day) | Daniel          |
+| L-2 | arXiv preprint draft submitted                                                            | Daniel + Claude |
+| L-3 | 4-min demo video recorded (vertical + horizontal) + 2-min backup + 60-sec elevator pitch  | Daniel + Claude |
+| L-4 | Twitter announcement thread drafted (12 tweets)                                           | Daniel + Claude |
+| L-5 | Hacker News Show HN post drafted                                                          | Daniel + Claude |
+| L-6 | Product Hunt launch scheduled                                                             | Daniel          |
+| L-7 | Calendly office hours configured (Jun 5 throughout day)                                   | Daniel          |
+| L-8 | ≥500 waitlist signups target (via build-in-public Twitter thread)                         | Daniel          |
 
 ---
 
@@ -933,6 +941,7 @@ Track every faithful-to-intent deviation from the spec made during implementatio
 ## Deviation log
 
 ### YYYY-MM-DD — <short title>
+
 **Spec section affected**: §X.Y
 **What the spec says**: <verbatim or summary>
 **What was implemented**: <verbatim or summary>
@@ -950,34 +959,34 @@ Live at `docs/sprint/DEVIATIONS.md`. Reviewed at every weekly checkpoint. Spec u
 
 Project-specific terms defined here. **If a term appears in code or docs that isn't in this glossary, add it.**
 
-| Term | Meaning |
-|---|---|
-| **Atelier** | This project — autonomous design agent for the Google for Startups AI Agents Challenge 2026 |
-| **A2UI v0.9** | Google's framework-agnostic protocol for agents to render UI into existing React/Flutter/Lit/Angular component catalogs (released Apr 17, 2026) |
-| **ADK 2.0 Beta** | Google Agent Development Kit v2.0 Beta (`pip install google-adk --pre`) — provides `SequentialAgent`, `ParallelAgent`, `LoopAgent`, `MCPToolset`, `rubric_based_*` evaluators |
-| **Apigee AI Gateway** | Google's first-class ADK model integration layer; per-tenant rate limit + cost router + Sanitize policies (Model Armor) |
-| **BriefSpec** | Immutable JSON spec produced by PIP, frozen at user approval; what the agent commits to for the duration of the project |
-| **Campaign** | A multi-surface user request (e.g., "redesign 50-page SaaS dashboard") — distinct from atomic tasks; managed by Campaign Orchestrator |
-| **Campaign Orchestrator** | Atelier's outer layer (N12 RLRD) that decomposes campaigns into Surface Manifest, picks unblocked surfaces, validates cross-surface coherence, persists state across sessions |
-| **CSC-D** | Constitutional Self-Critique for Design (N6) — agent self-grades each generated candidate against the 12-principle Apple-Grade constitution before deterministic gate |
-| **D-O-R-A-V** | Design rubric: Brand-fidelity, Originality, Relevance, Accessibility, Visual-clarity (analog to agent-dag-pipeline's O-R-A-V) |
-| **DEMAS-D** | Design Evaluation with Multi-Axis Provenance (N2) — per-axis Provenance Matrix preventing judge attention dilution |
-| **DGF-D2C** | Deterministic-Gate-First Design-to-Convergence (N1) — process supervision with deterministic preconditions |
-| **EvoDesign** | AlphaEvolve-inspired evolutionary K-candidate search (N5) inside the convergence loop |
-| **GEAP** | Gemini Enterprise Agent Platform — Google rebrand at Cloud Next '26 (Apr 23, 2026) of Vertex AI Agent surfaces |
-| **GEPA** | The prompt optimizer Google ships in `adk optimize`; we wrap it as the Hebbian Mutator backend |
-| **Hebbian Mutator** | Failure-pattern → mutation operator mapping for prompt patches between full LoRA retrainings (PerJudge component) |
-| **N1-N13** | Atelier's 13 novel contributions; see §5 |
-| **PADI** | Project-Agnostic Descriptor Inference (N4) — adapts to any tech stack with optional `.atelier.yaml` descriptor |
-| **PerJudge** | Per-Project DPO Judge (N3) — LoRA fine-tunes the judge on each project's accumulated DPO preference pairs via Vertex AI Endpoints + Multi-Tuning |
-| **PIP** | Pre-Generation Intake Protocol (N13) — adaptive-depth, DAPLab-pattern-mapped, visual-option-driven, skip-when-answered intake before any generation |
-| **Provenance Matrix** | Per-axis filter that gives each judge ONLY its relevant ground-truth variables (not the full DOM) — prevents attention dilution |
-| **RLRD** | Recursive Long-Running Discipline (N12) — Atelier ships the same long-running-agent harness pattern (Anthropic Nov 2025) it uses to be built |
-| **Surface** | A single page / component / template / screen — atomic unit of design work |
-| **Surface Manifest** | JSON ledger of all surfaces in a campaign, with dependency graph |
-| **Two-prompt harness** | Anthropic's published long-running-agent pattern: initializer agent (one-time setup) + coding agent (per-session, one feature at a time, end-to-end test before next) |
-| **Wrap-don't-fork** | Architectural principle from AutonomousAgent ADR 0001: consume upstream via lockfile-pinned dependencies + wrap with our deployment/config/security/observability; never modify upstream internals |
-| **Worktree-per-phase** | Branching pattern from AutonomousAgent ADR 0007: `main` holds only accepted work; each phase gets a long-running branch in `.worktrees/phaseN/`; merged via `--no-ff` after acceptance gate; tagged `phaseN-accepted` |
+| Term                      | Meaning                                                                                                                                                                                                               |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Atelier**               | This project — autonomous design agent for the Google for Startups AI Agents Challenge 2026                                                                                                                           |
+| **A2UI v0.9**             | Google's framework-agnostic protocol for agents to render UI into existing React/Flutter/Lit/Angular component catalogs (released Apr 17, 2026)                                                                       |
+| **ADK 2.0 Beta**          | Google Agent Development Kit v2.0 Beta (`pip install google-adk --pre`) — provides `SequentialAgent`, `ParallelAgent`, `LoopAgent`, `MCPToolset`, `rubric_based_*` evaluators                                         |
+| **Apigee AI Gateway**     | Google's first-class ADK model integration layer; per-tenant rate limit + cost router + Sanitize policies (Model Armor)                                                                                               |
+| **BriefSpec**             | Immutable JSON spec produced by PIP, frozen at user approval; what the agent commits to for the duration of the project                                                                                               |
+| **Campaign**              | A multi-surface user request (e.g., "redesign 50-page SaaS dashboard") — distinct from atomic tasks; managed by Campaign Orchestrator                                                                                 |
+| **Campaign Orchestrator** | Atelier's outer layer (N12 RLRD) that decomposes campaigns into Surface Manifest, picks unblocked surfaces, validates cross-surface coherence, persists state across sessions                                         |
+| **CSC-D**                 | Constitutional Self-Critique for Design (N6) — agent self-grades each generated candidate against the 12-principle Apple-Grade constitution before deterministic gate                                                 |
+| **D-O-R-A-V**             | Design rubric: Brand-fidelity, Originality, Relevance, Accessibility, Visual-clarity (analog to agent-dag-pipeline's O-R-A-V)                                                                                         |
+| **DEMAS-D**               | Design Evaluation with Multi-Axis Provenance (N2) — per-axis Provenance Matrix preventing judge attention dilution                                                                                                    |
+| **DGF-D2C**               | Deterministic-Gate-First Design-to-Convergence (N1) — process supervision with deterministic preconditions                                                                                                            |
+| **EvoDesign**             | AlphaEvolve-inspired evolutionary K-candidate search (N5) inside the convergence loop                                                                                                                                 |
+| **GEAP**                  | Gemini Enterprise Agent Platform — Google rebrand at Cloud Next '26 (Apr 23, 2026) of Vertex AI Agent surfaces                                                                                                        |
+| **GEPA**                  | The prompt optimizer Google ships in `adk optimize`; we wrap it as the Hebbian Mutator backend                                                                                                                        |
+| **Hebbian Mutator**       | Failure-pattern → mutation operator mapping for prompt patches between full LoRA retrainings (PerJudge component)                                                                                                     |
+| **N1-N13**                | Atelier's 13 novel contributions; see §5                                                                                                                                                                              |
+| **PADI**                  | Project-Agnostic Descriptor Inference (N4) — adapts to any tech stack with optional `.atelier.yaml` descriptor                                                                                                        |
+| **PerJudge**              | Per-Project DPO Judge (N3) — LoRA fine-tunes the judge on each project's accumulated DPO preference pairs via Vertex AI Endpoints + Multi-Tuning                                                                      |
+| **PIP**                   | Pre-Generation Intake Protocol (N13) — adaptive-depth, DAPLab-pattern-mapped, visual-option-driven, skip-when-answered intake before any generation                                                                   |
+| **Provenance Matrix**     | Per-axis filter that gives each judge ONLY its relevant ground-truth variables (not the full DOM) — prevents attention dilution                                                                                       |
+| **RLRD**                  | Recursive Long-Running Discipline (N12) — Atelier ships the same long-running-agent harness pattern (Anthropic Nov 2025) it uses to be built                                                                          |
+| **Surface**               | A single page / component / template / screen — atomic unit of design work                                                                                                                                            |
+| **Surface Manifest**      | JSON ledger of all surfaces in a campaign, with dependency graph                                                                                                                                                      |
+| **Two-prompt harness**    | Anthropic's published long-running-agent pattern: initializer agent (one-time setup) + coding agent (per-session, one feature at a time, end-to-end test before next)                                                 |
+| **Wrap-don't-fork**       | Architectural principle from AutonomousAgent ADR 0001: consume upstream via lockfile-pinned dependencies + wrap with our deployment/config/security/observability; never modify upstream internals                    |
+| **Worktree-per-phase**    | Branching pattern from AutonomousAgent ADR 0007: `main` holds only accepted work; each phase gets a long-running branch in `.worktrees/phaseN/`; merged via `--no-ff` after acceptance gate; tagged `phaseN-accepted` |
 
 ---
 
@@ -987,8 +996,8 @@ Mirroring hermes-agent's pattern. JSON-schema-validated at startup. Runtime-tuna
 
 ```yaml
 budget:
-  daily_usd_cap: 100               # platform-level cap, enforced at Apigee
-  per_session_usd_cap: 0.50        # MVP target; 0.10 with judge LoRA (Phase 2)
+  daily_usd_cap: 100 # platform-level cap, enforced at Apigee
+  per_session_usd_cap: 0.50 # MVP target; 0.10 with judge LoRA (Phase 2)
   per_tenant_monthly_usd_cap: null # populated per tenant tier (Free=$0, Pro=$20, Team=$50/seat)
   alert_at_pct: 75
 
@@ -998,7 +1007,7 @@ retries:
   vertex_max_backoff_s: 60
   vertex_jitter_pct: 25
   stitch_mcp_max_attempts: 3
-  stitch_mcp_fallback: gemini_direct  # if Stitch fails N times, use direct Gemini call
+  stitch_mcp_fallback: gemini_direct # if Stitch fails N times, use direct Gemini call
 
 agent:
   max_outer_loop_iterations: 8
@@ -1006,12 +1015,12 @@ agent:
   max_det_loop_iterations: 5
   max_judge_loop_iterations: 3
   max_concurrent_surfaces_per_campaign: 3
-  max_session_duration_s: 1800     # 30 min hard cap
-  max_campaign_duration_h: 72      # 3 days hard cap
+  max_session_duration_s: 1800 # 30 min hard cap
+  max_campaign_duration_h: 72 # 3 days hard cap
 
 evodesign:
-  k: 6                             # K candidates per iteration
-  mutation_operators:              # all 8 named operators
+  k: 6 # K candidates per iteration
+  mutation_operators: # all 8 named operators
     - token_swap
     - layout_swap
     - typography_swap
@@ -1020,7 +1029,7 @@ evodesign:
     - asymmetry_injection
     - hierarchy_restructure
     - copy_voice_shift
-  crossover_enabled: false         # Phase 2
+  crossover_enabled: false # Phase 2
 
 deterministic_gates:
   lighthouse_a11y_min: 90
@@ -1030,81 +1039,81 @@ deterministic_gates:
   visual_diff_max_pct: 2.0
   responsive_breakpoints: [375, 768, 1280, 1920]
   semantic_html_strict: true
-  token_fidelity_strict: true     # any hex outside DESIGN.md = fail
+  token_fidelity_strict: true # any hex outside DESIGN.md = fail
 
 judges:
   d_orav_score_floor: 0.7
-  d_orav_axis_floor:               # per-axis minimums (any below = REJECT)
+  d_orav_axis_floor: # per-axis minimums (any below = REJECT)
     brand_fidelity: 0.7
     originality: 0.6
     relevance: 0.7
     accessibility: 0.8
     visual_clarity: 0.7
-  consensus_confidence_min: 0.6    # Bayesian CI lower bound
+  consensus_confidence_min: 0.6 # Bayesian CI lower bound
   judge_models:
-    brand: "gemini-3-flash"        # Phase 1; per-project LoRA in Phase 2
-    copy: "gemini-3-flash"
-    motion: "gemini-3-flash"
-    token_fidelity: "gemini-3-flash"
-    coherence: "gemini-3-flash"
+    brand: 'gemini-3-flash' # Phase 1; per-project LoRA in Phase 2
+    copy: 'gemini-3-flash'
+    motion: 'gemini-3-flash'
+    token_fidelity: 'gemini-3-flash'
+    coherence: 'gemini-3-flash'
 
 csc_d:
-  calibration_kappa_min: 0.7      # Cohen's κ vs human rubric
+  calibration_kappa_min: 0.7 # Cohen's κ vs human rubric
   calibration_check_every_n_calls: 100
-  constitution_path: "@atelier/constitution-apple-grade"  # npm package
+  constitution_path: '@atelier/constitution-apple-grade' # npm package
 
 intake:
   pip_enabled: true
-  visual_options_enabled: false   # Phase 1.5 feature flag
+  visual_options_enabled: false # Phase 1.5 feature flag
   skip_paths:
-    - descriptor                  # .atelier.yaml
-    - memory_bank                 # prior project answers
-    - brief_parsed                # answers in free-form brief
-  question_catalog_version: "v1"
+    - descriptor # .atelier.yaml
+    - memory_bank # prior project answers
+    - brief_parsed # answers in free-form brief
+  question_catalog_version: 'v1'
 
 campaign:
-  max_surfaces: 200               # hard cap
+  max_surfaces: 200 # hard cap
   cross_surface_pattern_reuse_min: 0.30
   coherence_check_top_n_similar: 5
-  fail_policy_default: "best_effort_and_flag"  # skip | ask_help | best_effort_and_flag
+  fail_policy_default: 'best_effort_and_flag' # skip | ask_help | best_effort_and_flag
 
 slos:
   agent_success_rate_min: 0.95
   p95_turn_latency_s_max: 8
   p95_session_latency_s_max: 240
   judge_pass_rate_min: 0.65
-  first_shot_convergence_rate_min: 0.40   # PIP active
+  first_shot_convergence_rate_min: 0.40 # PIP active
   campaign_surface_convergence_rate_min: 0.85
   cost_per_session_usd_max: 0.50
 
 approval:
   always_ask_patterns:
-    - "rm -rf"
-    - "git push --force"
-    - "DROP TABLE"
-    - "DELETE FROM"
-    - "kubectl delete"
+    - 'rm -rf'
+    - 'git push --force'
+    - 'DROP TABLE'
+    - 'DELETE FROM'
+    - 'kubectl delete'
   never_ask_patterns:
-    - "ls *"
-    - "cat *"
-    - "git status"
-    - "git log*"
-    - "rg *"
+    - 'ls *'
+    - 'cat *'
+    - 'git status'
+    - 'git log*'
+    - 'rg *'
   default_for_unknown: ask
   approval_timeout_s: 300
 
 dpo_rewards:
   weights:
-    user_explicit_accept: 1.0    # user clicked "ship it"
-    user_implicit_accept: 0.3    # user didn't reject within 24h
-    judge_self_consistency: 0.2  # generator agreement with judge across iterations
-    convergence_completion: 0.5  # session reached convergence vs timeout
+    user_explicit_accept: 1.0 # user clicked "ship it"
+    user_implicit_accept: 0.3 # user didn't reject within 24h
+    judge_self_consistency: 0.2 # generator agreement with judge across iterations
+    convergence_completion: 0.5 # session reached convergence vs timeout
   reward_horizon_iterations: 8
   exclude_session_if_lt_iterations: 3
 
 dpo_training:
-  enabled: false                 # Phase 1 ships disabled; flipped at Phase 2 first-project LoRA
-  trigger_check_cron: "0 12 * * *"
+  enabled: false # Phase 1 ships disabled; flipped at Phase 2 first-project LoRA
+  trigger_check_cron: '0 12 * * *'
   preflight:
     min_dpo_pairs_per_project: 50
     min_mean_margin: 0.20
@@ -1117,20 +1126,20 @@ dpo_training:
   guardrails:
     max_runs_per_project_per_month: 4
     max_run_duration_h: 6
-    base_model: "gemma-4-26b-a4b-it"
+    base_model: 'gemma-4-26b-a4b-it'
     abort_if_eval_regresses_pct: 5
   post_training:
     auto_register_if_eval_improves_pct: 2
-    auto_swap_in_endpoint_if_eval_improves_pct: null  # null = always require admin
+    auto_swap_in_endpoint_if_eval_improves_pct: null # null = always require admin
 
 calibration:
-  golden_set_size: 100             # frozen tasks
-  recalibration_cron: "17 3 * * 1" # weekly Mon 03:17 UTC
-  drift_alert_correlation_drop: 0.05  # alert if week-over-week corr drops > 5%
+  golden_set_size: 100 # frozen tasks
+  recalibration_cron: '17 3 * * 1' # weekly Mon 03:17 UTC
+  drift_alert_correlation_drop: 0.05 # alert if week-over-week corr drops > 5%
 
 trajectories:
-  bigquery_partition_by: "DATE(ts)"
-  bigquery_cluster_by: ["tenant_id", "project_id"]
+  bigquery_partition_by: 'DATE(ts)'
+  bigquery_cluster_by: ['tenant_id', 'project_id']
   hot_retention_days: 90
   gcs_coldline_after_days: 90
   delete_after_days: 365
@@ -1149,9 +1158,9 @@ alerts:
   campaign_failure_rate_per_hour: 5
 
 notify_channels:
-  telegram_chat_id: null  # set after Telegram bot creation
+  telegram_chat_id: null # set after Telegram bot creation
   cloud_monitoring_email: null
-  pagerduty_routing_key: null  # opt-in for enterprise tier
+  pagerduty_routing_key: null # opt-in for enterprise tier
 
 log_retention:
   cloud_logging_days: 30
@@ -1184,15 +1193,18 @@ github.com/Manzela/atelier/                     ← branch: main (accepted-only)
 ```
 
 **Branching rules:**
+
 - `main` holds **only accepted-and-tagged** work (`phase1-accepted`, `phase2-accepted`, `phase3-accepted`, `v1.0.0`)
 - All phase work happens in `.worktrees/phaseN-<name>/` on branch `phase/N`
 - After acceptance gate passes:
+
   ```bash
   git checkout main
   git merge --no-ff phase/N -m "Merge phase/N: <gate description>"
   git tag -a phaseN-accepted -m "Phase N accepted on $(date -u +%Y-%m-%d). All gate criteria passed."
   git push origin main --tags
   ```
+
 - Hotfixes: branch from `main` as `hotfix/<short-desc>`, merge back to `main` + cherry-pick to active phase branch
 
 **Why**: enforces phase isolation per ADR 0006 lineage; multiple phases can have concurrent worktrees if needed; `main` is always shippable; clean acceptance boundary.
@@ -1229,14 +1241,14 @@ github.com/Manzela/atelier/                     ← branch: main (accepted-only)
 
 ## Appendix B — Demo gambit (4-minute video script)
 
-| Time | Action |
-|---|---|
-| 0:00–0:30 | "Real designer brief: redesign all 12 pages of pipeline-observatory. We sent it to Stitch, Vercel v0, and Atelier." |
-| 0:30–1:30 | Stitch + v0 generate page 1 immediately (text-only one-shot, "Vibe Check" required). Atelier opens PIP — 5 questions, visual options, 90 seconds. User picks editorial register, Apple-Grade tokens (existing DESIGN.md detected), production convergence bar. BriefSpec rendered. User clicks Approve. |
+| Time      | Action                                                                                                                                                                                                                                                                                                              |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0:00–0:30 | "Real designer brief: redesign all 12 pages of pipeline-observatory. We sent it to Stitch, Vercel v0, and Atelier."                                                                                                                                                                                                 |
+| 0:30–1:30 | Stitch + v0 generate page 1 immediately (text-only one-shot, "Vibe Check" required). Atelier opens PIP — 5 questions, visual options, 90 seconds. User picks editorial register, Apple-Grade tokens (existing DESIGN.md detected), production convergence bar. BriefSpec rendered. User clicks Approve.             |
 | 1:30–2:30 | Atelier dashboard live: 12-surface campaign in flight; surfaces 1-3 converged green; surface 4 in EvoDesign loop with K=6 candidates; Cross-Surface Coherence Validator highlights pattern reuse; Hebbian mutator fires on contrast failure. Time-machine view shows full iteration tree. All 12 surfaces converge. |
-| 2:30–3:00 | Project-history view: "Atelier ran 17 sessions on this project. Watch the judge's preferences evolve." DPO loss curve, pattern-reuse rate climbing, time-to-convergence dropping iteration over iteration. |
-| 3:00–3:30 | A2UI render: same 12 converged surfaces simultaneously in React, Flutter, Lit, Angular hosts. |
-| 3:30–4:00 | Scoreboard: Claude-3.5 26.4 / WebGen-Agent 51.9 / **Atelier ≥ 60 single-surface, ≥ 85% surface convergence on 12-surface campaign, ≥ 50% first-shot convergence rate**. |
+| 2:30–3:00 | Project-history view: "Atelier ran 17 sessions on this project. Watch the judge's preferences evolve." DPO loss curve, pattern-reuse rate climbing, time-to-convergence dropping iteration over iteration.                                                                                                          |
+| 3:00–3:30 | A2UI render: same 12 converged surfaces simultaneously in React, Flutter, Lit, Angular hosts.                                                                                                                                                                                                                       |
+| 3:30–4:00 | Scoreboard: Claude-3.5 26.4 / WebGen-Agent 51.9 / **Atelier ≥ 60 single-surface, ≥ 85% surface convergence on 12-surface campaign, ≥ 50% first-shot convergence rate**.                                                                                                                                             |
 
 ---
 
@@ -1251,27 +1263,27 @@ github.com/Manzela/atelier/                     ← branch: main (accepted-only)
 
 ## Appendix D — References
 
-- Anthropic, *Effective harnesses for long-running agents* (Nov 26, 2025)
-- Anthropic, *Effective context engineering for AI agents* (Sep 29, 2025)
-- Anthropic, *Demystifying evals for AI agents* (Jan 9, 2026)
-- Anthropic, *2026 Agentic Coding Trends Report*
+- Anthropic, _Effective harnesses for long-running agents_ (Nov 26, 2025)
+- Anthropic, _Effective context engineering for AI agents_ (Sep 29, 2025)
+- Anthropic, _Demystifying evals for AI agents_ (Jan 9, 2026)
+- Anthropic, _2026 Agentic Coding Trends Report_
 - Anthropic, Claude Code post-mortem (April 2026)
-- Columbia DAPLab, *9 Critical Failure Patterns of Coding Agents* (Jan 2026)
+- Columbia DAPLab, _9 Critical Failure Patterns of Coding Agents_ (Jan 2026)
 - Google ADK 2.0 Beta documentation, `adk.dev/2.0/`
-- Google Cloud, *Gemini Enterprise Agent Platform* (rebranded Apr 23, 2026)
-- Google Labs, *Stitch* (Mar 18, 2026 repositioning)
-- Google, *A2UI v0.9* (Apr 17, 2026)
-- DeepMind, *AlphaEvolve* (closest precedent for self-improving agents)
-- Stanford SALT-NLP, *Design2Code* (NAACL 2025)
-- Luzimu et al., *WebGen-Bench* (NeurIPS 2025)
-- *DesignPref* (Nov 2025 — α=0.25 personalization-over-aggregation finding)
-- *DPO with LLM-Judge for Computer-Use Agents* (arXiv 2506.03095)
-- Nous Research, *Hermes Agent* (https://hermes-agent.nousresearch.com)
-- Nous Research, *Atropos GRPO + LoRA*
+- Google Cloud, _Gemini Enterprise Agent Platform_ (rebranded Apr 23, 2026)
+- Google Labs, _Stitch_ (Mar 18, 2026 repositioning)
+- Google, _A2UI v0.9_ (Apr 17, 2026)
+- DeepMind, _AlphaEvolve_ (closest precedent for self-improving agents)
+- Stanford SALT-NLP, _Design2Code_ (NAACL 2025)
+- Luzimu et al., _WebGen-Bench_ (NeurIPS 2025)
+- _DesignPref_ (Nov 2025 — α=0.25 personalization-over-aggregation finding)
+- _DPO with LLM-Judge for Computer-Use Agents_ (arXiv 2506.03095)
+- Nous Research, _Hermes Agent_ (https://hermes-agent.nousresearch.com)
+- Nous Research, _Atropos GRPO + LoRA_
 - Daniel Manzela, `agent-dag-pipeline` (Apache-2.0, github.com/Manzela/agent-dag-pipeline)
 - Daniel Manzela, `pipeline-observatory` (live demo at manzela.github.io/pipeline-observatory/)
 - Daniel Manzela, `Resume CV/00-GROUND-SOURCE-OF-TRUTH.md` (production scale: 11 retailers, 73.5M agent ops/cycle, $0.0006/PDP, top-100 retail-tech 2025)
-- Galileo, *Why LLM-as-a-Judge Fails* (judge calibration drift report)
+- Galileo, _Why LLM-as-a-Judge Fails_ (judge calibration drift report)
 - Replit DB-deletion incident (Lemkin/SaaStr, Jul 2025)
 - OWASP Multi-Tenant Security Cheat Sheet
 - W3C Design Tokens Format Module

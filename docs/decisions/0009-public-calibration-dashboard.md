@@ -27,6 +27,7 @@ We will publish judge calibration drift externally at **`calibration.atelier.dev
 - **Defense pattern** per Anthropic guidance: binary judges (where applicable) + multi-judge majority + ChainPoll + frozen golden set
 
 Architecture:
+
 - Eval workflow runs the calibration suite weekly
 - Results land in `atelier-eval/data/results/calibration_*.json`
 - A small Cloud Function pushes the latest results to Firebase Hosting at `calibration.atelier.dev`

@@ -54,13 +54,13 @@ Every log line is a single JSON object:
 
 ## Severity levels
 
-| Level | When to use | Routes to |
-|---|---|---|
-| `debug` | Verbose internals; off by default in prod | Local files only |
-| `info` | Normal operational events (turn started, tool dispatched, candidate generated) | Local + Cloud Logging |
-| `warning` | Degraded behavior, retries, fallbacks (per fail-soft trichotomy) | Local + Cloud Logging |
-| `error` | Operation failed but service is still up | Local + Cloud Logging + alert if rate exceeds threshold |
-| `critical` | Service is down or security boundary crossed (per fail-loud trichotomy) | Local + Cloud Logging + immediate Telegram alert |
+| Level      | When to use                                                                    | Routes to                                               |
+| ---------- | ------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| `debug`    | Verbose internals; off by default in prod                                      | Local files only                                        |
+| `info`     | Normal operational events (turn started, tool dispatched, candidate generated) | Local + Cloud Logging                                   |
+| `warning`  | Degraded behavior, retries, fallbacks (per fail-soft trichotomy)               | Local + Cloud Logging                                   |
+| `error`    | Operation failed but service is still up                                       | Local + Cloud Logging + alert if rate exceeds threshold |
+| `critical` | Service is down or security boundary crossed (per fail-loud trichotomy)        | Local + Cloud Logging + immediate Telegram alert        |
 
 ## What to NEVER log
 
@@ -84,6 +84,7 @@ Every log line is a single JSON object:
 ## Local dev rotation
 
 Per `limits.yaml § local_logs_dev`:
+
 - `rotate_size_mb: 100`
 - `keep_files: 5`
 
@@ -92,6 +93,7 @@ Logs at `logs/` are gitignored.
 ## Production retention
 
 Per `limits.yaml § log_retention`:
+
 - Cloud Logging hot: 30 days
 - GCS coldline after 30 days: another 11 months
 - Hard delete after 365 days

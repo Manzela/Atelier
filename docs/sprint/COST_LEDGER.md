@@ -11,10 +11,10 @@
 
 ## Daily ledger
 
-| Date | Tokens In | Tokens Out | Cost USD | Cumulative | Burn vs $5K | Cache-Hit % | Notes |
-|---|---|---|---|---|---|---|---|
-| 2026-05-14 | ~1.5M | ~150K | ~$50 | $50 | 1.0% | n/a | Pre-sprint PRD + scaffold (no subagents yet) |
-| 2026-05-15 | TBD | TBD | TBD | TBD | TBD | TBD | D1: GCP setup, push to GitHub, file quota requests |
+| Date       | Tokens In | Tokens Out | Cost USD | Cumulative | Burn vs $5K | Cache-Hit % | Notes                                              |
+| ---------- | --------- | ---------- | -------- | ---------- | ----------- | ----------- | -------------------------------------------------- |
+| 2026-05-14 | ~1.5M     | ~150K      | ~$50     | $50        | 1.0%        | n/a         | Pre-sprint PRD + scaffold (no subagents yet)       |
+| 2026-05-15 | TBD       | TBD        | TBD      | TBD        | TBD         | TBD         | D1: GCP setup, push to GitHub, file quota requests |
 
 (Future days appended D1+.)
 
@@ -24,12 +24,12 @@
 
 ### Phase 1 Foundation (W1, May 15-21) target: $1,200
 
-| Metric | Target | Actual |
-|---|---|---|
-| Total cost | ≤ $1,200 | TBD |
-| Cache-hit-rate | ≥ 85% | TBD |
-| Subagent dispatches | ~50 | TBD |
-| Opus / Sonnet / Haiku ratio | 30/50/20% | TBD |
+| Metric                      | Target    | Actual |
+| --------------------------- | --------- | ------ |
+| Total cost                  | ≤ $1,200  | TBD    |
+| Cache-hit-rate              | ≥ 85%     | TBD    |
+| Subagent dispatches         | ~50       | TBD    |
+| Opus / Sonnet / Haiku ratio | 30/50/20% | TBD    |
 
 ### Phase 2 10× Mechanisms (W2, May 22-28) target: $2,500 cumulative
 
@@ -46,6 +46,7 @@
 ### Cache-hit-rate < 85% → investigate prefix drift
 
 If cache-hit-rate drops below 85% for any day, the cached prefix is drifting. Common causes:
+
 - A per-request value (timestamp, session ID) crept into the cached block
 - ADRs grew faster than DECISIONS.md was updated
 - New PRD section added without re-tagging the cache breakpoint
@@ -55,6 +56,7 @@ Action: locate the drift, restore the stable prefix, re-verify with the next sub
 ### Daily burn > $400 sustained → reduce subagent dispatch volume
 
 If three consecutive days exceed $400 (>2× linear target), pause. Triage:
+
 1. Which subagent class is over-budget?
 2. Can it move from Opus → Sonnet → Haiku for routine work?
 3. Is the prefix cached on every dispatch?

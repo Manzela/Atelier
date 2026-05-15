@@ -1,7 +1,7 @@
 name: 📉 Eval Regression / Failure
 description: Report a regression on WebGen-Bench, Design2Code, calibration drift, or other eval suite failures
-title: "eval: <benchmark>: <short description>"
-labels: ["eval-regression", "needs-triage"]
+title: 'eval: <benchmark>: <short description>'
+labels: ['eval-regression', 'needs-triage']
 assignees:
   - Manzela
 

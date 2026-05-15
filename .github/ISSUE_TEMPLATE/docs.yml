@@ -1,7 +1,7 @@
 name: 📖 Documentation Issue
 description: Report incorrect, unclear, or missing documentation
-title: "docs: <short description>"
-labels: ["documentation"]
+title: 'docs: <short description>'
+labels: ['documentation']
 assignees:
   - Manzela
 

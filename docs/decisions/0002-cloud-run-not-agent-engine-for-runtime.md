@@ -21,9 +21,10 @@ Atelier's runtime characteristics that matter:
 
 ## Decision
 
-**We will run the Atelier agent runtime on Cloud Run jobs**, not Agent Engine. Agent Engine provides Sessions, Memory Bank, A2A endpoint, and Agent Builder console as services we *call*.
+**We will run the Atelier agent runtime on Cloud Run jobs**, not Agent Engine. Agent Engine provides Sessions, Memory Bank, A2A endpoint, and Agent Builder console as services we _call_.
 
 Specifically:
+
 - **Atelier API** (FastAPI) → Cloud Run service (request/response, auto-scale, low-latency)
 - **Atelier Agent runtime** (the convergence loops) → Cloud Run jobs (long-running, scale-to-zero, billed per vCPU-second)
 - **Sessions** (hot UI state) → Vertex AI Agent Engine Sessions (capped writes — we only persist node boundaries + final convergence state; trajectory captures go to Firestore + BigQuery)

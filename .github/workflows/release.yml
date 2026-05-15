@@ -11,7 +11,7 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false  # don't cancel in-flight releases
+  cancel-in-progress: false # don't cancel in-flight releases
 
 jobs:
   release-please:
@@ -39,14 +39,14 @@ jobs:
       name: pypi
       url: https://pypi.org/p/atelier-core
     permissions:
-      id-token: write  # for OIDC trusted publishing
+      id-token: write # for OIDC trusted publishing
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ needs.release-please.outputs.tag_name }}
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: '3.11'
       - name: Build atelier-core
         working-directory: atelier-core
         run: |
@@ -68,7 +68,7 @@ jobs:
           ref: ${{ needs.release-please.outputs.tag_name }}
       - uses: actions/setup-node@v4
         with:
-          node-version: "20.11.1"
+          node-version: '20.11.1'
           registry-url: https://registry.npmjs.org/
       - name: Install + build
         working-directory: atelier-action
@@ -92,14 +92,14 @@ jobs:
           ref: ${{ needs.release-please.outputs.tag_name }}
       - uses: actions/setup-node@v4
         with:
-          node-version: "20.11.1"
+          node-version: '20.11.1'
           registry-url: https://registry.npmjs.org/
       - name: Publish constitution package
         working-directory: atelier-core/src/atelier/skills/constitution-apple-grade
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        continue-on-error: true  # package may not exist until Phase 3
+        continue-on-error: true # package may not exist until Phase 3
 
   announce:
     name: Announce release

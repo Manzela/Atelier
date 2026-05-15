@@ -20,6 +20,7 @@ _(populated as blockers resolve)_
 
 ```markdown
 ## YYYY-MM-DD HH:MM UTC — <short title>
+
 **Severity**: P0 (blocks sprint) | P1 (blocks phase) | P2 (blocks feature) | P3 (nice-to-have)
 **Blocked**: <feature ID(s) or task>
 **Owner**: <Daniel | Claude | external>

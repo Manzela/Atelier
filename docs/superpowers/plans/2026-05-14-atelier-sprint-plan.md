@@ -15,11 +15,13 @@
 Phase 1 (W1, May 15-21) gets day-by-day with bite-sized TDD tasks for D1-D2 and feature-brief format for D3-D7. Weeks 2-3 are daily themes + feature lists + acceptance gates. The full atomic feature list (194 entries) lives in `features.json` — this plan refers to features by ID.
 
 **Worktree convention** (per ADR 0007):
+
 - `main` holds only accepted-and-tagged work
 - All sprint work happens in `.worktrees/phaseN-<name>/` on branch `phase/N`
 - Acceptance: `git merge --no-ff phase/N + git tag phaseN-accepted`
 
 **Per-session ritual** (90 sec, every Claude Code session start):
+
 ```bash
 cd .worktrees/phase1-foundation  # or whichever phase is active
 cat docs/sprint/STATUS.md
@@ -48,6 +50,7 @@ git status && git log --oneline -10
 #### Task 1.1: Create the phase/1 worktree
 
 **Files:**
+
 - Modify: `.worktrees/` (create)
 - Read: `docs/conventions/branching.md`
 
@@ -83,6 +86,7 @@ Expected: 3 commits visible (`f85c68a`, `d692bdd`, `00d7df1`); clean working tre
 - [ ] **Step 4: Update `docs/sprint/STATUS.md` for D1 start**
 
 Edit `docs/sprint/STATUS.md`:
+
 - Change `Last updated` to current UTC time
 - Change `Active branch` to `phase/1`
 - Change `Active worktree` to `.worktrees/phase1-foundation`
@@ -98,6 +102,7 @@ git commit -m "chore(sprint): begin Phase 1 foundation in phase/1 worktree"
 #### Task 1.2: Run `./init.sh` to verify host prerequisites
 
 **Files:**
+
 - Read: `init.sh`
 
 - [ ] **Step 1: Execute init.sh**
@@ -107,6 +112,7 @@ git commit -m "chore(sprint): begin Phase 1 foundation in phase/1 worktree"
 ```
 
 Expected output:
+
 - `✓ python3 (Python 3.11.9)`
 - `✓ node (v20.11.1)`
 - `✓ npm`, `✓ git`, `✓ gh`, `✓ docker`, `✓ gcloud`
@@ -120,6 +126,7 @@ If any check fails, fix the prerequisite (install missing tool) and re-run befor
 #### Task 1.3: Verify Vertex AI access for Tier 1 models
 
 **Files:**
+
 - Create: `atelier-deploy/scripts/verify-prereqs.sh`
 
 - [ ] **Step 1: Write the verify-prereqs.sh script**
@@ -204,6 +211,7 @@ git commit -m "feat(deploy): add prereq-verification script + canonical model→
 #### Task 1.4: Install agent-dag-pipeline (lockfile-pinned per ADR 0001)
 
 **Files:**
+
 - Create: `atelier-core/requirements.in`
 - Create: `atelier-core/requirements.lock`
 - Modify: `atelier-core/pyproject.toml`
@@ -275,6 +283,7 @@ git commit -m "feat(core): pin ADK 2.0 Beta + Vertex SDK + Anthropic SDK depende
 **Note:** `agent-dag-pipeline` may not be on PyPI as of D1. If not, install via VCS direct reference.
 
 **Files:**
+
 - Modify: `atelier-core/pyproject.toml`
 - Modify: `atelier-core/requirements.lock`
 
@@ -321,6 +330,7 @@ git commit -m "feat(core): pin agent-dag-pipeline (per ADR 0001 wrap-don't-fork)
 #### Task 1.6: Define the BriefSpec Pydantic data contract (TDD)
 
 **Files:**
+
 - Create: `atelier-core/tests/unit/test_brief_spec.py`
 - Create: `atelier-core/src/atelier/intake/brief_spec.py`
 
@@ -538,6 +548,7 @@ Append to `docs/sprint/CHECKPOINTS.md`:
 **Branch**: `phase/1`
 
 **What shipped**:
+
 - F0001: phase/1 worktree created + pre-commit hooks active
 - F0001a: init.sh verified all host prereqs
 - F0002: verify-prereqs.sh probes Vertex AI Tier 1 models across regions; canonical model→region registry committed
@@ -545,6 +556,7 @@ Append to `docs/sprint/CHECKPOINTS.md`:
 - F0004: BriefSpec Pydantic data contract (frozen, schema-versioned, 2 unit tests passing)
 
 **What's next** (D2):
+
 - F0005: Atelier API skeleton (FastAPI scaffolding)
 - F0006: Cloud Run job deployment
 - F0007: Pydantic data contracts: SurfaceManifest, CandidateUI, GateOutcome, JudgeVote, ConsensusResult, CoherenceVerdict, TrajectoryRecord
@@ -554,6 +566,7 @@ Append to `docs/sprint/CHECKPOINTS.md`:
 **Test status**: 2/2 unit tests pass
 
 **Cost at session end** (estimate to be refined in COST_LEDGER):
+
 - ~$80 of $5K budget; ~1.6% cumulative
 
 **RESUME-HERE**: D2 begins with Task 2.1 below. Read STATUS.md + this checkpoint + features.json for next unblocked feature.
@@ -590,6 +603,7 @@ git push -u origin phase/1
 #### Task 2.1: Terraform skeleton (root + minimal Cloud Run module)
 
 **Files:**
+
 - Create: `atelier-deploy/terraform/main.tf`
 - Create: `atelier-deploy/terraform/versions.tf`
 - Create: `atelier-deploy/terraform/variables.tf`
@@ -802,6 +816,7 @@ Refs: PRD §8 tech stack, ADR 0002 Cloud Run not Agent Engine, ADR 0006 Google-n
 - [ ] **Step 8: Daniel reviews + applies**
 
 Daniel runs:
+
 ```bash
 cd atelier-deploy/terraform
 terraform apply -var-file=staging.tfvars
@@ -812,6 +827,7 @@ Approves the prompt. Captures the output (especially `api_url`) for the next tas
 #### Task 2.2: Pydantic data contracts (remaining)
 
 **Files:**
+
 - Create: `atelier-core/tests/unit/test_data_contracts.py`
 - Create: `atelier-core/src/atelier/shared/data_contracts.py`
 
@@ -1151,6 +1167,7 @@ Refs: PRD §9 data contracts, CLAUDE.md no_silent_error_suppression"
 #### Task 2.3: Atelier API skeleton (FastAPI + health endpoint)
 
 **Files:**
+
 - Create: `atelier-core/src/atelier/api.py`
 - Create: `atelier-core/src/atelier/cli.py`
 - Modify: `atelier-core/pyproject.toml` (add fastapi + uvicorn)
@@ -1306,6 +1323,7 @@ Refs: PRD §6.7 SLOs (p95_turn_latency ≤ 8s health response)"
 #### Task 2.4: Containerize + push image to Artifact Registry
 
 **Files:**
+
 - Create: `atelier-deploy/docker/Dockerfile.api`
 - Create: `atelier-deploy/scripts/build-and-push.sh`
 
@@ -1474,6 +1492,7 @@ git push origin phase/1
 **Cost target this day:** $200-300
 
 **Features delivered (refer to `features.json` for full atomic units):**
+
 - F0010: N1 Brief Parser GateAgent subclass
 - F0011: Brief Parser deterministic gate (intent schema validator)
 - F0012: Brief Parser probabilistic agent (Gemini 3 Flash via Vertex)
@@ -1526,9 +1545,11 @@ git push origin phase/1
 **Cost target:** $200-300
 
 **Features delivered:**
+
 - F0020-F0027: N2 Source Resolver (descriptor + path inference + DESIGN.md lint + Memory Bank read)
 
 **Key tasks:**
+
 - N2 deterministic gate: descriptor file exists OR brief contains a path → resolve to project context dict
 - N2 probabilistic agent: pull DESIGN.md tokens via `dmd lint` (subprocess), pull principles, pull Memory Bank prior preferences
 - Wire `VertexAiMemoryBankService` (via Terraform addition)
@@ -1545,9 +1566,11 @@ git push origin phase/1
 **Cost target:** $250-350
 
 **Features delivered:**
+
 - F0030-F0038: N3a Generator with Stitch MCP + Gemini direct fallback + Apigee config
 
 **Key tasks:**
+
 - Wire Stitch MCP via ADK `MCPToolset` pointing at `https://stitch.googleapis.com/mcp` with `X-Goog-Api-Key` from Secret Manager (`atelier-geap-api-key`)
 - Implement N3a as a `ParallelAgent` with K=3 sub-generators (placeholder for K=6 in Phase 2)
 - Apigee: skip the full Apigee X org for now (saves $500/mo); use a simple LiteLLM-style router in code
@@ -1564,9 +1587,11 @@ git push origin phase/1
 **Cost target:** $250-350
 
 **Features delivered:**
+
 - F0040-F0050: 6 parallel deterministic gate axes
 
 **Key tasks:**
+
 - Lighthouse axis: subprocess `lighthouse <url> --output=json --quiet` (Phase 1 simplified — Phase 2 dockerized)
 - axe axis: subprocess `axe <url> --tags wcag2aa`
 - Token-fidelity grep axis: regex over generated artifact for hex/font/spacing not in DESIGN.md
@@ -1619,6 +1644,7 @@ Expected: pipeline runs end-to-end; outputs converged HTML/CSS; trajectory writt
 ```
 
 Expected:
+
 - /health returns 200
 - /docs (FastAPI swagger) returns 200
 - Vertex AI auth works
@@ -1658,12 +1684,14 @@ git worktree remove .worktrees/phase1-foundation  # if not needed for hotfixes
 ### Day 8 (Wed May 22): N3b CSC-D + EvoDesign K=6
 
 **Features delivered (F0060-F0078):**
+
 - N3b Constitutional Self-Critique against 12-principle Apple-Grade constitution
 - EvoDesign upgrade: K=3 → K=6 candidates per iteration
 - 6 mutation operators (token-swap, layout-swap, typography-swap, motion-swap, density-shift, hierarchy-restructure) + crossover stub
 - LoopAgent wraps the EvoDesign loop with `max_iterations=5`, escalate on convergence
 
 **Key tasks:**
+
 1. Create `@atelier/constitution-apple-grade` npm package skeleton + populate with the 12 principles from `DESIGN_PRINCIPLES_APPLE.md` (see `~/Professional Profile/DESIGN_PRINCIPLES_APPLE.md` for source content)
 2. Implement N3b CSC-D node with calibration check (κ ≥ 0.7 vs human rubric on 50-task calibration set)
 3. Implement 6 mutation operators in `atelier-core/src/atelier/dag/evolutionary/mutation_operators.py` — each is a small function `apply(candidate: CandidateUI, project_context: dict) → CandidateUI`
@@ -1674,12 +1702,14 @@ git worktree remove .worktrees/phase1-foundation  # if not needed for hotfixes
 ### Day 9 (Thu May 23): EvoDesign refinement + Hebbian Mutator (GEPA wrapper)
 
 **Features delivered (F0079-F0087):**
+
 - N3e Fixer with Hebbian Mutator wrapping `adk optimize` (GEPA)
 - 5 explicit failure-pattern → mutation mappings (A11Y_FAIL, TOKEN_DRIFT, BRAND_INCONSIST, LOW_ORIGINALITY, MOTION_NO_REDUCED)
 - Reviewer subagent dispatch infrastructure (Ralph Loop "DONE" token)
 - Per-tenant cost router (LiteLLM virtual keys via Apigee placeholder)
 
 **Key tasks:**
+
 1. Wrap `adk optimize` (GEPA) as a Python helper in `atelier-core/src/atelier/flywheel/prompt_mutator.py`
 2. Implement 5 failure-pattern mappings as a dict + dispatcher
 3. Implement Reviewer subagent dispatch logic in `atelier-core/src/atelier/dag/nodes/reviewer.py` — calls Opus-backed agent with adversarial-critique prompt; expects strict "DONE" token
@@ -1689,12 +1719,14 @@ git worktree remove .worktrees/phase1-foundation  # if not needed for hotfixes
 ### Day 10 (Fri May 24): N3d ConsensusAgent + 5 specialized rubric judges
 
 **Features delivered (F0088-F0102):**
+
 - 5 specialized judges (Brand, Copy, Motion, Token-fidelity, Cross-screen-coherence)
 - DEMAS-D Provenance Matrix per axis
 - Bayesian-weighted consensus vote with confidence intervals
 - ADK `rubric_based_final_response_quality_v1` integration
 
 **Key tasks:**
+
 1. For each judge: create `atelier-core/src/atelier/judges/<axis>_judge.py` with rubric definition
 2. DEMAS-D Provenance Matrix in `atelier-core/src/atelier/judges/demas_provenance.py` — function `provenance_for(axis, candidate, project_context) → list[var_name]`
 3. ConsensusAgent custom `BaseAgent` subclass in `atelier-core/src/atelier/judges/consensus.py` — `_run_async_impl` calls 5 judge subagents in parallel via `asyncio.gather`, aggregates Bayesian-weighted vote
@@ -1704,12 +1736,14 @@ git worktree remove .worktrees/phase1-foundation  # if not needed for hotfixes
 ### Day 11 (Sat May 25): Calibration golden set + drift detection scaffolding
 
 **Features delivered (F0103-F0112):**
+
 - Calibration golden set: 100 hand-graded designs (20 per judge axis)
 - `calibration.atelier.dev` static site scaffolded on Firebase Hosting
 - Calibration drift detection cron (weekly Mon 03:17 UTC via Cloud Scheduler)
 - `atelier-eval/src/atelier_eval/calibration_dashboard.py` runner
 
 **Key tasks:**
+
 1. Curate 100-task calibration golden set (Daniel + Claude collaborate; 1 hour each axis)
 2. Build static dashboard (vanilla HTML + Tailwind CDN, mirrors `pipeline-observatory` aesthetic)
 3. Cloud Scheduler job → Cloud Run job runs calibration weekly
@@ -1719,6 +1753,7 @@ git worktree remove .worktrees/phase1-foundation  # if not needed for hotfixes
 ### Day 12 (Sun May 26): N12 Campaign Orchestrator + Surface Manifest
 
 **Features delivered (F0113-F0125):**
+
 - Campaign Orchestrator outer harness
 - `surfaces.json` JSON ledger (per-campaign persistent state)
 - Cloud Scheduler + Cloud Tasks orchestration
@@ -1726,6 +1761,7 @@ git worktree remove .worktrees/phase1-foundation  # if not needed for hotfixes
 - Campaign Checkpoint Writer
 
 **Key tasks:**
+
 1. `atelier-core/src/atelier/campaign/` module: orchestrator.py, brief_parser.py, manifest.py, picker.py, coherence_validator.py, checkpoint_writer.py
 2. Cloud Tasks queue: `atelier-staging-campaign-surfaces`
 3. Cloud Scheduler trigger: per-campaign worker
@@ -1735,6 +1771,7 @@ git worktree remove .worktrees/phase1-foundation  # if not needed for hotfixes
 ### Day 13 (Mon May 27): N13 PIP + 13-question catalog + visual options
 
 **Features delivered (F0126-F0140):**
+
 - PIP Router (adaptive depth: atomic 2-3 / small 5-7 / large 10-12 / greenfield 12-15)
 - Skip-Path Resolver (descriptor + Memory Bank + brief-parsed)
 - 13-question catalog with DAPLab pattern mapping
@@ -1742,6 +1779,7 @@ git worktree remove .worktrees/phase1-foundation  # if not needed for hotfixes
 - Visual options text-only (visual thumbnails behind feature flag, Phase 1.5)
 
 **Key tasks:**
+
 1. `atelier-core/src/atelier/intake/` modules: pip_router.py, question_catalog.py, intake_agent.py, brief_spec_synthesizer.py
 2. 13-question catalog as YAML + Pydantic load
 3. Adaptive depth logic
@@ -1752,6 +1790,7 @@ git worktree remove .worktrees/phase1-foundation  # if not needed for hotfixes
 ### Day 14 (Tue May 28): Phase 2 Acceptance Gate
 
 **Features delivered (F0141-F0150):**
+
 - All 4 A2UI renderers (React + Flutter + Lit + Angular) implemented
 - Identity Platform multi-tenant auth wired (5 invited beta tenants sign in)
 - Privacy Policy + ToS published (Termly template + attorney review)
@@ -1759,6 +1798,7 @@ git worktree remove .worktrees/phase1-foundation  # if not needed for hotfixes
 - Documentation 90% complete
 
 **Acceptance protocol:**
+
 1. Run 12-surface autonomous campaign on `pipeline-observatory` end-to-end
 2. Run full WebGen-Bench eval (484 tasks via Cloud Run job, ~30 min)
 3. Verify ≥ 51% pass rate (target ≥ 51, stretch ≥ 60)
@@ -1778,6 +1818,7 @@ git worktree remove .worktrees/phase1-foundation  # if not needed for hotfixes
 ### Day 15 (Wed May 29): DPO + LoRA pipeline (per-project judge personalization)
 
 **Features delivered (F0151-F0162):**
+
 - 3-tier dataset flywheel (T1 baseline / T2 approved / T3 failure)
 - DPO preference pair generator (margin ≥ 0.15 filter)
 - Vertex AI Tuning job submission for first-project LoRA
@@ -1785,6 +1826,7 @@ git worktree remove .worktrees/phase1-foundation  # if not needed for hotfixes
 - Reward signal computation (user_explicit + user_implicit + judge_self_consistency + convergence_completion)
 
 **Key tasks:**
+
 1. `atelier-core/src/atelier/flywheel/` modules: data_flywheel.py, preference_pairs.py, training_trigger.py
 2. Vertex AI tuning job submission via Python SDK
 3. First-project LoRA fine-tuned on `pipeline-observatory` historical accept/reject data
@@ -1802,12 +1844,14 @@ git worktree remove .worktrees/phase1-foundation  # if not needed for hotfixes
 ### Day 17 (Fri May 31): N9 Open Eval Adapters + N10 Convergence Spec RFC + N11 Public scoreboard
 
 **Features delivered (F0163-F0175):**
+
 - 5 benchmark adapters: WebGen-Bench, Design2Code, Web2Code, ScreenSpot, FrontendBench → ADK `EvalCase` schema
 - Submitted as 5 PRs to `google/adk-python`
 - Convergence Spec RFC v0.1 published in repo
 - `bench.atelier.dev` accepts community submissions
 
 **Key tasks:**
+
 1. `atelier-eval/src/atelier_eval/adapters/` — one file per benchmark
 2. Each adapter: download → parse → convert to `EvalCase` JSON
 3. PR template + opens 5 PRs to `google/adk-python`
@@ -1817,6 +1861,7 @@ git worktree remove .worktrees/phase1-foundation  # if not needed for hotfixes
 ### Day 18 (Sat Jun 1): Atelier Skills Pack + atelier-action + Figma plugin + Chrome extension + npm constitution
 
 **Features delivered (F0176-F0185):**
+
 - 6 Atelier Skills published via ADK Skills for Agents (case-study, dashboard, marketing, e-commerce, portfolio, docs-site)
 - `atelier-action` published to GitHub Marketplace
 - Figma plugin submitted to Figma Community
@@ -1824,6 +1869,7 @@ git worktree remove .worktrees/phase1-foundation  # if not needed for hotfixes
 - `@atelier/constitution-apple-grade` published to npm
 
 **Key tasks:**
+
 1. Each Skill is ~150 LOC; templated structure
 2. atelier-action: Node.js + ESM, calls Atelier API
 3. Figma plugin: ~200 LOC manifest + bridge
@@ -1833,6 +1879,7 @@ git worktree remove .worktrees/phase1-foundation  # if not needed for hotfixes
 ### Day 19 (Sun Jun 2): Marketing site + waitlist + Loom + arXiv + designer testimonials
 
 **Features delivered (F0186-F0193):**
+
 - `atelier.dev` polished marketing site
 - Waitlist (≥ 500 signups target via Twitter build-in-public thread)
 - 90-sec Loom walkthrough recorded + embedded
@@ -1842,6 +1889,7 @@ git worktree remove .worktrees/phase1-foundation  # if not needed for hotfixes
 ### Day 20 (Mon Jun 3): Phase 3 Acceptance + v1.0.0 Release + G4S Submission Filed
 
 **Acceptance criteria (all must pass):**
+
 - All 13 N-contributions have evidence in `atelier-eval/data/results/`
 - All 32 pre-launch artifacts live (per PRD §17 prelaunch-checklist)
 - WebGen-Bench full eval result published (target ≥ 60, stretch ≥ 77 with first-project LoRA)
@@ -1854,6 +1902,7 @@ git worktree remove .worktrees/phase1-foundation  # if not needed for hotfixes
 - **G4S submission package filed by noon**
 
 **Tasks:**
+
 1. Final smoke test on staging + production
 2. CHANGELOG updated for v1.0.0 release
 3. release-please tags v1.0.0 + publishes to PyPI/npm
@@ -1966,6 +2015,7 @@ git push origin main --tags
 ## Self-Review
 
 **1. Spec coverage:**
+
 - ✅ PRD §1-5 (goal, target, problem, 10× thesis, 13 contributions) — covered by phase acceptance gates
 - ✅ PRD §6 architecture (PIP / Campaign / 8-node DAG) — Day 13 / Day 12 / Days 3-7 + Day 8-10
 - ✅ PRD §7 production-grade SaaS layer — Days 2 (Terraform), 5 (Apigee), 14 (Identity), 20 (Stripe)
@@ -1984,11 +2034,13 @@ git push origin main --tags
 - ✅ PRD §28 worktree-per-phase — referenced throughout
 
 **2. Placeholder scan:**
+
 - All TBD / TODO references in PRD §19 + §21 + §22 are explicit deferrals, not placeholders
 - All "Phase 2 deliverable" / "Phase 3 deliverable" notes are scoped to specific days
 - No "implement later" or "fill in details" anywhere
 
 **3. Type consistency:**
+
 - `BriefSpec` defined Day 1, used Day 2-21 — consistent
 - `SurfaceManifest` defined Day 2, used Day 12-21 — consistent
 - `JudgeAxis` enum (BRAND/COPY/MOTION/TOKEN/COHERENCE) consistent across Days 10, 11, 15

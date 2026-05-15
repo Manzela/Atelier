@@ -16,211 +16,1722 @@
     "see_also": "docs/superpowers/plans/2026-05-14-atelier-sprint-plan.md for day-by-day TDD bite-sized tasks per feature"
   },
   "features": [
+    {
+      "id": "F0001",
+      "phase": 0,
+      "tier": "P0",
+      "name": "Initialize repo with full SDLC scaffold",
+      "depends_on": [],
+      "passes": true,
+      "axes_passed": ["scaffold_complete", "ci_green", "docs_present"],
+      "iteration_count": 1,
+      "human_approved": true,
+      "started_at": "2026-05-14T00:00:00Z",
+      "completed_at": "2026-05-14T22:00:00Z",
+      "day": "Pre-sprint",
+      "notes": "Initial commit + 2nd workflow tightening commit + secrets README. 84 files committed."
+    },
 
-    { "id": "F0001", "phase": 0, "tier": "P0", "name": "Initialize repo with full SDLC scaffold", "depends_on": [], "passes": true, "axes_passed": ["scaffold_complete", "ci_green", "docs_present"], "iteration_count": 1, "human_approved": true, "started_at": "2026-05-14T00:00:00Z", "completed_at": "2026-05-14T22:00:00Z", "day": "Pre-sprint", "notes": "Initial commit + 2nd workflow tightening commit + secrets README. 84 files committed." },
+    {
+      "id": "F0001a",
+      "phase": 1,
+      "tier": "P0",
+      "name": "Create phase/1 worktree + install pre-commit hooks",
+      "depends_on": ["F0001"],
+      "passes": false,
+      "axes_passed": [],
+      "iteration_count": 0,
+      "human_approved": null,
+      "day": "D1 May 15"
+    },
+    {
+      "id": "F0001b",
+      "phase": 1,
+      "tier": "P0",
+      "name": "Run init.sh; verify host prereqs",
+      "depends_on": ["F0001a"],
+      "passes": false,
+      "day": "D1 May 15"
+    },
+    {
+      "id": "F0002",
+      "phase": 1,
+      "tier": "P0",
+      "name": "verify-prereqs.sh: probe Vertex AI Tier 1 models across regions; commit canonical model→region registry",
+      "depends_on": ["F0001b"],
+      "passes": false,
+      "day": "D1 May 15"
+    },
+    {
+      "id": "F0003",
+      "phase": 1,
+      "tier": "P0",
+      "name": "Pin agent-dag-pipeline + ADK 2.0 Beta + Vertex SDK + Anthropic SDK in requirements.lock; verify imports",
+      "depends_on": ["F0001b"],
+      "passes": false,
+      "day": "D1 May 15"
+    },
+    {
+      "id": "F0004",
+      "phase": 1,
+      "tier": "P0",
+      "name": "BriefSpec Pydantic data contract (frozen, schema-versioned); 2 unit tests",
+      "depends_on": ["F0003"],
+      "passes": false,
+      "day": "D1 May 15"
+    },
+    {
+      "id": "F0005",
+      "phase": 1,
+      "tier": "P0",
+      "name": "D1 EOD checkpoint: STATUS, CHECKPOINTS, COST_LEDGER, features.json updates; push to phase/1 remote",
+      "depends_on": ["F0001a", "F0001b", "F0002", "F0003", "F0004"],
+      "passes": false,
+      "day": "D1 May 15"
+    },
 
-    { "id": "F0001a", "phase": 1, "tier": "P0", "name": "Create phase/1 worktree + install pre-commit hooks", "depends_on": ["F0001"], "passes": false, "axes_passed": [], "iteration_count": 0, "human_approved": null, "day": "D1 May 15" },
-    { "id": "F0001b", "phase": 1, "tier": "P0", "name": "Run init.sh; verify host prereqs", "depends_on": ["F0001a"], "passes": false, "day": "D1 May 15" },
-    { "id": "F0002", "phase": 1, "tier": "P0", "name": "verify-prereqs.sh: probe Vertex AI Tier 1 models across regions; commit canonical model→region registry", "depends_on": ["F0001b"], "passes": false, "day": "D1 May 15" },
-    { "id": "F0003", "phase": 1, "tier": "P0", "name": "Pin agent-dag-pipeline + ADK 2.0 Beta + Vertex SDK + Anthropic SDK in requirements.lock; verify imports", "depends_on": ["F0001b"], "passes": false, "day": "D1 May 15" },
-    { "id": "F0004", "phase": 1, "tier": "P0", "name": "BriefSpec Pydantic data contract (frozen, schema-versioned); 2 unit tests", "depends_on": ["F0003"], "passes": false, "day": "D1 May 15" },
-    { "id": "F0005", "phase": 1, "tier": "P0", "name": "D1 EOD checkpoint: STATUS, CHECKPOINTS, COST_LEDGER, features.json updates; push to phase/1 remote", "depends_on": ["F0001a","F0001b","F0002","F0003","F0004"], "passes": false, "day": "D1 May 15" },
+    {
+      "id": "F0006",
+      "phase": 1,
+      "tier": "P0",
+      "name": "Terraform skeleton: versions.tf + variables.tf + main.tf + 18 GCP API enables",
+      "depends_on": ["F0001b"],
+      "passes": false,
+      "day": "D2 May 16"
+    },
+    {
+      "id": "F0007",
+      "phase": 1,
+      "tier": "P0",
+      "name": "Terraform cloud_run.tf: api-sa + agent-sa SAs + Atelier API Cloud Run staging service",
+      "depends_on": ["F0006"],
+      "passes": false,
+      "day": "D2 May 16"
+    },
+    {
+      "id": "F0008",
+      "phase": 1,
+      "tier": "P0",
+      "name": "terraform plan + apply -var-file=staging.tfvars; capture api_url output",
+      "depends_on": ["F0007"],
+      "passes": false,
+      "human_approved": null,
+      "day": "D2 May 16",
+      "notes": "Daniel reviews plan + approves apply"
+    },
+    {
+      "id": "F0009",
+      "phase": 1,
+      "tier": "P0",
+      "name": "Pydantic data_contracts.py: 10 enums + 11 frozen models (TenantContext, AtelierDescriptor, SurfaceManifest, SurfaceState, CandidateUI, GateOutcome, JudgeVote, ConsensusResult, CoherenceVerdict, UserSignal, TrajectoryRecord); 5 unit tests",
+      "depends_on": ["F0004"],
+      "passes": false,
+      "day": "D2 May 16"
+    },
+    {
+      "id": "F0010",
+      "phase": 1,
+      "tier": "P0",
+      "name": "Atelier API skeleton: FastAPI app + /health endpoint + CLI entrypoint; 1 unit test",
+      "depends_on": ["F0009"],
+      "passes": false,
+      "day": "D2 May 16"
+    },
+    {
+      "id": "F0011",
+      "phase": 1,
+      "tier": "P0",
+      "name": "Dockerfile.api + build-and-push.sh; first image pushed to Artifact Registry; Cloud Run staging serves /health",
+      "depends_on": ["F0008", "F0010"],
+      "passes": false,
+      "day": "D2 May 16"
+    },
+    {
+      "id": "F0012",
+      "phase": 1,
+      "tier": "P0",
+      "name": "D2 EOD checkpoint",
+      "depends_on": ["F0006", "F0007", "F0008", "F0009", "F0010", "F0011"],
+      "passes": false,
+      "day": "D2 May 16"
+    },
 
-    { "id": "F0006", "phase": 1, "tier": "P0", "name": "Terraform skeleton: versions.tf + variables.tf + main.tf + 18 GCP API enables", "depends_on": ["F0001b"], "passes": false, "day": "D2 May 16" },
-    { "id": "F0007", "phase": 1, "tier": "P0", "name": "Terraform cloud_run.tf: api-sa + agent-sa SAs + Atelier API Cloud Run staging service", "depends_on": ["F0006"], "passes": false, "day": "D2 May 16" },
-    { "id": "F0008", "phase": 1, "tier": "P0", "name": "terraform plan + apply -var-file=staging.tfvars; capture api_url output", "depends_on": ["F0007"], "passes": false, "human_approved": null, "day": "D2 May 16", "notes": "Daniel reviews plan + approves apply" },
-    { "id": "F0009", "phase": 1, "tier": "P0", "name": "Pydantic data_contracts.py: 10 enums + 11 frozen models (TenantContext, AtelierDescriptor, SurfaceManifest, SurfaceState, CandidateUI, GateOutcome, JudgeVote, ConsensusResult, CoherenceVerdict, UserSignal, TrajectoryRecord); 5 unit tests", "depends_on": ["F0004"], "passes": false, "day": "D2 May 16" },
-    { "id": "F0010", "phase": 1, "tier": "P0", "name": "Atelier API skeleton: FastAPI app + /health endpoint + CLI entrypoint; 1 unit test", "depends_on": ["F0009"], "passes": false, "day": "D2 May 16" },
-    { "id": "F0011", "phase": 1, "tier": "P0", "name": "Dockerfile.api + build-and-push.sh; first image pushed to Artifact Registry; Cloud Run staging serves /health", "depends_on": ["F0008","F0010"], "passes": false, "day": "D2 May 16" },
-    { "id": "F0012", "phase": 1, "tier": "P0", "name": "D2 EOD checkpoint", "depends_on": ["F0006","F0007","F0008","F0009","F0010","F0011"], "passes": false, "day": "D2 May 16" },
+    {
+      "id": "F0013",
+      "phase": 1,
+      "tier": "P0",
+      "name": "N1 Brief Parser GateAgent: deterministic gate (intent schema validator) + probabilistic agent (Gemini 3 Flash via Vertex)",
+      "depends_on": ["F0009", "F0011"],
+      "passes": false,
+      "day": "D3 May 17"
+    },
+    {
+      "id": "F0014",
+      "phase": 1,
+      "tier": "P0",
+      "name": "N1 Brief Parser unit tests: 3 tests (gate pass, gate reject empty, agent returns valid BriefSpec via mocked Gemini)",
+      "depends_on": ["F0013"],
+      "passes": false,
+      "day": "D3 May 17"
+    },
+    {
+      "id": "F0015",
+      "phase": 1,
+      "tier": "P0",
+      "name": "ADK Runner integration: SequentialAgent containing N1; InMemorySessionService for D3",
+      "depends_on": ["F0013"],
+      "passes": false,
+      "day": "D3 May 17"
+    },
+    {
+      "id": "F0016",
+      "phase": 1,
+      "tier": "P0",
+      "name": "End-to-end test: brief text → BriefSpec via ADK Runner",
+      "depends_on": ["F0014", "F0015"],
+      "passes": false,
+      "day": "D3 May 17"
+    },
+    {
+      "id": "F0017",
+      "phase": 1,
+      "tier": "P0",
+      "name": "Terraform bigquery.tf: dataset atelier_staging + trajectories table partitioned by DATE(ts) clustered by tenant_id",
+      "depends_on": ["F0008"],
+      "passes": false,
+      "day": "D3 May 17"
+    },
+    {
+      "id": "F0018",
+      "phase": 1,
+      "tier": "P0",
+      "name": "observability.py emit_trajectory(record) writing to BigQuery",
+      "depends_on": ["F0017", "F0009"],
+      "passes": false,
+      "day": "D3 May 17"
+    },
+    {
+      "id": "F0019",
+      "phase": 1,
+      "tier": "P0",
+      "name": "Wire emit into ADK orchestrator after_agent_callback; manual test verifies BigQuery row appears",
+      "depends_on": ["F0015", "F0018"],
+      "passes": false,
+      "day": "D3 May 17"
+    },
+    {
+      "id": "F0020",
+      "phase": 1,
+      "tier": "P0",
+      "name": "D3 EOD checkpoint",
+      "depends_on": ["F0013", "F0014", "F0015", "F0016", "F0017", "F0018", "F0019"],
+      "passes": false,
+      "day": "D3 May 17"
+    },
 
-    { "id": "F0013", "phase": 1, "tier": "P0", "name": "N1 Brief Parser GateAgent: deterministic gate (intent schema validator) + probabilistic agent (Gemini 3 Flash via Vertex)", "depends_on": ["F0009","F0011"], "passes": false, "day": "D3 May 17" },
-    { "id": "F0014", "phase": 1, "tier": "P0", "name": "N1 Brief Parser unit tests: 3 tests (gate pass, gate reject empty, agent returns valid BriefSpec via mocked Gemini)", "depends_on": ["F0013"], "passes": false, "day": "D3 May 17" },
-    { "id": "F0015", "phase": 1, "tier": "P0", "name": "ADK Runner integration: SequentialAgent containing N1; InMemorySessionService for D3", "depends_on": ["F0013"], "passes": false, "day": "D3 May 17" },
-    { "id": "F0016", "phase": 1, "tier": "P0", "name": "End-to-end test: brief text → BriefSpec via ADK Runner", "depends_on": ["F0014","F0015"], "passes": false, "day": "D3 May 17" },
-    { "id": "F0017", "phase": 1, "tier": "P0", "name": "Terraform bigquery.tf: dataset atelier_staging + trajectories table partitioned by DATE(ts) clustered by tenant_id", "depends_on": ["F0008"], "passes": false, "day": "D3 May 17" },
-    { "id": "F0018", "phase": 1, "tier": "P0", "name": "observability.py emit_trajectory(record) writing to BigQuery", "depends_on": ["F0017","F0009"], "passes": false, "day": "D3 May 17" },
-    { "id": "F0019", "phase": 1, "tier": "P0", "name": "Wire emit into ADK orchestrator after_agent_callback; manual test verifies BigQuery row appears", "depends_on": ["F0015","F0018"], "passes": false, "day": "D3 May 17" },
-    { "id": "F0020", "phase": 1, "tier": "P0", "name": "D3 EOD checkpoint", "depends_on": ["F0013","F0014","F0015","F0016","F0017","F0018","F0019"], "passes": false, "day": "D3 May 17" },
+    {
+      "id": "F0021",
+      "phase": 1,
+      "tier": "P0",
+      "name": "N2 Source Resolver deterministic gate: descriptor exists OR brief contains path → resolve to project context",
+      "depends_on": ["F0009"],
+      "passes": false,
+      "day": "D4 May 18"
+    },
+    {
+      "id": "F0022",
+      "phase": 1,
+      "tier": "P0",
+      "name": "N2 Source Resolver agent: pull DESIGN.md tokens via dmd lint subprocess; pull principles; pull Memory Bank prior preferences",
+      "depends_on": ["F0021"],
+      "passes": false,
+      "day": "D4 May 18"
+    },
+    {
+      "id": "F0023",
+      "phase": 1,
+      "tier": "P0",
+      "name": "Vertex Memory Bank wiring: VertexAiMemoryBankService client; first read against staging tenant",
+      "depends_on": ["F0008"],
+      "passes": false,
+      "day": "D4 May 18"
+    },
+    {
+      "id": "F0024",
+      "phase": 1,
+      "tier": "P0",
+      "name": "N2 unit tests: 6 tests (gate pass with descriptor, gate pass with inferred path, gate reject ambiguous, agent reads DESIGN.md, agent reads Memory Bank, agent merges all sources)",
+      "depends_on": ["F0022", "F0023"],
+      "passes": false,
+      "day": "D4 May 18"
+    },
+    {
+      "id": "F0025",
+      "phase": 1,
+      "tier": "P0",
+      "name": "Pipeline now: SequentialAgent([N1, N2]); integration test brief + descriptor → BriefSpec + ProjectContext",
+      "depends_on": ["F0024"],
+      "passes": false,
+      "day": "D4 May 18"
+    },
+    {
+      "id": "F0026",
+      "phase": 1,
+      "tier": "P0",
+      "name": "D4 EOD checkpoint",
+      "depends_on": ["F0021", "F0022", "F0023", "F0024", "F0025"],
+      "passes": false,
+      "day": "D4 May 18"
+    },
 
-    { "id": "F0021", "phase": 1, "tier": "P0", "name": "N2 Source Resolver deterministic gate: descriptor exists OR brief contains path → resolve to project context", "depends_on": ["F0009"], "passes": false, "day": "D4 May 18" },
-    { "id": "F0022", "phase": 1, "tier": "P0", "name": "N2 Source Resolver agent: pull DESIGN.md tokens via dmd lint subprocess; pull principles; pull Memory Bank prior preferences", "depends_on": ["F0021"], "passes": false, "day": "D4 May 18" },
-    { "id": "F0023", "phase": 1, "tier": "P0", "name": "Vertex Memory Bank wiring: VertexAiMemoryBankService client; first read against staging tenant", "depends_on": ["F0008"], "passes": false, "day": "D4 May 18" },
-    { "id": "F0024", "phase": 1, "tier": "P0", "name": "N2 unit tests: 6 tests (gate pass with descriptor, gate pass with inferred path, gate reject ambiguous, agent reads DESIGN.md, agent reads Memory Bank, agent merges all sources)", "depends_on": ["F0022","F0023"], "passes": false, "day": "D4 May 18" },
-    { "id": "F0025", "phase": 1, "tier": "P0", "name": "Pipeline now: SequentialAgent([N1, N2]); integration test brief + descriptor → BriefSpec + ProjectContext", "depends_on": ["F0024"], "passes": false, "day": "D4 May 18" },
-    { "id": "F0026", "phase": 1, "tier": "P0", "name": "D4 EOD checkpoint", "depends_on": ["F0021","F0022","F0023","F0024","F0025"], "passes": false, "day": "D4 May 18" },
+    {
+      "id": "F0027",
+      "phase": 1,
+      "tier": "P0",
+      "name": "Stitch MCP wiring via ADK MCPToolset pointing at https://stitch.googleapis.com/mcp; auth via Secret Manager atelier-geap-api-key",
+      "depends_on": ["F0008"],
+      "passes": false,
+      "day": "D5 May 19"
+    },
+    {
+      "id": "F0028",
+      "phase": 1,
+      "tier": "P0",
+      "name": "N3a Generator base: K=3 candidates per iteration via ParallelAgent (placeholder for K=6 in Phase 2)",
+      "depends_on": ["F0027", "F0009"],
+      "passes": false,
+      "day": "D5 May 19"
+    },
+    {
+      "id": "F0029",
+      "phase": 1,
+      "tier": "P0",
+      "name": "N3a Generator: each sub-generator calls Stitch generate_screen_from_text OR Gemini 3 Pro direct",
+      "depends_on": ["F0028"],
+      "passes": false,
+      "day": "D5 May 19"
+    },
+    {
+      "id": "F0030",
+      "phase": 1,
+      "tier": "P0",
+      "name": "Cost router stub in code (LiteLLM-style; Apigee X org deferred to save $500/mo)",
+      "depends_on": ["F0029"],
+      "passes": false,
+      "day": "D5 May 19"
+    },
+    {
+      "id": "F0031",
+      "phase": 1,
+      "tier": "P0",
+      "name": "N3a unit tests: 5 tests + 1 integration test (mocked Stitch responses); generation success rate ≥ 95% on 20 fixture briefs",
+      "depends_on": ["F0030"],
+      "passes": false,
+      "day": "D5 May 19"
+    },
+    {
+      "id": "F0032",
+      "phase": 1,
+      "tier": "P0",
+      "name": "D5 EOD checkpoint",
+      "depends_on": ["F0027", "F0028", "F0029", "F0030", "F0031"],
+      "passes": false,
+      "day": "D5 May 19"
+    },
 
-    { "id": "F0027", "phase": 1, "tier": "P0", "name": "Stitch MCP wiring via ADK MCPToolset pointing at https://stitch.googleapis.com/mcp; auth via Secret Manager atelier-geap-api-key", "depends_on": ["F0008"], "passes": false, "day": "D5 May 19" },
-    { "id": "F0028", "phase": 1, "tier": "P0", "name": "N3a Generator base: K=3 candidates per iteration via ParallelAgent (placeholder for K=6 in Phase 2)", "depends_on": ["F0027","F0009"], "passes": false, "day": "D5 May 19" },
-    { "id": "F0029", "phase": 1, "tier": "P0", "name": "N3a Generator: each sub-generator calls Stitch generate_screen_from_text OR Gemini 3 Pro direct", "depends_on": ["F0028"], "passes": false, "day": "D5 May 19" },
-    { "id": "F0030", "phase": 1, "tier": "P0", "name": "Cost router stub in code (LiteLLM-style; Apigee X org deferred to save $500/mo)", "depends_on": ["F0029"], "passes": false, "day": "D5 May 19" },
-    { "id": "F0031", "phase": 1, "tier": "P0", "name": "N3a unit tests: 5 tests + 1 integration test (mocked Stitch responses); generation success rate ≥ 95% on 20 fixture briefs", "depends_on": ["F0030"], "passes": false, "day": "D5 May 19" },
-    { "id": "F0032", "phase": 1, "tier": "P0", "name": "D5 EOD checkpoint", "depends_on": ["F0027","F0028","F0029","F0030","F0031"], "passes": false, "day": "D5 May 19" },
+    {
+      "id": "F0033",
+      "phase": 1,
+      "tier": "P0",
+      "name": "N3c gate axis: Lighthouse a11y + perf + best-practices subprocess wrapper; 2 unit tests",
+      "depends_on": ["F0009"],
+      "passes": false,
+      "day": "D6 May 20"
+    },
+    {
+      "id": "F0034",
+      "phase": 1,
+      "tier": "P0",
+      "name": "N3c gate axis: axe-core subprocess wrapper for WCAG2AA violations; 2 unit tests",
+      "depends_on": ["F0009"],
+      "passes": false,
+      "day": "D6 May 20"
+    },
+    {
+      "id": "F0035",
+      "phase": 1,
+      "tier": "P0",
+      "name": "N3c gate axis: token-fidelity grep over generated artifact for hex/font/spacing not in DESIGN.md; 2 unit tests",
+      "depends_on": ["F0009"],
+      "passes": false,
+      "day": "D6 May 20"
+    },
+    {
+      "id": "F0036",
+      "phase": 1,
+      "tier": "P0",
+      "name": "N3c gate axis: semantic-HTML linter via html-validate subprocess; 2 unit tests",
+      "depends_on": ["F0009"],
+      "passes": false,
+      "day": "D6 May 20"
+    },
+    {
+      "id": "F0037",
+      "phase": 1,
+      "tier": "P0",
+      "name": "N3c gate axis: Playwright visual-diff vs reference (DEFER if no reference); 2 unit tests",
+      "depends_on": ["F0009"],
+      "passes": false,
+      "day": "D6 May 20"
+    },
+    {
+      "id": "F0038",
+      "phase": 1,
+      "tier": "P0",
+      "name": "N3c gate axis: Playwright responsive snapshot at 4 breakpoints (375/768/1280/1920); 2 unit tests",
+      "depends_on": ["F0009"],
+      "passes": false,
+      "day": "D6 May 20"
+    },
+    {
+      "id": "F0039",
+      "phase": 1,
+      "tier": "P0",
+      "name": "N3c orchestration: ParallelAgent runs all 6 axes via asyncio.gather; aggregate decision PASS only if ALL green",
+      "depends_on": ["F0033", "F0034", "F0035", "F0036", "F0037", "F0038"],
+      "passes": false,
+      "day": "D6 May 20"
+    },
+    {
+      "id": "F0040",
+      "phase": 1,
+      "tier": "P0",
+      "name": "EvoDesign skeleton (K=3, no mutations yet): ParallelAgent inside LoopAgent; placeholder for full K=6 in Phase 2",
+      "depends_on": ["F0028"],
+      "passes": false,
+      "day": "D6 May 20"
+    },
+    {
+      "id": "F0041",
+      "phase": 1,
+      "tier": "P0",
+      "name": "Pipeline now: SequentialAgent([N1, N2, N3a_loop, N3c]); integration test on 5 fixture briefs",
+      "depends_on": ["F0039", "F0040"],
+      "passes": false,
+      "day": "D6 May 20"
+    },
+    {
+      "id": "F0042",
+      "phase": 1,
+      "tier": "P0",
+      "name": "D6 EOD checkpoint",
+      "depends_on": [
+        "F0033",
+        "F0034",
+        "F0035",
+        "F0036",
+        "F0037",
+        "F0038",
+        "F0039",
+        "F0040",
+        "F0041"
+      ],
+      "passes": false,
+      "day": "D6 May 20"
+    },
 
-    { "id": "F0033", "phase": 1, "tier": "P0", "name": "N3c gate axis: Lighthouse a11y + perf + best-practices subprocess wrapper; 2 unit tests", "depends_on": ["F0009"], "passes": false, "day": "D6 May 20" },
-    { "id": "F0034", "phase": 1, "tier": "P0", "name": "N3c gate axis: axe-core subprocess wrapper for WCAG2AA violations; 2 unit tests", "depends_on": ["F0009"], "passes": false, "day": "D6 May 20" },
-    { "id": "F0035", "phase": 1, "tier": "P0", "name": "N3c gate axis: token-fidelity grep over generated artifact for hex/font/spacing not in DESIGN.md; 2 unit tests", "depends_on": ["F0009"], "passes": false, "day": "D6 May 20" },
-    { "id": "F0036", "phase": 1, "tier": "P0", "name": "N3c gate axis: semantic-HTML linter via html-validate subprocess; 2 unit tests", "depends_on": ["F0009"], "passes": false, "day": "D6 May 20" },
-    { "id": "F0037", "phase": 1, "tier": "P0", "name": "N3c gate axis: Playwright visual-diff vs reference (DEFER if no reference); 2 unit tests", "depends_on": ["F0009"], "passes": false, "day": "D6 May 20" },
-    { "id": "F0038", "phase": 1, "tier": "P0", "name": "N3c gate axis: Playwright responsive snapshot at 4 breakpoints (375/768/1280/1920); 2 unit tests", "depends_on": ["F0009"], "passes": false, "day": "D6 May 20" },
-    { "id": "F0039", "phase": 1, "tier": "P0", "name": "N3c orchestration: ParallelAgent runs all 6 axes via asyncio.gather; aggregate decision PASS only if ALL green", "depends_on": ["F0033","F0034","F0035","F0036","F0037","F0038"], "passes": false, "day": "D6 May 20" },
-    { "id": "F0040", "phase": 1, "tier": "P0", "name": "EvoDesign skeleton (K=3, no mutations yet): ParallelAgent inside LoopAgent; placeholder for full K=6 in Phase 2", "depends_on": ["F0028"], "passes": false, "day": "D6 May 20" },
-    { "id": "F0041", "phase": 1, "tier": "P0", "name": "Pipeline now: SequentialAgent([N1, N2, N3a_loop, N3c]); integration test on 5 fixture briefs", "depends_on": ["F0039","F0040"], "passes": false, "day": "D6 May 20" },
-    { "id": "F0042", "phase": 1, "tier": "P0", "name": "D6 EOD checkpoint", "depends_on": ["F0033","F0034","F0035","F0036","F0037","F0038","F0039","F0040","F0041"], "passes": false, "day": "D6 May 20" },
+    {
+      "id": "F0043",
+      "phase": 1,
+      "tier": "P0",
+      "name": "N3d Consensus stub for Phase 1 gate: single Gemini 3 Flash call with all 5 axes prompted in one rubric; returns ConsensusResult",
+      "depends_on": ["F0009"],
+      "passes": false,
+      "day": "D7 May 21"
+    },
+    {
+      "id": "F0044",
+      "phase": 1,
+      "tier": "P0",
+      "name": "N4 Final Validator stub for Phase 1 gate: emit converged artifacts to GCS; record TrajectoryRecord",
+      "depends_on": ["F0018", "F0043"],
+      "passes": false,
+      "day": "D7 May 21"
+    },
+    {
+      "id": "F0045",
+      "phase": 1,
+      "tier": "P0",
+      "name": "Phase 1 complete pipeline: SequentialAgent([N1, N2, N3a_loop, N3c, N3d_stub, N4_stub])",
+      "depends_on": ["F0041", "F0043", "F0044"],
+      "passes": false,
+      "day": "D7 May 21"
+    },
+    {
+      "id": "F0046",
+      "phase": 1,
+      "tier": "P0",
+      "name": "End-to-end run on pipeline-observatory hero brief; verify converged HTML/CSS + trajectory + Cloud Trace",
+      "depends_on": ["F0045"],
+      "passes": false,
+      "day": "D7 May 21"
+    },
+    {
+      "id": "F0047",
+      "phase": 1,
+      "tier": "P0",
+      "name": "atelier-eval/runner.py: subset support; run WebGen-Bench 50/484 task subset",
+      "depends_on": ["F0045"],
+      "passes": false,
+      "day": "D7 May 21"
+    },
+    {
+      "id": "F0048",
+      "phase": 1,
+      "tier": "P0",
+      "name": "smoke.sh staging: 9 checks (containers healthy, /health, /docs, Vertex AI auth, BigQuery write, Memory Bank read, OTel trace within 30s, gcloud project, ADC token)",
+      "depends_on": ["F0011"],
+      "passes": false,
+      "day": "D7 May 21"
+    },
+    {
+      "id": "F0049",
+      "phase": 1,
+      "tier": "P0",
+      "name": "Phase 1 acceptance protocol: all 7 criteria verified; runbook updated with evidence",
+      "depends_on": ["F0046", "F0047", "F0048"],
+      "passes": false,
+      "human_approved": null,
+      "day": "D7 May 21"
+    },
+    {
+      "id": "F0050",
+      "phase": 1,
+      "tier": "P0",
+      "name": "Merge phase/1 → main; tag phase1-accepted; push tags",
+      "depends_on": ["F0049"],
+      "passes": false,
+      "human_approved": null,
+      "day": "D7 May 21"
+    },
 
-    { "id": "F0043", "phase": 1, "tier": "P0", "name": "N3d Consensus stub for Phase 1 gate: single Gemini 3 Flash call with all 5 axes prompted in one rubric; returns ConsensusResult", "depends_on": ["F0009"], "passes": false, "day": "D7 May 21" },
-    { "id": "F0044", "phase": 1, "tier": "P0", "name": "N4 Final Validator stub for Phase 1 gate: emit converged artifacts to GCS; record TrajectoryRecord", "depends_on": ["F0018","F0043"], "passes": false, "day": "D7 May 21" },
-    { "id": "F0045", "phase": 1, "tier": "P0", "name": "Phase 1 complete pipeline: SequentialAgent([N1, N2, N3a_loop, N3c, N3d_stub, N4_stub])", "depends_on": ["F0041","F0043","F0044"], "passes": false, "day": "D7 May 21" },
-    { "id": "F0046", "phase": 1, "tier": "P0", "name": "End-to-end run on pipeline-observatory hero brief; verify converged HTML/CSS + trajectory + Cloud Trace", "depends_on": ["F0045"], "passes": false, "day": "D7 May 21" },
-    { "id": "F0047", "phase": 1, "tier": "P0", "name": "atelier-eval/runner.py: subset support; run WebGen-Bench 50/484 task subset", "depends_on": ["F0045"], "passes": false, "day": "D7 May 21" },
-    { "id": "F0048", "phase": 1, "tier": "P0", "name": "smoke.sh staging: 9 checks (containers healthy, /health, /docs, Vertex AI auth, BigQuery write, Memory Bank read, OTel trace within 30s, gcloud project, ADC token)", "depends_on": ["F0011"], "passes": false, "day": "D7 May 21" },
-    { "id": "F0049", "phase": 1, "tier": "P0", "name": "Phase 1 acceptance protocol: all 7 criteria verified; runbook updated with evidence", "depends_on": ["F0046","F0047","F0048"], "passes": false, "human_approved": null, "day": "D7 May 21" },
-    { "id": "F0050", "phase": 1, "tier": "P0", "name": "Merge phase/1 → main; tag phase1-accepted; push tags", "depends_on": ["F0049"], "passes": false, "human_approved": null, "day": "D7 May 21" },
+    {
+      "id": "F0060",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Create phase/2 worktree from main",
+      "depends_on": ["F0050"],
+      "passes": false,
+      "day": "D8 May 22"
+    },
+    {
+      "id": "F0061",
+      "phase": 2,
+      "tier": "P0",
+      "name": "@atelier/constitution-apple-grade npm package skeleton with 12 principles populated from DESIGN_PRINCIPLES_APPLE.md",
+      "depends_on": ["F0060"],
+      "passes": false,
+      "day": "D8 May 22"
+    },
+    {
+      "id": "F0062",
+      "phase": 2,
+      "tier": "P0",
+      "name": "N3b Constitutional Self-Critique node: Gemini 3 Flash scores each candidate against 12 principles before deterministic gate",
+      "depends_on": ["F0061", "F0009"],
+      "passes": false,
+      "day": "D8 May 22"
+    },
+    {
+      "id": "F0063",
+      "phase": 2,
+      "tier": "P0",
+      "name": "N3b calibration check: κ ≥ 0.7 vs human rubric on 50-task calibration set every 100 calls",
+      "depends_on": ["F0062"],
+      "passes": false,
+      "day": "D8 May 22"
+    },
+    {
+      "id": "F0064",
+      "phase": 2,
+      "tier": "P0",
+      "name": "EvoDesign upgrade K=3 → K=6 candidates per iteration",
+      "depends_on": ["F0040"],
+      "passes": false,
+      "day": "D8 May 22"
+    },
+    {
+      "id": "F0065",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Mutation operator: token-swap (within DESIGN.md token set)",
+      "depends_on": ["F0064"],
+      "passes": false,
+      "day": "D8 May 22"
+    },
+    {
+      "id": "F0066",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Mutation operator: layout-swap (grid → flex → masonry → list)",
+      "depends_on": ["F0064"],
+      "passes": false,
+      "day": "D8 May 22"
+    },
+    {
+      "id": "F0067",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Mutation operator: typography-swap (alt typeface from project palette)",
+      "depends_on": ["F0064"],
+      "passes": false,
+      "day": "D8 May 22"
+    },
+    {
+      "id": "F0068",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Mutation operator: motion-swap (different easing/duration combinations)",
+      "depends_on": ["F0064"],
+      "passes": false,
+      "day": "D8 May 22"
+    },
+    {
+      "id": "F0069",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Mutation operator: density-shift (compact ↔ spacious)",
+      "depends_on": ["F0064"],
+      "passes": false,
+      "day": "D8 May 22"
+    },
+    {
+      "id": "F0070",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Mutation operator: hierarchy-restructure (reorder visual weight)",
+      "depends_on": ["F0064"],
+      "passes": false,
+      "day": "D8 May 22"
+    },
+    {
+      "id": "F0071",
+      "phase": 2,
+      "tier": "P0",
+      "name": "ADK LoopAgent wraps EvoDesign loop with max_iterations=5; escalate on convergence",
+      "depends_on": ["F0064", "F0062"],
+      "passes": false,
+      "day": "D8 May 22"
+    },
+    {
+      "id": "F0072",
+      "phase": 2,
+      "tier": "P0",
+      "name": "18 unit tests (3 per mutation operator + 6 for CSC-D); integration test 6-candidate loop converges in ≤3 iterations on 5-task fixture",
+      "depends_on": ["F0065", "F0066", "F0067", "F0068", "F0069", "F0070", "F0071"],
+      "passes": false,
+      "day": "D8 May 22"
+    },
+    {
+      "id": "F0073",
+      "phase": 2,
+      "tier": "P0",
+      "name": "D8 EOD checkpoint",
+      "depends_on": ["F0072"],
+      "passes": false,
+      "day": "D8 May 22"
+    },
 
-    { "id": "F0060", "phase": 2, "tier": "P0", "name": "Create phase/2 worktree from main", "depends_on": ["F0050"], "passes": false, "day": "D8 May 22" },
-    { "id": "F0061", "phase": 2, "tier": "P0", "name": "@atelier/constitution-apple-grade npm package skeleton with 12 principles populated from DESIGN_PRINCIPLES_APPLE.md", "depends_on": ["F0060"], "passes": false, "day": "D8 May 22" },
-    { "id": "F0062", "phase": 2, "tier": "P0", "name": "N3b Constitutional Self-Critique node: Gemini 3 Flash scores each candidate against 12 principles before deterministic gate", "depends_on": ["F0061","F0009"], "passes": false, "day": "D8 May 22" },
-    { "id": "F0063", "phase": 2, "tier": "P0", "name": "N3b calibration check: κ ≥ 0.7 vs human rubric on 50-task calibration set every 100 calls", "depends_on": ["F0062"], "passes": false, "day": "D8 May 22" },
-    { "id": "F0064", "phase": 2, "tier": "P0", "name": "EvoDesign upgrade K=3 → K=6 candidates per iteration", "depends_on": ["F0040"], "passes": false, "day": "D8 May 22" },
-    { "id": "F0065", "phase": 2, "tier": "P0", "name": "Mutation operator: token-swap (within DESIGN.md token set)", "depends_on": ["F0064"], "passes": false, "day": "D8 May 22" },
-    { "id": "F0066", "phase": 2, "tier": "P0", "name": "Mutation operator: layout-swap (grid → flex → masonry → list)", "depends_on": ["F0064"], "passes": false, "day": "D8 May 22" },
-    { "id": "F0067", "phase": 2, "tier": "P0", "name": "Mutation operator: typography-swap (alt typeface from project palette)", "depends_on": ["F0064"], "passes": false, "day": "D8 May 22" },
-    { "id": "F0068", "phase": 2, "tier": "P0", "name": "Mutation operator: motion-swap (different easing/duration combinations)", "depends_on": ["F0064"], "passes": false, "day": "D8 May 22" },
-    { "id": "F0069", "phase": 2, "tier": "P0", "name": "Mutation operator: density-shift (compact ↔ spacious)", "depends_on": ["F0064"], "passes": false, "day": "D8 May 22" },
-    { "id": "F0070", "phase": 2, "tier": "P0", "name": "Mutation operator: hierarchy-restructure (reorder visual weight)", "depends_on": ["F0064"], "passes": false, "day": "D8 May 22" },
-    { "id": "F0071", "phase": 2, "tier": "P0", "name": "ADK LoopAgent wraps EvoDesign loop with max_iterations=5; escalate on convergence", "depends_on": ["F0064","F0062"], "passes": false, "day": "D8 May 22" },
-    { "id": "F0072", "phase": 2, "tier": "P0", "name": "18 unit tests (3 per mutation operator + 6 for CSC-D); integration test 6-candidate loop converges in ≤3 iterations on 5-task fixture", "depends_on": ["F0065","F0066","F0067","F0068","F0069","F0070","F0071"], "passes": false, "day": "D8 May 22" },
-    { "id": "F0073", "phase": 2, "tier": "P0", "name": "D8 EOD checkpoint", "depends_on": ["F0072"], "passes": false, "day": "D8 May 22" },
+    {
+      "id": "F0074",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Hebbian Mutator wraps adk optimize (GEPA) in atelier-core/src/atelier/flywheel/prompt_mutator.py",
+      "depends_on": ["F0071"],
+      "passes": false,
+      "day": "D9 May 23"
+    },
+    {
+      "id": "F0075",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Failure-pattern mapping: A11Y_FAIL → APPEND_CONSTRAINT",
+      "depends_on": ["F0074"],
+      "passes": false,
+      "day": "D9 May 23"
+    },
+    {
+      "id": "F0076",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Failure-pattern mapping: TOKEN_DRIFT → APPEND_CONSTRAINT",
+      "depends_on": ["F0074"],
+      "passes": false,
+      "day": "D9 May 23"
+    },
+    {
+      "id": "F0077",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Failure-pattern mapping: BRAND_INCONSIST → BOOST_EXAMPLE",
+      "depends_on": ["F0074"],
+      "passes": false,
+      "day": "D9 May 23"
+    },
+    {
+      "id": "F0078",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Failure-pattern mapping: LOW_ORIGINALITY → ADJUST_TEMPERATURE",
+      "depends_on": ["F0074"],
+      "passes": false,
+      "day": "D9 May 23"
+    },
+    {
+      "id": "F0079",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Failure-pattern mapping: MOTION_NO_REDUCED → APPEND_CONSTRAINT",
+      "depends_on": ["F0074"],
+      "passes": false,
+      "day": "D9 May 23"
+    },
+    {
+      "id": "F0080",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Reviewer subagent dispatch (Opus + code-review-excellence skill); Ralph Loop 'DONE' token requirement",
+      "depends_on": ["F0009"],
+      "passes": false,
+      "day": "D9 May 23"
+    },
+    {
+      "id": "F0081",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Per-tenant cost router (LiteLLM virtual keys via Apigee placeholder; full Apigee X deferred)",
+      "depends_on": ["F0030"],
+      "passes": false,
+      "day": "D9 May 23"
+    },
+    {
+      "id": "F0082",
+      "phase": 2,
+      "tier": "P0",
+      "name": "12 unit tests + 2 integration tests for fixer + Hebbian; Hebbian mutator fires correctly on contrast failure",
+      "depends_on": ["F0079", "F0080", "F0081"],
+      "passes": false,
+      "day": "D9 May 23"
+    },
+    {
+      "id": "F0083",
+      "phase": 2,
+      "tier": "P0",
+      "name": "D9 EOD checkpoint",
+      "depends_on": ["F0082"],
+      "passes": false,
+      "day": "D9 May 23"
+    },
 
-    { "id": "F0074", "phase": 2, "tier": "P0", "name": "Hebbian Mutator wraps adk optimize (GEPA) in atelier-core/src/atelier/flywheel/prompt_mutator.py", "depends_on": ["F0071"], "passes": false, "day": "D9 May 23" },
-    { "id": "F0075", "phase": 2, "tier": "P0", "name": "Failure-pattern mapping: A11Y_FAIL → APPEND_CONSTRAINT", "depends_on": ["F0074"], "passes": false, "day": "D9 May 23" },
-    { "id": "F0076", "phase": 2, "tier": "P0", "name": "Failure-pattern mapping: TOKEN_DRIFT → APPEND_CONSTRAINT", "depends_on": ["F0074"], "passes": false, "day": "D9 May 23" },
-    { "id": "F0077", "phase": 2, "tier": "P0", "name": "Failure-pattern mapping: BRAND_INCONSIST → BOOST_EXAMPLE", "depends_on": ["F0074"], "passes": false, "day": "D9 May 23" },
-    { "id": "F0078", "phase": 2, "tier": "P0", "name": "Failure-pattern mapping: LOW_ORIGINALITY → ADJUST_TEMPERATURE", "depends_on": ["F0074"], "passes": false, "day": "D9 May 23" },
-    { "id": "F0079", "phase": 2, "tier": "P0", "name": "Failure-pattern mapping: MOTION_NO_REDUCED → APPEND_CONSTRAINT", "depends_on": ["F0074"], "passes": false, "day": "D9 May 23" },
-    { "id": "F0080", "phase": 2, "tier": "P0", "name": "Reviewer subagent dispatch (Opus + code-review-excellence skill); Ralph Loop 'DONE' token requirement", "depends_on": ["F0009"], "passes": false, "day": "D9 May 23" },
-    { "id": "F0081", "phase": 2, "tier": "P0", "name": "Per-tenant cost router (LiteLLM virtual keys via Apigee placeholder; full Apigee X deferred)", "depends_on": ["F0030"], "passes": false, "day": "D9 May 23" },
-    { "id": "F0082", "phase": 2, "tier": "P0", "name": "12 unit tests + 2 integration tests for fixer + Hebbian; Hebbian mutator fires correctly on contrast failure", "depends_on": ["F0079","F0080","F0081"], "passes": false, "day": "D9 May 23" },
-    { "id": "F0083", "phase": 2, "tier": "P0", "name": "D9 EOD checkpoint", "depends_on": ["F0082"], "passes": false, "day": "D9 May 23" },
+    {
+      "id": "F0084",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Brand judge: rubric definition + Gemini 3 Flash via rubric_based_final_response_quality_v1",
+      "depends_on": ["F0009"],
+      "passes": false,
+      "day": "D10 May 24"
+    },
+    {
+      "id": "F0085",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Copy judge: voice rubric (no marketing voice, peer-level depth, on-brief)",
+      "depends_on": ["F0009"],
+      "passes": false,
+      "day": "D10 May 24"
+    },
+    {
+      "id": "F0086",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Motion judge: prefers-reduced-motion alternate exists, reveals fire once",
+      "depends_on": ["F0009"],
+      "passes": false,
+      "day": "D10 May 24"
+    },
+    {
+      "id": "F0087",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Token-fidelity judge: hex/font/spacing values within DESIGN.md token set",
+      "depends_on": ["F0009"],
+      "passes": false,
+      "day": "D10 May 24"
+    },
+    {
+      "id": "F0088",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Cross-screen-coherence judge: pattern reuse vs prior-converged surfaces",
+      "depends_on": ["F0009"],
+      "passes": false,
+      "day": "D10 May 24"
+    },
+    {
+      "id": "F0089",
+      "phase": 2,
+      "tier": "P0",
+      "name": "DEMAS-D Provenance Matrix: provenance_for(axis, candidate, project_context) → list[var_name]",
+      "depends_on": ["F0009"],
+      "passes": false,
+      "day": "D10 May 24"
+    },
+    {
+      "id": "F0090",
+      "phase": 2,
+      "tier": "P0",
+      "name": "ConsensusAgent custom BaseAgent subclass: parallel asyncio.gather of 5 judges + Bayesian-weighted vote",
+      "depends_on": ["F0084", "F0085", "F0086", "F0087", "F0088", "F0089"],
+      "passes": false,
+      "day": "D10 May 24"
+    },
+    {
+      "id": "F0091",
+      "phase": 2,
+      "tier": "P0",
+      "name": "25 unit tests (5 per judge: rubric structure, provenance filter correctness, edge cases); integration test full 5-judge consensus on 5 fixture surfaces",
+      "depends_on": ["F0090"],
+      "passes": false,
+      "day": "D10 May 24"
+    },
+    {
+      "id": "F0092",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Replace N3d_stub with full N3d ConsensusAgent in main pipeline",
+      "depends_on": ["F0091"],
+      "passes": false,
+      "day": "D10 May 24"
+    },
+    {
+      "id": "F0093",
+      "phase": 2,
+      "tier": "P0",
+      "name": "D10 EOD checkpoint",
+      "depends_on": ["F0092"],
+      "passes": false,
+      "day": "D10 May 24"
+    },
 
-    { "id": "F0084", "phase": 2, "tier": "P0", "name": "Brand judge: rubric definition + Gemini 3 Flash via rubric_based_final_response_quality_v1", "depends_on": ["F0009"], "passes": false, "day": "D10 May 24" },
-    { "id": "F0085", "phase": 2, "tier": "P0", "name": "Copy judge: voice rubric (no marketing voice, peer-level depth, on-brief)", "depends_on": ["F0009"], "passes": false, "day": "D10 May 24" },
-    { "id": "F0086", "phase": 2, "tier": "P0", "name": "Motion judge: prefers-reduced-motion alternate exists, reveals fire once", "depends_on": ["F0009"], "passes": false, "day": "D10 May 24" },
-    { "id": "F0087", "phase": 2, "tier": "P0", "name": "Token-fidelity judge: hex/font/spacing values within DESIGN.md token set", "depends_on": ["F0009"], "passes": false, "day": "D10 May 24" },
-    { "id": "F0088", "phase": 2, "tier": "P0", "name": "Cross-screen-coherence judge: pattern reuse vs prior-converged surfaces", "depends_on": ["F0009"], "passes": false, "day": "D10 May 24" },
-    { "id": "F0089", "phase": 2, "tier": "P0", "name": "DEMAS-D Provenance Matrix: provenance_for(axis, candidate, project_context) → list[var_name]", "depends_on": ["F0009"], "passes": false, "day": "D10 May 24" },
-    { "id": "F0090", "phase": 2, "tier": "P0", "name": "ConsensusAgent custom BaseAgent subclass: parallel asyncio.gather of 5 judges + Bayesian-weighted vote", "depends_on": ["F0084","F0085","F0086","F0087","F0088","F0089"], "passes": false, "day": "D10 May 24" },
-    { "id": "F0091", "phase": 2, "tier": "P0", "name": "25 unit tests (5 per judge: rubric structure, provenance filter correctness, edge cases); integration test full 5-judge consensus on 5 fixture surfaces", "depends_on": ["F0090"], "passes": false, "day": "D10 May 24" },
-    { "id": "F0092", "phase": 2, "tier": "P0", "name": "Replace N3d_stub with full N3d ConsensusAgent in main pipeline", "depends_on": ["F0091"], "passes": false, "day": "D10 May 24" },
-    { "id": "F0093", "phase": 2, "tier": "P0", "name": "D10 EOD checkpoint", "depends_on": ["F0092"], "passes": false, "day": "D10 May 24" },
+    {
+      "id": "F0094",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Calibration golden set curated: 100 hand-graded designs (20 per judge axis)",
+      "depends_on": ["F0091"],
+      "passes": false,
+      "human_approved": null,
+      "day": "D11 May 25"
+    },
+    {
+      "id": "F0095",
+      "phase": 2,
+      "tier": "P0",
+      "name": "calibration.atelier.dev static site: vanilla HTML + Tailwind CDN matching pipeline-observatory aesthetic",
+      "depends_on": ["F0008"],
+      "passes": false,
+      "day": "D11 May 25"
+    },
+    {
+      "id": "F0096",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Cloud Scheduler job: weekly Mon 03:17 UTC → Cloud Run job runs calibration",
+      "depends_on": ["F0094", "F0095"],
+      "passes": false,
+      "day": "D11 May 25"
+    },
+    {
+      "id": "F0097",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Calibration runner: writes results JSON → Firestore → static site rebuild via Cloud Build trigger",
+      "depends_on": ["F0096"],
+      "passes": false,
+      "day": "D11 May 25"
+    },
+    {
+      "id": "F0098",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Drift detection: alert on correlation drop > 0.05 week-over-week → Telegram",
+      "depends_on": ["F0097"],
+      "passes": false,
+      "day": "D11 May 25"
+    },
+    {
+      "id": "F0099",
+      "phase": 2,
+      "tier": "P0",
+      "name": "D11 EOD checkpoint",
+      "depends_on": ["F0098"],
+      "passes": false,
+      "day": "D11 May 25"
+    },
 
-    { "id": "F0094", "phase": 2, "tier": "P0", "name": "Calibration golden set curated: 100 hand-graded designs (20 per judge axis)", "depends_on": ["F0091"], "passes": false, "human_approved": null, "day": "D11 May 25" },
-    { "id": "F0095", "phase": 2, "tier": "P0", "name": "calibration.atelier.dev static site: vanilla HTML + Tailwind CDN matching pipeline-observatory aesthetic", "depends_on": ["F0008"], "passes": false, "day": "D11 May 25" },
-    { "id": "F0096", "phase": 2, "tier": "P0", "name": "Cloud Scheduler job: weekly Mon 03:17 UTC → Cloud Run job runs calibration", "depends_on": ["F0094","F0095"], "passes": false, "day": "D11 May 25" },
-    { "id": "F0097", "phase": 2, "tier": "P0", "name": "Calibration runner: writes results JSON → Firestore → static site rebuild via Cloud Build trigger", "depends_on": ["F0096"], "passes": false, "day": "D11 May 25" },
-    { "id": "F0098", "phase": 2, "tier": "P0", "name": "Drift detection: alert on correlation drop > 0.05 week-over-week → Telegram", "depends_on": ["F0097"], "passes": false, "day": "D11 May 25" },
-    { "id": "F0099", "phase": 2, "tier": "P0", "name": "D11 EOD checkpoint", "depends_on": ["F0098"], "passes": false, "day": "D11 May 25" },
+    {
+      "id": "F0100",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Campaign module skeleton: orchestrator.py, brief_parser.py, manifest.py, picker.py, coherence_validator.py, checkpoint_writer.py",
+      "depends_on": ["F0009"],
+      "passes": false,
+      "day": "D12 May 26"
+    },
+    {
+      "id": "F0101",
+      "phase": 2,
+      "tier": "P0",
+      "name": "CampaignBrief Parser: decompose multi-surface brief into Surface Manifest with dependency graph",
+      "depends_on": ["F0100"],
+      "passes": false,
+      "day": "D12 May 26"
+    },
+    {
+      "id": "F0102",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Surface Manifest JSON ledger: schema-versioned, agent-edited not rewritten",
+      "depends_on": ["F0101"],
+      "passes": false,
+      "day": "D12 May 26"
+    },
+    {
+      "id": "F0103",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Cloud Tasks queue atelier-staging-campaign-surfaces; Cloud Scheduler trigger per-campaign worker",
+      "depends_on": ["F0008"],
+      "passes": false,
+      "day": "D12 May 26"
+    },
+    {
+      "id": "F0104",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Campaign Picker: picks next unblocked surface honoring dependency graph",
+      "depends_on": ["F0102", "F0103"],
+      "passes": false,
+      "day": "D12 May 26"
+    },
+    {
+      "id": "F0105",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Cross-Surface Coherence Validator: token use + pattern reuse ≥30% + DECISIONS.md compliance + regression check on top-5 most-similar",
+      "depends_on": ["F0102"],
+      "passes": false,
+      "day": "D12 May 26"
+    },
+    {
+      "id": "F0106",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Campaign Checkpoint Writer: updates surfaces.json + campaign-progress.txt + RESUME-HERE markers + DECISIONS.md + REJECTED.md",
+      "depends_on": ["F0102"],
+      "passes": false,
+      "day": "D12 May 26"
+    },
+    {
+      "id": "F0107",
+      "phase": 2,
+      "tier": "P0",
+      "name": "End-to-end test: 5-surface mini-campaign decomposition + sequential surface execution + coherence check",
+      "depends_on": ["F0104", "F0105", "F0106", "F0092"],
+      "passes": false,
+      "day": "D12 May 26"
+    },
+    {
+      "id": "F0108",
+      "phase": 2,
+      "tier": "P0",
+      "name": "18 unit tests + 1 integration test for campaign module",
+      "depends_on": ["F0107"],
+      "passes": false,
+      "day": "D12 May 26"
+    },
+    {
+      "id": "F0109",
+      "phase": 2,
+      "tier": "P0",
+      "name": "D12 EOD checkpoint",
+      "depends_on": ["F0108"],
+      "passes": false,
+      "day": "D12 May 26"
+    },
 
-    { "id": "F0100", "phase": 2, "tier": "P0", "name": "Campaign module skeleton: orchestrator.py, brief_parser.py, manifest.py, picker.py, coherence_validator.py, checkpoint_writer.py", "depends_on": ["F0009"], "passes": false, "day": "D12 May 26" },
-    { "id": "F0101", "phase": 2, "tier": "P0", "name": "CampaignBrief Parser: decompose multi-surface brief into Surface Manifest with dependency graph", "depends_on": ["F0100"], "passes": false, "day": "D12 May 26" },
-    { "id": "F0102", "phase": 2, "tier": "P0", "name": "Surface Manifest JSON ledger: schema-versioned, agent-edited not rewritten", "depends_on": ["F0101"], "passes": false, "day": "D12 May 26" },
-    { "id": "F0103", "phase": 2, "tier": "P0", "name": "Cloud Tasks queue atelier-staging-campaign-surfaces; Cloud Scheduler trigger per-campaign worker", "depends_on": ["F0008"], "passes": false, "day": "D12 May 26" },
-    { "id": "F0104", "phase": 2, "tier": "P0", "name": "Campaign Picker: picks next unblocked surface honoring dependency graph", "depends_on": ["F0102","F0103"], "passes": false, "day": "D12 May 26" },
-    { "id": "F0105", "phase": 2, "tier": "P0", "name": "Cross-Surface Coherence Validator: token use + pattern reuse ≥30% + DECISIONS.md compliance + regression check on top-5 most-similar", "depends_on": ["F0102"], "passes": false, "day": "D12 May 26" },
-    { "id": "F0106", "phase": 2, "tier": "P0", "name": "Campaign Checkpoint Writer: updates surfaces.json + campaign-progress.txt + RESUME-HERE markers + DECISIONS.md + REJECTED.md", "depends_on": ["F0102"], "passes": false, "day": "D12 May 26" },
-    { "id": "F0107", "phase": 2, "tier": "P0", "name": "End-to-end test: 5-surface mini-campaign decomposition + sequential surface execution + coherence check", "depends_on": ["F0104","F0105","F0106","F0092"], "passes": false, "day": "D12 May 26" },
-    { "id": "F0108", "phase": 2, "tier": "P0", "name": "18 unit tests + 1 integration test for campaign module", "depends_on": ["F0107"], "passes": false, "day": "D12 May 26" },
-    { "id": "F0109", "phase": 2, "tier": "P0", "name": "D12 EOD checkpoint", "depends_on": ["F0108"], "passes": false, "day": "D12 May 26" },
+    {
+      "id": "F0110",
+      "phase": 2,
+      "tier": "P0",
+      "name": "PIP Router: adaptive depth (atomic 2-3 / small 5-7 / large 10-12 / greenfield 12-15)",
+      "depends_on": ["F0009"],
+      "passes": false,
+      "day": "D13 May 27"
+    },
+    {
+      "id": "F0111",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Skip-Path Resolver: descriptor parser + Memory Bank query + brief NLP extraction",
+      "depends_on": ["F0110", "F0023"],
+      "passes": false,
+      "day": "D13 May 27"
+    },
+    {
+      "id": "F0112",
+      "phase": 2,
+      "tier": "P0",
+      "name": "13-question catalog as YAML; each question has 1:1 DAPLab pattern mapping documented",
+      "depends_on": ["F0110"],
+      "passes": false,
+      "day": "D13 May 27"
+    },
+    {
+      "id": "F0113",
+      "phase": 2,
+      "tier": "P0",
+      "name": "PIP Intake Agent: Gemini 3 Flash conversation loop driving question_catalog",
+      "depends_on": ["F0112", "F0111"],
+      "passes": false,
+      "day": "D13 May 27"
+    },
+    {
+      "id": "F0114",
+      "phase": 2,
+      "tier": "P0",
+      "name": "BriefSpec Synthesizer: produces immutable JSON BriefSpec; user-approved; initializes DECISIONS.md + design-system.lock.md",
+      "depends_on": ["F0113"],
+      "passes": false,
+      "day": "D13 May 27"
+    },
+    {
+      "id": "F0115",
+      "phase": 2,
+      "tier": "P1",
+      "name": "Visual options for design questions: text-only ships in MVP; visual thumbnails behind feature flag for Phase 1.5",
+      "depends_on": ["F0113"],
+      "passes": false,
+      "day": "D13 May 27"
+    },
+    {
+      "id": "F0116",
+      "phase": 2,
+      "tier": "P0",
+      "name": "20 unit tests + 1 integration test: 5 fixture intake scenarios → BriefSpec.json",
+      "depends_on": ["F0114"],
+      "passes": false,
+      "day": "D13 May 27"
+    },
+    {
+      "id": "F0117",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Pipeline now includes PIP at front: PIP → Campaign Orchestrator → atomic 8-node DAG",
+      "depends_on": ["F0116", "F0107"],
+      "passes": false,
+      "day": "D13 May 27"
+    },
+    {
+      "id": "F0118",
+      "phase": 2,
+      "tier": "P0",
+      "name": "D13 EOD checkpoint",
+      "depends_on": ["F0117"],
+      "passes": false,
+      "day": "D13 May 27"
+    },
 
-    { "id": "F0110", "phase": 2, "tier": "P0", "name": "PIP Router: adaptive depth (atomic 2-3 / small 5-7 / large 10-12 / greenfield 12-15)", "depends_on": ["F0009"], "passes": false, "day": "D13 May 27" },
-    { "id": "F0111", "phase": 2, "tier": "P0", "name": "Skip-Path Resolver: descriptor parser + Memory Bank query + brief NLP extraction", "depends_on": ["F0110","F0023"], "passes": false, "day": "D13 May 27" },
-    { "id": "F0112", "phase": 2, "tier": "P0", "name": "13-question catalog as YAML; each question has 1:1 DAPLab pattern mapping documented", "depends_on": ["F0110"], "passes": false, "day": "D13 May 27" },
-    { "id": "F0113", "phase": 2, "tier": "P0", "name": "PIP Intake Agent: Gemini 3 Flash conversation loop driving question_catalog", "depends_on": ["F0112","F0111"], "passes": false, "day": "D13 May 27" },
-    { "id": "F0114", "phase": 2, "tier": "P0", "name": "BriefSpec Synthesizer: produces immutable JSON BriefSpec; user-approved; initializes DECISIONS.md + design-system.lock.md", "depends_on": ["F0113"], "passes": false, "day": "D13 May 27" },
-    { "id": "F0115", "phase": 2, "tier": "P1", "name": "Visual options for design questions: text-only ships in MVP; visual thumbnails behind feature flag for Phase 1.5", "depends_on": ["F0113"], "passes": false, "day": "D13 May 27" },
-    { "id": "F0116", "phase": 2, "tier": "P0", "name": "20 unit tests + 1 integration test: 5 fixture intake scenarios → BriefSpec.json", "depends_on": ["F0114"], "passes": false, "day": "D13 May 27" },
-    { "id": "F0117", "phase": 2, "tier": "P0", "name": "Pipeline now includes PIP at front: PIP → Campaign Orchestrator → atomic 8-node DAG", "depends_on": ["F0116","F0107"], "passes": false, "day": "D13 May 27" },
-    { "id": "F0118", "phase": 2, "tier": "P0", "name": "D13 EOD checkpoint", "depends_on": ["F0117"], "passes": false, "day": "D13 May 27" },
+    {
+      "id": "F0119",
+      "phase": 2,
+      "tier": "P0",
+      "name": "A2UI v0.9 React renderer",
+      "depends_on": ["F0044"],
+      "passes": false,
+      "day": "D14 May 28"
+    },
+    {
+      "id": "F0120",
+      "phase": 2,
+      "tier": "P0",
+      "name": "A2UI v0.9 Flutter renderer",
+      "depends_on": ["F0044"],
+      "passes": false,
+      "day": "D14 May 28"
+    },
+    {
+      "id": "F0121",
+      "phase": 2,
+      "tier": "P0",
+      "name": "A2UI v0.9 Lit renderer",
+      "depends_on": ["F0044"],
+      "passes": false,
+      "day": "D14 May 28"
+    },
+    {
+      "id": "F0122",
+      "phase": 2,
+      "tier": "P0",
+      "name": "A2UI v0.9 Angular renderer",
+      "depends_on": ["F0044"],
+      "passes": false,
+      "day": "D14 May 28"
+    },
+    {
+      "id": "F0123",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Identity Platform multi-tenant auth wired (Google + GitHub + email sign-in)",
+      "depends_on": ["F0008"],
+      "passes": false,
+      "day": "D14 May 28"
+    },
+    {
+      "id": "F0124",
+      "phase": 2,
+      "tier": "P0",
+      "name": "5 invited beta tenants successfully sign in via Identity Platform",
+      "depends_on": ["F0123"],
+      "passes": false,
+      "human_approved": null,
+      "day": "D14 May 28"
+    },
+    {
+      "id": "F0125",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Privacy Policy + ToS published (Termly template + attorney review)",
+      "depends_on": [],
+      "passes": false,
+      "human_approved": null,
+      "day": "D14 May 28",
+      "notes": "Daniel + attorney"
+    },
+    {
+      "id": "F0126",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Status page live at status.atelier.dev (auto-updated from Cloud Monitoring uptime checks)",
+      "depends_on": ["F0008"],
+      "passes": false,
+      "day": "D14 May 28"
+    },
+    {
+      "id": "F0127",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Documentation 90% complete (READMEs in subfolders + docs/architecture + docs/eval)",
+      "depends_on": [],
+      "passes": false,
+      "day": "D14 May 28"
+    },
+    {
+      "id": "F0128",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Run 12-surface autonomous campaign on pipeline-observatory end-to-end",
+      "depends_on": ["F0117", "F0119", "F0120", "F0121", "F0122"],
+      "passes": false,
+      "day": "D14 May 28"
+    },
+    {
+      "id": "F0129",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Run full WebGen-Bench eval (484 tasks via Cloud Run job, ~30 min); verify ≥ 51% pass rate",
+      "depends_on": ["F0117"],
+      "passes": false,
+      "day": "D14 May 28"
+    },
+    {
+      "id": "F0130",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Phase 2 acceptance protocol: all criteria verified; runbook updated with evidence",
+      "depends_on": ["F0124", "F0125", "F0126", "F0127", "F0128", "F0129", "F0098"],
+      "passes": false,
+      "human_approved": null,
+      "day": "D14 May 28"
+    },
+    {
+      "id": "F0131",
+      "phase": 2,
+      "tier": "P0",
+      "name": "Merge phase/2 → main; tag phase2-accepted",
+      "depends_on": ["F0130"],
+      "passes": false,
+      "human_approved": null,
+      "day": "D14 May 28"
+    },
 
-    { "id": "F0119", "phase": 2, "tier": "P0", "name": "A2UI v0.9 React renderer", "depends_on": ["F0044"], "passes": false, "day": "D14 May 28" },
-    { "id": "F0120", "phase": 2, "tier": "P0", "name": "A2UI v0.9 Flutter renderer", "depends_on": ["F0044"], "passes": false, "day": "D14 May 28" },
-    { "id": "F0121", "phase": 2, "tier": "P0", "name": "A2UI v0.9 Lit renderer", "depends_on": ["F0044"], "passes": false, "day": "D14 May 28" },
-    { "id": "F0122", "phase": 2, "tier": "P0", "name": "A2UI v0.9 Angular renderer", "depends_on": ["F0044"], "passes": false, "day": "D14 May 28" },
-    { "id": "F0123", "phase": 2, "tier": "P0", "name": "Identity Platform multi-tenant auth wired (Google + GitHub + email sign-in)", "depends_on": ["F0008"], "passes": false, "day": "D14 May 28" },
-    { "id": "F0124", "phase": 2, "tier": "P0", "name": "5 invited beta tenants successfully sign in via Identity Platform", "depends_on": ["F0123"], "passes": false, "human_approved": null, "day": "D14 May 28" },
-    { "id": "F0125", "phase": 2, "tier": "P0", "name": "Privacy Policy + ToS published (Termly template + attorney review)", "depends_on": [], "passes": false, "human_approved": null, "day": "D14 May 28", "notes": "Daniel + attorney" },
-    { "id": "F0126", "phase": 2, "tier": "P0", "name": "Status page live at status.atelier.dev (auto-updated from Cloud Monitoring uptime checks)", "depends_on": ["F0008"], "passes": false, "day": "D14 May 28" },
-    { "id": "F0127", "phase": 2, "tier": "P0", "name": "Documentation 90% complete (READMEs in subfolders + docs/architecture + docs/eval)", "depends_on": [], "passes": false, "day": "D14 May 28" },
-    { "id": "F0128", "phase": 2, "tier": "P0", "name": "Run 12-surface autonomous campaign on pipeline-observatory end-to-end", "depends_on": ["F0117","F0119","F0120","F0121","F0122"], "passes": false, "day": "D14 May 28" },
-    { "id": "F0129", "phase": 2, "tier": "P0", "name": "Run full WebGen-Bench eval (484 tasks via Cloud Run job, ~30 min); verify ≥ 51% pass rate", "depends_on": ["F0117"], "passes": false, "day": "D14 May 28" },
-    { "id": "F0130", "phase": 2, "tier": "P0", "name": "Phase 2 acceptance protocol: all criteria verified; runbook updated with evidence", "depends_on": ["F0124","F0125","F0126","F0127","F0128","F0129","F0098"], "passes": false, "human_approved": null, "day": "D14 May 28" },
-    { "id": "F0131", "phase": 2, "tier": "P0", "name": "Merge phase/2 → main; tag phase2-accepted", "depends_on": ["F0130"], "passes": false, "human_approved": null, "day": "D14 May 28" },
+    {
+      "id": "F0140",
+      "phase": 3,
+      "tier": "P0",
+      "name": "Create phase/3 worktree from main",
+      "depends_on": ["F0131"],
+      "passes": false,
+      "day": "D15 May 29"
+    },
+    {
+      "id": "F0141",
+      "phase": 3,
+      "tier": "P0",
+      "name": "3-tier dataset flywheel: T1 baseline + T2 approved + T3 failure tables in BigQuery",
+      "depends_on": ["F0017"],
+      "passes": false,
+      "day": "D15 May 29"
+    },
+    {
+      "id": "F0142",
+      "phase": 3,
+      "tier": "P0",
+      "name": "DPO preference pair generator: margin ≥ 0.15 filter + per-project partitioning",
+      "depends_on": ["F0141"],
+      "passes": false,
+      "day": "D15 May 29"
+    },
+    {
+      "id": "F0143",
+      "phase": 3,
+      "tier": "P0",
+      "name": "Vertex AI Tuning job submission via Python SDK; Gemma 4 26B-A4B-it base",
+      "depends_on": ["F0142"],
+      "passes": false,
+      "day": "D15 May 29"
+    },
+    {
+      "id": "F0144",
+      "phase": 3,
+      "tier": "P0",
+      "name": "Eval-only baseline run before training (per ADR 0005 lineage); store baseline scores",
+      "depends_on": ["F0143"],
+      "passes": false,
+      "day": "D15 May 29"
+    },
+    {
+      "id": "F0145",
+      "phase": 3,
+      "tier": "P0",
+      "name": "First-project LoRA fine-tuned on pipeline-observatory historical accept/reject data",
+      "depends_on": ["F0144"],
+      "passes": false,
+      "day": "D15 May 29"
+    },
+    {
+      "id": "F0146",
+      "phase": 3,
+      "tier": "P0",
+      "name": "Eval improvement ≥ 2% triggers registration; auto-register in Vertex AI Model Registry",
+      "depends_on": ["F0145"],
+      "passes": false,
+      "day": "D15 May 29"
+    },
+    {
+      "id": "F0147",
+      "phase": 3,
+      "tier": "P0",
+      "name": "Reward signal computation: user_explicit + user_implicit + judge_self_consistency + convergence_completion (per limits.dpo_rewards.weights)",
+      "depends_on": ["F0142"],
+      "passes": false,
+      "day": "D15 May 29"
+    },
+    {
+      "id": "F0148",
+      "phase": 3,
+      "tier": "P0",
+      "name": "End-to-end test: synthetic 100 DPO pairs → tuning job → endpoint deploy → judge calls served LoRA",
+      "depends_on": ["F0146", "F0147"],
+      "passes": false,
+      "day": "D15 May 29"
+    },
+    {
+      "id": "F0149",
+      "phase": 3,
+      "tier": "P0",
+      "name": "D15 EOD checkpoint",
+      "depends_on": ["F0148"],
+      "passes": false,
+      "day": "D15 May 29"
+    },
 
-    { "id": "F0140", "phase": 3, "tier": "P0", "name": "Create phase/3 worktree from main", "depends_on": ["F0131"], "passes": false, "day": "D15 May 29" },
-    { "id": "F0141", "phase": 3, "tier": "P0", "name": "3-tier dataset flywheel: T1 baseline + T2 approved + T3 failure tables in BigQuery", "depends_on": ["F0017"], "passes": false, "day": "D15 May 29" },
-    { "id": "F0142", "phase": 3, "tier": "P0", "name": "DPO preference pair generator: margin ≥ 0.15 filter + per-project partitioning", "depends_on": ["F0141"], "passes": false, "day": "D15 May 29" },
-    { "id": "F0143", "phase": 3, "tier": "P0", "name": "Vertex AI Tuning job submission via Python SDK; Gemma 4 26B-A4B-it base", "depends_on": ["F0142"], "passes": false, "day": "D15 May 29" },
-    { "id": "F0144", "phase": 3, "tier": "P0", "name": "Eval-only baseline run before training (per ADR 0005 lineage); store baseline scores", "depends_on": ["F0143"], "passes": false, "day": "D15 May 29" },
-    { "id": "F0145", "phase": 3, "tier": "P0", "name": "First-project LoRA fine-tuned on pipeline-observatory historical accept/reject data", "depends_on": ["F0144"], "passes": false, "day": "D15 May 29" },
-    { "id": "F0146", "phase": 3, "tier": "P0", "name": "Eval improvement ≥ 2% triggers registration; auto-register in Vertex AI Model Registry", "depends_on": ["F0145"], "passes": false, "day": "D15 May 29" },
-    { "id": "F0147", "phase": 3, "tier": "P0", "name": "Reward signal computation: user_explicit + user_implicit + judge_self_consistency + convergence_completion (per limits.dpo_rewards.weights)", "depends_on": ["F0142"], "passes": false, "day": "D15 May 29" },
-    { "id": "F0148", "phase": 3, "tier": "P0", "name": "End-to-end test: synthetic 100 DPO pairs → tuning job → endpoint deploy → judge calls served LoRA", "depends_on": ["F0146","F0147"], "passes": false, "day": "D15 May 29" },
-    { "id": "F0149", "phase": 3, "tier": "P0", "name": "D15 EOD checkpoint", "depends_on": ["F0148"], "passes": false, "day": "D15 May 29" },
+    {
+      "id": "F0150",
+      "phase": 3,
+      "tier": "P0",
+      "name": "Vertex AI Endpoints with Multi-Tuning serving the per-project LoRA",
+      "depends_on": ["F0146"],
+      "passes": false,
+      "day": "D16 May 30"
+    },
+    {
+      "id": "F0151",
+      "phase": 3,
+      "tier": "P0",
+      "name": "Wire serving the per-project LoRA via Vertex AI Endpoints in ConsensusAgent (replace base Gemini for that judge axis)",
+      "depends_on": ["F0150", "F0090"],
+      "passes": false,
+      "day": "D16 May 30"
+    },
+    {
+      "id": "F0152",
+      "phase": 3,
+      "tier": "P0",
+      "name": "Calibration drift detection on the new LoRA judge",
+      "depends_on": ["F0151", "F0098"],
+      "passes": false,
+      "day": "D16 May 30"
+    },
+    {
+      "id": "F0153",
+      "phase": 3,
+      "tier": "P0",
+      "name": "Telegram alert on judge swap success",
+      "depends_on": ["F0151"],
+      "passes": false,
+      "day": "D16 May 30"
+    },
+    {
+      "id": "F0154",
+      "phase": 3,
+      "tier": "P0",
+      "name": "8 unit tests + 1 integration test for LoRA serving + judge swap",
+      "depends_on": ["F0153"],
+      "passes": false,
+      "day": "D16 May 30"
+    },
+    {
+      "id": "F0155",
+      "phase": 3,
+      "tier": "P0",
+      "name": "D16 EOD checkpoint",
+      "depends_on": ["F0154"],
+      "passes": false,
+      "day": "D16 May 30"
+    },
 
-    { "id": "F0150", "phase": 3, "tier": "P0", "name": "Vertex AI Endpoints with Multi-Tuning serving the per-project LoRA", "depends_on": ["F0146"], "passes": false, "day": "D16 May 30" },
-    { "id": "F0151", "phase": 3, "tier": "P0", "name": "Wire serving the per-project LoRA via Vertex AI Endpoints in ConsensusAgent (replace base Gemini for that judge axis)", "depends_on": ["F0150","F0090"], "passes": false, "day": "D16 May 30" },
-    { "id": "F0152", "phase": 3, "tier": "P0", "name": "Calibration drift detection on the new LoRA judge", "depends_on": ["F0151","F0098"], "passes": false, "day": "D16 May 30" },
-    { "id": "F0153", "phase": 3, "tier": "P0", "name": "Telegram alert on judge swap success", "depends_on": ["F0151"], "passes": false, "day": "D16 May 30" },
-    { "id": "F0154", "phase": 3, "tier": "P0", "name": "8 unit tests + 1 integration test for LoRA serving + judge swap", "depends_on": ["F0153"], "passes": false, "day": "D16 May 30" },
-    { "id": "F0155", "phase": 3, "tier": "P0", "name": "D16 EOD checkpoint", "depends_on": ["F0154"], "passes": false, "day": "D16 May 30" },
+    {
+      "id": "F0156",
+      "phase": 3,
+      "tier": "P0",
+      "name": "WebGen-Bench adapter → ADK EvalCase schema",
+      "depends_on": ["F0047"],
+      "passes": false,
+      "day": "D17 May 31"
+    },
+    {
+      "id": "F0157",
+      "phase": 3,
+      "tier": "P0",
+      "name": "Design2Code adapter → ADK EvalCase schema",
+      "depends_on": [],
+      "passes": false,
+      "day": "D17 May 31"
+    },
+    {
+      "id": "F0158",
+      "phase": 3,
+      "tier": "P0",
+      "name": "Web2Code adapter → ADK EvalCase schema",
+      "depends_on": [],
+      "passes": false,
+      "day": "D17 May 31"
+    },
+    {
+      "id": "F0159",
+      "phase": 3,
+      "tier": "P1",
+      "name": "ScreenSpot adapter → ADK EvalCase schema",
+      "depends_on": [],
+      "passes": false,
+      "day": "D17 May 31"
+    },
+    {
+      "id": "F0160",
+      "phase": 3,
+      "tier": "P1",
+      "name": "FrontendBench adapter → ADK EvalCase schema",
+      "depends_on": [],
+      "passes": false,
+      "day": "D17 May 31"
+    },
+    {
+      "id": "F0161",
+      "phase": 3,
+      "tier": "P0",
+      "name": "Open 3-5 PRs to google/adk-python with the eval adapters (Apache-2.0)",
+      "depends_on": ["F0156", "F0157", "F0158"],
+      "passes": false,
+      "day": "D17 May 31"
+    },
+    {
+      "id": "F0162",
+      "phase": 3,
+      "tier": "P0",
+      "name": "Convergence Spec RFC v0.1 drafted in docs/rfcs/convergence-spec-v0.1.md",
+      "depends_on": [],
+      "passes": false,
+      "day": "D17 May 31"
+    },
+    {
+      "id": "F0163",
+      "phase": 3,
+      "tier": "P0",
+      "name": "bench.atelier.dev: community submission form (Cloud Function + Firestore)",
+      "depends_on": ["F0008"],
+      "passes": false,
+      "day": "D17 May 31"
+    },
+    {
+      "id": "F0164",
+      "phase": 3,
+      "tier": "P0",
+      "name": "D17 EOD checkpoint",
+      "depends_on": ["F0161", "F0162", "F0163"],
+      "passes": false,
+      "day": "D17 May 31"
+    },
 
-    { "id": "F0156", "phase": 3, "tier": "P0", "name": "WebGen-Bench adapter → ADK EvalCase schema", "depends_on": ["F0047"], "passes": false, "day": "D17 May 31" },
-    { "id": "F0157", "phase": 3, "tier": "P0", "name": "Design2Code adapter → ADK EvalCase schema", "depends_on": [], "passes": false, "day": "D17 May 31" },
-    { "id": "F0158", "phase": 3, "tier": "P0", "name": "Web2Code adapter → ADK EvalCase schema", "depends_on": [], "passes": false, "day": "D17 May 31" },
-    { "id": "F0159", "phase": 3, "tier": "P1", "name": "ScreenSpot adapter → ADK EvalCase schema", "depends_on": [], "passes": false, "day": "D17 May 31" },
-    { "id": "F0160", "phase": 3, "tier": "P1", "name": "FrontendBench adapter → ADK EvalCase schema", "depends_on": [], "passes": false, "day": "D17 May 31" },
-    { "id": "F0161", "phase": 3, "tier": "P0", "name": "Open 3-5 PRs to google/adk-python with the eval adapters (Apache-2.0)", "depends_on": ["F0156","F0157","F0158"], "passes": false, "day": "D17 May 31" },
-    { "id": "F0162", "phase": 3, "tier": "P0", "name": "Convergence Spec RFC v0.1 drafted in docs/rfcs/convergence-spec-v0.1.md", "depends_on": [], "passes": false, "day": "D17 May 31" },
-    { "id": "F0163", "phase": 3, "tier": "P0", "name": "bench.atelier.dev: community submission form (Cloud Function + Firestore)", "depends_on": ["F0008"], "passes": false, "day": "D17 May 31" },
-    { "id": "F0164", "phase": 3, "tier": "P0", "name": "D17 EOD checkpoint", "depends_on": ["F0161","F0162","F0163"], "passes": false, "day": "D17 May 31" },
+    {
+      "id": "F0165",
+      "phase": 3,
+      "tier": "P0",
+      "name": "Atelier Skill: case-study (publish via ADK Skills for Agents)",
+      "depends_on": ["F0014"],
+      "passes": false,
+      "day": "D18 Jun 1"
+    },
+    {
+      "id": "F0166",
+      "phase": 3,
+      "tier": "P0",
+      "name": "Atelier Skill: dashboard",
+      "depends_on": ["F0014"],
+      "passes": false,
+      "day": "D18 Jun 1"
+    },
+    {
+      "id": "F0167",
+      "phase": 3,
+      "tier": "P0",
+      "name": "Atelier Skill: marketing-page",
+      "depends_on": ["F0014"],
+      "passes": false,
+      "day": "D18 Jun 1"
+    },
+    {
+      "id": "F0168",
+      "phase": 3,
+      "tier": "P0",
+      "name": "Atelier Skill: e-commerce",
+      "depends_on": ["F0014"],
+      "passes": false,
+      "day": "D18 Jun 1"
+    },
+    {
+      "id": "F0169",
+      "phase": 3,
+      "tier": "P0",
+      "name": "Atelier Skill: portfolio",
+      "depends_on": ["F0014"],
+      "passes": false,
+      "day": "D18 Jun 1"
+    },
+    {
+      "id": "F0170",
+      "phase": 3,
+      "tier": "P0",
+      "name": "Atelier Skill: docs-site",
+      "depends_on": ["F0014"],
+      "passes": false,
+      "day": "D18 Jun 1"
+    },
+    {
+      "id": "F0171",
+      "phase": 3,
+      "tier": "P0",
+      "name": "atelier-action: Node.js + ESM + GitHub Marketplace publish",
+      "depends_on": ["F0014"],
+      "passes": false,
+      "day": "D18 Jun 1"
+    },
+    {
+      "id": "F0172",
+      "phase": 3,
+      "tier": "P1",
+      "name": "Figma plugin: TypeScript bridge + UI; submit to Figma Community",
+      "depends_on": ["F0119"],
+      "passes": false,
+      "day": "D18 Jun 1"
+    },
+    {
+      "id": "F0173",
+      "phase": 3,
+      "tier": "P1",
+      "name": "Chrome extension: Manifest V3 + content script + service worker; submit to Chrome Web Store",
+      "depends_on": [],
+      "passes": false,
+      "day": "D18 Jun 1"
+    },
+    {
+      "id": "F0174",
+      "phase": 3,
+      "tier": "P0",
+      "name": "@atelier/constitution-apple-grade npm package: 12 principles as importable JSON; publish to npm",
+      "depends_on": ["F0061"],
+      "passes": false,
+      "day": "D18 Jun 1"
+    },
+    {
+      "id": "F0175",
+      "phase": 3,
+      "tier": "P0",
+      "name": "D18 EOD checkpoint",
+      "depends_on": ["F0165", "F0166", "F0167", "F0168", "F0169", "F0170", "F0171", "F0174"],
+      "passes": false,
+      "day": "D18 Jun 1"
+    },
 
-    { "id": "F0165", "phase": 3, "tier": "P0", "name": "Atelier Skill: case-study (publish via ADK Skills for Agents)", "depends_on": ["F0014"], "passes": false, "day": "D18 Jun 1" },
-    { "id": "F0166", "phase": 3, "tier": "P0", "name": "Atelier Skill: dashboard", "depends_on": ["F0014"], "passes": false, "day": "D18 Jun 1" },
-    { "id": "F0167", "phase": 3, "tier": "P0", "name": "Atelier Skill: marketing-page", "depends_on": ["F0014"], "passes": false, "day": "D18 Jun 1" },
-    { "id": "F0168", "phase": 3, "tier": "P0", "name": "Atelier Skill: e-commerce", "depends_on": ["F0014"], "passes": false, "day": "D18 Jun 1" },
-    { "id": "F0169", "phase": 3, "tier": "P0", "name": "Atelier Skill: portfolio", "depends_on": ["F0014"], "passes": false, "day": "D18 Jun 1" },
-    { "id": "F0170", "phase": 3, "tier": "P0", "name": "Atelier Skill: docs-site", "depends_on": ["F0014"], "passes": false, "day": "D18 Jun 1" },
-    { "id": "F0171", "phase": 3, "tier": "P0", "name": "atelier-action: Node.js + ESM + GitHub Marketplace publish", "depends_on": ["F0014"], "passes": false, "day": "D18 Jun 1" },
-    { "id": "F0172", "phase": 3, "tier": "P1", "name": "Figma plugin: TypeScript bridge + UI; submit to Figma Community", "depends_on": ["F0119"], "passes": false, "day": "D18 Jun 1" },
-    { "id": "F0173", "phase": 3, "tier": "P1", "name": "Chrome extension: Manifest V3 + content script + service worker; submit to Chrome Web Store", "depends_on": [], "passes": false, "day": "D18 Jun 1" },
-    { "id": "F0174", "phase": 3, "tier": "P0", "name": "@atelier/constitution-apple-grade npm package: 12 principles as importable JSON; publish to npm", "depends_on": ["F0061"], "passes": false, "day": "D18 Jun 1" },
-    { "id": "F0175", "phase": 3, "tier": "P0", "name": "D18 EOD checkpoint", "depends_on": ["F0165","F0166","F0167","F0168","F0169","F0170","F0171","F0174"], "passes": false, "day": "D18 Jun 1" },
+    {
+      "id": "F0176",
+      "phase": 3,
+      "tier": "P0",
+      "name": "atelier.dev marketing site polished: hero, problem statement, demo video, pricing, sign-up",
+      "depends_on": ["F0008", "F0123"],
+      "passes": false,
+      "day": "D19 Jun 2"
+    },
+    {
+      "id": "F0177",
+      "phase": 3,
+      "tier": "P0",
+      "name": "Waitlist target: ≥500 signups via Twitter build-in-public thread",
+      "depends_on": ["F0176"],
+      "passes": false,
+      "human_approved": null,
+      "day": "D19 Jun 2",
+      "notes": "Daniel-led"
+    },
+    {
+      "id": "F0178",
+      "phase": 3,
+      "tier": "P0",
+      "name": "90-sec Loom walkthrough recorded + embedded in docs",
+      "depends_on": ["F0128"],
+      "passes": false,
+      "human_approved": null,
+      "day": "D19 Jun 2"
+    },
+    {
+      "id": "F0179",
+      "phase": 3,
+      "tier": "P0",
+      "name": "arXiv preprint draft (4-page workshop format) submitted",
+      "depends_on": ["F0129", "F0145"],
+      "passes": false,
+      "human_approved": null,
+      "day": "D19 Jun 2"
+    },
+    {
+      "id": "F0180",
+      "phase": 3,
+      "tier": "P0",
+      "name": "Designer-in-residence sessions: ≥3 testimonials captured",
+      "depends_on": ["F0124"],
+      "passes": false,
+      "human_approved": null,
+      "day": "D19 Jun 2"
+    },
+    {
+      "id": "F0181",
+      "phase": 3,
+      "tier": "P0",
+      "name": "D19 EOD checkpoint",
+      "depends_on": ["F0177", "F0178", "F0179", "F0180"],
+      "passes": false,
+      "day": "D19 Jun 2"
+    },
 
-    { "id": "F0176", "phase": 3, "tier": "P0", "name": "atelier.dev marketing site polished: hero, problem statement, demo video, pricing, sign-up", "depends_on": ["F0008","F0123"], "passes": false, "day": "D19 Jun 2" },
-    { "id": "F0177", "phase": 3, "tier": "P0", "name": "Waitlist target: ≥500 signups via Twitter build-in-public thread", "depends_on": ["F0176"], "passes": false, "human_approved": null, "day": "D19 Jun 2", "notes": "Daniel-led" },
-    { "id": "F0178", "phase": 3, "tier": "P0", "name": "90-sec Loom walkthrough recorded + embedded in docs", "depends_on": ["F0128"], "passes": false, "human_approved": null, "day": "D19 Jun 2" },
-    { "id": "F0179", "phase": 3, "tier": "P0", "name": "arXiv preprint draft (4-page workshop format) submitted", "depends_on": ["F0129","F0145"], "passes": false, "human_approved": null, "day": "D19 Jun 2" },
-    { "id": "F0180", "phase": 3, "tier": "P0", "name": "Designer-in-residence sessions: ≥3 testimonials captured", "depends_on": ["F0124"], "passes": false, "human_approved": null, "day": "D19 Jun 2" },
-    { "id": "F0181", "phase": 3, "tier": "P0", "name": "D19 EOD checkpoint", "depends_on": ["F0177","F0178","F0179","F0180"], "passes": false, "day": "D19 Jun 2" },
+    {
+      "id": "F0182",
+      "phase": 3,
+      "tier": "P0",
+      "name": "Final smoke test on staging + production",
+      "depends_on": ["F0151"],
+      "passes": false,
+      "day": "D20 Jun 3"
+    },
+    {
+      "id": "F0183",
+      "phase": 3,
+      "tier": "P0",
+      "name": "Public sign-up live + freemium tier active (3 sessions watermarked)",
+      "depends_on": ["F0124"],
+      "passes": false,
+      "day": "D20 Jun 3"
+    },
+    {
+      "id": "F0184",
+      "phase": 3,
+      "tier": "P0",
+      "name": "4-min demo video + 2-min backup + 60-sec elevator pitch recorded",
+      "depends_on": ["F0182"],
+      "passes": false,
+      "human_approved": null,
+      "day": "D20 Jun 3"
+    },
+    {
+      "id": "F0185",
+      "phase": 3,
+      "tier": "P0",
+      "name": "Co-marketing 1-pager sent to Google Cloud DA",
+      "depends_on": [],
+      "passes": false,
+      "human_approved": null,
+      "day": "D20 Jun 3",
+      "notes": "Daniel-led"
+    },
+    {
+      "id": "F0186",
+      "phase": 3,
+      "tier": "P0",
+      "name": "G4S submission package complete: project description ≤500 words + demo video + repo URL + live URL + team info + 'Built with Google' + arXiv link + benchmark results + testimonials + Calendly",
+      "depends_on": ["F0184", "F0179", "F0180"],
+      "passes": false,
+      "day": "D20 Jun 3"
+    },
+    {
+      "id": "F0187",
+      "phase": 3,
+      "tier": "P0",
+      "name": "Submit to G4S via Devpost (filed by noon)",
+      "depends_on": ["F0186"],
+      "passes": false,
+      "human_approved": null,
+      "day": "D20 Jun 3",
+      "notes": "Daniel-led"
+    },
+    {
+      "id": "F0188",
+      "phase": 3,
+      "tier": "P0",
+      "name": "Twitter announcement thread posted at noon",
+      "depends_on": ["F0187"],
+      "passes": false,
+      "human_approved": null,
+      "day": "D20 Jun 3"
+    },
+    {
+      "id": "F0189",
+      "phase": 3,
+      "tier": "P0",
+      "name": "Hacker News Show HN drafted (post tomorrow morning)",
+      "depends_on": ["F0187"],
+      "passes": false,
+      "day": "D20 Jun 3"
+    },
+    {
+      "id": "F0190",
+      "phase": 3,
+      "tier": "P0",
+      "name": "Product Hunt scheduled for Jun 5 12:01 AM PT",
+      "depends_on": ["F0187"],
+      "passes": false,
+      "human_approved": null,
+      "day": "D20 Jun 3"
+    },
+    {
+      "id": "F0191",
+      "phase": 3,
+      "tier": "P0",
+      "name": "Phase 3 acceptance protocol: all 13 N-contributions evidence files + all 32 pre-launch artifacts live",
+      "depends_on": ["F0187"],
+      "passes": false,
+      "day": "D20 Jun 3"
+    },
+    {
+      "id": "F0192",
+      "phase": 3,
+      "tier": "P0",
+      "name": "Merge phase/3 → main; tag v1.0.0",
+      "depends_on": ["F0191"],
+      "passes": false,
+      "human_approved": null,
+      "day": "D20 Jun 3"
+    },
 
-    { "id": "F0182", "phase": 3, "tier": "P0", "name": "Final smoke test on staging + production", "depends_on": ["F0151"], "passes": false, "day": "D20 Jun 3" },
-    { "id": "F0183", "phase": 3, "tier": "P0", "name": "Public sign-up live + freemium tier active (3 sessions watermarked)", "depends_on": ["F0124"], "passes": false, "day": "D20 Jun 3" },
-    { "id": "F0184", "phase": 3, "tier": "P0", "name": "4-min demo video + 2-min backup + 60-sec elevator pitch recorded", "depends_on": ["F0182"], "passes": false, "human_approved": null, "day": "D20 Jun 3" },
-    { "id": "F0185", "phase": 3, "tier": "P0", "name": "Co-marketing 1-pager sent to Google Cloud DA", "depends_on": [], "passes": false, "human_approved": null, "day": "D20 Jun 3", "notes": "Daniel-led" },
-    { "id": "F0186", "phase": 3, "tier": "P0", "name": "G4S submission package complete: project description ≤500 words + demo video + repo URL + live URL + team info + 'Built with Google' + arXiv link + benchmark results + testimonials + Calendly", "depends_on": ["F0184","F0179","F0180"], "passes": false, "day": "D20 Jun 3" },
-    { "id": "F0187", "phase": 3, "tier": "P0", "name": "Submit to G4S via Devpost (filed by noon)", "depends_on": ["F0186"], "passes": false, "human_approved": null, "day": "D20 Jun 3", "notes": "Daniel-led" },
-    { "id": "F0188", "phase": 3, "tier": "P0", "name": "Twitter announcement thread posted at noon", "depends_on": ["F0187"], "passes": false, "human_approved": null, "day": "D20 Jun 3" },
-    { "id": "F0189", "phase": 3, "tier": "P0", "name": "Hacker News Show HN drafted (post tomorrow morning)", "depends_on": ["F0187"], "passes": false, "day": "D20 Jun 3" },
-    { "id": "F0190", "phase": 3, "tier": "P0", "name": "Product Hunt scheduled for Jun 5 12:01 AM PT", "depends_on": ["F0187"], "passes": false, "human_approved": null, "day": "D20 Jun 3" },
-    { "id": "F0191", "phase": 3, "tier": "P0", "name": "Phase 3 acceptance protocol: all 13 N-contributions evidence files + all 32 pre-launch artifacts live", "depends_on": ["F0187"], "passes": false, "day": "D20 Jun 3" },
-    { "id": "F0192", "phase": 3, "tier": "P0", "name": "Merge phase/3 → main; tag v1.0.0", "depends_on": ["F0191"], "passes": false, "human_approved": null, "day": "D20 Jun 3" },
+    {
+      "id": "F0193",
+      "phase": 3,
+      "tier": "P0",
+      "name": "Full WebGen-Bench eval run with first-project LoRA active (stretch ≥77 attempt)",
+      "depends_on": ["F0151"],
+      "passes": false,
+      "day": "D21 Jun 4"
+    },
+    {
+      "id": "F0194",
+      "phase": 3,
+      "tier": "P0",
+      "name": "Final smoke test on staging + prod; release v1.0.0 tagged + pushed",
+      "depends_on": ["F0193"],
+      "passes": false,
+      "day": "D21 Jun 4"
+    },
+    {
+      "id": "F0195",
+      "phase": 3,
+      "tier": "P0",
+      "name": "Pre-recorded backup demo as insurance for Jun 5",
+      "depends_on": ["F0184"],
+      "passes": false,
+      "day": "D21 Jun 4"
+    },
 
-    { "id": "F0193", "phase": 3, "tier": "P0", "name": "Full WebGen-Bench eval run with first-project LoRA active (stretch ≥77 attempt)", "depends_on": ["F0151"], "passes": false, "day": "D21 Jun 4" },
-    { "id": "F0194", "phase": 3, "tier": "P0", "name": "Final smoke test on staging + prod; release v1.0.0 tagged + pushed", "depends_on": ["F0193"], "passes": false, "day": "D21 Jun 4" },
-    { "id": "F0195", "phase": 3, "tier": "P0", "name": "Pre-recorded backup demo as insurance for Jun 5", "depends_on": ["F0184"], "passes": false, "day": "D21 Jun 4" },
-
-    { "id": "F0196", "phase": 4, "tier": "P0", "name": "Daniel available for live demo office hours via Calendly", "depends_on": ["F0187"], "passes": false, "human_approved": null, "day": "Jun 5", "notes": "Daniel-led" },
-    { "id": "F0197", "phase": 4, "tier": "P0", "name": "Hacker News Show HN posted in morning", "depends_on": ["F0189"], "passes": false, "human_approved": null, "day": "Jun 5", "notes": "Daniel-led" },
-    { "id": "F0198", "phase": 4, "tier": "P0", "name": "Product Hunt launch live at 12:01 AM PT; respond to comments", "depends_on": ["F0190"], "passes": false, "human_approved": null, "day": "Jun 5", "notes": "Daniel-led" }
+    {
+      "id": "F0196",
+      "phase": 4,
+      "tier": "P0",
+      "name": "Daniel available for live demo office hours via Calendly",
+      "depends_on": ["F0187"],
+      "passes": false,
+      "human_approved": null,
+      "day": "Jun 5",
+      "notes": "Daniel-led"
+    },
+    {
+      "id": "F0197",
+      "phase": 4,
+      "tier": "P0",
+      "name": "Hacker News Show HN posted in morning",
+      "depends_on": ["F0189"],
+      "passes": false,
+      "human_approved": null,
+      "day": "Jun 5",
+      "notes": "Daniel-led"
+    },
+    {
+      "id": "F0198",
+      "phase": 4,
+      "tier": "P0",
+      "name": "Product Hunt launch live at 12:01 AM PT; respond to comments",
+      "depends_on": ["F0190"],
+      "passes": false,
+      "human_approved": null,
+      "day": "Jun 5",
+      "notes": "Daniel-led"
+    }
   ]
 }

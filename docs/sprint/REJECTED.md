@@ -10,6 +10,7 @@
 
 ```markdown
 ### YYYY-MM-DD — <short title>
+
 **Phase**: 1 | 2 | 3
 **Approach attempted**: <what>
 **Where in the code (commit SHA)**: <git ref>

@@ -8,14 +8,14 @@ All Atelier production secrets live in **GCP Secret Manager** on the `i-for-ai` 
 
 ### Stored secrets
 
-| Secret name | Purpose | Resource |
-|---|---|---|
-| `atelier-geap-api-key` | Gemini Enterprise Agent Platform API key (used as `X-Goog-Api-Key` header for GEAP-direct calls; ADC is preferred for production) | `projects/85113401879/secrets/atelier-geap-api-key` |
-| `atelier-stitch-mcp-key` | Stitch MCP API key (already configured in `~/.claude.json` user MCP scope as Bearer header on the Stitch HTTP endpoint) | TBD — stored in `~/.claude.json` user scope; not yet mirrored to Secret Manager |
-| `atelier-telegram-bot-token` | Telegram bot for async tasks + approval gates | TBD — Phase 1 D2 |
-| `atelier-stripe-publishable` | Stripe public key | TBD — Phase 1 D2 |
-| `atelier-stripe-secret` | Stripe secret key | TBD — Phase 3 (when billing goes live) |
-| `atelier-vanta-api-key` | Vanta evidence collection (compliance scaffold) | TBD — month 6 |
+| Secret name                  | Purpose                                                                                                                           | Resource                                                                        |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `atelier-geap-api-key`       | Gemini Enterprise Agent Platform API key (used as `X-Goog-Api-Key` header for GEAP-direct calls; ADC is preferred for production) | `projects/85113401879/secrets/atelier-geap-api-key`                             |
+| `atelier-stitch-mcp-key`     | Stitch MCP API key (already configured in `~/.claude.json` user MCP scope as Bearer header on the Stitch HTTP endpoint)           | TBD — stored in `~/.claude.json` user scope; not yet mirrored to Secret Manager |
+| `atelier-telegram-bot-token` | Telegram bot for async tasks + approval gates                                                                                     | TBD — Phase 1 D2                                                                |
+| `atelier-stripe-publishable` | Stripe public key                                                                                                                 | TBD — Phase 1 D2                                                                |
+| `atelier-stripe-secret`      | Stripe secret key                                                                                                                 | TBD — Phase 3 (when billing goes live)                                          |
+| `atelier-vanta-api-key`      | Vanta evidence collection (compliance scaffold)                                                                                   | TBD — month 6                                                                   |
 
 ### Retrieve a secret at runtime
 
@@ -62,10 +62,12 @@ gcloud secrets versions disable <old-version-number> \
 ### IAM — who can read which secret
 
 By default, secrets are readable by:
+
 - Project owners (Daniel, currently)
 - Service accounts explicitly granted `roles/secretmanager.secretAccessor`
 
 Atelier service accounts (Phase 1 D2 setup):
+
 - `atelier-api-sa@i-for-ai.iam.gserviceaccount.com` — runtime API
 - `atelier-agent-sa@i-for-ai.iam.gserviceaccount.com` — long-running agent jobs
 - `atelier-eval-sa@i-for-ai.iam.gserviceaccount.com` — eval suite jobs

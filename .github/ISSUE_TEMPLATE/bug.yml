@@ -1,7 +1,7 @@
 name: 🐛 Bug Report
 description: Report something that's broken or behaving incorrectly
-title: "bug: <short description>"
-labels: ["bug", "needs-triage"]
+title: 'bug: <short description>'
+labels: ['bug', 'needs-triage']
 assignees:
   - Manzela
 

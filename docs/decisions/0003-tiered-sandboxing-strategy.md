@@ -14,13 +14,13 @@ Per AutonomousAgent ADR 0003 lineage — we adopt the same tiered model.
 
 We will route tool calls to one of five sandbox tiers based on risk class, defined in `atelier-deploy/config/toolsets.yaml`:
 
-| Tier | Tools | Boundary |
-|---|---|---|
-| `in_process` | file reads, grep, ls, AST validation, token-fidelity grep | Runs in agent process; host FS read-only |
-| `shell_sandbox` | shell, git, jq, semantic-HTML linter | Docker container, `--cap-drop=ALL`, `--network=none`, RO host FS, writable `/workspace` only, `--memory=1g --cpus=1.0 --pids-limit=200`, timeout per `limits.sandboxes.shell_timeout_s` |
-| `browser_sandbox` | Playwright actions, Lighthouse, axe-core, visual-diff snapshots, responsive snapshots | Docker container, `--cap-drop=ALL --cap-add=SYS_ADMIN`, network allowlisted per call, `--memory=2g --cpus=2.0`, timeout per `limits.sandboxes.browser_timeout_s` (300s default) |
-| `external_https` | Stitch MCP, GitHub MCP, Context7 MCP, design.md MCP | In-process httpx with egress allowlist enforcement, mTLS where avail, 60s timeout |
-| `cloud_sandbox` | Arbitrary LLM-generated code (CSS/JS), Vertex AI tuning jobs, Vertex AI Endpoints (LoRA serving) | Modal/Daytona ephemeral microVM OR Vertex AI managed services; per-call network allowlist; max 10-min lifetime |
+| Tier              | Tools                                                                                            | Boundary                                                                                                                                                                                |
+| ----------------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `in_process`      | file reads, grep, ls, AST validation, token-fidelity grep                                        | Runs in agent process; host FS read-only                                                                                                                                                |
+| `shell_sandbox`   | shell, git, jq, semantic-HTML linter                                                             | Docker container, `--cap-drop=ALL`, `--network=none`, RO host FS, writable `/workspace` only, `--memory=1g --cpus=1.0 --pids-limit=200`, timeout per `limits.sandboxes.shell_timeout_s` |
+| `browser_sandbox` | Playwright actions, Lighthouse, axe-core, visual-diff snapshots, responsive snapshots            | Docker container, `--cap-drop=ALL --cap-add=SYS_ADMIN`, network allowlisted per call, `--memory=2g --cpus=2.0`, timeout per `limits.sandboxes.browser_timeout_s` (300s default)         |
+| `external_https`  | Stitch MCP, GitHub MCP, Context7 MCP, design.md MCP                                              | In-process httpx with egress allowlist enforcement, mTLS where avail, 60s timeout                                                                                                       |
+| `cloud_sandbox`   | Arbitrary LLM-generated code (CSS/JS), Vertex AI tuning jobs, Vertex AI Endpoints (LoRA serving) | Modal/Daytona ephemeral microVM OR Vertex AI managed services; per-call network allowlist; max 10-min lifetime                                                                          |
 
 First-match wins; unknown tools fall through to `shell_sandbox` (default-deny).
 
