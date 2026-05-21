@@ -4,7 +4,7 @@
     - record + manual flush
     - auto-flush at buffer_size threshold
     - async context manager auto-flush on exit
-    - flush with BQ errors raises RuntimeError
+    - flush with BQ errors raises TrajectoryRecorderError
     - OTel span emission on flush
     - empty flush returns 0
     - insert_id idempotency (trajectory_id used as row_id)
@@ -24,6 +24,7 @@ from atelier.recorders.trajectory_recorder import (
     DEFAULT_TABLE_ID,
     SPAN_NAME,
     TrajectoryRecorder,
+    TrajectoryRecorderError,
 )
 
 # ---------------------------------------------------------------------------
@@ -142,13 +143,13 @@ class TestContextManagerFlush:
 
 @pytest.mark.unit
 class TestFlushWithErrors:
-    """BQ insert errors raise RuntimeError (fail-loud)."""
+    """BQ insert errors raise TrajectoryRecorderError (fail-loud)."""
 
     def test_bq_errors_raise(self) -> None:
         bq = _mock_bq_client(errors=[{"index": 0, "errors": [{"reason": "invalid"}]}])
         rec = TrajectoryRecorder(bq, buffer_size=LARGE_BUFFER)
         rec.record(_make_record())
-        with pytest.raises(RuntimeError, match="BQ insert had 1 errors"):
+        with pytest.raises(TrajectoryRecorderError, match="BQ insert had 1 errors"):
             rec.flush()
         assert rec.total_errors == SINGLE_RECORD
 

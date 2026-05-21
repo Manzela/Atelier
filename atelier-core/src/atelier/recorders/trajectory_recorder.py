@@ -39,6 +39,14 @@ DEFAULT_BUFFER_SIZE = 50
 SPAN_NAME = "atelier.trajectory.flush"
 
 
+class TrajectoryRecorderError(Exception):
+    """Raised on non-retriable BigQuery failures (auth, quota, schema).
+
+    Per the failure-trichotomy (CLAUDE.md): fail-loud for errors that
+    indicate a configuration or quota problem that won't self-heal.
+    """
+
+
 # ---------------------------------------------------------------------------
 # Protocol for BigQuery client (testability)
 # ---------------------------------------------------------------------------
@@ -183,7 +191,7 @@ class TrajectoryRecorder:
             Number of rows successfully flushed.
 
         Raises:
-            RuntimeError: If BQ insert returns errors (fail-loud per
+            TrajectoryRecorderError: If BQ insert returns errors (fail-loud per
                 failure-trichotomy).
         """
         if not self._buffer:
@@ -220,7 +228,7 @@ class TrajectoryRecorder:
                     errors,
                 )
                 msg = f"BQ insert had {len(errors)} errors: {errors}"
-                raise RuntimeError(msg)
+                raise TrajectoryRecorderError(msg)
 
             self._total_flushed += count
             self._buffer.clear()
