@@ -125,12 +125,13 @@
       "tier": "P0",
       "name": "Terraform skeleton: versions.tf + variables.tf + main.tf + 18 GCP API enables",
       "depends_on": ["F0001b"],
-      "passes": true,
+      "passes": false,
       "day": "D2 May 16",
       "completed_at": "2026-05-21T07:58:00Z",
       "notes": " [Auto-reconciled by audit sweep D7]",
       "evidence_commits": ["cf396bb"],
-      "evidence_tests": ["tests/unit/test_constitution.py"]
+      "evidence_tests": [],
+      "evidence_gap_note": "no Terraform skeleton test exists; F0006 acceptance was scaffold-only and was not test-gated"
     },
     {
       "id": "F0007",
