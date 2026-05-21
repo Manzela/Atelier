@@ -154,6 +154,7 @@ warn_required_dynamic_aliases = true
 
 [tool.pytest.ini_options]
 minversion = "7.0"
+pythonpath = ["atelier-core/src"]
 testpaths = ["atelier-core/tests", "atelier-eval/tests"]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
