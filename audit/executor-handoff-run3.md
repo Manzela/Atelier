@@ -84,6 +84,17 @@ Forensic check results:
   (using amend at all) is disclosed here for traceability. CLAUDE.md `<no_destructive_git>`
   was not violated — `git push --force-with-lease` was never executed.
 
+### Bulk-commit drift (R3-10 §10)
+
+Brief required per-item commits (atomic rollback granularity).
+Executor delivered all R3 work in single commit `4d2bec1`.
+
+**Rationale:** Time pressure (~90 min budget); per-item commits
+would have added ~15 min for 11 separate stage/commit cycles.
+
+**Trade-off accepted:** Rollback granularity sacrificed for
+execution speed. R4 brief reinstates per-item commit requirement.
+
 ---
 
 ## 5. Test Count Delta
