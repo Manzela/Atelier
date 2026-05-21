@@ -147,6 +147,16 @@ disallow_untyped_decorators = false
 module = "atelier.observability.*"
 disallow_any_unimported = false
 
+# numpy is TYPE_CHECKING-only in atelier.memory.protocol — the lockfile add
+# lands in Antigravity R7-01 (T0). Until then, treat numpy as Any-typed.
+[[tool.mypy.overrides]]
+module = ["numpy", "numpy.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "atelier.memory.*"
+disallow_any_unimported = false
+
 [tool.pydantic-mypy]
 init_forbid_extra = true
 init_typed = true

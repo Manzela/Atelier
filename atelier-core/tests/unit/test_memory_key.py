@@ -14,6 +14,7 @@ import contextvars
 
 import pytest
 from atelier.memory.key import CURRENT_MEMORY_KEY, MemoryKey, current_key
+from atelier.memory.protocol import HierarchicalMemory
 
 
 @pytest.mark.unit
@@ -170,3 +171,21 @@ def test_memory_key_slots_no_dict() -> None:
     """slots=True means no __dict__ — saves memory and prevents typo'd attr assignment."""
     key = MemoryKey(tenant_id="t1", project_id="p1", session_id="s1")
     assert not hasattr(key, "__dict__")
+
+
+@pytest.mark.unit
+def test_hierarchical_memory_protocol_is_runtime_unchecked_but_structural() -> None:
+    """typing.Protocol with no @runtime_checkable: structural check only at mypy
+    time. This test documents that contract — runtime isinstance is intentionally
+    not supported (forces all conformance checks into static analysis, where they
+    catch incomplete implementations BEFORE deploy rather than at request time).
+    """
+
+    class Incomplete:
+        async def write_episodic(self, event: object) -> None:
+            return None
+
+    # No runtime check — Incomplete passes isinstance only if @runtime_checkable.
+    # We do NOT mark HierarchicalMemory @runtime_checkable; assert that here.
+    with pytest.raises(TypeError):
+        isinstance(Incomplete(), HierarchicalMemory)  # type: ignore[misc]
