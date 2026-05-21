@@ -43,6 +43,7 @@ Audit Reference: §7 (FA-018 model routing, FA-019 weighting, bias mitigation)
 import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from atelier.models.axis_weights import AxisWeights
@@ -51,6 +52,13 @@ from atelier.models.data_contracts import CandidateUI, JudgeVote
 from atelier.models.enums import JudgeAxis
 from atelier.models.model_registry import JUDGE_MODEL_CONFIG
 from atelier.nodes.anti_bias import AntiBiasReport, build_anti_bias_report
+
+if TYPE_CHECKING:
+    # Imported only for type checking to avoid a runtime circular import:
+    # llm_judge depends on _AXIS_SCORERS / _JudgeScore from this module at
+    # import time, while evaluate_candidate below lazily imports
+    # `_resolve_axis_scorers` from llm_judge at call time.
+    from atelier.nodes.llm_judge import JudgeClient
 
 # ---------------------------------------------------------------------------
 # Tunable thresholds -- kept module-level so tests can assert against them
@@ -204,6 +212,15 @@ class _JudgeScore:
     score: float
     diagnostic: str
     provenance_vars: list[str] = field(default_factory=list)
+    #: Optional LLM judge identifier set by Phase 2 LLMJudge.score().
+    #: Defaults to ``None`` so Phase 1 heuristic scorers can construct
+    #: with the original 3-argument signature; _build_judge_vote falls
+    #: back to the Phase 1 stub suffix when this is None.
+    judge_model: str | None = None
+    #: Optional Bayesian confidence interval set by Phase 2 LLMJudge.score().
+    #: Defaults to ``None`` so _build_judge_vote can derive the synthetic
+    #: Phase 1 band via :func:`_confidence_interval` when absent.
+    confidence_interval: tuple[float, float] | None = None
 
 
 @dataclass(frozen=True)
@@ -560,14 +577,25 @@ def _build_judge_vote(
     """
     axis_enum = _AXIS_NAME_TO_ENUM[axis_name]
     model_spec = JUDGE_MODEL_CONFIG[axis_name]
+    # Honor Phase 2 LLM-provided judge_model / confidence_interval when
+    # the scorer surfaces them; otherwise emit the Phase 1 defaults so
+    # heuristic mode keeps its original on-the-wire shape unchanged.
+    if judge_score.judge_model is not None:
+        judge_model = judge_score.judge_model
+    else:
+        judge_model = f"{model_spec.display_name} (Phase 1 stub)"
+    if judge_score.confidence_interval is not None:
+        confidence_interval = judge_score.confidence_interval
+    else:
+        confidence_interval = _confidence_interval(judge_score.score)
     return JudgeVote(
         candidate_id=candidate_id,
         judge_axis=axis_enum,
         score=judge_score.score,
-        confidence_interval=_confidence_interval(judge_score.score),
+        confidence_interval=confidence_interval,
         reasoning=judge_score.diagnostic,
         provenance_vars=judge_score.provenance_vars,
-        judge_model=f"{model_spec.display_name} (Phase 1 stub)",
+        judge_model=judge_model,
     )
 
 
@@ -625,6 +653,8 @@ def evaluate_candidate(
     constitution: Constitution | None = None,
     convergence_threshold: float = CONVERGENCE_DEFAULT,
     seed: int | None = None,
+    judge_mode: str | None = None,
+    judge_client: "JudgeClient | None" = None,
 ) -> ConsensusEvaluation:
     """Run the full D-O-R-A-V consensus over a single candidate.
 
@@ -672,12 +702,19 @@ def evaluate_candidate(
     """
     bias_report: AntiBiasReport = build_anti_bias_report(weights, seed=seed)
 
+    # Lazy import inside the function body avoids a circular import
+    # at module load time (llm_judge imports _AXIS_SCORERS/_JudgeScore
+    # from this module).
+    from atelier.nodes.llm_judge import _resolve_axis_scorers  # noqa: PLC0415
+
+    scorers = _resolve_axis_scorers(mode=judge_mode, client=judge_client)
+
     raw_scores: dict[str, float] = {}
     votes: dict[JudgeAxis, JudgeVote] = {}
     diagnostics: dict[str, str] = {}
 
     for axis_name in bias_report.evaluation_order:
-        judge_score = _AXIS_SCORERS[axis_name](candidate)
+        judge_score = scorers[axis_name](candidate)
         raw_scores[axis_name] = judge_score.score
         votes[_AXIS_NAME_TO_ENUM[axis_name]] = _build_judge_vote(
             candidate.candidate_id, axis_name, judge_score
