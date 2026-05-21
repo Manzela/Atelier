@@ -1,0 +1,278 @@
+# AI Agents Challenge Kickoff Call and Q&A — Video Transcript
+# Transcribed locally using faster-whisper (base model, CPU, int8)
+# Duration: 2029.2s (33.8 minutes)
+# Language: en (confidence: 1.00)
+---
+
+[0.0s -> 3.0s] All right.
+[3.0s -> 5.0s] Okay, so I love everybody.
+[5.0s -> 10.0s] Thank you so much for taking time out today to join us for the AI agents challenge kickoff.
+[10.0s -> 15.0s] We're really, really excited about this for glad that you're excited as well.
+[15.0s -> 17.0s] My name is Adi Osmani.
+[17.0s -> 19.0s] I'm a director in Google Cloud AI.
+[19.0s -> 23.0s] I'm focused on agents, Gemini, and our developer experience.
+[23.0s -> 25.0s] I'm a builder at heart.
+[25.0s -> 28.0s] I've been in the industry for 25 years now.
+[28.0s -> 30.0s] I love hacking. I love building.
+[30.0s -> 32.0s] I think many of you love building too.
+[32.0s -> 35.0s] And I love seeing people bring their ideas to life.
+[35.0s -> 38.0s] So I'm really excited for kicking off this challenge.
+[38.0s -> 47.0s] One thing I thought would be interesting for us to do is maybe just walk through some of how Cloud has been thinking about agents lately
+[47.0s -> 54.0s] and how we've been evolving our platform to make it easier for you to build and deploy your agents at scale.
+[55.0s -> 59.0s] Something that will maybe be useful to you as you get involved in this challenge.
+[59.0s -> 68.0s] So you've probably heard a say, you know, at different points that Google Cloud is positioned to help you transform your business and that we've got this full stack approach.
+[68.0s -> 76.0s] This is something I genuinely believe we're one of the only providers where we've taken every aspect of the AI stack in house.
+[76.0s -> 83.0s] And we've tried to optimize it, secure it and make sure that it is enterprise ready and start up ready to the best of our abilities.
+[84.0s -> 93.0s] Now, what we find is that a lot of startups today kind of want to move past simple proof of concepts and simple chat bots and rag.
+[93.0s -> 98.0s] And you kind of need capabilities to support the deployment and scale of full agenda systems.
+[98.0s -> 107.0s] So what we're hearing from a lot of people is that they want to be able to give an agent a goal, you know, give it access to your tools and your data.
+[107.0s -> 110.0s] And allow to just figure out the steps, right?
+[110.0s -> 114.0s] You want it to figure out the problem, take actions and just come back with the result.
+[114.0s -> 118.0s] This is a pretty big jump from the way that we've been working in the past.
+[118.0s -> 124.0s] And the honest version of this is that a lot of teams and a lot of startups are just somewhere in between.
+[124.0s -> 131.0s] People have been asking us, you know, how do I connect the agents that I'm building to any of our business data in a secure way?
+[131.0s -> 140.0s] How do I govern this stuff? I don't want to just give all of my agents access to all of our internal systems and let them go, you know, wild.
+[140.0s -> 150.0s] And we've been trying to collect a lot of this information, a lot of this feedback and factor that into how we've been evolving our platform for this moment.
+[150.0s -> 156.0s] And so our solution to this is what we're calling the Gemini Enterprise Agent Platform.
+[156.0s -> 166.0s] Don't let the enterprise part of this fool you. Our platform is very much built for everybody from startups to full scale enterprises.
+[166.0s -> 174.0s] And it's really about including everything that you need for creating scalable production, great secure agents.
+[174.0s -> 183.0s] A quick note on the naming, since this might be new to a few folks, you've probably heard of Vertex AI or Vertex in the past.
+[183.0s -> 187.0s] Maybe you've used our model garden, our builder, our agent builder.
+[187.0s -> 189.0s] None of those things are really going away.
+[189.0s -> 193.0s] What we're doing is we're bringing all of that under a single umbrella.
+[193.0s -> 198.0s] And that's the agent platform. You've got to think of it as Vertex growing up.
+[198.0s -> 208.0s] And the core components that you rely on are still going to be there, but we are augmenting the entire platform with a set of agent first capabilities that didn't necessarily exist before.
+[208.0s -> 215.0s] And those include everything from runtime, governance, evaluation identity, basically the whole operational layer.
+[215.0s -> 218.0s] That's a lot of words. So I wanted to simplify it down.
+[218.0s -> 224.0s] These are the four words that are the organizing principles for how we think about agents in cloud.
+[225.0s -> 239.0s] So build scale, govern, and optimize each one of these addresses a specific pain point that we've heard from startups from a lot of customers at scale as they've been trying to build with agents in the last year.
+[239.0s -> 243.0s] And I wanted to just give you a snapshot of like, what does this actually mean?
+[243.0s -> 249.0s] So build is about making it faster to go from an idea to a working agent.
+[249.0s -> 252.0s] And I'm going to go into a little more detail on building just a few minutes.
+[252.0s -> 260.0s] But this is everything from the agent development kit to agent studio, our model garden, our tools and connectivity.
+[260.0s -> 265.0s] Scale is what happens when your agent needs to handle real traffic.
+[265.0s -> 275.0s] So runtime sessions, memory, sandboxing, govern is one of those things that a lot of teams ask us about first.
+[276.0s -> 289.0s] You don't want to just give agents access to all of your systems without being able to have traceability around them without having necessarily identity or security around them, without having some sort of compliance story.
+[289.0s -> 296.0s] What we heard from a lot of teams is that they want to be able to know like, what are my agents doing who authorize them to do those things?
+[296.0s -> 298.0s] What data can they access?
+[298.0s -> 301.0s] And this is really what that govern layer is all about.
+[301.0s -> 303.0s] And then optimize kind of closes the loop.
+[303.0s -> 308.0s] So that covers everything from evaluation, simulation, observability.
+[308.0s -> 312.0s] We know that agents are not necessarily deterministic.
+[312.0s -> 316.0s] So you can't just deploy them and forget you ideally want to kind of trace them.
+[316.0s -> 320.0s] They're reasoning measure their quality and improve them over time.
+[320.0s -> 324.0s] So the agent platform is this vertically integrated stack.
+[324.0s -> 334.0s] And let us move from a basic idea to a production ready agent without having to rebuild the underlying plumbing every time that you start a new project.
+[334.0s -> 341.0s] Now if the idea of like looking at this is like, you know, makes you feel like, oh my gosh, so many Lego bricks to this.
+[341.0s -> 345.0s] I want to just, you know, set your mind a little bit at ease.
+[345.0s -> 348.0s] This is what agent platform looks like in practice.
+[348.0s -> 354.0s] We've actually tried to organize the entire information architecture around those four pillars.
+[354.0s -> 366.0s] So you can easily navigate across that build scale governor optimize and find the pieces that are most relevant to the task that you have at hand without having to memorize that slide or anything like that.
+[366.0s -> 368.0s] So this is deployed today.
+[368.0s -> 369.0s] The agent platform is out.
+[369.0s -> 373.0s] We announced it at cloud next and you can go and you can play with it today.
+[373.0s -> 386.0s] Now, as part of the AI agents challenge, we have three tracks built the first track is really about building net new agents things that maybe didn't exist before.
+[386.0s -> 394.0s] Optimize is about optimizing existing agents and trying to maybe make them just a little bit more production ready.
+[394.0s -> 401.0s] And then we have refactor, which is really about making agents a good fit for things like distribution.
+[401.0s -> 406.0s] So being able to maybe put them in the Google Cloud marketplace and Gemini enterprise.
+[406.0s -> 411.0s] Now I mentioned that I may be going to just a little bit more detail around some of these pieces.
+[411.0s -> 414.0s] So as a builder, I'm very excited about build.
+[414.0s -> 415.0s] So I want to talk about that.
+[415.0s -> 420.0s] Now build covers our first and our third tracks.
+[420.0s -> 424.0s] If you're hearing those regular things, it's both a good thing because it means there's a lot of excitement.
+[424.0s -> 427.0s] And I also know that there's a lot of people hearing those and joining us.
+[427.0s -> 429.0s] We've got 118 people.
+[429.0s -> 430.0s] So awesome.
+[430.0s -> 431.0s] So I want to cover build.
+[431.0s -> 434.0s] This is going to talk touch on our first and our third tracks.
+[434.0s -> 439.0s] So you really want to be able to define what needs to happen with your agent story.
+[439.0s -> 445.0s] And then you want to let the platform have the complexity of how the rest of that gets done.
+[445.0s -> 455.0s] So for build, our platform includes a few new updated pieces and that includes an updated ADK agent studio and an updated CLI story.
+[455.0s -> 457.0s] So I want to talk to you about that.
+[457.0s -> 460.0s] And we also have our marketplace story in there as well.
+[460.0s -> 467.0s] So I'll also give you just some some visuals around this to help you, you know, really just understand where these pieces fit in.
+[467.0s -> 473.0s] So ADK agent development kit, that's our open source framework for building agents.
+[473.0s -> 480.0s] If you've used it before, you know, you know the basics, you define an agent, you give it tools, you let it reason.
+[480.0s -> 482.0s] And it works pretty well.
+[482.0s -> 490.0s] In fact, today we're seeing over six trillion tokens processed monthly through ADK.
+[490.0s -> 491.0s] A lot of people love it.
+[491.0s -> 500.0s] And I think it's a clear signal that a lot of people are just, you know, they're not just experimenting, but they're running high intensity production great agents on this framework.
+[500.0s -> 506.0s] I love using ADK. I've been excited about some of the more recent updates we've been putting into it.
+[506.0s -> 510.0s] So some of those updates include graph based workflows.
+[510.0s -> 517.0s] So you can build more deterministic agent workflows with control over how tasks are routed and executed.
+[517.0s -> 519.0s] You can build more collaborative agents.
+[519.0s -> 529.0s] So what that means is that you can, you know, build for slightly more complex architectures with coordinator agents and sub agents that work together.
+[529.0s -> 535.0s] We support dynamic workflows so you can use sort of code based logic for building more complex workflows.
+[535.0s -> 541.0s] And those can include iterative loops, they can include complex decision based branching.
+[541.0s -> 545.0s] And ADK also now supports agent skills for a number of languages.
+[545.0s -> 550.0s] So Python, Go and TypeScript.
+[551.0s -> 556.0s] Now ADK provides a batteries included toolbox for architecting agents.
+[556.0s -> 562.0s] But what about agenticatistic development or vibe coding, right?
+[562.0s -> 570.0s] Very often when it comes to ADK, what I hear from folks is, you know, I have to read a bunch of docs around best practices.
+[570.0s -> 573.0s] I have to follow along like, where do I go and get the skill?
+[573.0s -> 578.0s] I have to like keep a lot of things in mind to build my system for success.
+[578.0s -> 582.0s] What we wanted to do was try to see if we can make that process easier for you.
+[582.0s -> 586.0s] And so that's where the newer agents CLI comes in.
+[586.0s -> 589.0s] This is new and the idea is simple.
+[589.0s -> 600.0s] If you're building agents, you shouldn't need to bounce between five different tools like G-Cloud for deployment, ADK for building, MCP for tools, the console for debugging.
+[600.0s -> 605.0s] With agent CLI, we've packaged everything that you need in one CLI.
+[605.0s -> 611.0s] It kind of natively understands ADK workflows, environments, skills.
+[611.0s -> 618.0s] And you can also ask the agent CLI to your coding agent and have it just use it under buying the scenes.
+[618.0s -> 629.0s] And within seconds, it can scaffold you a tool bound agent, configure your environment and get you sort of 80% of the way to a production deployment agent without you having to write a ton of boilerplate.
+[629.0s -> 650.0s] So just to give you a little bit of visual around the steps that this takes care of for you, it's able to handle everything from scaffolding, evaluation, deployment, observability, and it integrates with the Gemini Enterprise app to surface your agents to your business users if you happen to be using Gemini Enterprise.
+[651.0s -> 658.0s] Now, if you've been using ADK and you're kind of wondering, well, why wouldn't I just use ADK and the rest of the tooling that I'm using?
+[658.0s -> 662.0s] You absolutely can, but here's the choice and the trade-off.
+[662.0s -> 677.0s] So you can do a very DIY approach where maybe you end up building your own scaffolding, your own Eval infrastructure, your own deployment automation, observability setup, and you maintain that all across your teams and projects.
+[677.0s -> 685.0s] Or you just use agent CLI and you get something that's prebuilt and maintained by Google. It's faster production.
+[685.0s -> 692.0s] It's got a lot of opinionated best practices built on the learnings we've had from the agent starter pack.
+[692.0s -> 696.0s] And so you have optionality in there.
+[696.0s -> 700.0s] As I mentioned, there's two ways to use this. You can use it with a coding agent.
+[700.0s -> 712.0s] So whether you are using quad code or codex or anti-gravity, you can use it with one of those coding agents and it just have it use the agent CLI to make the right decisions at every step.
+[712.0s -> 720.0s] Or you can use it without a coding agent. You can run the CLI commands directly from your terminal and every command just works standalone as well.
+[720.0s -> 732.0s] Now let's say that we had this kind of prompt where you want to build a triage agent that can parse server logs, classify incidents by severity and generate incidents reports.
+[732.0s -> 741.0s] Maybe you want to deploy it eventually to a specific project, but maybe you want to just prototype it first without having to worry about the deployment infrastructure.
+[741.0s -> 748.0s] So I want to just show you an example of this in action. And so let's see if this will play.
+[748.0s -> 756.0s] This is sped up just a little bit, but I gave this prompt to Gemini CLI, which is calling out to the agent CLI.
+[756.0s -> 765.0s] And it's able to rapidly build this. Here you'll see that I was able to ask it, well I want to make sure that this is, you know, able to check other conditions.
+[765.0s -> 776.0s] It was able to do that pretty quickly. This integrates well with ADK Web. You're able to go and check if any of the test conditions are successfully met.
+[776.0s -> 785.0s] Here we're able to check things like our payment gateway is everything actually set up correctly. It's fetching its server logs, you know, it's doing everything it needs to behind the scenes.
+[785.0s -> 789.0s] Sergio is providing some additional context in the chat for folks.
+[790.0s -> 807.0s] Before I deploy this, I also want it to do additional checks. And what you'll notice is that rather than you having to perform a sequence of individual commands, it's just taking natural language and tackling those tasks of things like deployment and testing for you, which is really, really powerful.
+[807.0s -> 816.0s] So if you've used ADK, I heavily recommend checking out the agent CLI. I think that you'll find that it offers a pretty great developer experience.
+[817.0s -> 831.0s] Now, building shouldn't always have to start in a code editor, right? For a number of folks who are perhaps not necessarily going to be touching code, maybe their solution architects analysts are just folks with not a strong and technical background.
+[831.0s -> 844.0s] We also want to bring the authoring experience for agents a little closer to the actual business logic before code is even written. And that's one of the reasons why we've brought agent studio into the agent platform.
+[844.0s -> 856.0s] It's in public preview and it's for folks that want to build agents, but don't want to start in a code editor or honestly for anyone who wants to just prototype a multi agent workflow before you're committing to code.
+[856.0s -> 871.0s] I've loved using agent studio. It's a great way for you to like have a nice visual way of just mapping out your agent architecture and specify all of the different, you know, system problems that you want for each of these different steps.
+[871.0s -> 882.0s] And it's a wonderful kind of low code visual environment. You can map out your agent flows on a canvas. You can test them out in real time. You can convert sort of a prompt conversation to an agent as well.
+[882.0s -> 893.0s] And you can see how the model reasons through a conversation that the bug abilities, usually the thing that's missing from visual tools and one of the strengths. I think of this agent studio.
+[893.0s -> 904.0s] Now the agent studio is able to able to also generate 80 K code for you. It's a huge time saver. It's got an interactive canvas. So as I was showing it's got this dual pane workspace.
+[904.0s -> 918.0s] You can preview an edit code for the artifact you're developing. It's got prompt refinement and generation. You can compare responses to test how different models might respond depending on which model might best suit your needs.
+[918.0s -> 931.0s] Maybe you're thinking about different cost tradeoffs. It's got slash commands. It's got integration with the broader Google Cloud ecosystem. And so I heavily recommend checking it out. It's got a lot of fun power behind the scenes.
+[931.0s -> 944.0s] Now we often get asked about templates and prebuilt agents. Now this is agent garden. It's our library of prebuilt agents. Think of them as building blocks. So they're kind of small focused agents that each do one thing well.
+[944.0s -> 955.0s] Like a marketing agency agent. We recently added 10 new ones that are focused around this idea of atomic agents. And the idea is when you're building a multi agent system.
+[955.0s -> 965.0s] You shouldn't necessarily be writing your rag agent from scratch for your search agent or your data science agent. You can just grab the atomic agent from the garden.
+[965.0s -> 973.0s] Configure it for your use case and just compose it with your custom agents. So I think this is really exciting. I think folks will want to check this out.
+[973.0s -> 981.0s] And this integrates with the application design center for production deployment and with the Gemini Enterprise app for one click surfacing to end users.
+[981.0s -> 988.0s] Now track to was about optimizing and this can mean optimizing your existing agent for production.
+[988.0s -> 994.0s] I wanted to briefly talk about some of the things that agent platform includes that can help you here.
+[994.0s -> 1001.0s] So once you've built your agent, maybe you thought about how you scale it, how you want to govern it.
+[1001.0s -> 1007.0s] You hit the part of the life cycle that I'm probably the most obsessed with, which is optimization.
+[1007.0s -> 1012.0s] And in an agentic world, a failure usually isn't just a big system crash.
+[1012.0s -> 1019.0s] Sometimes it's just an agent that took a perfectly logical path to an incorrect conclusion.
+[1019.0s -> 1023.0s] That managed production behavior like that if you can't see the why behind it.
+[1023.0s -> 1027.0s] And that's why agent observability is now something that we've made available.
+[1027.0s -> 1032.0s] We give you a glass box visibility into the actual reasoning paths of your agents.
+[1032.0s -> 1039.0s] So if your team asks like why an agent made a specific recommendation, you don't have to guess.
+[1039.0s -> 1044.0s] You can pull in the exact traces. You can see the tool lineage and diagnose the logic in seconds.
+[1044.0s -> 1048.0s] It's kind of a forensic visibility tool that turns a black box into a transparent system.
+[1048.0s -> 1051.0s] You can actually engineer. This is what it looks like.
+[1051.0s -> 1054.0s] But even with that visibility, the challenge ends up being scale.
+[1054.0s -> 1062.0s] Like how do you prove that a tiny tweak in your instructions actually made the agent better across 10,000 different scenarios?
+[1062.0s -> 1065.0s] I'd say that most teams today are just largely guessing.
+[1065.0s -> 1070.0s] They're running a couple of tests, seeing if it looks okay, crossing their fingers and hitting deploy.
+[1070.0s -> 1074.0s] And the problem is that agents live in a pretty non deterministic world, right?
+[1074.0s -> 1079.0s] A fix for for one edge case might accidentally create a new problem somewhere else.
+[1079.0s -> 1083.0s] And if you can't engineer its scale, you're mostly just guessing.
+[1083.0s -> 1089.0s] To turn that intuition into a rigorous discipline, we've also introduced agent evaluation.
+[1089.0s -> 1095.0s] So agent evaluation allows you to move beyond simple input output checks.
+[1095.0s -> 1101.0s] It features multi-turn autorators that can score the full trajectory of an interaction.
+[1101.0s -> 1108.0s] So what that means is that you can measure how successfully an agent navigates a complex multi-step goal.
+[1108.0s -> 1112.0s] You can combine this with features like live traffic scoring.
+[1112.0s -> 1119.0s] And you can monitor performance and production to detect things like quality degradation in real time. Super powerful.
+[1119.0s -> 1123.0s] Now to move from prototype to production,
+[1123.0s -> 1130.0s] you also probably want to stress test your agents against some of that unpredictability, right, that we see in the real world.
+[1130.0s -> 1133.0s] And that's why we also introduced agent simulation.
+[1133.0s -> 1142.0s] What this allows you to do is generate thousands of synthetic multi-turn interactions that let you stress test your logic before you ever ship.
+[1142.0s -> 1149.0s] So you can then evaluate those and look at details like response quality, safety, and task completion and so on.
+[1149.0s -> 1153.0s] This is a great tool to have in your tool belt.
+[1153.0s -> 1158.0s] Now, we also announced the agent optimizer. This creates a continuous quality flywheel.
+[1158.0s -> 1163.0s] So you observe a failure, you simulate a fix, and you verify the results with data.
+[1163.0s -> 1168.0s] That's how you move to an agentic workforce that actually moves the needle for your startup.
+[1168.0s -> 1171.0s] And we think that this is pretty powerful.
+[1171.0s -> 1175.0s] I've only covered just a few of the things in build an optimizer.
+[1175.0s -> 1186.0s] Of course, a lot that we offer in scale and govern, but whether you're building in scaling or governing and optimizing the agent platform is the engine that we think can take you there.
+[1186.0s -> 1188.0s] We think you make you successful.
+[1188.0s -> 1194.0s] So we hope you'll check out agent platform as a part of this challenge or the 80 K docs to get started.
+[1194.0s -> 1198.0s] And I just want to wish everybody, you know, good luck with the AI agents challenge.
+[1199.0s -> 1204.0s] We do have, you know, a few questions and answers that have come in.
+[1204.0s -> 1209.0s] So happy to go through some of those.
+[1209.0s -> 1214.0s] Jess, I don't know if you want me to just go to that slide.
+[1214.0s -> 1215.0s] Yeah.
+[1215.0s -> 1221.0s] We've got a lot of great questions from the forum. So just go ahead and in the next slide, go ahead.
+[1221.0s -> 1222.0s] Awesome. All right.
+[1222.0s -> 1233.0s] So we got a few questions that came in and we ended up choosing ones that we thought would be sort of most applicable to to this whole group, the almost 120 people here.
+[1233.0s -> 1236.0s] So the first question is what's considered a production ready agent?
+[1236.0s -> 1239.0s] What are considered net new agents? Great question.
+[1239.0s -> 1244.0s] So a net new agent kind of refers to an agent that's built from the ground up.
+[1244.0s -> 1251.0s] You know, ideally it's utilizing the capabilities of the agent platform, but it's something that didn't necessarily exist before.
+[1251.0s -> 1258.0s] Maybe you have a new idea, maybe you're taking an existing idea and you're approaching it a very different direction or with a new lens.
+[1258.0s -> 1266.0s] Now a production ready agent is something that you know is perhaps thought of as less experimentation, right?
+[1266.0s -> 1274.0s] Production ready agent is technically something that is robust, scalable, secure, governable, suitable for real world usage, right?
+[1274.0s -> 1282.0s] So our platform is designed to help you build such agents and that's why we provide you with that build, scale, govern, and optimize like all of those features.
+[1282.0s -> 1293.0s] So ideally when you're approaching a production ready agent, just think about how you might make sure that a lot of those challenges that people run into with agent identity, traceability,
+[1293.0s -> 1299.0s] how you're making sure that things are working in as consistent a way as possible might apply.
+[1299.0s -> 1306.0s] And then you can map those back to, you know, things in our platform that might be able to help you with those challenges.
+[1307.0s -> 1324.0s] Second question are submissions expected to be primarily enterprise customer facing agent products offered a SaaS or subscription services, or are internal niche operational tools also eligible, provided they are agent based systems with a clear and meaningful use case.
+[1324.0s -> 1331.0s] So I would say that what's eligible is really things that address a specific goal.
+[1331.0s -> 1340.0s] So potentially using tools, reasoning, planning capabilities, you're using Gemini model or third party model from the model of Garden.
+[1340.0s -> 1351.0s] We do want to deploy it on Google Cloud, ideally, it can use or plan to migrate to the Gemini enterprise agent platform services beyond just our model offerings.
+[1351.0s -> 1360.0s] An internal tool could potentially be eligible if it were packaged and offered up through the cloud marketplace, meeting that criteria.
+[1360.0s -> 1374.0s] For example, imagine that you you've built out an internal tool and then you were able to generalize it and take away anything that might be very specific to your company, but that might be generally useful to other folks, right.
+[1374.0s -> 1379.0s] That could be something that's still applicable to the broader cloud marketplace.
+[1379.0s -> 1391.0s] Third question, track three, could you expound on the potential listing of agents on the Gemini agent marketplace will net new agents get this opportunity and what criteria defines the perfect agent for listing.
+[1391.0s -> 1400.0s] So the answer is yes, net new agents are prime candidates for listing provided they meet some of that eligibility criteria I mentioned earlier.
+[1400.0s -> 1410.0s] And I would say that some of the things that help make for a good agent listing are you solve a very clear and meaningful customer problem, right.
+[1410.0s -> 1417.0s] Like people you want people to be able to go in there and see like hey, there's a very focused solution to this thing is offering.
+[1417.0s -> 1420.0s] You want to demonstrate that your solution is robust.
+[1420.0s -> 1425.0s] It's built on agent platform. It's securely deployed on cloud.
+[1425.0s -> 1440.0s] It ideally offers a seamless solution. And I think that anything that helps people understand the value proposition beyond having that clear customer problem is generally a good fit for consideration.
+[1440.0s -> 1449.0s] Question four, AI apps. So while developing AI apps, how do you, how do I know if we really need an AI agent for a certain task.
+[1449.0s -> 1456.0s] And most of the operations we just don't need agents. How can I identify operations where agents are key. Good questions.
+[1456.0s -> 1466.0s] I think that agents are particularly valuable in that scenario when they go beyond just like simple automation or scripting, right.
+[1466.0s -> 1478.0s] Like we have a lot of good tools and primitives already for those kinds of use cases. And I would say that you should consider an AI agent when the task maybe really requires autonomy and decision making.
+[1478.0s -> 1487.0s] So if it needs to be able to independently perform analysis, make decisions and take actions on the behalf of the operations team.
+[1487.0s -> 1496.0s] Like for example, maybe intelligent alert triage and response, right. Like I could see an agent being useful for that use case.
+[1496.0s -> 1508.0s] If you need to do something like complex tool orchestration. So if you need a system that can interact with a lot of different tools, APIs, data sources, gather data.
+[1508.0s -> 1520.0s] Again, maybe autonomously from lots of different systems, logs, knowledge bases to diagnose an issue. That level of complexity I think rises to the need for an agent.
+[1520.0s -> 1529.0s] If you have a situation that requires dynamic planning and reasoning. So maybe you need to break down a really complicated problem into smaller steps.
+[1529.0s -> 1539.0s] And again, reason through ambiguity. An agent could potentially be useful there. And while it's not necessarily like a requirement for AI obs agents.
+[1539.0s -> 1556.0s] There may be a lot of use cases where, you know, your team want to be able to interact with the system using natural language. And being able to do that instead of, you know, directly leveraging API tools scripts might be a value to the team from a time savings perspective.
+[1556.0s -> 1574.0s] And so you just want to look out for situations where, you know, maybe there's high manual toil, there's multi step troubleshooting the team needs to do or, you know, just a lot of proactive prevention things where potentially agents can use that reasoning, use that autonomy to save the team time and be more efficient.
+[1574.0s -> 1576.0s] I think that can be useful.
+[1576.0s -> 1592.0s] So those are just a few of the questions that came in. I hope some of that content was useful to folks. I know that there were a few other operational questions that we had. So I'm just going to hand things off to to Jess and Laurel them.
+[1592.0s -> 1600.0s] Hi, everyone. So excited to see you guys's applications come through and also the really amazing questions.
+[1600.0s -> 1613.0s] I'm happy to share my screen now for some of the other questions that have come through so really quickly.
+[1614.0s -> 1630.0s] I know everyone's also asking in the Q&A. So if we are able to Sergio is answering all of the questions live. If we aren't able to get to any, we're also recording them so that we'll reach out individually for your questions. So I did see one.
+[1631.0s -> 1645.0s] Veronica, you had asked this previously, so we have it up here. And I also saw that you had asked it for the Q&A specifically beyond the price pool, what funding opportunities or partnerships are available for selected projects to scale post challenge.
+[1645.0s -> 1659.0s] So I'll talk a bit about general resources in terms of let's say you submit. It's a really great project. But maybe you aren't one of the winners. We have our Google for startups cloud program available for you to apply to
+[1659.0s -> 1674.0s] as one of our resources. And the second one which I highly recommend is we have our startup newsletter. I will be dropping both of those link in this chat for you guys to easily access. But essentially we always have programs coming out resources that are available.
+[1674.0s -> 1689.0s] Other events here, you know, in the Bay Area, in other different globally around the world and the best way to stay in the know with our resources and partnerships is that if you make it to one of the finalists and a winner.
+[1689.0s -> 1705.0s] Number one, one of the main requests that we get from startups all the time is to get feedback on what they are building to talk to Google experts. So the winner will have a one on one time with Adi here where he will be able to take a look at your project, provide feedback.
+[1705.0s -> 1719.0s] And we're also working with other ecosystem partners. So if you are in a point of your startup where you are looking for funding, we can either have those conversations and basically target the prize pool that suits you the best.
+[1719.0s -> 1730.0s] So, for example, maybe startups aren't ready for funding and they would perform more technical support. We'll set up those conversations. If you are a startup that is ready to raise your next round, we'll look at that too.
+[1730.0s -> 1742.0s] And for the second question, what can the credits be used for credits can be used for all Google Cloud platform products and tools. So I know there have been maybe some issues.
+[1742.0s -> 1747.0s] And please feel free to reach out. We get a lot of questions. So we're doing our best to get through all of them.
+[1747.0s -> 1758.0s] But outside of Google Cloud platform, the credits are so like, for example, Google AI studio wouldn't be one of the approved ones, but all of the Google Cloud platform tools should be used on the credits.
+[1758.0s -> 1765.0s] And then for the next few, which are challenge and platform related questions, Laurel, I'll hand it off to you.
+[1765.0s -> 1774.0s] Yeah, of course, hello, everyone. My name is Laurel for Ruler. I'm here from DevPost for Teams. So the first question is which medium do we use to send out our questions or our project.
+[1774.0s -> 1787.0s] And how do we ensure the security of our code base? So you'll use that same DevPost for Teams platform that you applied and registered on. You'll make a project on there. When you fill it out, you'll be prompted to fill in all the required assets and all the questions.
+[1787.0s -> 1797.0s] And then you'll be able to send it before that June 5th deadline. DevPost for Teams only accepts links. So your code base lives wherever you choose to host it, like GitHub. And that's where the security is managed.
+[1797.0s -> 1805.0s] Her the official rules of the challenge, the code repository does need to be accessible by the judges, so they can test and evaluate it.
+[1805.0s -> 1815.0s] The judges are not going to be able to chase down everyone for access. So make sure that link works. If your repo is private, just please make sure to share access instructions when you submit your project.
+[1815.0s -> 1825.0s] To give you some piece of mind there, the judging panel is made up entirely of like internal Googlers, right. So DevPost as the administrator, I'm not going to be accessing your repo.
+[1825.0s -> 1832.0s] If you have any significant concerns around IP or anything super nuanced, please reach out to us directly and we'll work through that with you.
+[1832.0s -> 1839.0s] Or can your project be submitted to few tracks or just one is one track for submission?
+[1839.0s -> 1849.0s] Are there any changes to the timeline. At the moment, there are currently no changes. We have had an unprecedented amount of interest in the challenge. So thank you all for your patience as we've been working through everything on our end.
+[1849.0s -> 1858.0s] If you have teammates pending, they'll be let in. I promise. Please continue to check the schedule on DevPost for Teams for any changes and for the latest updates.
+[1858.0s -> 1869.0s] Like Jess said, this is recorded. So we'll share that out on there as well. And then lastly, are there any communities forms available during this challenge at the moment. No, we don't currently have any community forms available.
+[1869.0s -> 1879.0s] That is similarly for primarily IP and privacy reasons that said if there is continued interest, please share that with us and we can discuss that on our end. That's good.
+[1880.0s -> 1885.0s] Not is that for me. Is there anything else Jess wanted me to share?
+[1885.0s -> 1898.0s] No, I think that's good. We have over a hundred of you guys here. Thank you guys so much. If you guys want to just throw some emojis in the chat, we are so excited to see what you guys submit.
+[1898.0s -> 1914.0s] Again, we have had unprecedented then it interest in this challenge. And we are really looking forward to your submissions. All of your concerns are super valid, but I wanted we wanted to throw this kickoff call Q&A to know that our whole team is here for you guys.
+[1914.0s -> 1930.0s] Excited for what you guys are submitting and that we are looking at all of your questions that you are submitting. So thank you guys so much. And we'll look forward to all of your submissions. Oh my gosh, three weeks from now on June 5th. Thank you all.
+[1944.0s -> 1951.0s] Thank you.
+[1951.0s -> 1958.0s] Thank you.
+[1958.0s -> 1987.0s] Sorry, I also just saw last minute question come in that says, please a recording or slide after these. Yes, we are offering the recording in the slide. It'll be sent out via the same blast that you've been receiving invites to for this.
+[1987.0s -> 2004.0s] There will be an FAQ doc pulled from the questions that you guys have asked a recording or slide for those of you that are still on. We're just sorting through all of like the final questions that are just coming in at the last minute right now. So there will be a recording and slide available.
+[2004.0s -> 2010.0s] Awesome, I think we are ready to close off. Thank you guys again.
+[2017.0s -> 2022.0s] Thank you.
