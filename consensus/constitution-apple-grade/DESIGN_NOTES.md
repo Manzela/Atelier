@@ -3,8 +3,25 @@
 ## Purpose
 
 This document explains the design philosophy, scoring methodology, and
-integration mechanics behind the `apple-grade` constitution
-(`consensus/constitutions/apple-grade.yaml`).
+integration mechanics behind the `apple-grade` constitution.
+
+## Format Reconciliation (M3)
+
+Two complementary representations exist:
+
+- **`consensus/constitutions/apple-grade.yaml`** — Compact YAML with 7
+  principles, numeric weights, and scoring thresholds. Consumed by the
+  ConsensusAgent scoring algorithm for automated quality gating.
+- **`consensus/constitution-apple-grade/`** (this directory) — Rich
+  Markdown files with per-principle do/don't examples, edge cases, and
+  HIG citations. Injected into the Brand judge prompt as grounding context.
+
+Both formats are canonical. The YAML drives automated scoring; the MD
+directory provides the detailed reasoning the judge uses to evaluate
+candidates. Neither supersedes the other.
+
+The `index.json` in this directory maps principle IDs to files and
+weights that align with the YAML's scoring weights.
 
 ## Constitution Selector Component (CSC-D)
 

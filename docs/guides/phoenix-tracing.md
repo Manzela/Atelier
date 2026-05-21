@@ -13,6 +13,55 @@ Phoenix is used in the development loop for:
 - Debugging trajectory recording and DPO pair extraction
 - Monitoring token consumption and cost per surface
 
+## Local development observability
+
+### Why Phoenix is dev-only (ADR 0006)
+
+Per [ADR 0006](../../docs/decisions/0006-google-native-stack.md), Atelier
+uses a Google-native observability stack in production: Cloud Trace for
+distributed tracing and Cloud Monitoring for metrics. Phoenix is excluded
+from production because it would create a parallel trace sink that
+diverges from the production pipeline, complicating incident response and
+violating the single-source-of-truth principle for trace data.
+
+### Environment variable: `ATELIER_OBSERVABILITY_MODE`
+
+The `ATELIER_OBSERVABILITY_MODE` environment variable controls which
+observability backend is active:
+
+| Value | Backend | Use case |
+|-------|---------|----------|
+| `dev` (default) | Phoenix (Arize) | Local development, trace inspection |
+| `prod` | Google Cloud Trace + Monitoring | Staging and production on Cloud Run |
+
+Set it in your shell or `.env` file:
+
+```bash
+# Local development (default — Phoenix)
+export ATELIER_OBSERVABILITY_MODE=dev
+
+# Production / staging (Cloud Trace)
+export ATELIER_OBSERVABILITY_MODE=prod
+```
+
+The flag is read by `atelier.observability.get_observability_mode()` and
+used to conditionally mount the Phoenix or Cloud Trace exporter in the
+OTel pipeline. Unrecognized values emit a warning and fall back to `dev`.
+
+### Starting Phoenix locally
+
+```bash
+# Option 1: pip install (lightweight)
+pip install arize-phoenix
+phoenix serve --port 6006
+
+# Option 2: Docker (isolated)
+docker run -d --name phoenix -p 6006:6006 arizephoenix/phoenix:latest
+```
+
+The Phoenix UI is available at `http://localhost:6006`.
+
+
 ## Architecture
 
 ```

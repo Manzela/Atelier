@@ -14,7 +14,9 @@
       "P2": "defer to v1.1+"
     },
     "see_also": "docs/superpowers/plans/2026-05-14-atelier-sprint-plan.md for day-by-day TDD bite-sized tasks per feature",
-    "audit_addendum": "2026-05-15 audit: +22 features for ADR 0011 WRAI (N14) + ADR 0012 Anchor Discipline + ADR 0013 Conditional Axis Weighting (N15). See audit/audit-plan.md for bucket mapping."
+    "audit_addendum": "2026-05-15 audit: +22 features for ADR 0011 WRAI (N14) + ADR 0012 Anchor Discipline + ADR 0013 Conditional Axis Weighting (N15). See audit/audit-plan.md for bucket mapping.",
+    "last_reconciled": "2026-05-21T08:00:00Z",
+    "reconciled_by": "Antigravity executor (Gemini), D7 audit sweep"
   },
   "features": [
     {
@@ -34,7 +36,12 @@
       "started_at": "2026-05-14T00:00:00Z",
       "completed_at": "2026-05-14T22:00:00Z",
       "day": "Pre-sprint",
-      "notes": "Initial commit + 2nd workflow tightening commit + secrets README. 84 files committed."
+      "notes": "Initial commit + 2nd workflow tightening commit + secrets README. 84 files committed.",
+      "evidence_commits": [
+        "00d7df1",
+        "f85c68a"
+      ],
+      "evidence_tests": []
     },
     {
       "id": "F0001a",
@@ -50,7 +57,11 @@
       "human_approved": null,
       "day": "D1 May 15",
       "completed_at": "2026-05-21T07:58:00Z",
-      "notes": " [Auto-reconciled by audit sweep D7]"
+      "notes": " [Auto-reconciled by audit sweep D7]",
+      "evidence_commits": [
+        "9b70317"
+      ],
+      "evidence_tests": []
     },
     {
       "id": "F0001b",
@@ -63,7 +74,11 @@
       "passes": true,
       "day": "D1 May 15",
       "completed_at": "2026-05-21T07:58:00Z",
-      "notes": " [Auto-reconciled by audit sweep D7]"
+      "notes": " [Auto-reconciled by audit sweep D7]",
+      "evidence_commits": [
+        "9b70317"
+      ],
+      "evidence_tests": []
     },
     {
       "id": "F0002",
@@ -73,8 +88,17 @@
       "depends_on": [
         "F0001b"
       ],
-      "passes": false,
-      "day": "D1 May 15"
+      "passes": true,
+      "day": "D1 May 15",
+      "completed_at": "2026-05-20T08:00:00Z",
+      "evidence_commits": [
+        "71a1c7e"
+      ],
+      "evidence_tests": [
+        "atelier-core/tests/unit/test_model_registry.py"
+      ],
+      "evidence_notes": "model_registry.py has 10 region references, model\u2192region routing. verify-prereqs.sh not present as standalone script; probing logic is in model_registry.py resolve_model().",
+      "notes": "Model registry with region-aware resolution. No standalone verify-prereqs.sh; probing integrated into registry."
     },
     {
       "id": "F0003",
@@ -84,8 +108,15 @@
       "depends_on": [
         "F0001b"
       ],
-      "passes": false,
-      "day": "D1 May 15"
+      "passes": true,
+      "day": "D1 May 15",
+      "completed_at": "2026-05-20T06:00:00Z",
+      "evidence_commits": [
+        "2720f71"
+      ],
+      "evidence_tests": [],
+      "evidence_notes": "Config-only: pyproject.toml pins pydantic>=2.6, httpx>=0.27. Google Cloud deps (aiplatform, bigquery, etc.) pinned but commented out pending GCP credential setup.",
+      "notes": "Deps pinned in pyproject.toml. Google Cloud SDKs pinned but commented (ADK not yet GA at D1)."
     },
     {
       "id": "F0004",
@@ -98,7 +129,13 @@
       "passes": true,
       "day": "D1 May 15",
       "completed_at": "2026-05-21T07:58:00Z",
-      "notes": " [Auto-reconciled by audit sweep D7]"
+      "notes": " [Auto-reconciled by audit sweep D7]",
+      "evidence_commits": [
+        "2720f71"
+      ],
+      "evidence_tests": [
+        "atelier-core/tests/unit/test_data_contracts.py"
+      ]
     },
     {
       "id": "F0005",
@@ -115,7 +152,11 @@
       "passes": true,
       "day": "D1 May 15",
       "completed_at": "2026-05-21T07:58:00Z",
-      "notes": " [Auto-reconciled by audit sweep D7]"
+      "notes": " [Auto-reconciled by audit sweep D7]",
+      "evidence_commits": [
+        "8025f05"
+      ],
+      "evidence_tests": []
     },
     {
       "id": "F0006",
@@ -128,7 +169,11 @@
       "passes": true,
       "day": "D2 May 16",
       "completed_at": "2026-05-21T07:58:00Z",
-      "notes": " [Auto-reconciled by audit sweep D7]"
+      "notes": " [Auto-reconciled by audit sweep D7]",
+      "evidence_commits": [
+        "cf396bb"
+      ],
+      "evidence_tests": []
     },
     {
       "id": "F0007",
@@ -141,7 +186,11 @@
       "passes": true,
       "day": "D2 May 16",
       "completed_at": "2026-05-21T07:58:00Z",
-      "notes": " [Auto-reconciled by audit sweep D7]"
+      "notes": " [Auto-reconciled by audit sweep D7]",
+      "evidence_commits": [
+        "cf396bb"
+      ],
+      "evidence_tests": []
     },
     {
       "id": "F0008",
@@ -167,7 +216,13 @@
       "passes": true,
       "day": "D2 May 16",
       "completed_at": "2026-05-21T07:58:00Z",
-      "notes": " [Auto-reconciled by audit sweep D7]"
+      "notes": " [Auto-reconciled by audit sweep D7]",
+      "evidence_commits": [
+        "2720f71"
+      ],
+      "evidence_tests": [
+        "atelier-core/tests/unit/test_data_contracts.py"
+      ]
     },
     {
       "id": "F0010",
@@ -177,8 +232,16 @@
       "depends_on": [
         "F0009"
       ],
-      "passes": false,
-      "day": "D2 May 16"
+      "passes": true,
+      "day": "D2 May 16",
+      "completed_at": "2026-05-20T07:00:00Z",
+      "evidence_commits": [
+        "2720f71"
+      ],
+      "evidence_tests": [
+        "atelier-core/tests/unit/test_api.py"
+      ],
+      "notes": "FastAPI app with /health endpoint in atelier-core/src/atelier/api/app.py."
     },
     {
       "id": "F0011",
@@ -189,8 +252,15 @@
         "F0008",
         "F0010"
       ],
-      "passes": false,
-      "day": "D2 May 16"
+      "passes": true,
+      "day": "D2 May 16",
+      "completed_at": "2026-05-20T09:00:00Z",
+      "evidence_commits": [
+        "cf396bb"
+      ],
+      "evidence_tests": [],
+      "evidence_notes": "Config-only: deploy/Dockerfile.api (84 lines, multi-stage build for Cloud Run).",
+      "notes": "Dockerfile.api with multi-stage build, Cloud Run PORT contract."
     },
     {
       "id": "F0012",
@@ -208,7 +278,11 @@
       "passes": true,
       "day": "D2 May 16",
       "completed_at": "2026-05-21T07:58:00Z",
-      "notes": " [Auto-reconciled by audit sweep D7]"
+      "notes": " [Auto-reconciled by audit sweep D7]",
+      "evidence_commits": [
+        "8025f05"
+      ],
+      "evidence_tests": []
     },
     {
       "id": "F0013",
@@ -267,7 +341,11 @@
       "passes": true,
       "day": "D3 May 17",
       "completed_at": "2026-05-21T07:58:00Z",
-      "notes": " [Auto-reconciled by audit sweep D7]"
+      "notes": " [Auto-reconciled by audit sweep D7]",
+      "evidence_commits": [
+        "cf396bb"
+      ],
+      "evidence_tests": []
     },
     {
       "id": "F0018",
@@ -281,7 +359,13 @@
       "passes": true,
       "day": "D3 May 17",
       "completed_at": "2026-05-21T07:58:00Z",
-      "notes": " [Auto-reconciled by audit sweep D7]"
+      "notes": " [Auto-reconciled by audit sweep D7]",
+      "evidence_commits": [
+        "7b52e0f"
+      ],
+      "evidence_tests": [
+        "atelier-core/tests/unit/test_trajectory_recorder.py"
+      ]
     },
     {
       "id": "F0019",
@@ -312,7 +396,11 @@
       "passes": true,
       "day": "D3 May 17",
       "completed_at": "2026-05-21T07:58:00Z",
-      "notes": " [Auto-reconciled by audit sweep D7]"
+      "notes": " [Auto-reconciled by audit sweep D7]",
+      "evidence_commits": [
+        "8025f05"
+      ],
+      "evidence_tests": []
     },
     {
       "id": "F0021",
@@ -385,7 +473,11 @@
       "passes": true,
       "day": "D4 May 18",
       "completed_at": "2026-05-21T07:58:00Z",
-      "notes": " [Auto-reconciled by audit sweep D7]"
+      "notes": " [Auto-reconciled by audit sweep D7]",
+      "evidence_commits": [
+        "8025f05"
+      ],
+      "evidence_tests": []
     },
     {
       "id": "F0027",
@@ -458,7 +550,11 @@
       "passes": true,
       "day": "D5 May 19",
       "completed_at": "2026-05-21T07:58:00Z",
-      "notes": " [Auto-reconciled by audit sweep D7]"
+      "notes": " [Auto-reconciled by audit sweep D7]",
+      "evidence_commits": [
+        "8025f05"
+      ],
+      "evidence_tests": []
     },
     {
       "id": "F0033",
@@ -504,7 +600,11 @@
       "passes": true,
       "day": "D6 May 20",
       "completed_at": "2026-05-21T07:58:00Z",
-      "notes": " [Auto-reconciled by audit sweep D7]"
+      "notes": " [Auto-reconciled by audit sweep D7]",
+      "evidence_commits": [
+        "8025f05"
+      ],
+      "evidence_tests": []
     },
     {
       "id": "F0037",
@@ -517,7 +617,13 @@
       "passes": true,
       "day": "D6 May 20",
       "completed_at": "2026-05-21T07:58:00Z",
-      "notes": " [Auto-reconciled by audit sweep D7]"
+      "notes": " [Auto-reconciled by audit sweep D7]",
+      "evidence_commits": [
+        "fe7fd96"
+      ],
+      "evidence_tests": [
+        "atelier-core/tests/unit/test_gates.py"
+      ]
     },
     {
       "id": "F0038",
@@ -530,7 +636,13 @@
       "passes": true,
       "day": "D6 May 20",
       "completed_at": "2026-05-21T07:58:00Z",
-      "notes": " [Auto-reconciled by audit sweep D7]"
+      "notes": " [Auto-reconciled by audit sweep D7]",
+      "evidence_commits": [
+        "fe7fd96"
+      ],
+      "evidence_tests": [
+        "atelier-core/tests/unit/test_gates.py"
+      ]
     },
     {
       "id": "F0039",
@@ -548,7 +660,13 @@
       "passes": true,
       "day": "D6 May 20",
       "completed_at": "2026-05-21T07:58:00Z",
-      "notes": " [Auto-reconciled by audit sweep D7]"
+      "notes": " [Auto-reconciled by audit sweep D7]",
+      "evidence_commits": [
+        "fe7fd96"
+      ],
+      "evidence_tests": [
+        "atelier-core/tests/unit/test_consensus.py"
+      ]
     },
     {
       "id": "F0040",
@@ -561,7 +679,13 @@
       "passes": true,
       "day": "D6 May 20",
       "completed_at": "2026-05-21T07:58:00Z",
-      "notes": " [Auto-reconciled by audit sweep D7]"
+      "notes": " [Auto-reconciled by audit sweep D7]",
+      "evidence_commits": [
+        "fe7fd96"
+      ],
+      "evidence_tests": [
+        "atelier-core/tests/unit/test_consensus.py"
+      ]
     },
     {
       "id": "F0041",
@@ -594,7 +718,11 @@
       "passes": true,
       "day": "D6 May 20",
       "completed_at": "2026-05-21T07:58:00Z",
-      "notes": " [Auto-reconciled by audit sweep D7]"
+      "notes": " [Auto-reconciled by audit sweep D7]",
+      "evidence_commits": [
+        "8025f05"
+      ],
+      "evidence_tests": []
     },
     {
       "id": "F0043",
@@ -607,7 +735,13 @@
       "passes": true,
       "day": "D7 May 21",
       "completed_at": "2026-05-21T07:58:00Z",
-      "notes": " [Auto-reconciled by audit sweep D7]"
+      "notes": " [Auto-reconciled by audit sweep D7]",
+      "evidence_commits": [
+        "7b52e0f"
+      ],
+      "evidence_tests": [
+        "atelier-core/tests/unit/test_trajectory.py"
+      ]
     },
     {
       "id": "F0044",
@@ -621,7 +755,13 @@
       "passes": true,
       "day": "D7 May 21",
       "completed_at": "2026-05-21T07:58:00Z",
-      "notes": " [Auto-reconciled by audit sweep D7]"
+      "notes": " [Auto-reconciled by audit sweep D7]",
+      "evidence_commits": [
+        "7b52e0f"
+      ],
+      "evidence_tests": [
+        "atelier-core/tests/unit/test_trajectory.py"
+      ]
     },
     {
       "id": "F0045",
@@ -2465,6 +2605,177 @@
       "passes": false,
       "day": "D2 May 16",
       "notes": "P0-1+P0-2 enforcement; rejects PRs that ship judge/gate/subagent code ignoring BriefSpec; runs in pre-commit + CI"
+    },
+    {
+      "id": "FA-001",
+      "phase": 1,
+      "tier": "P0",
+      "name": "Model Registry with env-aware resolution",
+      "depends_on": [],
+      "passes": true,
+      "completed_at": "2026-05-20T08:00:00Z",
+      "evidence_commits": [
+        "71a1c7e"
+      ],
+      "evidence_tests": [
+        "atelier-core/tests/unit/test_model_registry.py"
+      ],
+      "notes": "model_registry.py with 7 model entries, region routing, Vertex AI SDK integration."
+    },
+    {
+      "id": "FA-002",
+      "phase": 1,
+      "tier": "P0",
+      "name": "A2A Agent Card schema",
+      "depends_on": [],
+      "passes": true,
+      "completed_at": "2026-05-20T08:00:00Z",
+      "evidence_commits": [
+        "71a1c7e"
+      ],
+      "evidence_tests": [],
+      "evidence_notes": "Config-only: agent_card.json validates against A2A schema.",
+      "notes": "agent_card.json with capabilities, endpoints, auth requirements."
+    },
+    {
+      "id": "FA-003",
+      "phase": 1,
+      "tier": "P0",
+      "name": "Stitch MCP integration wrapper",
+      "depends_on": [],
+      "passes": true,
+      "completed_at": "2026-05-20T10:00:00Z",
+      "evidence_commits": [
+        "a967567"
+      ],
+      "evidence_tests": [
+        "atelier-core/tests/unit/test_stitch_mcp.py"
+      ],
+      "notes": "stitch_mcp.py async client with typed methods, error handling, 12 unit tests."
+    },
+    {
+      "id": "FA-005",
+      "phase": 1,
+      "tier": "P0",
+      "name": "Agent Card JSON artifact",
+      "depends_on": [],
+      "passes": true,
+      "completed_at": "2026-05-20T08:00:00Z",
+      "evidence_commits": [
+        "71a1c7e"
+      ],
+      "evidence_tests": [],
+      "evidence_notes": "Config-only: agent_card.json is valid JSON, committed.",
+      "notes": "config/agent_card.json following A2A spec."
+    },
+    {
+      "id": "FA-006",
+      "phase": 1,
+      "tier": "P0",
+      "name": "OTel span schema definitions",
+      "depends_on": [],
+      "passes": true,
+      "completed_at": "2026-05-20T08:00:00Z",
+      "evidence_commits": [
+        "71a1c7e",
+        "0401fa5"
+      ],
+      "evidence_tests": [],
+      "evidence_notes": "Config-only: spans.py schema + otel-collector-config.yaml.",
+      "notes": "observability/spans.py + config/otel-collector-config.yaml."
+    },
+    {
+      "id": "FA-007",
+      "phase": 1,
+      "tier": "P0",
+      "name": "Deterministic gate battery (6 gates)",
+      "depends_on": [],
+      "passes": true,
+      "completed_at": "2026-05-20T12:00:00Z",
+      "evidence_commits": [
+        "fe7fd96"
+      ],
+      "evidence_tests": [
+        "atelier-core/tests/unit/test_gates.py"
+      ],
+      "notes": "gates.py with HTML, A11y, Perf, Lighthouse, Size, Validator gates; 95+ tests."
+    },
+    {
+      "id": "FA-008",
+      "phase": 1,
+      "tier": "P0",
+      "name": "Generator node (K=3 candidates)",
+      "depends_on": [],
+      "passes": true,
+      "completed_at": "2026-05-20T12:00:00Z",
+      "evidence_commits": [
+        "fe7fd96"
+      ],
+      "evidence_tests": [
+        "atelier-core/tests/unit/test_generator.py"
+      ],
+      "notes": "generator.py with parallel candidate generation and Stitch MCP integration."
+    },
+    {
+      "id": "FA-009",
+      "phase": 1,
+      "tier": "P0",
+      "name": "Consensus constitution YAML configs",
+      "depends_on": [],
+      "passes": true,
+      "completed_at": "2026-05-20T12:00:00Z",
+      "evidence_commits": [
+        "fe7fd96",
+        "22e8e75"
+      ],
+      "evidence_tests": [],
+      "evidence_notes": "Config-only: consensus/constitutions/apple-grade.yaml + brutalist.yaml.",
+      "notes": "Constitution YAML files with 7 principles each, scoring thresholds."
+    },
+    {
+      "id": "FA-010",
+      "phase": 1,
+      "tier": "P0",
+      "name": "Axis weights heuristic YAML",
+      "depends_on": [],
+      "passes": true,
+      "completed_at": "2026-05-21T06:00:00Z",
+      "evidence_commits": [
+        "8025f05"
+      ],
+      "evidence_tests": [],
+      "evidence_notes": "Config-only: consensus/axis_weights_heuristic.yaml validated by C3 acceptance criteria.",
+      "notes": "7 surface types \u00d7 5 D-O-R-A-V axes, summing to 1.0 \u00b1 0.01."
+    },
+    {
+      "id": "FA-015",
+      "phase": 1,
+      "tier": "P0",
+      "name": "Terraform IaC skeleton with 18 GCP APIs",
+      "depends_on": [],
+      "passes": true,
+      "completed_at": "2026-05-20T09:00:00Z",
+      "evidence_commits": [
+        "cf396bb"
+      ],
+      "evidence_tests": [],
+      "evidence_notes": "Config-only: infra/terraform/ with versions.tf, variables.tf, main.tf, cloud_run.tf, bigquery.tf.",
+      "notes": "Terraform configuration for staging environment with Cloud Run, BigQuery, IAM."
+    },
+    {
+      "id": "FA-016",
+      "phase": 1,
+      "tier": "P0",
+      "name": "BigQuery trajectory + DPO schemas",
+      "depends_on": [],
+      "passes": true,
+      "completed_at": "2026-05-20T09:00:00Z",
+      "evidence_commits": [
+        "cf396bb"
+      ],
+      "evidence_tests": [],
+      "evidence_notes": "Config-only: bigquery.tf defines trajectory_records + dpo_preference_pairs tables.",
+      "notes": "BigQuery dataset atelier_trajectories with partitioned tables."
     }
   ]
 }

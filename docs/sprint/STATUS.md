@@ -41,8 +41,8 @@ cat features.json | jq '.features[] | select(.passes == false) | {id, name, day}
 ### Test suite
 
 - **Baseline (D0)**: 0 tests
-- **Current (D7)**: 177 tests passing (0.27s)
-- **Coverage**: data contracts, brief spec, governor, model registry, OTel spans, stitch MCP, gates, generator, axis weights, constitution registry, trajectory
+- **Current (D7)**: 249 tests passing (0.42s)
+- **Coverage**: data contracts, brief spec, governor, model registry, OTel spans, stitch MCP, gates, generator, axis weights, constitution registry, trajectory, GitHub MCP, trajectory recorder, observability mode
 
 ### What's blocked
 
