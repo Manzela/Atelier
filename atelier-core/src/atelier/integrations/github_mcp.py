@@ -153,7 +153,7 @@ class GitHubMCPClient:
         encoding = data.get("encoding", "base64")
         if encoding == "base64" and content:
             return b64decode(content).decode("utf-8")
-        return content
+        return str(content)
 
     async def search_code(
         self,
@@ -223,7 +223,7 @@ class GitHubMCPClient:
         encoding = data.get("encoding", "base64")
         if encoding == "base64" and content:
             return b64decode(content).decode("utf-8")
-        return content
+        return str(content)
 
     # -------------------------------------------------------------------
     # Internal HTTP with retry + error classification

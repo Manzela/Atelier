@@ -1,5 +1,8 @@
 name: Release
 
+# Releases are cut from main only (release-please pattern).
+# Phase branches do not trigger releases — they merge to main first, then release fires.
+# Per audit R3-08: this is intentional, not an oversight from C9 phase/* trigger sweep.
 on:
   push:
     branches: [main]

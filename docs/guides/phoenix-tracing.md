@@ -29,10 +29,10 @@ violating the single-source-of-truth principle for trace data.
 The `ATELIER_OBSERVABILITY_MODE` environment variable controls which
 observability backend is active:
 
-| Value | Backend | Use case |
-|-------|---------|----------|
-| `dev` (default) | Phoenix (Arize) | Local development, trace inspection |
-| `prod` | Google Cloud Trace + Monitoring | Staging and production on Cloud Run |
+| Value           | Backend                         | Use case                            |
+| --------------- | ------------------------------- | ----------------------------------- |
+| `dev` (default) | Phoenix (Arize)                 | Local development, trace inspection |
+| `prod`          | Google Cloud Trace + Monitoring | Staging and production on Cloud Run |
 
 Set it in your shell or `.env` file:
 
@@ -48,6 +48,19 @@ The flag is read by `atelier.observability.get_observability_mode()` and
 used to conditionally mount the Phoenix or Cloud Trace exporter in the
 OTel pipeline. Unrecognized values emit a warning and fall back to `dev`.
 
+### Phase-1 limitation
+
+In Phase 1, the OTel collector pipeline (`config/otel-collector-config.yaml`)
+statically includes BOTH Phoenix and Google Cloud exporters. The
+`ATELIER_OBSERVABILITY_MODE` env var is read by `atelier.observability` but
+does not yet control exporter selection — tracked as F0223 for Phase 2
+wiring.
+
+For Phase-1 testing: setting `MODE=prod` will not actually suppress Phoenix
+traces; the collector will still forward to both backends. This is
+operationally harmless (double-send overhead) but not the intended
+production behavior.
+
 ### Starting Phoenix locally
 
 ```bash
@@ -60,7 +73,6 @@ docker run -d --name phoenix -p 6006:6006 arizephoenix/phoenix:latest
 ```
 
 The Phoenix UI is available at `http://localhost:6006`.
-
 
 ## Architecture
 
@@ -99,7 +111,7 @@ development exporter. To enable Phoenix locally:
 ```yaml
 exporters:
   otlp/phoenix:
-    endpoint: "http://localhost:4317"
+    endpoint: 'http://localhost:4317'
     tls:
       insecure: true
 ```
@@ -134,12 +146,12 @@ trace.set_tracer_provider(provider)
 
 ## Key Spans
 
-| Span Name | Module | Description |
-|-----------|--------|-------------|
-| `atelier.trajectory.flush` | `recorders/trajectory_recorder.py` | BQ streaming insert |
-| `atelier.consensus.evaluate` | `nodes/consensus.py` | D-O-R-A-V composite scoring |
-| `atelier.generator.generate` | `nodes/generator.py` | UI artifact generation |
-| `atelier.gate.check` | `nodes/gate.py` | Deterministic gate battery |
+| Span Name                    | Module                             | Description                 |
+| ---------------------------- | ---------------------------------- | --------------------------- |
+| `atelier.trajectory.flush`   | `recorders/trajectory_recorder.py` | BQ streaming insert         |
+| `atelier.consensus.evaluate` | `nodes/consensus.py`               | D-O-R-A-V composite scoring |
+| `atelier.generator.generate` | `nodes/generator.py`               | UI artifact generation      |
+| `atelier.gate.check`         | `nodes/gate.py`                    | Deterministic gate battery  |
 
 ## Production Setup
 

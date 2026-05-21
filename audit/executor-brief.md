@@ -424,7 +424,7 @@ grep -E "TODO|FIXME|XXX" consensus/axis_weights_heuristic.yaml && echo "FAIL: in
 - At minimum these tiers must be present:
   - **Primary design authority** (Apple HIG, Material, NN/g, dribbble, behance, awwwards) — trust ≥ 0.85
   - **Vetted journalism** (nytimes.com, wsj.com, reuters.com, ft.com) — trust ≥ 0.80
-  - **Technical reference** (mdn.io, web.dev, _.gov, _.edu) — trust ≥ 0.85
+  - **Technical reference** (mdn.io, web.dev, _.gov,_.edu) — trust ≥ 0.85
   - **Vendor docs** (cloud.google.com, developer.apple.com, react.dev) — trust ≥ 0.75
   - **Community** (stackoverflow.com, reddit.com, github.com) — trust ≥ 0.50
   - **General web** (default) — trust ≥ 0.30
@@ -761,6 +761,7 @@ grep -E "^#.*googlecloud" config/otel-collector-config.yaml && echo "WARN: googl
 
 - Every workflow that runs tests/lints must include `phase/*` (or `phase/**`) in its `on.push.branches` and `on.pull_request.branches` arrays.
 - Format example (do NOT just paste — read the file first):
+
   ```yaml
   on:
     push:
@@ -768,14 +769,18 @@ grep -E "^#.*googlecloud" config/otel-collector-config.yaml && echo "WARN: googl
     pull_request:
       branches: [main, 'phase/*']
   ```
+
 - After updating, push an empty commit to `phase/1` and verify a run appears:
+
   ```bash
   git commit --allow-empty -m "ci(test): trigger CI on phase/1"
   git push origin phase/1
   sleep 30
   gh run list --branch phase/1 --limit 3
   ```
+
   Must show a run started within 60 seconds of push.
+
 - The triggered run must complete successfully (exit conclusion `success`).
 
 **Verification command (auditor will re-run).**
@@ -875,13 +880,16 @@ pre-commit run --all-files
 
 - After change, `cd <worktree-root> && .venv/bin/pytest` works with no env-var preamble.
 - Add (in the appropriate `pyproject.toml`):
+
   ```toml
   [tool.pytest.ini_options]
   pythonpath = ["atelier-core/src"]
   testpaths = ["atelier-core/tests"]
   addopts = "-q --strict-markers --strict-config"
   ```
+
   (Adjust pythonpath if `atelier-core/` is laid out differently — read the file first.)
+
 - The change must not cause any existing test to fail.
 
 **Verification command (auditor will re-run).**
@@ -967,6 +975,7 @@ echo "Actual test count: $ACTUAL"
 **Acceptance criteria.**
 
 - `index.json` is valid JSON with structure:
+
   ```json
   {
     "version": "1.0",
@@ -976,6 +985,7 @@ echo "Actual test count: $ACTUAL"
     ]
   }
   ```
+
 - Each principle file (md) MUST contain:
   - Title (h1)
   - 1-paragraph definition citing the source (Apple HIG / Material / NN/g)

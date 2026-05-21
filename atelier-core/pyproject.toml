@@ -77,7 +77,6 @@ path = "src/atelier/__version__.py"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
-asyncio_mode = "auto"
 markers = [
     "unit: fast unit tests (<30s total)",
     "integration: integration tests requiring docker compose (~5min)",

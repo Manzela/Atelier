@@ -1,3 +1,7 @@
+# Planning artifact — Phase-1 runtime consumer is consensus/axis_weights.py (hardcoded dict).
+# Reconciliation of surface_types ↔ visual_register taxonomies deferred per ADR 0016.
+# DO NOT consume this file at runtime until ADR 0016 status changes to "Superseded".
+#
 # Atelier Axis Weights Heuristic Configuration
 #
 # Conditional axis weighting for the Multi-Judge Governor (MJG).

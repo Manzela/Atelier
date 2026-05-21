@@ -38,23 +38,23 @@ falls below the `scoring.target` threshold.
 
 ## Principle Summary
 
-| ID | Name | Weight | Key Gate |
-|----|------|--------|----------|
-| P1 | Pixel-Perfect Precision | 1.5 | 8px grid, no fractional px |
-| P2 | Restrained Color Palette | 1.2 | ≤5 colors, neutrals dominate |
-| P3 | Typography Hierarchy | 1.3 | ≤3 font sizes visible |
-| P4 | Generous Whitespace | 1.4 | ≥24px padding, ≥48px sections |
-| P5 | Micro-Interactions | 0.8 | 200-300ms ease-out transitions |
-| P6 | Accessibility as Design | 1.0 | WCAG AA contrast ratios |
-| P7 | Progressive Disclosure | 1.1 | Primary CTA immediately visible |
+| ID  | Name                     | Weight | Key Gate                        |
+| --- | ------------------------ | ------ | ------------------------------- |
+| P1  | Pixel-Perfect Precision  | 1.5    | 8px grid, no fractional px      |
+| P2  | Restrained Color Palette | 1.2    | ≤5 colors, neutrals dominate    |
+| P3  | Typography Hierarchy     | 1.3    | ≤3 font sizes visible           |
+| P4  | Generous Whitespace      | 1.4    | ≥24px padding, ≥48px sections   |
+| P5  | Micro-Interactions       | 0.8    | 200-300ms ease-out transitions  |
+| P6  | Accessibility as Design  | 1.0    | WCAG AA contrast ratios         |
+| P7  | Progressive Disclosure   | 1.1    | Primary CTA immediately visible |
 
 ## Scoring Thresholds
 
-| Threshold | Score | Meaning |
-|-----------|-------|---------|
-| `minimum_pass` | 0.70 | Below this → rejected outright |
-| `target` | 0.85 | Below this → soft penalty applied |
-| `exceptional` | 0.95 | At or above → flagged as "gold" |
+| Threshold      | Score | Meaning                           |
+| -------------- | ----- | --------------------------------- |
+| `minimum_pass` | 0.70  | Below this → rejected outright    |
+| `target`       | 0.85  | Below this → soft penalty applied |
+| `exceptional`  | 0.95  | At or above → flagged as "gold"   |
 
 ## Penalty Mechanics
 

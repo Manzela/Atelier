@@ -179,6 +179,9 @@ class TrajectoryRecorder:
         if len(self._buffer) >= self._buffer_size:
             self.flush()
 
+    # Phase-1 scope: fail-loud only on BQ errors.
+    # Self-heal (retry on 503/429) + fail-soft (partial-batch separation)
+    # deferred to F0222 per audit Run 2 P1-3. Full trichotomy required for Phase-2 production.
     def flush(self) -> int:
         """Flush the buffer to BigQuery.
 

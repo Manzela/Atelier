@@ -77,7 +77,7 @@ processors:
 exporters:
   # Dev exporter — Phoenix (only active when Phoenix container is running)
   otlp/phoenix:
-    endpoint: "phoenix:6006"
+    endpoint: 'phoenix:6006'
     tls:
       insecure: true
 

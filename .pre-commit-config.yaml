@@ -6,7 +6,7 @@ minimum_pre_commit_version: 3.7.0
 
 default_language_version:
   python: python3 # use whatever python3 is in PATH (3.11+ enforced by pyproject.toml)
-  node: '20.11.1'
+  node: '22.20.0' # bumped per R3-09: markdownlint-cli@v0.48.0 requires ^20.19.0 || ^22.13.0 || >=24
 
 default_install_hook_types: [pre-commit, commit-msg]
 default_stages: [pre-commit]
@@ -58,6 +58,7 @@ repos:
           - pydantic>=2.6
           - types-PyYAML
           - types-requests
+          - httpx>=0.28 # ships py.typed; needed for github_mcp.py type resolution
 
   # ─── Python: pytest fast subset (<10s) ────────────────────────────────────
   - repo: local

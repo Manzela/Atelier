@@ -263,25 +263,25 @@ The source `~/Downloads/Environment Audit and Assessment.md` is **3206 lines / 1
 
 ### 9.2 P1 — pre-submission hardening (7 items, ~5h)
 
-5. **Implement FA-004 GitHub MCP wrapper** (C5) — mirror `stitch_mcp.py`, ~150 LOC.
-6. **Implement FA-011 TrajectoryRecorder** (C6) — JSONL→BigQuery writer, ~100 LOC.
-7. **Populate `constitution-apple-grade/index.json`** (C7) — npm metadata, ~20 lines.
-8. **Wire OTel collector prod `googlecloud` exporter** (C8) — uncomment + verify SA perms.
-9. **ADR 0014: Model deviation rationale** (C9) — document why `gemini-2.5-flash-preview-05-20` instead of `gemini-3-flash`.
-10. **Bump `.pre-commit-config.yaml` ruff version** (C10) — bump to `v0.15.x` + auto-fix the C420.
-11. **Investigate CI on `phase/1`** (C11) — check workflow `on:` triggers; manual `gh workflow run` if needed.
+1. **Implement FA-004 GitHub MCP wrapper** (C5) — mirror `stitch_mcp.py`, ~150 LOC.
+2. **Implement FA-011 TrajectoryRecorder** (C6) — JSONL→BigQuery writer, ~100 LOC.
+3. **Populate `constitution-apple-grade/index.json`** (C7) — npm metadata, ~20 lines.
+4. **Wire OTel collector prod `googlecloud` exporter** (C8) — uncomment + verify SA perms.
+5. **ADR 0014: Model deviation rationale** (C9) — document why `gemini-2.5-flash-preview-05-20` instead of `gemini-3-flash`.
+6. **Bump `.pre-commit-config.yaml` ruff version** (C10) — bump to `v0.15.x` + auto-fix the C420.
+7. **Investigate CI on `phase/1`** (C11) — check workflow `on:` triggers; manual `gh workflow run` if needed.
 
 ### 9.3 P2 — friction reduction (4 items, ~1.5h)
 
-12. **Add `[tool.pytest.ini_options].pythonpath`** (C12).
-13. **Update test-count in docs from 75/75 → 87/87** (C13).
-14. **Region configurability via env var or tfvar** (C14).
-15. **ADK 2.0 GA watch ticket** (C15) — non-blocking, just a tracking item.
+1. **Add `[tool.pytest.ini_options].pythonpath`** (C12).
+2. **Update test-count in docs from 75/75 → 87/87** (C13).
+3. **Region configurability via env var or tfvar** (C14).
+4. **ADK 2.0 GA watch ticket** (C15) — non-blocking, just a tracking item.
 
 ### 9.4 Process-level
 
-16. **Codify daily-ritual enforcement** — add a SessionStart hook or `Makefile` target that fails CI when CHECKPOINTS.md hasn't been updated in 24h (defends against the C2 class of failure).
-17. **Reviewer DONE-token discipline** — add a CI gate requiring `DONE` in PR body before merge (or codify via `commitlint` extension).
+1. **Codify daily-ritual enforcement** — add a SessionStart hook or `Makefile` target that fails CI when CHECKPOINTS.md hasn't been updated in 24h (defends against the C2 class of failure).
+2. **Reviewer DONE-token discipline** — add a CI gate requiring `DONE` in PR body before merge (or codify via `commitlint` extension).
 
 ---
 
