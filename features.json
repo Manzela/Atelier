@@ -2149,7 +2149,7 @@
       "passes": true,
       "completed_at": "2026-05-21T06:00:00Z",
       "evidence_commits": ["8025f05"],
-      "evidence_tests": ["tests/unit/test_github_mcp.py"],
+      "evidence_tests": ["tests/unit/test_axis_weights.py"],
       "evidence_notes": "Config-only: consensus/axis_weights_heuristic.yaml validated by C3 acceptance criteria.",
       "notes": "7 surface types \u00d7 5 D-O-R-A-V axes, summing to 1.0 \u00b1 0.01."
     },
