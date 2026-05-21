@@ -143,6 +143,10 @@ module = "atelier.api.*"
 disallow_any_unimported = false
 disallow_untyped_decorators = false
 
+[[tool.mypy.overrides]]
+module = "atelier.observability.*"
+disallow_any_unimported = false
+
 [tool.pydantic-mypy]
 init_forbid_extra = true
 init_typed = true
