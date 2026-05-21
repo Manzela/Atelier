@@ -79,7 +79,7 @@ class TestSpanAttributes:
         assert len(MANDATORY_ATTRS) == 15
 
     def test_validate_all_present(self) -> None:
-        attrs = {attr: "" for attr in MANDATORY_ATTRS}
+        attrs = dict.fromkeys(MANDATORY_ATTRS, "")
         missing = validate_span_attrs(attrs)
         assert missing == []
 
