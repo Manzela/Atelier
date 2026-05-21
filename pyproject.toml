@@ -91,11 +91,14 @@ ignore = [
     "PLR0913", # Too many arguments (Pydantic models)
     "TRY003",  # Avoid specifying long messages outside the exception class
     "TRY301",  # Abstract raise to an inner function
+    "TCH003",  # Pydantic v2 needs types at runtime — can't use TYPE_CHECKING
 ]
 unfixable = ["F401", "F841"]  # Don't auto-remove unused imports/variables
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**/*.py" = ["S101", "PLR2004", "ARG001", "ARG002"]  # asserts + magic numbers + unused args ok in tests
+"tests/**/*.py" = ["S101", "PLR2004", "ARG001", "ARG002", "ANN", "B017", "PT011"]
+"**/tests/**/*.py" = ["S101", "PLR2004", "ARG001", "ARG002", "ANN", "B017", "PT011"]
+"atelier-core/src/atelier/models/enums.py" = ["S105"]  # enum values like 'pass' and 'token-fidelity' are NOT secrets
 "atelier-core/src/atelier/skills/**/*.py" = ["T20"]  # print() ok in skills (CLI output)
 
 [tool.ruff.lint.mccabe]
@@ -134,6 +137,11 @@ exclude = [
 module = "tests.*"
 disallow_untyped_defs = false
 disallow_any_decorated = false
+
+[[tool.mypy.overrides]]
+module = "atelier.api.*"
+disallow_any_unimported = false
+disallow_untyped_decorators = false
 
 [tool.pydantic-mypy]
 init_forbid_extra = true

@@ -75,3 +75,64 @@ CONTEXT BUDGET WARNING for next session: Don't try to load this entire conversat
 ================================================
 
 (Future session entries append below this line.)
+
+## 2026-05-21 09:27 IST — Sprint Recovery Session Started
+
+### Phase 0 Progress
+- [x] F0001a — phase/1 worktree created at .worktrees/phase1-foundation/
+- [x] Pre-commit hooks installed (pre-commit + commit-msg)
+- [x] F0001b — Host prereqs verified (Python 3.12.11 via uv, Node 22, Docker, gcloud, gh)
+- [x] F0003 — Dependencies installed via uv pip:
+  - google-adk 2.0 Beta
+  - google-cloud-aiplatform 1.71+
+  - google-cloud-firestore, bigquery, secretmanager, storage
+  - opentelemetry-api, opentelemetry-sdk, otel-exporter-gcp-trace
+  - fastapi 0.136, uvicorn, pydantic 2.13, structlog, httpx, pyyaml
+  - All imports verified ✅
+- [/] F0004 — BriefSpec data contract: tests written (12 tests), implementation next
+
+### Architecture Decisions Made
+- Python 3.12.11 via uv (not 3.11 — pyproject.toml allows >=3.11,<3.13)
+- Virtual env at .worktrees/phase1-foundation/.venv
+- Using uv for dependency management (fast, reliable)
+
+### Next Steps
+- Implement BriefSpec (atelier-core/src/atelier/intake/brief_spec.py)
+- Run pytest to verify tests pass
+- Proceed to F0009 (remaining data contracts)
+- F0010 (FastAPI skeleton)
+
+### Blockers
+- None currently
+
+## 2026-05-21 09:37 IST — Phase 0 Foundation Batch Complete
+
+### Completed Features
+- [x] F0001a — phase/1 worktree created
+- [x] F0001b — Host prereqs verified (Python 3.12.11, Node 22, Docker, gcloud)
+- [x] F0003 — Dependencies installed + requirements.lock generated (98 deps)
+- [x] F0004 — BriefSpec data contract (13 tests ✅, mypy --strict ✅)
+- [x] F0009 — All Pydantic data contracts (29 tests ✅, mypy --strict ✅)
+  - 11 enums: VisualRegister, StackChoice, ComplianceLevel, ConvergenceBar,
+    SurfaceType, GateAxis, GateDecision, JudgeAxis, ConsensusDecision,
+    MutationOp, UserSignal
+  - 10 models: BriefSpec, TenantContext, AtelierDescriptor, SurfaceState,
+    SurfaceManifest, CandidateUI, GateOutcome, JudgeVote, ConsensusResult,
+    CoherenceVerdict, TrajectoryRecord
+- [x] F0010 — FastAPI skeleton + /health (4 tests ✅)
+- [x] FA-015 — Metacognitive Governor (14 tests ✅, mypy --strict ✅)
+- [x] F0011 — Dockerfile.api (multi-stage, non-root, uv deps)
+- [x] FA-001 — Docker Compose dev (sandbox, browser, OTel, Phoenix)
+- [x] FA-002 — Secret scrubber patterns (6 regex patterns)
+- [x] FA-006 — OTel Collector config (OTLP + Phoenix + Cloud Trace)
+- [x] FA-008 — Consensus directory + Apple-grade constitution
+- [x] FA-010 — Per-project workspace structure
+
+### Test Results
+- Total: 60 tests passing in 0.22s
+- mypy --strict: clean (no issues)
+
+### Next Steps
+- Commit + push to phase/1 branch
+- F0002 — Verify Vertex AI models (model registry)
+- Begin 8-node DAG implementation (Phase 1)

@@ -1,0 +1,71 @@
+# OTel Collector Configuration — Atelier
+#
+# ADR 0006: Google-native observability stack
+# Audit §3: C10 observability alignment
+# PRD §7.3: 15 mandatory span attributes
+#
+# Architecture:
+#   Dev:  OTLP → Collector → Phoenix exporter (localhost:6006)
+#   Prod: OTLP → Collector → Google Cloud Trace exporter
+#
+# The collector accepts traces via gRPC (4317) and HTTP (4318).
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    timeout: 5s
+    send_batch_size: 512
+    send_batch_max_size: 1024
+
+  # Add Atelier-specific resource attributes to all telemetry
+  resource:
+    attributes:
+      - key: gen_ai.system
+        value: atelier
+        action: upsert
+      - key: service.name
+        value: atelier-api
+        action: upsert
+      - key: service.namespace
+        value: atelier
+        action: upsert
+
+exporters:
+  # Dev exporter — Phoenix (only active when Phoenix container is running)
+  otlp/phoenix:
+    endpoint: 'phoenix:6006'
+    tls:
+      insecure: true
+
+  # Production exporter — Google Cloud Trace
+  # Uncomment when deploying to GCP:
+  # googlecloud:
+  #   project: "${GCP_PROJECT_ID}"
+  #   retry_on_failure:
+  #     enabled: true
+  #     initial_interval: 5s
+  #     max_interval: 30s
+  #     max_elapsed_time: 300s
+
+  # Debug exporter for local troubleshooting
+  debug:
+    verbosity: basic
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [resource, batch]
+      exporters: [otlp/phoenix, debug]
+    # Production pipeline (uncomment for GCP):
+    # traces/prod:
+    #   receivers: [otlp]
+    #   processors: [resource, batch]
+    #   exporters: [googlecloud]
