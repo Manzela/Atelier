@@ -2136,7 +2136,7 @@
       "passes": true,
       "completed_at": "2026-05-20T12:00:00Z",
       "evidence_commits": ["fe7fd96", "22e8e75"],
-      "evidence_tests": ["tests/unit/test_github_mcp.py"],
+      "evidence_tests": ["tests/unit/test_constitution_registry.py"],
       "evidence_notes": "Config-only: consensus/constitutions/apple-grade.yaml + brutalist.yaml.",
       "notes": "Constitution YAML files with 7 principles each, scoring thresholds."
     },
