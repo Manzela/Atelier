@@ -108,12 +108,20 @@ def _classify_generic(resources: dict[str, Any], decisions: list[ResourceDecisio
         "cloud_functions",
         "cloud_build_triggers",
         "artifact_registry",
+        "firestore",
+        "vertex_tuned_models",
     ):
         for resource in resources.get(kind, []):
             name = resource.get("name", resource.get("email", ""))
             if is_atelier_owned(name):
                 decisions.append(
                     ResourceDecision(kind, name, Disposition.MIGRATE, f"Atelier-owned {kind}")
+                )
+            else:
+                decisions.append(
+                    ResourceDecision(
+                        kind, name, Disposition.LEAVE_NON_ATELIER, f"Non-Atelier {kind}"
+                    )
                 )
 
 

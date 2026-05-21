@@ -1,0 +1,1117 @@
+{
+  "decisions": [
+    {
+      "resource_kind": "cloud_run",
+      "resource_name": "ext-firestore-bigquery-nodelogs-fsexportbigquery",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier Cloud Run service",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "cloud_run",
+      "resource_name": "ext-firestore-bigquery-runs-fsexportbigquery",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier Cloud Run service",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "cloud_run",
+      "resource_name": "fetch-bing-to-gcs",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier Cloud Run service",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "cloud_run",
+      "resource_name": "fetch-ga4-to-gcs",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier Cloud Run service",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "cloud_run",
+      "resource_name": "fetch-gsc-to-gcs",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier Cloud Run service",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "cloud_run",
+      "resource_name": "stream-ga4-to-bigquery",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier Cloud Run service",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "85113401879_693979102_eu_import_custom",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "85113401879_693979102_us_import_custom",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "85113401879_693979102_us_import_document",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "ai-search-results",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "ai-search-results-i-for-ai",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "antigravity-logging-i-for-ai",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "bing_webmastertools",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "boostmobile-seo-dashboard-2025",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "cloud-ai-platform-ef748943-f158-4014-9a26-28efaf26c7cc",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "dataflow-staging-us-central1-85113401879",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "demo-env-chat-with-data",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "eu_big_data_storage_idr",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "gcf-sources-85113401879-us-central1",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "gcf-v2-sources-85113401879-europe-west1",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "gcf-v2-sources-85113401879-us-central1",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "gcf-v2-uploads-85113401879.europe-west1.cloudfunctions.appspot.com",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "gcf-v2-uploads-85113401879.us-central1.cloudfunctions.appspot.com",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "i-for-ai-autonomousagent-snapshots",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "i-for-ai-autonomousagent-tfstate",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "i-for-ai-image-cache",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "i-for-ai-lora-adapters",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "i-for-ai-lora-training",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "i-for-ai-slm-models",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "i-for-ai-source-bucket",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "i-for-ai_cloudbuild",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "maps-solutions-j6hwor60ev",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "microsoft_clarity",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "openai-prompt-results-i-for-ai",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "post-training_scraped_product_schema",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "run-sources-i-for-ai-us-central1",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "scraped_product_schema_examples",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "search-bi-cloud",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "search-bi-input",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "search-bi-output",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "search-bi-temp",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "tng-config-bucket",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "tng-customer-logs-landing",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "tng-customer-logs-landing-26",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "tng-seo-policy-corpus",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "tng-tracing-logs",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "tng_ai_scraper_source",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "tng_ai_visibility_results",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "tng_data_lake_core",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "tng_empromptu_results",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "tng_ga4",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "tng_gsc",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "tng_keywords_api",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "tng_microsoft_clarity",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "tng_pipeline",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "gcs_buckets",
+      "resource_name": "tng_search_bi",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier gcs_buckets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "bigquery_datasets",
+      "resource_name": "",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier bigquery_datasets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "bigquery_datasets",
+      "resource_name": "",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier bigquery_datasets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "bigquery_datasets",
+      "resource_name": "",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier bigquery_datasets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "bigquery_datasets",
+      "resource_name": "",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier bigquery_datasets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "bigquery_datasets",
+      "resource_name": "",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier bigquery_datasets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "bigquery_datasets",
+      "resource_name": "",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier bigquery_datasets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "bigquery_datasets",
+      "resource_name": "",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier bigquery_datasets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "bigquery_datasets",
+      "resource_name": "",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier bigquery_datasets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "bigquery_datasets",
+      "resource_name": "",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier bigquery_datasets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "bigquery_datasets",
+      "resource_name": "",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier bigquery_datasets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "bigquery_datasets",
+      "resource_name": "",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier bigquery_datasets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "bigquery_datasets",
+      "resource_name": "",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier bigquery_datasets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "bigquery_datasets",
+      "resource_name": "",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier bigquery_datasets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "bigquery_datasets",
+      "resource_name": "",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier bigquery_datasets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "bigquery_datasets",
+      "resource_name": "",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier bigquery_datasets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "bigquery_datasets",
+      "resource_name": "",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier bigquery_datasets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "bigquery_datasets",
+      "resource_name": "",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier bigquery_datasets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "bigquery_datasets",
+      "resource_name": "",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier bigquery_datasets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "bigquery_datasets",
+      "resource_name": "",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier bigquery_datasets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "bigquery_datasets",
+      "resource_name": "",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier bigquery_datasets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "bigquery_datasets",
+      "resource_name": "",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier bigquery_datasets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "bigquery_datasets",
+      "resource_name": "",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier bigquery_datasets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "bigquery_datasets",
+      "resource_name": "",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier bigquery_datasets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "bigquery_datasets",
+      "resource_name": "",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier bigquery_datasets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "service_accounts",
+      "resource_name": "projects/i-for-ai/serviceAccounts/85113401879-compute@developer.gserviceaccount.com",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier service_accounts",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "service_accounts",
+      "resource_name": "projects/i-for-ai/serviceAccounts/i-for-ai@appspot.gserviceaccount.com",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier service_accounts",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "service_accounts",
+      "resource_name": "projects/i-for-ai/serviceAccounts/indexing@i-for-ai.iam.gserviceaccount.com",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier service_accounts",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "service_accounts",
+      "resource_name": "projects/i-for-ai/serviceAccounts/firebase-adminsdk-fbsvc@i-for-ai.iam.gserviceaccount.com",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier service_accounts",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "service_accounts",
+      "resource_name": "projects/i-for-ai/serviceAccounts/ext-firestore-bigquery-no-9s10@i-for-ai.iam.gserviceaccount.com",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier service_accounts",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "service_accounts",
+      "resource_name": "projects/i-for-ai/serviceAccounts/autonomousagent-github-ci@i-for-ai.iam.gserviceaccount.com",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier service_accounts",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "service_accounts",
+      "resource_name": "projects/i-for-ai/serviceAccounts/github@i-for-ai.iam.gserviceaccount.com",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier service_accounts",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "service_accounts",
+      "resource_name": "projects/i-for-ai/serviceAccounts/googleadsapi@i-for-ai.iam.gserviceaccount.com",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier service_accounts",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "service_accounts",
+      "resource_name": "projects/i-for-ai/serviceAccounts/vertex-express@i-for-ai.iam.gserviceaccount.com",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier service_accounts",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "service_accounts",
+      "resource_name": "projects/i-for-ai/serviceAccounts/ga4-exporter@i-for-ai.iam.gserviceaccount.com",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier service_accounts",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "service_accounts",
+      "resource_name": "projects/i-for-ai/serviceAccounts/event-tracker@i-for-ai.iam.gserviceaccount.com",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier service_accounts",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "service_accounts",
+      "resource_name": "projects/i-for-ai/serviceAccounts/ext-firestore-bigquery-runs@i-for-ai.iam.gserviceaccount.com",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier service_accounts",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "service_accounts",
+      "resource_name": "projects/i-for-ai/serviceAccounts/antigravity-logger@i-for-ai.iam.gserviceaccount.com",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier service_accounts",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "service_accounts",
+      "resource_name": "projects/i-for-ai/serviceAccounts/github-dev-stg@i-for-ai.iam.gserviceaccount.com",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier service_accounts",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "service_accounts",
+      "resource_name": "projects/i-for-ai/serviceAccounts/autonomousagent-vm-runtime@i-for-ai.iam.gserviceaccount.com",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier service_accounts",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "service_accounts",
+      "resource_name": "projects/i-for-ai/serviceAccounts/modal-pipeline-writer@i-for-ai.iam.gserviceaccount.com",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier service_accounts",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "pubsub_topics",
+      "resource_name": "projects/i-for-ai/topics/pipeline-completed",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier pubsub_topics",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "pubsub_topics",
+      "resource_name": "projects/i-for-ai/topics/pipeline-orchestration",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier pubsub_topics",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "pubsub_topics",
+      "resource_name": "projects/i-for-ai/topics/seo-completed",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier pubsub_topics",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "pubsub_topics",
+      "resource_name": "projects/i-for-ai/topics/eventarc-europe-west1-stream-ga4-to-bigquery-981721-114",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier pubsub_topics",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "pubsub_topics",
+      "resource_name": "projects/i-for-ai/topics/eventarc-nam5-ext-firestore-bigquery-nodelogs-fsexportbigquery-041182-785",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier pubsub_topics",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "pubsub_topics",
+      "resource_name": "projects/i-for-ai/topics/eventarc-nam5-ext-firestore-bigquery-runs-fsexportbigquery-708376-822",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier pubsub_topics",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/DB_CONNECTION_STRING",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/GCP_BILLING_ACCOUNT_ID",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/HF_TOKEN",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/JIRA_API_TOKEN",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/JIRA_USER_EMAIL",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/REDIS_HOST",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/ai-search-jwt-secret",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/atelier-geap-api-key",
+      "disposition": "MIGRATE",
+      "rationale": "Atelier-owned secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/autonomousagent-chroma-cloud",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/autonomousagent-github-pat",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/autonomousagent-hermes-provider",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/autonomousagent-honcho",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/autonomousagent-litellm-db",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/autonomousagent-litellm-master-key",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/autonomousagent-telegram",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/brd-password",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/brd-proxy-password",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/brd-proxy-username",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/brd-username",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/clarity_api_key",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/claude-api-key-tng",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/dataforseo_login",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/dataforseo_password",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/empromptu-api-key",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/firecrawl-api-key",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/ga4_property_id",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/gemini-api-key",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/google-ads-config",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/google_ads_api_key",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/google_ads_developer_token",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/google_ads_sa_key",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/google_maps_api_key",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/keyword-api-key",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/langfuse-host",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/langfuse-public-key",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/langfuse-secret-key",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/openai-api-key",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/openai-api-key-tng",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/openai-prompt-jwt-secret",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/perplexity-api-key",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/tng-shopper-kinde-callback",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/tng-shopper-kinde-client-id",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/tng-shopper-kinde-domain",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/tng-shopper-kinde-secret",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/vertex-rag-seo-corpus-name",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "secrets",
+      "resource_name": "projects/85113401879/secrets/webscraper-api-key",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier secrets",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "artifact_registry",
+      "resource_name": "projects/i-for-ai/locations/europe-west1/repositories/gcf-artifacts",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier artifact_registry",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "artifact_registry",
+      "resource_name": "projects/i-for-ai/locations/us/repositories/gcr.io",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier artifact_registry",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "artifact_registry",
+      "resource_name": "projects/i-for-ai/locations/us-central1/repositories/autonomousagent-images",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier artifact_registry",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "artifact_registry",
+      "resource_name": "projects/i-for-ai/locations/us-central1/repositories/cloud-run-source-deploy",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier artifact_registry",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "artifact_registry",
+      "resource_name": "projects/i-for-ai/locations/us-central1/repositories/gcf-artifacts",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier artifact_registry",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "artifact_registry",
+      "resource_name": "projects/i-for-ai/locations/us-central1/repositories/mcp-cloud-run-deployments",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier artifact_registry",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "artifact_registry",
+      "resource_name": "projects/i-for-ai/locations/us-central1/repositories/vertex-serving",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier artifact_registry",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "firestore",
+      "resource_name": "projects/i-for-ai/databases/local-demand-database",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier firestore",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "firestore",
+      "resource_name": "projects/i-for-ai/databases/demand-database",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier firestore",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "firestore",
+      "resource_name": "projects/i-for-ai/databases/pipeline-logs",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier firestore",
+      "estimated_monthly_cost_usd": 0.0
+    },
+    {
+      "resource_kind": "firestore",
+      "resource_name": "projects/i-for-ai/databases/(default)",
+      "disposition": "LEAVE_NON_ATELIER",
+      "rationale": "Non-Atelier firestore",
+      "estimated_monthly_cost_usd": 0.0
+    }
+  ]
+}
