@@ -25,7 +25,7 @@ import uuid
 from typing import Any, Protocol
 
 from atelier.nodes.trajectory import (
-    TrajectoryRecord,  # noqa: TCH001  # runtime: buffer ops + to_bq_row()
+    TrajectoryRecord,  # noqa: TC001  # runtime: buffer ops + to_bq_row()
 )
 
 logger = logging.getLogger(__name__)
