@@ -1,0 +1,14 @@
+{
+  "_source": "https://cloud.google.com/vertex-ai/generative-ai/pricing",
+  "_fetched_at": "2026-05-21",
+  "_unit": "USD per 1000 input tokens",
+  "_tier": "standard (<=200K context, Global endpoint, text/image/video input)",
+  "_note": "Output token pricing differs and is tracked separately by the cost-aware planner. This file tracks input-token cost only (the router's primary signal). Re-fetch monthly per <no_unverified_apis>. Long-context tier (>200K tokens) lives in a separate map.",
+  "_plan_drift_disclosure": "Spec §18.3 brainstorm-time values (gemini-3-pro: 0.00250, gemini-3-flash: 0.00075, gemini-3.1-flash-lite: 0.00015, gemini-2.5-pro: 0.00350, gemini-2.5-flash-001: 0.00075) were the NEEDS-VERIFICATION placeholders. Live pricing as of fetch differs — values below are authoritative.",
+  "_preview_status_caveats": "Gemini 3.1 Pro Preview and Gemini 3 Flash Preview are marked Preview on the live page — prices subject to change at GA. Re-verify before any large training run or capacity commitment.",
+  "gemini-3-pro": 0.002,
+  "gemini-3-flash": 0.0005,
+  "gemini-3.1-flash-lite": 0.00025,
+  "gemini-2.5-pro": 0.00125,
+  "gemini-2.5-flash-001": 0.0003
+}

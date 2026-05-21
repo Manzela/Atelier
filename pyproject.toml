@@ -157,6 +157,12 @@ ignore_missing_imports = true
 module = "atelier.memory.*"
 disallow_any_unimported = false
 
+# numpy is TYPE_CHECKING-only in atelier.router.protocol — same rationale as
+# atelier.memory.*. The lockfile reconciliation lands in Antigravity R7-01 (T0).
+[[tool.mypy.overrides]]
+module = "atelier.router.*"
+disallow_any_unimported = false
+
 [tool.pydantic-mypy]
 init_forbid_extra = true
 init_typed = true
