@@ -155,7 +155,9 @@
       "passes": false,
       "human_approved": null,
       "day": "D2 May 16",
-      "notes": "Daniel reviews plan + approves apply"
+      "notes": "Daniel reviews plan + approves apply",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0009",
@@ -217,7 +219,9 @@
       "name": "N1 Brief Parser GateAgent: deterministic gate (intent schema validator) + probabilistic agent (Gemini 3 Flash via Vertex)",
       "depends_on": ["F0009", "F0011"],
       "passes": false,
-      "day": "D3 May 17"
+      "day": "D3 May 17",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0014",
@@ -226,7 +230,9 @@
       "name": "N1 Brief Parser unit tests: 3 tests (gate pass, gate reject empty, agent returns valid BriefSpec via mocked Gemini)",
       "depends_on": ["F0013"],
       "passes": false,
-      "day": "D3 May 17"
+      "day": "D3 May 17",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0015",
@@ -235,7 +241,9 @@
       "name": "ADK Runner integration: SequentialAgent containing N1; InMemorySessionService for D3",
       "depends_on": ["F0013"],
       "passes": false,
-      "day": "D3 May 17"
+      "day": "D3 May 17",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0016",
@@ -244,7 +252,9 @@
       "name": "End-to-end test: brief text \u2192 BriefSpec via ADK Runner",
       "depends_on": ["F0014", "F0015"],
       "passes": false,
-      "day": "D3 May 17"
+      "day": "D3 May 17",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0017",
@@ -279,7 +289,9 @@
       "name": "Wire emit into ADK orchestrator after_agent_callback; manual test verifies BigQuery row appears",
       "depends_on": ["F0015", "F0018"],
       "passes": false,
-      "day": "D3 May 17"
+      "day": "D3 May 17",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0020",
@@ -301,7 +313,9 @@
       "name": "N2 Source Resolver deterministic gate: descriptor exists OR brief contains path \u2192 resolve to project context",
       "depends_on": ["F0009"],
       "passes": false,
-      "day": "D4 May 18"
+      "day": "D4 May 18",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0022",
@@ -310,7 +324,9 @@
       "name": "N2 Source Resolver agent: pull DESIGN.md tokens via dmd lint subprocess; pull principles; pull Memory Bank prior preferences",
       "depends_on": ["F0021"],
       "passes": false,
-      "day": "D4 May 18"
+      "day": "D4 May 18",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0023",
@@ -319,7 +335,9 @@
       "name": "Vertex Memory Bank wiring: VertexAiMemoryBankService client; first read against staging tenant",
       "depends_on": ["F0008"],
       "passes": false,
-      "day": "D4 May 18"
+      "day": "D4 May 18",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0024",
@@ -328,7 +346,9 @@
       "name": "N2 unit tests: 6 tests (gate pass with descriptor, gate pass with inferred path, gate reject ambiguous, agent reads DESIGN.md, agent reads Memory Bank, agent merges all sources)",
       "depends_on": ["F0022", "F0023"],
       "passes": false,
-      "day": "D4 May 18"
+      "day": "D4 May 18",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0025",
@@ -337,7 +357,9 @@
       "name": "Pipeline now: SequentialAgent([N1, N2]); integration test brief + descriptor \u2192 BriefSpec + ProjectContext",
       "depends_on": ["F0024"],
       "passes": false,
-      "day": "D4 May 18"
+      "day": "D4 May 18",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0026",
@@ -359,7 +381,9 @@
       "name": "Stitch MCP wiring via ADK MCPToolset pointing at https://stitch.googleapis.com/mcp; auth via Secret Manager atelier-geap-api-key",
       "depends_on": ["F0008"],
       "passes": false,
-      "day": "D5 May 19"
+      "day": "D5 May 19",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0028",
@@ -368,7 +392,9 @@
       "name": "N3a Generator base: K=3 candidates per iteration via ParallelAgent (placeholder for K=6 in Phase 2)",
       "depends_on": ["F0027", "F0009"],
       "passes": false,
-      "day": "D5 May 19"
+      "day": "D5 May 19",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0029",
@@ -377,7 +403,9 @@
       "name": "N3a Generator: each sub-generator calls Stitch generate_screen_from_text OR Gemini 3 Pro direct",
       "depends_on": ["F0028"],
       "passes": false,
-      "day": "D5 May 19"
+      "day": "D5 May 19",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0030",
@@ -386,7 +414,9 @@
       "name": "Cost router stub in code (LiteLLM-style; Apigee X org deferred to save $500/mo)",
       "depends_on": ["F0029"],
       "passes": false,
-      "day": "D5 May 19"
+      "day": "D5 May 19",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0031",
@@ -395,7 +425,9 @@
       "name": "N3a unit tests: 5 tests + 1 integration test (mocked Stitch responses); generation success rate \u2265 95% on 20 fixture briefs",
       "depends_on": ["F0030"],
       "passes": false,
-      "day": "D5 May 19"
+      "day": "D5 May 19",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0032",
@@ -417,7 +449,9 @@
       "name": "N3c gate axis: Lighthouse a11y + perf + best-practices subprocess wrapper; 2 unit tests",
       "depends_on": ["F0009"],
       "passes": false,
-      "day": "D6 May 20"
+      "day": "D6 May 20",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0034",
@@ -426,7 +460,9 @@
       "name": "N3c gate axis: axe-core subprocess wrapper for WCAG2AA violations; 2 unit tests",
       "depends_on": ["F0009"],
       "passes": false,
-      "day": "D6 May 20"
+      "day": "D6 May 20",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0035",
@@ -435,7 +471,9 @@
       "name": "N3c gate axis: token-fidelity grep over generated artifact for hex/font/spacing not in DESIGN.md; 2 unit tests",
       "depends_on": ["F0009"],
       "passes": false,
-      "day": "D6 May 20"
+      "day": "D6 May 20",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0036",
@@ -509,7 +547,9 @@
       "name": "Pipeline now: SequentialAgent([N1, N2, N3a_loop, N3c]); integration test on 5 fixture briefs",
       "depends_on": ["F0039", "F0040"],
       "passes": false,
-      "day": "D6 May 20"
+      "day": "D6 May 20",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0042",
@@ -567,7 +607,9 @@
       "name": "Phase 1 complete pipeline: SequentialAgent([N1, N2, N3a_loop, N3c, N3d_stub, N4_stub])",
       "depends_on": ["F0041", "F0043", "F0044"],
       "passes": false,
-      "day": "D7 May 21"
+      "day": "D7 May 21",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0046",
@@ -576,7 +618,9 @@
       "name": "End-to-end run on pipeline-observatory hero brief; verify converged HTML/CSS + trajectory + Cloud Trace",
       "depends_on": ["F0045"],
       "passes": false,
-      "day": "D7 May 21"
+      "day": "D7 May 21",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0047",
@@ -585,7 +629,9 @@
       "name": "atelier-eval/runner.py: subset support; run WebGen-Bench 50/484 task subset",
       "depends_on": ["F0045"],
       "passes": false,
-      "day": "D7 May 21"
+      "day": "D7 May 21",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0048",
@@ -594,7 +640,9 @@
       "name": "smoke.sh staging: 9 checks (containers healthy, /health, /docs, Vertex AI auth, BigQuery write, Memory Bank read, OTel trace within 30s, gcloud project, ADC token)",
       "depends_on": ["F0011"],
       "passes": false,
-      "day": "D7 May 21"
+      "day": "D7 May 21",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0049",
@@ -604,7 +652,9 @@
       "depends_on": ["F0046", "F0047", "F0048"],
       "passes": false,
       "human_approved": null,
-      "day": "D7 May 21"
+      "day": "D7 May 21",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0050",
@@ -614,7 +664,9 @@
       "depends_on": ["F0049"],
       "passes": false,
       "human_approved": null,
-      "day": "D7 May 21"
+      "day": "D7 May 21",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0060",
@@ -623,7 +675,9 @@
       "name": "Create phase/2 worktree from main",
       "depends_on": ["F0050"],
       "passes": false,
-      "day": "D8 May 22"
+      "day": "D8 May 22",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0061",
@@ -632,7 +686,9 @@
       "name": "@atelier/constitution-apple-grade npm package skeleton with 12 principles populated from DESIGN_PRINCIPLES_APPLE.md",
       "depends_on": ["F0060"],
       "passes": false,
-      "day": "D8 May 22"
+      "day": "D8 May 22",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0062",
@@ -641,7 +697,9 @@
       "name": "N3b Constitutional Self-Critique node: Gemini 3 Flash scores each candidate against 12 principles before deterministic gate",
       "depends_on": ["F0061", "F0009"],
       "passes": false,
-      "day": "D8 May 22"
+      "day": "D8 May 22",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0063",
@@ -650,7 +708,9 @@
       "name": "N3b calibration check: \u03ba \u2265 0.7 vs human rubric on 50-task calibration set every 100 calls",
       "depends_on": ["F0062"],
       "passes": false,
-      "day": "D8 May 22"
+      "day": "D8 May 22",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0064",
@@ -659,7 +719,9 @@
       "name": "EvoDesign upgrade K=3 \u2192 K=6 candidates per iteration",
       "depends_on": ["F0040"],
       "passes": false,
-      "day": "D8 May 22"
+      "day": "D8 May 22",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0065",
@@ -668,7 +730,9 @@
       "name": "Mutation operator: token-swap (within DESIGN.md token set)",
       "depends_on": ["F0064"],
       "passes": false,
-      "day": "D8 May 22"
+      "day": "D8 May 22",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0066",
@@ -677,7 +741,9 @@
       "name": "Mutation operator: layout-swap (grid \u2192 flex \u2192 masonry \u2192 list)",
       "depends_on": ["F0064"],
       "passes": false,
-      "day": "D8 May 22"
+      "day": "D8 May 22",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0067",
@@ -686,7 +752,9 @@
       "name": "Mutation operator: typography-swap (alt typeface from project palette)",
       "depends_on": ["F0064"],
       "passes": false,
-      "day": "D8 May 22"
+      "day": "D8 May 22",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0068",
@@ -695,7 +763,9 @@
       "name": "Mutation operator: motion-swap (different easing/duration combinations)",
       "depends_on": ["F0064"],
       "passes": false,
-      "day": "D8 May 22"
+      "day": "D8 May 22",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0069",
@@ -704,7 +774,9 @@
       "name": "Mutation operator: density-shift (compact \u2194 spacious)",
       "depends_on": ["F0064"],
       "passes": false,
-      "day": "D8 May 22"
+      "day": "D8 May 22",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0070",
@@ -713,7 +785,9 @@
       "name": "Mutation operator: hierarchy-restructure (reorder visual weight)",
       "depends_on": ["F0064"],
       "passes": false,
-      "day": "D8 May 22"
+      "day": "D8 May 22",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0071",
@@ -722,7 +796,9 @@
       "name": "ADK LoopAgent wraps EvoDesign loop with max_iterations=5; escalate on convergence",
       "depends_on": ["F0064", "F0062"],
       "passes": false,
-      "day": "D8 May 22"
+      "day": "D8 May 22",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0072",
@@ -731,7 +807,9 @@
       "name": "18 unit tests (3 per mutation operator + 6 for CSC-D); integration test 6-candidate loop converges in \u22643 iterations on 5-task fixture",
       "depends_on": ["F0065", "F0066", "F0067", "F0068", "F0069", "F0070", "F0071"],
       "passes": false,
-      "day": "D8 May 22"
+      "day": "D8 May 22",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0073",
@@ -740,7 +818,9 @@
       "name": "D8 EOD checkpoint",
       "depends_on": ["F0072"],
       "passes": false,
-      "day": "D8 May 22"
+      "day": "D8 May 22",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0074",
@@ -749,7 +829,9 @@
       "name": "Hebbian Mutator wraps adk optimize (GEPA) in atelier-core/src/atelier/flywheel/prompt_mutator.py",
       "depends_on": ["F0071"],
       "passes": false,
-      "day": "D9 May 23"
+      "day": "D9 May 23",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0075",
@@ -758,7 +840,9 @@
       "name": "Failure-pattern mapping: A11Y_FAIL \u2192 APPEND_CONSTRAINT",
       "depends_on": ["F0074"],
       "passes": false,
-      "day": "D9 May 23"
+      "day": "D9 May 23",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0076",
@@ -767,7 +851,9 @@
       "name": "Failure-pattern mapping: TOKEN_DRIFT \u2192 APPEND_CONSTRAINT",
       "depends_on": ["F0074"],
       "passes": false,
-      "day": "D9 May 23"
+      "day": "D9 May 23",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0077",
@@ -776,7 +862,9 @@
       "name": "Failure-pattern mapping: BRAND_INCONSIST \u2192 BOOST_EXAMPLE",
       "depends_on": ["F0074"],
       "passes": false,
-      "day": "D9 May 23"
+      "day": "D9 May 23",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0078",
@@ -785,7 +873,9 @@
       "name": "Failure-pattern mapping: LOW_ORIGINALITY \u2192 ADJUST_TEMPERATURE",
       "depends_on": ["F0074"],
       "passes": false,
-      "day": "D9 May 23"
+      "day": "D9 May 23",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0079",
@@ -794,7 +884,9 @@
       "name": "Failure-pattern mapping: MOTION_NO_REDUCED \u2192 APPEND_CONSTRAINT",
       "depends_on": ["F0074"],
       "passes": false,
-      "day": "D9 May 23"
+      "day": "D9 May 23",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0080",
@@ -803,7 +895,9 @@
       "name": "Reviewer subagent dispatch (Opus + code-review-excellence skill); Ralph Loop 'DONE' token requirement",
       "depends_on": ["F0009"],
       "passes": false,
-      "day": "D9 May 23"
+      "day": "D9 May 23",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0081",
@@ -812,7 +906,9 @@
       "name": "Per-tenant cost router (LiteLLM virtual keys via Apigee placeholder; full Apigee X deferred)",
       "depends_on": ["F0030"],
       "passes": false,
-      "day": "D9 May 23"
+      "day": "D9 May 23",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0082",
@@ -821,7 +917,9 @@
       "name": "12 unit tests + 2 integration tests for fixer + Hebbian; Hebbian mutator fires correctly on contrast failure",
       "depends_on": ["F0079", "F0080", "F0081"],
       "passes": false,
-      "day": "D9 May 23"
+      "day": "D9 May 23",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0083",
@@ -830,7 +928,9 @@
       "name": "D9 EOD checkpoint",
       "depends_on": ["F0082"],
       "passes": false,
-      "day": "D9 May 23"
+      "day": "D9 May 23",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0084",
@@ -839,7 +939,9 @@
       "name": "Brand judge: rubric definition + Gemini 3 Flash via rubric_based_final_response_quality_v1",
       "depends_on": ["F0009"],
       "passes": false,
-      "day": "D10 May 24"
+      "day": "D10 May 24",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0085",
@@ -848,7 +950,9 @@
       "name": "Copy judge: voice rubric (no marketing voice, peer-level depth, on-brief)",
       "depends_on": ["F0009"],
       "passes": false,
-      "day": "D10 May 24"
+      "day": "D10 May 24",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0086",
@@ -857,7 +961,9 @@
       "name": "Motion judge: prefers-reduced-motion alternate exists, reveals fire once",
       "depends_on": ["F0009"],
       "passes": false,
-      "day": "D10 May 24"
+      "day": "D10 May 24",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0087",
@@ -866,7 +972,9 @@
       "name": "Token-fidelity judge: hex/font/spacing values within DESIGN.md token set",
       "depends_on": ["F0009"],
       "passes": false,
-      "day": "D10 May 24"
+      "day": "D10 May 24",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0088",
@@ -875,7 +983,9 @@
       "name": "Cross-screen-coherence judge: pattern reuse vs prior-converged surfaces",
       "depends_on": ["F0009"],
       "passes": false,
-      "day": "D10 May 24"
+      "day": "D10 May 24",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0089",
@@ -884,7 +994,9 @@
       "name": "DEMAS-D Provenance Matrix: provenance_for(axis, candidate, project_context) \u2192 list[var_name]",
       "depends_on": ["F0009"],
       "passes": false,
-      "day": "D10 May 24"
+      "day": "D10 May 24",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0090",
@@ -893,7 +1005,9 @@
       "name": "ConsensusAgent custom BaseAgent subclass: parallel asyncio.gather of 5 judges + Bayesian-weighted vote",
       "depends_on": ["F0084", "F0085", "F0086", "F0087", "F0088", "F0089"],
       "passes": false,
-      "day": "D10 May 24"
+      "day": "D10 May 24",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0091",
@@ -902,7 +1016,9 @@
       "name": "25 unit tests (5 per judge: rubric structure, provenance filter correctness, edge cases); integration test full 5-judge consensus on 5 fixture surfaces",
       "depends_on": ["F0090"],
       "passes": false,
-      "day": "D10 May 24"
+      "day": "D10 May 24",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0092",
@@ -911,7 +1027,9 @@
       "name": "Replace N3d_stub with full N3d ConsensusAgent in main pipeline",
       "depends_on": ["F0091"],
       "passes": false,
-      "day": "D10 May 24"
+      "day": "D10 May 24",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0093",
@@ -920,7 +1038,9 @@
       "name": "D10 EOD checkpoint",
       "depends_on": ["F0092"],
       "passes": false,
-      "day": "D10 May 24"
+      "day": "D10 May 24",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0094",
@@ -930,7 +1050,9 @@
       "depends_on": ["F0091"],
       "passes": false,
       "human_approved": null,
-      "day": "D11 May 25"
+      "day": "D11 May 25",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0095",
@@ -939,7 +1061,9 @@
       "name": "calibration.atelier.dev static site: vanilla HTML + Tailwind CDN matching pipeline-observatory aesthetic",
       "depends_on": ["F0008"],
       "passes": false,
-      "day": "D11 May 25"
+      "day": "D11 May 25",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0096",
@@ -948,7 +1072,9 @@
       "name": "Cloud Scheduler job: weekly Mon 03:17 UTC \u2192 Cloud Run job runs calibration",
       "depends_on": ["F0094", "F0095"],
       "passes": false,
-      "day": "D11 May 25"
+      "day": "D11 May 25",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0097",
@@ -957,7 +1083,9 @@
       "name": "Calibration runner: writes results JSON \u2192 Firestore \u2192 static site rebuild via Cloud Build trigger",
       "depends_on": ["F0096"],
       "passes": false,
-      "day": "D11 May 25"
+      "day": "D11 May 25",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0098",
@@ -966,7 +1094,9 @@
       "name": "Drift detection: alert on correlation drop > 0.05 week-over-week \u2192 Telegram",
       "depends_on": ["F0097"],
       "passes": false,
-      "day": "D11 May 25"
+      "day": "D11 May 25",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0099",
@@ -975,7 +1105,9 @@
       "name": "D11 EOD checkpoint",
       "depends_on": ["F0098"],
       "passes": false,
-      "day": "D11 May 25"
+      "day": "D11 May 25",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0100",
@@ -984,7 +1116,9 @@
       "name": "Campaign module skeleton: orchestrator.py, brief_parser.py, manifest.py, picker.py, coherence_validator.py, checkpoint_writer.py",
       "depends_on": ["F0009"],
       "passes": false,
-      "day": "D12 May 26"
+      "day": "D12 May 26",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0101",
@@ -993,7 +1127,9 @@
       "name": "CampaignBrief Parser: decompose multi-surface brief into Surface Manifest with dependency graph",
       "depends_on": ["F0100"],
       "passes": false,
-      "day": "D12 May 26"
+      "day": "D12 May 26",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0102",
@@ -1002,7 +1138,9 @@
       "name": "Surface Manifest JSON ledger: schema-versioned, agent-edited not rewritten",
       "depends_on": ["F0101"],
       "passes": false,
-      "day": "D12 May 26"
+      "day": "D12 May 26",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0103",
@@ -1011,7 +1149,9 @@
       "name": "Cloud Tasks queue atelier-staging-campaign-surfaces; Cloud Scheduler trigger per-campaign worker",
       "depends_on": ["F0008"],
       "passes": false,
-      "day": "D12 May 26"
+      "day": "D12 May 26",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0104",
@@ -1020,7 +1160,9 @@
       "name": "Campaign Picker: picks next unblocked surface honoring dependency graph",
       "depends_on": ["F0102", "F0103"],
       "passes": false,
-      "day": "D12 May 26"
+      "day": "D12 May 26",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0105",
@@ -1029,7 +1171,9 @@
       "name": "Cross-Surface Coherence Validator: token use + pattern reuse \u226530% + DECISIONS.md compliance + regression check on top-5 most-similar",
       "depends_on": ["F0102"],
       "passes": false,
-      "day": "D12 May 26"
+      "day": "D12 May 26",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0106",
@@ -1038,7 +1182,9 @@
       "name": "Campaign Checkpoint Writer: updates surfaces.json + campaign-progress.txt + RESUME-HERE markers + DECISIONS.md + REJECTED.md",
       "depends_on": ["F0102"],
       "passes": false,
-      "day": "D12 May 26"
+      "day": "D12 May 26",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0107",
@@ -1047,7 +1193,9 @@
       "name": "End-to-end test: 5-surface mini-campaign decomposition + sequential surface execution + coherence check",
       "depends_on": ["F0104", "F0105", "F0106", "F0092"],
       "passes": false,
-      "day": "D12 May 26"
+      "day": "D12 May 26",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0108",
@@ -1056,7 +1204,9 @@
       "name": "18 unit tests + 1 integration test for campaign module",
       "depends_on": ["F0107"],
       "passes": false,
-      "day": "D12 May 26"
+      "day": "D12 May 26",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0109",
@@ -1065,7 +1215,9 @@
       "name": "D12 EOD checkpoint",
       "depends_on": ["F0108"],
       "passes": false,
-      "day": "D12 May 26"
+      "day": "D12 May 26",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0110",
@@ -1074,7 +1226,9 @@
       "name": "PIP Router: adaptive depth (atomic 2-3 / small 5-7 / large 10-12 / greenfield 12-15)",
       "depends_on": ["F0009"],
       "passes": false,
-      "day": "D13 May 27"
+      "day": "D13 May 27",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0111",
@@ -1083,7 +1237,9 @@
       "name": "Skip-Path Resolver: descriptor parser + Memory Bank query + brief NLP extraction",
       "depends_on": ["F0110", "F0023"],
       "passes": false,
-      "day": "D13 May 27"
+      "day": "D13 May 27",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0112",
@@ -1092,7 +1248,9 @@
       "name": "13-question catalog as YAML; each question has 1:1 DAPLab pattern mapping documented",
       "depends_on": ["F0110"],
       "passes": false,
-      "day": "D13 May 27"
+      "day": "D13 May 27",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0113",
@@ -1101,7 +1259,9 @@
       "name": "PIP Intake Agent: Gemini 3 Flash conversation loop driving question_catalog",
       "depends_on": ["F0112", "F0111"],
       "passes": false,
-      "day": "D13 May 27"
+      "day": "D13 May 27",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0114",
@@ -1110,7 +1270,9 @@
       "name": "BriefSpec Synthesizer: produces immutable JSON BriefSpec; user-approved; initializes DECISIONS.md + design-system.lock.md",
       "depends_on": ["F0113"],
       "passes": false,
-      "day": "D13 May 27"
+      "day": "D13 May 27",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0115",
@@ -1119,7 +1281,9 @@
       "name": "Visual options for design questions: text-only ships in MVP; visual thumbnails behind feature flag for Phase 1.5",
       "depends_on": ["F0113"],
       "passes": false,
-      "day": "D13 May 27"
+      "day": "D13 May 27",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0116",
@@ -1128,7 +1292,9 @@
       "name": "20 unit tests + 1 integration test: 5 fixture intake scenarios \u2192 BriefSpec.json",
       "depends_on": ["F0114"],
       "passes": false,
-      "day": "D13 May 27"
+      "day": "D13 May 27",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0117",
@@ -1137,7 +1303,9 @@
       "name": "Pipeline now includes PIP at front: PIP \u2192 Campaign Orchestrator \u2192 atomic 8-node DAG",
       "depends_on": ["F0116", "F0107"],
       "passes": false,
-      "day": "D13 May 27"
+      "day": "D13 May 27",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0118",
@@ -1146,7 +1314,9 @@
       "name": "D13 EOD checkpoint",
       "depends_on": ["F0117"],
       "passes": false,
-      "day": "D13 May 27"
+      "day": "D13 May 27",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0119",
@@ -1155,7 +1325,9 @@
       "name": "A2UI v0.9 React renderer",
       "depends_on": ["F0044"],
       "passes": false,
-      "day": "D14 May 28"
+      "day": "D14 May 28",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0120",
@@ -1164,7 +1336,9 @@
       "name": "A2UI v0.9 Flutter renderer",
       "depends_on": ["F0044"],
       "passes": false,
-      "day": "D14 May 28"
+      "day": "D14 May 28",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0121",
@@ -1173,7 +1347,9 @@
       "name": "A2UI v0.9 Lit renderer",
       "depends_on": ["F0044"],
       "passes": false,
-      "day": "D14 May 28"
+      "day": "D14 May 28",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0122",
@@ -1182,7 +1358,9 @@
       "name": "A2UI v0.9 Angular renderer",
       "depends_on": ["F0044"],
       "passes": false,
-      "day": "D14 May 28"
+      "day": "D14 May 28",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0123",
@@ -1191,7 +1369,9 @@
       "name": "Identity Platform multi-tenant auth wired (Google + GitHub + email sign-in)",
       "depends_on": ["F0008"],
       "passes": false,
-      "day": "D14 May 28"
+      "day": "D14 May 28",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0124",
@@ -1201,7 +1381,9 @@
       "depends_on": ["F0123"],
       "passes": false,
       "human_approved": null,
-      "day": "D14 May 28"
+      "day": "D14 May 28",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0125",
@@ -1212,7 +1394,9 @@
       "passes": false,
       "human_approved": null,
       "day": "D14 May 28",
-      "notes": "Daniel + attorney"
+      "notes": "Daniel + attorney",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0126",
@@ -1221,7 +1405,9 @@
       "name": "Status page live at status.atelier.dev (auto-updated from Cloud Monitoring uptime checks)",
       "depends_on": ["F0008"],
       "passes": false,
-      "day": "D14 May 28"
+      "day": "D14 May 28",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0127",
@@ -1230,7 +1416,9 @@
       "name": "Documentation 90% complete (READMEs in subfolders + docs/architecture + docs/eval)",
       "depends_on": [],
       "passes": false,
-      "day": "D14 May 28"
+      "day": "D14 May 28",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0128",
@@ -1239,7 +1427,9 @@
       "name": "Run 12-surface autonomous campaign on pipeline-observatory end-to-end",
       "depends_on": ["F0117", "F0119", "F0120", "F0121", "F0122"],
       "passes": false,
-      "day": "D14 May 28"
+      "day": "D14 May 28",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0129",
@@ -1248,7 +1438,9 @@
       "name": "Run full WebGen-Bench eval (484 tasks via Cloud Run job, ~30 min); verify \u2265 51% pass rate",
       "depends_on": ["F0117"],
       "passes": false,
-      "day": "D14 May 28"
+      "day": "D14 May 28",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0130",
@@ -1258,7 +1450,9 @@
       "depends_on": ["F0124", "F0125", "F0126", "F0127", "F0128", "F0129", "F0098"],
       "passes": false,
       "human_approved": null,
-      "day": "D14 May 28"
+      "day": "D14 May 28",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0131",
@@ -1268,7 +1462,9 @@
       "depends_on": ["F0130"],
       "passes": false,
       "human_approved": null,
-      "day": "D14 May 28"
+      "day": "D14 May 28",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0140",
@@ -1277,7 +1473,9 @@
       "name": "Create phase/3 worktree from main",
       "depends_on": ["F0131"],
       "passes": false,
-      "day": "D15 May 29"
+      "day": "D15 May 29",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0141",
@@ -1286,7 +1484,9 @@
       "name": "3-tier dataset flywheel: T1 baseline + T2 approved + T3 failure tables in BigQuery",
       "depends_on": ["F0017"],
       "passes": false,
-      "day": "D15 May 29"
+      "day": "D15 May 29",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0142",
@@ -1295,7 +1495,9 @@
       "name": "DPO preference pair generator: margin \u2265 0.15 filter + per-project partitioning",
       "depends_on": ["F0141"],
       "passes": false,
-      "day": "D15 May 29"
+      "day": "D15 May 29",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0143",
@@ -1304,7 +1506,9 @@
       "name": "Vertex AI Tuning job submission via Python SDK; Gemma 4 26B-A4B-it base",
       "depends_on": ["F0142"],
       "passes": false,
-      "day": "D15 May 29"
+      "day": "D15 May 29",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0144",
@@ -1313,7 +1517,9 @@
       "name": "Eval-only baseline run before training (per ADR 0005 lineage); store baseline scores",
       "depends_on": ["F0143"],
       "passes": false,
-      "day": "D15 May 29"
+      "day": "D15 May 29",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0145",
@@ -1322,7 +1528,9 @@
       "name": "First-project LoRA fine-tuned on pipeline-observatory historical accept/reject data",
       "depends_on": ["F0144"],
       "passes": false,
-      "day": "D15 May 29"
+      "day": "D15 May 29",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0146",
@@ -1331,7 +1539,9 @@
       "name": "Eval improvement \u2265 2% triggers registration; auto-register in Vertex AI Model Registry",
       "depends_on": ["F0145"],
       "passes": false,
-      "day": "D15 May 29"
+      "day": "D15 May 29",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0147",
@@ -1340,7 +1550,9 @@
       "name": "Reward signal computation: user_explicit + user_implicit + judge_self_consistency + convergence_completion (per limits.dpo_rewards.weights)",
       "depends_on": ["F0142"],
       "passes": false,
-      "day": "D15 May 29"
+      "day": "D15 May 29",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0148",
@@ -1349,7 +1561,9 @@
       "name": "End-to-end test: synthetic 100 DPO pairs \u2192 tuning job \u2192 endpoint deploy \u2192 judge calls served LoRA",
       "depends_on": ["F0146", "F0147"],
       "passes": false,
-      "day": "D15 May 29"
+      "day": "D15 May 29",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0149",
@@ -1358,7 +1572,9 @@
       "name": "D15 EOD checkpoint",
       "depends_on": ["F0148"],
       "passes": false,
-      "day": "D15 May 29"
+      "day": "D15 May 29",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0150",
@@ -1367,7 +1583,9 @@
       "name": "Vertex AI Endpoints with Multi-Tuning serving the per-project LoRA",
       "depends_on": ["F0146"],
       "passes": false,
-      "day": "D16 May 30"
+      "day": "D16 May 30",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0151",
@@ -1376,7 +1594,9 @@
       "name": "Wire serving the per-project LoRA via Vertex AI Endpoints in ConsensusAgent (replace base Gemini for that judge axis)",
       "depends_on": ["F0150", "F0090"],
       "passes": false,
-      "day": "D16 May 30"
+      "day": "D16 May 30",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0152",
@@ -1385,7 +1605,9 @@
       "name": "Calibration drift detection on the new LoRA judge",
       "depends_on": ["F0151", "F0098"],
       "passes": false,
-      "day": "D16 May 30"
+      "day": "D16 May 30",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0153",
@@ -1394,7 +1616,9 @@
       "name": "Telegram alert on judge swap success",
       "depends_on": ["F0151"],
       "passes": false,
-      "day": "D16 May 30"
+      "day": "D16 May 30",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0154",
@@ -1403,7 +1627,9 @@
       "name": "8 unit tests + 1 integration test for LoRA serving + judge swap",
       "depends_on": ["F0153"],
       "passes": false,
-      "day": "D16 May 30"
+      "day": "D16 May 30",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0155",
@@ -1412,7 +1638,9 @@
       "name": "D16 EOD checkpoint",
       "depends_on": ["F0154"],
       "passes": false,
-      "day": "D16 May 30"
+      "day": "D16 May 30",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0156",
@@ -1421,7 +1649,9 @@
       "name": "WebGen-Bench adapter \u2192 ADK EvalCase schema",
       "depends_on": ["F0047"],
       "passes": false,
-      "day": "D17 May 31"
+      "day": "D17 May 31",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0157",
@@ -1430,7 +1660,9 @@
       "name": "Design2Code adapter \u2192 ADK EvalCase schema",
       "depends_on": [],
       "passes": false,
-      "day": "D17 May 31"
+      "day": "D17 May 31",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0158",
@@ -1439,7 +1671,9 @@
       "name": "Web2Code adapter \u2192 ADK EvalCase schema",
       "depends_on": [],
       "passes": false,
-      "day": "D17 May 31"
+      "day": "D17 May 31",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0159",
@@ -1448,7 +1682,9 @@
       "name": "ScreenSpot adapter \u2192 ADK EvalCase schema",
       "depends_on": [],
       "passes": false,
-      "day": "D17 May 31"
+      "day": "D17 May 31",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0160",
@@ -1457,7 +1693,9 @@
       "name": "FrontendBench adapter \u2192 ADK EvalCase schema",
       "depends_on": [],
       "passes": false,
-      "day": "D17 May 31"
+      "day": "D17 May 31",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0161",
@@ -1466,7 +1704,9 @@
       "name": "Open 3-5 PRs to google/adk-python with the eval adapters (Apache-2.0)",
       "depends_on": ["F0156", "F0157", "F0158"],
       "passes": false,
-      "day": "D17 May 31"
+      "day": "D17 May 31",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0162",
@@ -1475,7 +1715,9 @@
       "name": "Convergence Spec RFC v0.1 drafted in docs/rfcs/convergence-spec-v0.1.md",
       "depends_on": [],
       "passes": false,
-      "day": "D17 May 31"
+      "day": "D17 May 31",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0163",
@@ -1484,7 +1726,9 @@
       "name": "bench.atelier.dev: community submission form (Cloud Function + Firestore)",
       "depends_on": ["F0008"],
       "passes": false,
-      "day": "D17 May 31"
+      "day": "D17 May 31",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0164",
@@ -1493,7 +1737,9 @@
       "name": "D17 EOD checkpoint",
       "depends_on": ["F0161", "F0162", "F0163"],
       "passes": false,
-      "day": "D17 May 31"
+      "day": "D17 May 31",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0165",
@@ -1502,7 +1748,9 @@
       "name": "Atelier Skill: case-study (publish via ADK Skills for Agents)",
       "depends_on": ["F0014"],
       "passes": false,
-      "day": "D18 Jun 1"
+      "day": "D18 Jun 1",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0166",
@@ -1511,7 +1759,9 @@
       "name": "Atelier Skill: dashboard",
       "depends_on": ["F0014"],
       "passes": false,
-      "day": "D18 Jun 1"
+      "day": "D18 Jun 1",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0167",
@@ -1520,7 +1770,9 @@
       "name": "Atelier Skill: marketing-page",
       "depends_on": ["F0014"],
       "passes": false,
-      "day": "D18 Jun 1"
+      "day": "D18 Jun 1",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0168",
@@ -1529,7 +1781,9 @@
       "name": "Atelier Skill: e-commerce",
       "depends_on": ["F0014"],
       "passes": false,
-      "day": "D18 Jun 1"
+      "day": "D18 Jun 1",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0169",
@@ -1538,7 +1792,9 @@
       "name": "Atelier Skill: portfolio",
       "depends_on": ["F0014"],
       "passes": false,
-      "day": "D18 Jun 1"
+      "day": "D18 Jun 1",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0170",
@@ -1547,7 +1803,9 @@
       "name": "Atelier Skill: docs-site",
       "depends_on": ["F0014"],
       "passes": false,
-      "day": "D18 Jun 1"
+      "day": "D18 Jun 1",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0171",
@@ -1556,7 +1814,9 @@
       "name": "atelier-action: Node.js + ESM + GitHub Marketplace publish",
       "depends_on": ["F0014"],
       "passes": false,
-      "day": "D18 Jun 1"
+      "day": "D18 Jun 1",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0172",
@@ -1565,7 +1825,9 @@
       "name": "Figma plugin: TypeScript bridge + UI; submit to Figma Community",
       "depends_on": ["F0119"],
       "passes": false,
-      "day": "D18 Jun 1"
+      "day": "D18 Jun 1",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0173",
@@ -1574,7 +1836,9 @@
       "name": "Chrome extension: Manifest V3 + content script + service worker; submit to Chrome Web Store",
       "depends_on": [],
       "passes": false,
-      "day": "D18 Jun 1"
+      "day": "D18 Jun 1",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0174",
@@ -1583,7 +1847,9 @@
       "name": "@atelier/constitution-apple-grade npm package: 12 principles as importable JSON; publish to npm",
       "depends_on": ["F0061"],
       "passes": false,
-      "day": "D18 Jun 1"
+      "day": "D18 Jun 1",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0175",
@@ -1592,7 +1858,9 @@
       "name": "D18 EOD checkpoint",
       "depends_on": ["F0165", "F0166", "F0167", "F0168", "F0169", "F0170", "F0171", "F0174"],
       "passes": false,
-      "day": "D18 Jun 1"
+      "day": "D18 Jun 1",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0176",
@@ -1601,7 +1869,9 @@
       "name": "atelier.dev marketing site polished: hero, problem statement, demo video, pricing, sign-up",
       "depends_on": ["F0008", "F0123"],
       "passes": false,
-      "day": "D19 Jun 2"
+      "day": "D19 Jun 2",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0177",
@@ -1612,7 +1882,9 @@
       "passes": false,
       "human_approved": null,
       "day": "D19 Jun 2",
-      "notes": "Daniel-led"
+      "notes": "Daniel-led",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0178",
@@ -1622,7 +1894,9 @@
       "depends_on": ["F0128"],
       "passes": false,
       "human_approved": null,
-      "day": "D19 Jun 2"
+      "day": "D19 Jun 2",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0179",
@@ -1632,7 +1906,9 @@
       "depends_on": ["F0129", "F0145"],
       "passes": false,
       "human_approved": null,
-      "day": "D19 Jun 2"
+      "day": "D19 Jun 2",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0180",
@@ -1642,7 +1918,9 @@
       "depends_on": ["F0124"],
       "passes": false,
       "human_approved": null,
-      "day": "D19 Jun 2"
+      "day": "D19 Jun 2",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0181",
@@ -1651,7 +1929,9 @@
       "name": "D19 EOD checkpoint",
       "depends_on": ["F0177", "F0178", "F0179", "F0180"],
       "passes": false,
-      "day": "D19 Jun 2"
+      "day": "D19 Jun 2",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0182",
@@ -1660,7 +1940,9 @@
       "name": "Final smoke test on staging + production",
       "depends_on": ["F0151"],
       "passes": false,
-      "day": "D20 Jun 3"
+      "day": "D20 Jun 3",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0183",
@@ -1669,7 +1951,9 @@
       "name": "Public sign-up live + freemium tier active (3 sessions watermarked)",
       "depends_on": ["F0124"],
       "passes": false,
-      "day": "D20 Jun 3"
+      "day": "D20 Jun 3",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0184",
@@ -1679,7 +1963,9 @@
       "depends_on": ["F0182"],
       "passes": false,
       "human_approved": null,
-      "day": "D20 Jun 3"
+      "day": "D20 Jun 3",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0185",
@@ -1690,7 +1976,9 @@
       "passes": false,
       "human_approved": null,
       "day": "D20 Jun 3",
-      "notes": "Daniel-led"
+      "notes": "Daniel-led",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0186",
@@ -1699,7 +1987,9 @@
       "name": "G4S submission package complete: project description \u2264500 words + demo video + repo URL + live URL + team info + 'Built with Google' + arXiv link + benchmark results + testimonials + Calendly",
       "depends_on": ["F0184", "F0179", "F0180"],
       "passes": false,
-      "day": "D20 Jun 3"
+      "day": "D20 Jun 3",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0187",
@@ -1710,7 +2000,9 @@
       "passes": false,
       "human_approved": null,
       "day": "D20 Jun 3",
-      "notes": "Daniel-led"
+      "notes": "Daniel-led",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0188",
@@ -1720,7 +2012,9 @@
       "depends_on": ["F0187"],
       "passes": false,
       "human_approved": null,
-      "day": "D20 Jun 3"
+      "day": "D20 Jun 3",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0189",
@@ -1729,7 +2023,9 @@
       "name": "Hacker News Show HN drafted (post tomorrow morning)",
       "depends_on": ["F0187"],
       "passes": false,
-      "day": "D20 Jun 3"
+      "day": "D20 Jun 3",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0190",
@@ -1739,7 +2035,9 @@
       "depends_on": ["F0187"],
       "passes": false,
       "human_approved": null,
-      "day": "D20 Jun 3"
+      "day": "D20 Jun 3",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0191",
@@ -1748,7 +2046,9 @@
       "name": "Phase 3 acceptance protocol: all 13 N-contributions evidence files + all 32 pre-launch artifacts live",
       "depends_on": ["F0187"],
       "passes": false,
-      "day": "D20 Jun 3"
+      "day": "D20 Jun 3",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0192",
@@ -1758,7 +2058,9 @@
       "depends_on": ["F0191"],
       "passes": false,
       "human_approved": null,
-      "day": "D20 Jun 3"
+      "day": "D20 Jun 3",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0193",
@@ -1767,7 +2069,9 @@
       "name": "Full WebGen-Bench eval run with first-project LoRA active (stretch \u226577 attempt)",
       "depends_on": ["F0151"],
       "passes": false,
-      "day": "D21 Jun 4"
+      "day": "D21 Jun 4",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0194",
@@ -1776,7 +2080,9 @@
       "name": "Final smoke test on staging + prod; release v1.0.0 tagged + pushed",
       "depends_on": ["F0193"],
       "passes": false,
-      "day": "D21 Jun 4"
+      "day": "D21 Jun 4",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0195",
@@ -1785,7 +2091,9 @@
       "name": "Pre-recorded backup demo as insurance for Jun 5",
       "depends_on": ["F0184"],
       "passes": false,
-      "day": "D21 Jun 4"
+      "day": "D21 Jun 4",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0196",
@@ -1796,7 +2104,9 @@
       "passes": false,
       "human_approved": null,
       "day": "Jun 5",
-      "notes": "Daniel-led"
+      "notes": "Daniel-led",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0197",
@@ -1807,7 +2117,9 @@
       "passes": false,
       "human_approved": null,
       "day": "Jun 5",
-      "notes": "Daniel-led"
+      "notes": "Daniel-led",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0198",
@@ -1818,7 +2130,9 @@
       "passes": false,
       "human_approved": null,
       "day": "Jun 5",
-      "notes": "Daniel-led"
+      "notes": "Daniel-led",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0199",
@@ -1828,7 +2142,9 @@
       "depends_on": ["F0009"],
       "passes": false,
       "day": "D2 May 16",
-      "notes": "P0-1 audit fix; reads brief_spec_current.json from .atelier/ and prepends to subagent system messages"
+      "notes": "P0-1 audit fix; reads brief_spec_current.json from .atelier/ and prepends to subagent system messages",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0200",
@@ -1838,7 +2154,9 @@
       "depends_on": ["F0199"],
       "passes": false,
       "day": "D2 May 16",
-      "notes": "P0-1 acceptance criterion; CI fails if BriefSpec missing"
+      "notes": "P0-1 acceptance criterion; CI fails if BriefSpec missing",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0201",
@@ -1848,7 +2166,9 @@
       "depends_on": ["F0009", "F0114"],
       "passes": false,
       "day": "D8 May 22",
-      "notes": "P0-3 audit fix; produces brief_spec_v<N+1>.json + brief_spec_current.json symlink"
+      "notes": "P0-3 audit fix; produces brief_spec_v<N+1>.json + brief_spec_current.json symlink",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0202",
@@ -1858,7 +2178,9 @@
       "depends_on": ["F0201"],
       "passes": false,
       "day": "D8 May 22",
-      "notes": "P0-3 audit fix; Cross-Surface Coherence Validator re-scores converged surfaces against new BriefSpec; regrandfathers passes; requeues failures"
+      "notes": "P0-3 audit fix; Cross-Surface Coherence Validator re-scores converged surfaces against new BriefSpec; regrandfathers passes; requeues failures",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0203",
@@ -1868,7 +2190,9 @@
       "depends_on": ["F0111"],
       "passes": false,
       "day": "D13 May 27",
-      "notes": "P1-7 audit fix; folds into F0111; resolve_skip_path returns ResolvedAnswer with source provenance"
+      "notes": "P1-7 audit fix; folds into F0111; resolve_skip_path returns ResolvedAnswer with source provenance",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0204",
@@ -1878,7 +2202,9 @@
       "depends_on": ["F0114"],
       "passes": false,
       "day": "D13 May 27",
-      "notes": "N14 ADR 0011; per-tenant isolation built-in"
+      "notes": "N14 ADR 0011; per-tenant isolation built-in",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0205",
@@ -1888,7 +2214,9 @@
       "depends_on": ["F0204"],
       "passes": false,
       "day": "D13 May 27",
-      "notes": "N14 ADR 0011; PageRank-derived 0-1 trust score; findings <0.6 flagged"
+      "notes": "N14 ADR 0011; PageRank-derived 0-1 trust score; findings <0.6 flagged",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0206",
@@ -1898,7 +2226,9 @@
       "depends_on": ["F0204", "F0205"],
       "passes": false,
       "day": "D13 May 27",
-      "notes": "N14 ADR 0011; produces ResearchFindings (applied_standards, inspirations, suggested_overrides, risk_warnings, citations)"
+      "notes": "N14 ADR 0011; produces ResearchFindings (applied_standards, inspirations, suggested_overrides, risk_warnings, citations)",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0207",
@@ -1908,7 +2238,9 @@
       "depends_on": ["F0206"],
       "passes": false,
       "day": "D13 May 27",
-      "notes": "N14 ADR 0011; per-finding accept/skip; aggregate summary"
+      "notes": "N14 ADR 0011; per-finding accept/skip; aggregate summary",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0208",
@@ -1918,7 +2250,9 @@
       "depends_on": ["F0207"],
       "passes": false,
       "day": "D13 May 27",
-      "notes": "N14 ADR 0011 acceptance: per-tenant cache test + 20 prompt-injection patterns blocked + p95 latency<=13s + p95 cost<=$0.10"
+      "notes": "N14 ADR 0011 acceptance: per-tenant cache test + 20 prompt-injection patterns blocked + p95 latency<=13s + p95 cost<=$0.10",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0209",
@@ -1928,7 +2262,9 @@
       "depends_on": ["F0009"],
       "passes": false,
       "day": "D10 May 24",
-      "notes": "N15 MJG; visual_register x compliance_level x convergence_bar -> AxisWeights with provenance"
+      "notes": "N15 MJG; visual_register x compliance_level x convergence_bar -> AxisWeights with provenance",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0210",
@@ -1938,7 +2274,9 @@
       "depends_on": ["F0209", "F0092"],
       "passes": false,
       "day": "D10 May 24",
-      "notes": "N15 ADR 0013; replaces fixed-floors table in PRD \u00a76.4"
+      "notes": "N15 ADR 0013; replaces fixed-floors table in PRD \u00a76.4",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0211",
@@ -1948,7 +2286,9 @@
       "depends_on": ["F0210"],
       "passes": false,
       "day": "D11 May 25",
-      "notes": "N15 ADR 0013 acceptance: ConsensusAgent decision matches expert human rating on 18+/20 fixtures; final table committed in axis_weights_heuristic.yaml + calibration evidence in atelier-eval/data/axis_weights_calibration_2026-05-29.jsonl"
+      "notes": "N15 ADR 0013 acceptance: ConsensusAgent decision matches expert human rating on 18+/20 fixtures; final table committed in axis_weights_heuristic.yaml + calibration evidence in atelier-eval/data/axis_weights_calibration_2026-05-29.jsonl",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0212",
@@ -1958,7 +2298,9 @@
       "depends_on": ["F0210"],
       "passes": false,
       "day": "D11 May 25",
-      "notes": "P1-4 audit fix; 4 fixtures (none/AA/AAA/regulatory) -> 4 different threshold sets; AAA + axe AAA ruleset; regulatory + Pa11y + accessibility statement output"
+      "notes": "P1-4 audit fix; 4 fixtures (none/AA/AAA/regulatory) -> 4 different threshold sets; AAA + axe AAA ruleset; regulatory + Pa11y + accessibility statement output",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0213",
@@ -1968,7 +2310,9 @@
       "depends_on": ["F0009"],
       "passes": false,
       "day": "D12 May 26",
-      "notes": "P1-6 audit fix; brutalist constitution authored; 30 brutalist references calibrated"
+      "notes": "P1-6 audit fix; brutalist constitution authored; 30 brutalist references calibrated",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0214",
@@ -1978,7 +2322,9 @@
       "depends_on": ["F0213"],
       "passes": false,
       "day": "D12 May 26",
-      "notes": "P1-6 acceptance: brutalist register -> CSC-D scores brutalist candidates above apple-grade-rejecting baseline"
+      "notes": "P1-6 acceptance: brutalist register -> CSC-D scores brutalist candidates above apple-grade-rejecting baseline",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0215",
@@ -1988,7 +2334,9 @@
       "depends_on": ["F0085", "F0199"],
       "passes": false,
       "day": "D10 May 24",
-      "notes": "P0-2 audit fix; 5-fixture test asserts judge demotes off-intent candidates that pass other axes"
+      "notes": "P0-2 audit fix; 5-fixture test asserts judge demotes off-intent candidates that pass other axes",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0216",
@@ -1998,7 +2346,9 @@
       "depends_on": ["F0215"],
       "passes": false,
       "day": "D17 May 31",
-      "notes": "P2-8 audit fix; A/B run on 50 fixtures shows judge agreement up >=5% with BriefSpec context"
+      "notes": "P2-8 audit fix; A/B run on 50 fixtures shows judge agreement up >=5% with BriefSpec context",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0217",
@@ -2008,7 +2358,9 @@
       "depends_on": ["F0209", "F0214"],
       "passes": false,
       "day": "D18 Jun 1",
-      "notes": "P2-9 audit fix; data-viz dashboard fixture skips Motion judge; marketing landing page fixture skips Information-density check"
+      "notes": "P2-9 audit fix; data-viz dashboard fixture skips Motion judge; marketing landing page fixture skips Information-density check",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0218",
@@ -2018,7 +2370,9 @@
       "depends_on": ["F0217"],
       "passes": false,
       "day": "D18 Jun 1",
-      "notes": "P2-9 acceptance; touches every node should-I-run check"
+      "notes": "P2-9 acceptance; touches every node should-I-run check",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0219",
@@ -2028,7 +2382,9 @@
       "depends_on": ["F0215"],
       "passes": false,
       "day": "D19 Jun 2",
-      "notes": "P2-10 audit fix; side-by-side eval shows judge-with-transcript vs judge-without improves agreement with human raters by >=3%"
+      "notes": "P2-10 audit fix; side-by-side eval shows judge-with-transcript vs judge-without improves agreement with human raters by >=3%",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "F0220",
@@ -2038,7 +2394,9 @@
       "depends_on": ["F0199"],
       "passes": false,
       "day": "D2 May 16",
-      "notes": "P0-1+P0-2 enforcement; rejects PRs that ship judge/gate/subagent code ignoring BriefSpec; runs in pre-commit + CI"
+      "notes": "P0-1+P0-2 enforcement; rejects PRs that ship judge/gate/subagent code ignoring BriefSpec; runs in pre-commit + CI",
+      "evidence_tests": [],
+      "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
       "id": "FA-001",
