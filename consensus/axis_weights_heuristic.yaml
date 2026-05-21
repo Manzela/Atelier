@@ -1,82 +1,107 @@
-# Axis Weights Heuristic Configuration
+# Atelier Axis Weights Heuristic Configuration
 #
-# Default weight presets per visual_register × compliance_level × convergence_bar.
-# Consumed by compute_axis_weights() in atelier.models.axis_weights.
+# Conditional axis weighting for the Multi-Judge Governor (MJG).
+# Each surface type gets a tailored weight distribution across the
+# five D-O-R-A-V judge axes. Weights sum to 1.0 per surface type.
 #
-# PRD Reference: §6.3 (N15 MJG)
-# Audit Reference: §7 (FA-019)
+# References:
+#   PRD §15 — Multi-Judge Governance Protocol
+#   ADR 0008 — Bayesian Multi-Judge Consensus with Prior Strength
+#   ADR 0013 — Conditional Axis Weighting per Surface Type
+#   FA-019 — Conditional Axis Weighting implementation feature
+#   N15 — Multi-Judge Governor (MJG) pipeline node
+#
+# Weight rationale:
+#   brand         — alignment with design system tokens, color palette, typography
+#   originality   — creative novelty relative to the corpus of known designs
+#   relevance     — content accuracy, CTA placement, information hierarchy
+#   accessibility — WCAG 2.2 AA compliance, keyboard navigation, contrast
+#   visual_clarity — whitespace usage, hierarchy legibility, scan-path efficiency
+#
+# prior_strength: Bayesian prior strength scalar. Higher values anchor the
+#   posterior closer to the prior mean (conservative). Range 2.0-8.0.
+#   Recommended 4.0 for Phase 1 (balanced exploration/exploitation).
+#
+# uncertainty_floor: Minimum residual uncertainty after consensus. Prevents
+#   the system from becoming overconfident on early iterations. Range 0.01-0.10.
+#   Recommended 0.05 for Phase 1.
 
-# D-O-R-A-V Axis Legend:
-#   D = Design (brand alignment)
-#   O = Originality (creative novelty)
-#   R = Relevance (content accuracy)
-#   A = Accessibility (WCAG compliance)
-#   V = Visual Clarity (hierarchy, readability)
+version: '1.0'
 
-visual_registers:
-  corporate:
-    brand: 1.2
-    originality: 0.8
-    relevance: 1.0
-    accessibility: 1.5
-    visual_clarity: 1.0
-    rationale: 'Corporate clients prioritize brand consistency and accessibility compliance.'
+prior_strength: 4.0
 
-  luxury:
-    brand: 1.8
-    originality: 1.2
-    relevance: 0.8
-    accessibility: 0.8
-    visual_clarity: 1.5
-    rationale: 'Luxury brands prioritize visual impact and brand alignment over strict accessibility.'
+uncertainty_floor: 0.05
 
-  startup:
-    brand: 1.0
-    originality: 1.5
-    relevance: 1.0
-    accessibility: 1.0
-    visual_clarity: 1.2
-    rationale: 'Startups value novelty and visual polish to stand out.'
+surface_types:
+  landing_page:
+    # Landing pages prioritize brand impact and visual clarity to maximize
+    # first-impression conversion. Originality is valued for differentiation.
+    # Accessibility is baseline-important but not dominant.
+    brand: 0.25
+    originality: 0.20
+    relevance: 0.15
+    accessibility: 0.15
+    visual_clarity: 0.25
 
-  editorial:
-    brand: 0.8
-    originality: 1.0
-    relevance: 1.8
-    accessibility: 1.2
-    visual_clarity: 1.0
-    rationale: 'Editorial sites prioritize content relevance and readability.'
+  pricing:
+    # Pricing pages must be crystal clear — users are comparing plans.
+    # Relevance (accurate feature lists, CTA placement) and visual clarity
+    # (scannable tables) dominate. Brand consistency matters but novelty
+    # is counterproductive (users expect familiar pricing patterns).
+    brand: 0.15
+    originality: 0.05
+    relevance: 0.30
+    accessibility: 0.20
+    visual_clarity: 0.30
 
-  saas:
-    brand: 1.0
-    originality: 0.8
-    relevance: 1.2
-    accessibility: 1.8
-    visual_clarity: 1.2
-    rationale: 'SaaS platforms need strict accessibility and functional clarity.'
+  checkout:
+    # Checkout flows demand high accessibility (WCAG AA mandatory for
+    # financial transactions in many jurisdictions) and clarity (reduce
+    # cart abandonment). Originality is actively harmful — users need
+    # predictable, trustworthy forms.
+    brand: 0.10
+    originality: 0.05
+    relevance: 0.15
+    accessibility: 0.35
+    visual_clarity: 0.35
 
-  brutalist:
-    brand: 1.0
-    originality: 2.0
-    relevance: 0.5
-    accessibility: 0.5
-    visual_clarity: 1.0
-    rationale: 'Brutalist design intentionally breaks conventions; originality is paramount.'
+  onboarding:
+    # Onboarding sequences balance engagement (originality, visual delight)
+    # with functional clarity (step progression, form usability). Brand
+    # alignment sets the product tone early. Relevance ensures the right
+    # information is requested at each step.
+    brand: 0.20
+    originality: 0.20
+    relevance: 0.20
+    accessibility: 0.15
+    visual_clarity: 0.25
 
-  playful:
-    brand: 1.0
-    originality: 1.5
-    relevance: 0.8
-    accessibility: 1.0
-    visual_clarity: 1.5
-    rationale: 'Playful designs emphasize visual delight and creative expression.'
+  dashboard:
+    # Dashboards are data-dense — visual clarity and relevance are critical.
+    # Accessibility is high (screen readers navigating tables/charts).
+    # Brand is background; originality is risky in data visualization.
+    brand: 0.10
+    originality: 0.10
+    relevance: 0.25
+    accessibility: 0.25
+    visual_clarity: 0.30
 
-compliance_multipliers:
-  wcag_aa: 1.5
-  wcag_aaa: 2.0
-  section_508: 1.8
-  none: 0.8
+  marketing_email:
+    # Marketing emails live or die on brand + originality (inbox
+    # differentiation). Visual clarity matters for mobile rendering.
+    # Accessibility is lower priority but still required (alt text, contrast).
+    # Relevance measures CTA-to-content ratio and personalization fit.
+    brand: 0.25
+    originality: 0.25
+    relevance: 0.15
+    accessibility: 0.10
+    visual_clarity: 0.25
 
-convergence_multipliers:
-  production: 1.0
-  draft: 0.7
-  prototype: 0.5
+  default:
+    # Balanced baseline for surface types not explicitly listed.
+    # Equal weighting across all axes — no axis privileged.
+    brand: 0.20
+    originality: 0.20
+    relevance: 0.20
+    accessibility: 0.20
+    visual_clarity: 0.20

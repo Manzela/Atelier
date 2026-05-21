@@ -6,21 +6,28 @@
 
 ## Active blockers
 
-### 2026-05-15 11:30 UTC — Vite 5→6 security PRs failing CI
+### 2026-05-21 D7 — Executor-brief remediation items blocking Phase 2 gate
 
-**Severity**: P2 (blocks feature)
-**Blocked**: F-001 dashboard scaffold (D1)
-**Owner**: Claude
-**Description**: Dependabot PRs #21 (esbuild + vite + vitest grouped) and #22 (vite 5.4.21 → 6.4.2) address moderate-severity vite path-traversal advisory but fail pre-commit CI. PR #21 supersedes #22. Vite is a dev-only dep (atelier-dashboard), so prod is not exposed today.
-**Attempted resolutions**: Investigated CI failure on PR #21: `pre-commit FAILURE` — likely lockfile change conflicts with prettier formatting expectations on package-lock.json.
-**Next step**: D1 morning, before scaffolding dashboard: rebase PR #21 onto main, run `pre-commit run --all-files` locally, force-push to dependabot branch, merge.
+**Severity**: P0 (blocks sprint)
+**Blocked**: Phase 2 gate; all D8+ work
+**Owner**: Claude (Antigravity IDE + Opus subagent)
+**Description**: Audit identified 15 C-items (C1-C15) requiring closure before the auditor will green-light Phase 2. Items span features.json reconciliation, sprint state updates, consensus config files, new code (GitHub MCP, TrajectoryRecorder), ADR documentation, CI/CD, and dev-experience hygiene.
+**Attempted resolutions**: Execution in progress per executor-brief dependency order.
+**Next step**: Complete all C-items, produce executor-handoff.md, signal READY-FOR-AUDIT.
 **Status**: open
 
 ---
 
 ## Recently resolved
 
-_(populated as blockers resolve)_
+### 2026-05-15 11:30 UTC — Vite 5→6 security PRs failing CI
+
+**Severity**: P2 (blocks feature)
+**Blocked**: F-001 dashboard scaffold (D1)
+**Owner**: Claude
+**Description**: Dependabot PRs #21/#22 for Vite security advisory failing pre-commit CI. Vite is dev-only dep.
+**Resolution**: Deferred — dashboard scaffold not in Phase 1 critical path. PR to be revisited in Phase 2.
+**Status**: resolved (deferred)
 
 ---
 

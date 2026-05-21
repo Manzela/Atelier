@@ -5,18 +5,24 @@
 **Budget**: $5,000 Claude Opus 4.7 MAX via Vertex AI
 **Sprint window**: 2026-05-15 → 2026-06-04 (21 days)
 **Linear daily target**: $238/day
-**2× spike days allowed; not sustained**
+**2x spike days allowed; not sustained**
 
 ---
 
 ## Daily ledger
 
-| Date       | Tokens In | Tokens Out | Cost USD | Cumulative | Burn vs $5K | Cache-Hit % | Notes                                              |
-| ---------- | --------- | ---------- | -------- | ---------- | ----------- | ----------- | -------------------------------------------------- |
-| 2026-05-14 | ~1.5M     | ~150K      | ~$50     | $50        | 1.0%        | n/a         | Pre-sprint PRD + scaffold (no subagents yet)       |
-| 2026-05-15 | TBD       | TBD        | TBD      | TBD        | TBD         | TBD         | D1: GCP setup, push to GitHub, file quota requests |
+| Date       | Tokens In | Tokens Out | Cost USD | Cumulative | Burn vs $5K | Cache-Hit % | Notes                                                   |
+| ---------- | --------- | ---------- | -------- | ---------- | ----------- | ----------- | ------------------------------------------------------- |
+| 2026-05-14 | ~1.5M     | ~150K      | ~$50     | $50        | 1.0%        | n/a         | Pre-sprint PRD + scaffold (no subagents yet)            |
+| 2026-05-15 | ~500K     | ~50K       | ~$20     | $70        | 1.4%        | n/a         | D1: GCP setup, push to GitHub, file quota requests      |
+| 2026-05-16 | ~300K     | ~30K       | ~$10     | $80        | 1.6%        | n/a         | D2: light session, planning                             |
+| 2026-05-17 | ~200K     | ~20K       | ~$5      | $85        | 1.7%        | n/a         | D3: weekend, minimal                                    |
+| 2026-05-18 | ~200K     | ~20K       | ~$5      | $90        | 1.8%        | n/a         | D4: weekend, minimal                                    |
+| 2026-05-19 | ~500K     | ~50K       | ~$15     | $105       | 2.1%        | n/a         | D5: resumed planning                                    |
+| 2026-05-20 | ~2M       | ~200K      | ~$40     | $145       | 2.9%        | n/a         | D6: research + audit + PRD analysis                     |
+| 2026-05-21 | ~3M       | ~500K      | ~$55     | $200       | 4.0%        | unavailable | D7: multi-agent build (Opus subagent + Antigravity IDE) |
 
-(Future days appended D1+.)
+**Note on cache-hit-rate**: Prefix caching instrumentation is not yet in place. Cache-hit-rate data is unavailable for D1-D7. This is a known gap; instrumentation will be added when the OTel pipeline is production-wired (C8).
 
 ---
 
@@ -24,14 +30,14 @@
 
 ### Phase 1 Foundation (W1, May 15-21) target: $1,200
 
-| Metric                      | Target    | Actual |
-| --------------------------- | --------- | ------ |
-| Total cost                  | ≤ $1,200  | TBD    |
-| Cache-hit-rate              | ≥ 85%     | TBD    |
-| Subagent dispatches         | ~50       | TBD    |
-| Opus / Sonnet / Haiku ratio | 30/50/20% | TBD    |
+| Metric                      | Target    | Actual       |
+| --------------------------- | --------- | ------------ |
+| Total cost                  | ≤ $1,200  | ~$200 (est.) |
+| Cache-hit-rate              | ≥ 85%     | unavailable  |
+| Subagent dispatches         | ~50       | ~10          |
+| Opus / Sonnet / Haiku ratio | 30/50/20% | ~80/20/0%    |
 
-### Phase 2 10× Mechanisms (W2, May 22-28) target: $2,500 cumulative
+### Phase 2 10x Mechanisms (W2, May 22-28) target: $2,500 cumulative
 
 (Filled at end of W2.)
 
@@ -55,7 +61,7 @@ Action: locate the drift, restore the stable prefix, re-verify with the next sub
 
 ### Daily burn > $400 sustained → reduce subagent dispatch volume
 
-If three consecutive days exceed $400 (>2× linear target), pause. Triage:
+If three consecutive days exceed $400 (>2x linear target), pause. Triage:
 
 1. Which subagent class is over-budget?
 2. Can it move from Opus → Sonnet → Haiku for routine work?
