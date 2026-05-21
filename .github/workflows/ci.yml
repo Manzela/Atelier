@@ -16,7 +16,7 @@ name: CI
 
 on:
   push:
-    branches: [main] # was: [main, "phase/*"]
+    branches: [main, 'phase/*']
   pull_request:
     branches: [main, 'phase/*']
   workflow_dispatch:
