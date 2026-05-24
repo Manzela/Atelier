@@ -42,6 +42,9 @@ dependencies = [
     "hypothesis>=6.100",
     # Typed NDArray embeddings for §18 RouteRequest + §20 MemoryEvent
     "numpy>=1.26",
+    # API server (used in atelier.api.app + tests/unit/test_api.py)
+    "fastapi>=0.100,<1",
+    "uvicorn[standard]>=0.20,<1",
     # Production deps added Phase 1 D3+:
     # "google-adk>=2.0.0b1,<3",
     # "agent-dag-pipeline>=3.0.0,<4",

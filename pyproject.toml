@@ -170,6 +170,9 @@ ignore_missing_imports = true
 module = "atelier_eval.metrics.*"
 disallow_any_unimported = false
 warn_unused_ignores = false
+# scikit-image and PIL lack inline type stubs for strict mypy.
+# allow untyped calls from these third-party libraries.
+disallow_untyped_calls = false
 
 # opentelemetry-api + opentelemetry-sdk are commented out in atelier-core/pyproject.toml
 # (Phase 1 D3+ production deps, not yet uncommented). CI installs only .[dev] extras,
