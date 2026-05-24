@@ -176,7 +176,8 @@ Added `--dry-run` default with `--apply` flag for live execution.
 2. **Routing manifest pricing may be stale.** The `infra/routing/manifest.yaml` has
    per-1k-token costs that were sourced from spec §18.4. If Vertex pricing has changed,
    the costs will be wrong. The manifest has a `pricing_source` field pointing to
-   `infra/pricing/vertex-2026-05.json` which doesn't exist yet.
+   `infra/pricing/vertex-2026-05.json` which exists and contains live-fetched pricing
+   (with `_plan_drift_disclosure` noting spec vs actual differences). Re-verify monthly.
 
 3. **google-genai symbol discrepancy.** The spec references `PreferenceTuningHyperParameters`
    but the actual SDK exports `PreferenceOptimizationHyperParameters`. Orchestrator's T6/T14
