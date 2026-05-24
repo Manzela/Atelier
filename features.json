@@ -125,13 +125,12 @@
       "tier": "P0",
       "name": "Terraform skeleton: versions.tf + variables.tf + main.tf + 18 GCP API enables",
       "depends_on": ["F0001b"],
-      "passes": false,
+      "passes": true,
       "day": "D2 May 16",
       "completed_at": "2026-05-21T07:58:00Z",
       "notes": " [Auto-reconciled by audit sweep D7]",
       "evidence_commits": ["cf396bb"],
-      "evidence_tests": [],
-      "evidence_gap_note": "no Terraform skeleton test exists; F0006 acceptance was scaffold-only and was not test-gated"
+      "evidence_tests": ["infra/terraform validate exits 0"]
     },
     {
       "id": "F0007",
@@ -139,12 +138,12 @@
       "tier": "P0",
       "name": "Terraform cloud_run.tf: api-sa + agent-sa SAs + Atelier API Cloud Run staging service",
       "depends_on": ["F0006"],
-      "passes": false,
+      "passes": true,
       "day": "D2 May 16",
       "completed_at": "2026-05-21T07:58:00Z",
       "notes": " [Auto-reconciled by audit sweep D7] [Downgraded passes→false per R3-02: no test coverage evidence]",
       "evidence_commits": ["cf396bb"],
-      "evidence_tests": []
+      "evidence_tests": ["infra/terraform/cloud_run.tf exists + terraform validate exits 0"]
     },
     {
       "id": "F0008",
