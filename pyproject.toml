@@ -100,6 +100,7 @@ unfixable = ["F401", "F841"]  # Don't auto-remove unused imports/variables
 "**/tests/**/*.py" = ["S101", "PLR2004", "ARG001", "ARG002", "ANN", "B017", "PT011"]
 "atelier-core/src/atelier/models/enums.py" = ["S105"]  # enum values like 'pass' and 'token-fidelity' are NOT secrets
 "atelier-core/src/atelier/skills/**/*.py" = ["T20"]  # print() ok in skills (CLI output)
+"scripts/**/*.py" = ["T20"]  # print() ok in CLI hook scripts (user-facing output)
 
 [tool.ruff.lint.mccabe]
 max-complexity = 10

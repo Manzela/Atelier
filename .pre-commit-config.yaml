@@ -177,29 +177,7 @@ repos:
 
       - id: validate-routing-manifest
         name: Validate routing manifest against JSON Schema
-        entry: >
-          python3 -c '
-            import json, sys
-            try:
-                import yaml, jsonschema
-            except ImportError:
-                print("SKIP: pyyaml or jsonschema not installed")
-                sys.exit(0)
-            from pathlib import Path
-            manifest_path = Path("infra/routing/manifest.yaml")
-            schema_path = Path("infra/routing/routing_manifest.schema.json")
-            if not manifest_path.exists() or not schema_path.exists():
-                print("SKIP: manifest or schema file not found")
-                sys.exit(0)
-            manifest = yaml.safe_load(manifest_path.read_text())
-            schema = json.loads(schema_path.read_text())
-            try:
-                jsonschema.validate(instance=manifest, schema=schema)
-                print("Routing manifest validates against schema ✓")
-            except jsonschema.ValidationError as e:
-                print(f"ERROR: Routing manifest fails schema validation: {e.message}")
-                sys.exit(1)
-          '
+        entry: python3 scripts/hooks/validate_routing_manifest.py
         language: system
         files: '^infra/routing/.*\.(yaml|yml|json)$'
         pass_filenames: false

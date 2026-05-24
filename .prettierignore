@@ -1,0 +1,6 @@
+# Planning artifacts — exempt from prettier formatting.
+# These files contain LLM-generated content with embedded code blocks and
+# complex structures. Reformatting them causes markdownlint/prettier ping-pong.
+docs/superpowers/plans/
+audit/
+claude-progress.txt

@@ -4328,7 +4328,7 @@ Commit the blocker file and STOP. Resume when the runner lands.
 
 > **R6 update (2026-05-21):** Antigravity R6-05 (commit `3ddbb91`) shipped `scripts/gates/phase_1_gate.sh` wiring all 18 spec gates. The pre-condition check in Step 1 will pass immediately. R6-03 also confirmed `atelier-build-2026` ACTIVE (user commit `6952935`) — the expected_to_fail_until dates below reflect the shortened timeline now that project creation no longer gates Antigravity's TF apply.
 >
-> **Gate count: 12** (was 11). New entry g12_no_i_for_ai_residue codifies the user's 2026-05-21 _"no leftover orphans"_ migration constraint as a machine-verifiable gate.
+> **Gate count: 12** (was 11). New entry g12*no_i_for_ai_residue codifies the user's 2026-05-21*"no leftover orphans"\_ migration constraint as a machine-verifiable gate.
 
 - [ ] **Step 2: Create `scripts/gates/phase_1_gates.json` (12 gate definitions)**
 
@@ -4992,7 +4992,7 @@ EOF
 > **MODEL:** Sonnet 4.6 (mostly mirrors T11's pattern; ~200 LOC).
 > **TASK BUDGET:** 50 tool calls, 30K output tokens.
 
-**Spec anchors:** §20.3 (procedural tier — _how-to-do-X_ over _what-is-X_), §21.1 (hierarchical contract).
+**Spec anchors:** §20.3 (procedural tier — *how-to-do-X* over *what-is-X*), §21.1 (hierarchical contract).
 
 **Why procedural is separate from semantic:** Per spec §20.3, procedural memory stores **action sequences**: successful Polish chains, recovered failure-handling trajectories, prompt scaffolds that survived three AND-gate cycles. The read pattern is different from semantic — instead of "give me similar facts to ground my next utterance", the Generator asks "given this surface plan + current candidate, give me the top-k procedure templates that have succeeded on adjacent plans." That difference of intent matters enough that we don't reuse the semantic tier's API surface — the metadata schema, the consolidation algorithm, and the embedding strategy are all different. The IAM condition + scope-key mechanism, however, is shared verbatim from T11.
 
@@ -6501,7 +6501,7 @@ grep -nE '\b(TBD|TODO|FIXME|XXX)\b|implement later|fill in|appropriate error han
 ```
 
 Expected result: zero matches across Task code/command blocks. Three
-PENDING markers exist _intentionally_ and are not placeholders:
+PENDING markers exist *intentionally* and are not placeholders:
 
 1. `audit/dpo/cycle-2026-06-01.md` ships with header `Status: PENDING`
    so the gate runner can detect a missing cycle audit vs a real one.
