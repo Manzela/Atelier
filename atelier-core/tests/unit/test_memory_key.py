@@ -11,10 +11,12 @@ from __future__ import annotations
 
 import asyncio
 import contextvars
+from datetime import UTC, datetime
 
+import numpy as np
 import pytest
 from atelier.memory.key import CURRENT_MEMORY_KEY, MemoryKey, current_key
-from atelier.memory.protocol import HierarchicalMemory
+from atelier.memory.protocol import HierarchicalMemory, MemoryEvent
 
 
 @pytest.mark.unit
@@ -189,3 +191,60 @@ def test_hierarchical_memory_protocol_is_runtime_unchecked_but_structural() -> N
     # We do NOT mark HierarchicalMemory @runtime_checkable; assert that here.
     with pytest.raises(TypeError):
         isinstance(Incomplete(), HierarchicalMemory)  # type: ignore[misc]
+
+
+# ---- MemoryEvent runtime ndarray tests (unblocked by R7-01 numpy lockfile) --
+# These tests were not possible at T2 time (numpy not in lockfile).
+# Antigravity R7-01 (917b251) added numpy 2.4.6. The TYPE_CHECKING guard
+# in memory/protocol.py is intentional (ruff TC002 design), but at test
+# runtime numpy IS available, so tests can construct MemoryEvent with real
+# ndarrays even though the Protocol annotation is TYPE_CHECKING-gated.
+
+
+@pytest.mark.unit
+def test_memory_event_can_be_constructed_with_embedding() -> None:
+    """MemoryEvent accepts a real float32 ndarray as the embedding field.
+
+    The embedding field is typed `NDArray[np.float32] | None` per spec §20 —
+    None during writes from nodes that don't compute embeddings; non-None when
+    the session-consolidation pipeline embeds the event for semantic search.
+    """
+    embedding = np.zeros(768, dtype=np.float32)
+    event = MemoryEvent(
+        event_id="evt-001",
+        occurred_at=datetime(2026, 5, 24, tzinfo=UTC),
+        node_name="brief_parse",
+        payload={"token_count": 120, "confidence": 0.95},
+        embedding=embedding,
+    )
+    assert event.embedding is not None
+    assert event.embedding.shape == (768,)
+    assert event.embedding.dtype == np.float32
+
+
+@pytest.mark.unit
+def test_memory_event_embedding_can_be_none() -> None:
+    """MemoryEvent.embedding is Optional — None is valid pre-consolidation."""
+    event = MemoryEvent(
+        event_id="evt-002",
+        occurred_at=datetime(2026, 5, 24, tzinfo=UTC),
+        node_name="emit",
+        payload={"status": "ok"},
+        embedding=None,
+    )
+    assert event.embedding is None
+
+
+@pytest.mark.unit
+def test_memory_event_is_frozen() -> None:
+    """MemoryEvent is a one-shot episodic record — reassignment must raise."""
+    embedding = np.zeros(768, dtype=np.float32)
+    event = MemoryEvent(
+        event_id="evt-003",
+        occurred_at=datetime(2026, 5, 24, tzinfo=UTC),
+        node_name="judge_candidates",
+        payload={"kappa": 0.82},
+        embedding=embedding,
+    )
+    with pytest.raises(Exception):  # FrozenInstanceError is AttributeError subtype
+        event.event_id = "mutated"  # type: ignore[misc]

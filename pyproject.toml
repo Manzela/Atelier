@@ -147,18 +147,16 @@ disallow_untyped_decorators = false
 module = "atelier.observability.*"
 disallow_any_unimported = false
 
-# numpy is TYPE_CHECKING-only in atelier.memory.protocol — the lockfile add
-# lands in Antigravity R7-01 (T0). Until then, treat numpy as Any-typed.
-[[tool.mypy.overrides]]
-module = ["numpy", "numpy.*"]
-ignore_missing_imports = true
-
+# numpy is TYPE_CHECKING-gated in Protocol modules by design (ruff TC002).
+# When mypy resolves TYPE_CHECKING=True paths, NDArray types come from an
+# "unfollowed" perspective in strict mode. These overrides suppress the
+# no-any-unimported error for the Protocol-only modules. Concrete backends
+# that use numpy at runtime are NOT overridden — they import directly and
+# mypy checks them fully. numpy 2.4.6 is in requirements.lock (R7-01).
 [[tool.mypy.overrides]]
 module = "atelier.memory.*"
 disallow_any_unimported = false
 
-# numpy is TYPE_CHECKING-only in atelier.router.protocol — same rationale as
-# atelier.memory.*. The lockfile reconciliation lands in Antigravity R7-01 (T0).
 [[tool.mypy.overrides]]
 module = "atelier.router.*"
 disallow_any_unimported = false

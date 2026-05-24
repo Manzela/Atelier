@@ -1,11 +1,8 @@
-"""Unit tests for atelier.router.protocol (T3).
+"""Unit tests for atelier.router.protocol (T3 + R7-01 follow-up).
 
-The plan's smoke step had us instantiate a numpy ndarray to round-trip
-RouteRequest end-to-end. That requires numpy in the lockfile, which the
-Antigravity R7-01 reconcile hasn't shipped yet. Replacing the runtime
-ndarray smoke with structural invariants (enum sizes, cost-map parity,
-JSON ↔ code parity, frozen/slots, Protocol uncheckability) gives the
-same drift coverage without taking a runtime numpy dependency.
+T3 originally deferred the runtime ndarray smoke because numpy was not
+in requirements.lock. Antigravity R7-01 added numpy 2.4.6; the runtime
+round-trip tests are now included below alongside the structural parity tests.
 """
 
 from __future__ import annotations
@@ -14,6 +11,7 @@ import json
 from dataclasses import FrozenInstanceError, fields, is_dataclass
 from pathlib import Path
 
+import numpy as np
 import pytest
 from atelier.router.protocol import (
     EXPERT_COST_USD_PER_1K_TOKENS,
@@ -217,3 +215,85 @@ def test_phase_aware_moe_router_protocol_is_runtime_unchecked_but_structural() -
 
     with pytest.raises(TypeError):
         isinstance(Incomplete(), PhaseAwareMoERouter)  # type: ignore[misc]
+
+
+# ---- Runtime ndarray round-trips (unblocked by R7-01 numpy lockfile add) ----
+# These tests were deferred in T3 because numpy was not in requirements.lock.
+# Antigravity R7-01 (917b251) added numpy 2.4.6. The TYPE_CHECKING guard in
+# router/protocol.py is intentional (ruff TC002), but tests construct real
+# RouteRequest instances with ndarrays since numpy is available at test runtime.
+
+
+@pytest.mark.unit
+def test_route_request_can_be_constructed_with_real_ndarray() -> None:
+    """RouteRequest round-trips a 768-dim float32 embedding without error.
+
+    This is the original plan smoke test deferred from T3. The embedding
+    shape (768) matches the text-embedding-005 output dimension from spec §18.
+    """
+    embedding = np.zeros(768, dtype=np.float32)
+    req = RouteRequest(
+        phase=DAGPhase.GENERATE_CANDIDATES,
+        task_embedding=embedding,
+        cost_budget_remaining_usd=1.0,
+        latency_target_ms=100,
+        prior_judge_kappa=None,
+        trace_id="trace-001",
+        tenant_id="tenant-1",
+    )
+    assert req.phase is DAGPhase.GENERATE_CANDIDATES
+    assert req.task_embedding.shape == (768,)
+    assert req.task_embedding.dtype == np.float32
+
+
+@pytest.mark.unit
+def test_route_request_embedding_is_the_object_passed_in() -> None:
+    """frozen=True prevents reassignment but does NOT copy the ndarray.
+    The exact object passed in is stored — no hidden copy overhead.
+    """
+    embedding = np.ones(768, dtype=np.float32)
+    req = RouteRequest(
+        phase=DAGPhase.BRIEF_PARSE,
+        task_embedding=embedding,
+        cost_budget_remaining_usd=2.0,
+        latency_target_ms=50,
+        prior_judge_kappa=0.85,
+        trace_id="trace-002",
+        tenant_id="tenant-2",
+    )
+    assert req.task_embedding is embedding
+
+
+@pytest.mark.unit
+def test_route_request_embedding_cannot_be_reassigned() -> None:
+    """frozen=True blocks attribute reassignment — even for the ndarray field."""
+    embedding = np.zeros(768, dtype=np.float32)
+    req = RouteRequest(
+        phase=DAGPhase.EMIT,
+        task_embedding=embedding,
+        cost_budget_remaining_usd=0.5,
+        latency_target_ms=200,
+        prior_judge_kappa=None,
+        trace_id="trace-003",
+        tenant_id="tenant-3",
+    )
+    with pytest.raises(FrozenInstanceError):
+        req.task_embedding = np.ones(768, dtype=np.float32)  # type: ignore[misc]
+
+
+@pytest.mark.unit
+def test_route_request_prior_judge_kappa_can_be_none() -> None:
+    """prior_judge_kappa is Optional — None is valid for the first iteration
+    of a session where no prior judge calibration exists yet.
+    """
+    embedding = np.zeros(768, dtype=np.float32)
+    req = RouteRequest(
+        phase=DAGPhase.JUDGE_CANDIDATES,
+        task_embedding=embedding,
+        cost_budget_remaining_usd=3.0,
+        latency_target_ms=150,
+        prior_judge_kappa=None,
+        trace_id="trace-004",
+        tenant_id="tenant-4",
+    )
+    assert req.prior_judge_kappa is None

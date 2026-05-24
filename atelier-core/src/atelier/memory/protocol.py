@@ -11,11 +11,15 @@ All reads enforce the active MemoryKey via current_key(); IAM Conditions
 on aiplatform.googleapis.com/memoryScope (CEL ACL-on-read) provide a second
 layer of defense at the Google Cloud authorization layer.
 
-numpy is intentionally TYPE_CHECKING-gated: the Protocol module is the
-type contract every backend implements, but the embedding ndarray type is
-only resolved at static-analysis time. Concrete backends (T8 BigQuery,
-T11 / T12 Vertex Memory Bank) take their numpy dep at runtime — the
-lockfile reconciliation lands in Antigravity R7-01 (T0).
+numpy is TYPE_CHECKING-gated by design (not as a workaround). This is the
+Protocol surface — it defines the type contract that backends implement. The
+annotation `embedding: NDArray[np.float32] | None` carries meaning for static
+analysis and documentation; the type is not enforced at runtime. Ruff TC002
+enforces this pattern: third-party imports used only for type annotations
+belong in the TYPE_CHECKING block. Concrete backends (BigQuery episodic T8,
+Vertex Memory Bank T11/T12) import numpy directly in their own modules when
+they construct MemoryEvent instances at runtime. numpy 2.4.6 is in the
+requirements.lock since Antigravity R7-01.
 """
 
 from __future__ import annotations

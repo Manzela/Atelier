@@ -11,9 +11,14 @@ agnostic to which router is wired in. Adding a fourth router (e.g.
 contextual bandit) only requires another Protocol implementation; no
 orchestrator change.
 
-numpy is intentionally TYPE_CHECKING-gated for the same reason as
-atelier.memory.protocol — see that module's header. The lockfile reconcile
-for numpy + pytest-asyncio + numpy-stubs lands in Antigravity R7-01 (T0).
+numpy is TYPE_CHECKING-gated by design (not as a workaround). This is the
+Protocol surface — it defines the type contract. `task_embedding: NDArray[np.float32]`
+carries meaning for static analysis; Python does not enforce annotation types at
+runtime so the import is not needed there. Ruff TC002 enforces this pattern:
+third-party imports used only for annotations belong in TYPE_CHECKING. Router
+implementations (v0_managed.py, v1_bandit.py, v2_matrix.py) construct
+RouteRequest in tests and callers that own numpy at runtime. numpy 2.4.6 is in
+the requirements.lock since Antigravity R7-01.
 """
 
 from __future__ import annotations
