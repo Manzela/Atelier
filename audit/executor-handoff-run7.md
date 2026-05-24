@@ -14,6 +14,7 @@
 | R7-02   | `9c77bd0` | feat(runtime): add FailureMode enum + @failure_trichotomy + ADR 0031 | 4     |
 | R7-03   | `b3ebbfa` | feat(router): add ManagedRoutingRouter v0                            | 2     |
 | R7-04   | `fe914bd` | feat(routing): add routing manifest schema + JSON-Schema validator   | 3     |
+| R7-04b  | `7e4a69a` | chore(routing): add pre-commit hook for manifest schema validation   | 1     |
 | R7-05   | `5e8f506` | feat(memory): semantic tier with scope-keyed ACL + ADR 0029          | 6     |
 | R7-06   | `661d86f` | feat(memory): procedural tier with replay-fidelity guard             | 2     |
 | R7-07   | `6dcfbb5` | chore(migration): GCP cutover dry-run — atelier-geap-api-key         | 4     |
@@ -73,9 +74,12 @@ as the brief suggested) because the existing Protocol stub was already at
 schema validation (g10 gate), all 8 phases present, expert ID cross-reference,
 fallback chain validity, budget-sensitive conditional fields, negative test.
 
-**Evidence:** `pytest atelier-core/tests/unit/test_routing_manifest_schema.py -v` → 7 passed.
+**Evidence:**
 
-**Result:** ✅ PASS
+- `pytest atelier-core/tests/unit/test_routing_manifest_schema.py -v` -> 7 passed
+- `pre-commit run validate-routing-manifest --files infra/routing/manifest.yaml` -> Passed
+
+**Result:** PASS
 
 ---
 
@@ -187,6 +191,8 @@ Added `--dry-run` default with `--apply` flag for live execution.
 
 ```
 Unpushed commits since origin/phase/1:
+  7e4a69a chore(routing): add pre-commit hook for manifest schema validation
+  5616481 docs(audit): R7 handoff — 9/11 items complete, 2 Daniel-gated
   5af04c2 chore(governance): R7-09 finalize branch protection required-checks list
   cba76de chore(infra): R7-08 terraform plan capture — FAIL-SOFT
   661d86f feat(memory): procedural tier — R7-06
