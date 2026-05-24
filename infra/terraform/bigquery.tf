@@ -3,12 +3,15 @@ resource "google_bigquery_dataset" "atelier_trajectories" {
   project     = var.project_id
   location    = "US"
   description = "Atelier trajectory store: session events, DPO pairs, calibration metrics, cost ledger"
+
+  depends_on = [google_project_service.required]
 }
 
 resource "google_bigquery_table" "trajectory_records" {
   dataset_id          = google_bigquery_dataset.atelier_trajectories.dataset_id
   project             = var.project_id
   table_id            = "trajectory_records"
+  # staging: false. Production must set deletion_protection = true.
   deletion_protection = false
   schema = jsonencode([
     { name = "session_id", type = "STRING", mode = "REQUIRED" },
@@ -26,6 +29,7 @@ resource "google_bigquery_table" "dpo_preference_pairs" {
   dataset_id          = google_bigquery_dataset.atelier_trajectories.dataset_id
   project             = var.project_id
   table_id            = "dpo_preference_pairs"
+  # staging: false. Production must set deletion_protection = true.
   deletion_protection = false
   schema = jsonencode([
     { name = "pair_id", type = "STRING", mode = "REQUIRED" },
@@ -46,6 +50,7 @@ resource "google_bigquery_table" "calibration_metrics" {
   dataset_id          = google_bigquery_dataset.atelier_trajectories.dataset_id
   project             = var.project_id
   table_id            = "calibration_metrics"
+  # staging: false. Production must set deletion_protection = true.
   deletion_protection = false
   schema = jsonencode([
     { name = "run_id", type = "STRING", mode = "REQUIRED" },
@@ -61,12 +66,14 @@ resource "google_bigquery_table" "cost_ledger" {
   dataset_id          = google_bigquery_dataset.atelier_trajectories.dataset_id
   project             = var.project_id
   table_id            = "cost_ledger"
+  # staging: false. Production must set deletion_protection = true.
   deletion_protection = false
   schema = jsonencode([
     { name = "session_id", type = "STRING", mode = "REQUIRED" },
     { name = "phase", type = "STRING", mode = "REQUIRED" },
     { name = "expert_id", type = "STRING", mode = "REQUIRED" },
     { name = "input_tokens", type = "INT64", mode = "REQUIRED" },
+    { name = "output_tokens", type = "INT64", mode = "REQUIRED" },
     { name = "cost_usd", type = "FLOAT64", mode = "REQUIRED" },
     { name = "recorded_at", type = "TIMESTAMP", mode = "REQUIRED" },
   ])

@@ -3,6 +3,8 @@ resource "google_service_account" "atelier_runtime" {
   display_name = "Atelier Runtime"
   project      = var.project_id
   description  = "Used by Cloud Run services and Vertex AI Memory Bank backends"
+
+  depends_on = [google_project_service.required]
 }
 
 resource "google_service_account" "atelier_api" {
@@ -10,6 +12,8 @@ resource "google_service_account" "atelier_api" {
   display_name = "Atelier API Service Account"
   project      = var.project_id
   description  = "Used by the Atelier FastAPI Cloud Run service"
+
+  depends_on = [google_project_service.required]
 }
 
 resource "google_project_iam_member" "runtime_vertex_user" {

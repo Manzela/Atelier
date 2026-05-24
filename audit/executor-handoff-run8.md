@@ -138,7 +138,7 @@ F0006 and F0007 updated to `passes: true` with evidence_tests:
 | D-05 | R7-10  | Push phase/1 to remote             | Daniel       | 🔴 Critical |
 | D-06 | R7-08  | Terraform apply (create resources) | Daniel       | 🟡 Blocked  |
 
-**Unpushed commits:** 37 (32 prior + 1 brief + 4 R8 items).
+**Unpushed commits:** 38 (32 prior + 1 brief + 4 R8 items + 1 handoff).
 
 ---
 

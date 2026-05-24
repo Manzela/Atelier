@@ -29,7 +29,8 @@ def render_html_to_screenshot(
     Returns raw PNG bytes.
 
     Raises:
-        RuntimeError: if chrome/chromium is not available.
+        subprocess.CalledProcessError: if chromium exits non-zero.
+        FileNotFoundError: if chromium-browser is not in PATH.
     """
     with tempfile.NamedTemporaryFile(suffix=".html", mode="w", delete=False) as f:
         f.write(html)
