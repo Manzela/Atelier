@@ -43,7 +43,7 @@
 
 ## What this is
 
-Atelier is a self-improving autonomous design agent that **converges UI/UX work to flawless across multi-axis criteria** instead of generating one-shot output and stopping. Built on Google ADK 2.0 Beta + Vertex AI + Stitch MCP + A2UI v0.9, with architecture inspired by the production-validated 7-node Gate-Agent DAG in [`agent-dag-pipeline`](https://github.com/Manzela/agent-dag-pipeline) and the long-running-agent harness pattern from [Anthropic's published guidance](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents) (Nov 2025).
+Atelier is a self-improving autonomous design agent that **converges UI/UX work to flawless across multi-axis criteria** instead of generating one-shot output and stopping. Built on Google ADK 2.0 Beta + Vertex AI + Stitch MCP + A2UI v0.9.
 
 Where every shipped autonomous-design tool today (Stitch, Vercel v0, Subframe, Lovable.dev, Replit Agent, Devin, Builder.io Fusion, Tempo Labs) terminates at _generation_ — Google's own Antigravity codelab calls the verification step **"Vibe Check"** (manual eyeballing) — Atelier:
 
@@ -55,21 +55,21 @@ Where every shipped autonomous-design tool today (Stitch, Vercel v0, Subframe, L
 
 ## Key differentiators (13 novel contributions)
 
-| #       | Contribution                                                                    | Defense                                                                                                                                                                                                                      |
-| ------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **N1**  | **DGF-D2C** — Deterministic-Gate-First Design-to-Convergence                    | Improves on WebGen-Agent (NeurIPS 2025 SOTA at 51.9%) by adding deterministic preconditions before any judge call. Eliminates judge attention dilution.                                                                      |
-| **N2**  | **DEMAS-D** — Per-axis Provenance Matrix Design Judge                           | Each axis (a11y, brand, motion, copy, semantics, tokens) sees only its relevant ground-truth variables — never the full DOM.                                                                                                 |
-| **N3**  | **PerJudge** — Per-Project DPO Judge with Hebbian Mutator + Few-Shot Cold-Start | Addresses DesignPref's α=0.25 finding (designer disagreement is intrinsic). Personalized judges win with 20× fewer examples.                                                                                                 |
-| **N4**  | **PADI** — Project-Agnostic Descriptor Inference                                | Adapts to any tech stack with optional `.atelier.yaml` descriptor; full inference from path + intent.                                                                                                                        |
-| **N5**  | **EvoDesign** — AlphaEvolve-Inspired Evolutionary K-Candidate Search            | First transfer of DeepMind's AlphaEvolve methodology to UI generation. K=6 candidates × 8 mutation operators per iteration.                                                                                                  |
-| **N6**  | **CSC-D** — Constitutional Self-Critique for Design                             | Self-grades each candidate against the 12-principle Apple-Grade constitution before deterministic gate fires.                                                                                                                |
-| **N7**  | **A2UI-Native Output**                                                          | First autonomous design agent built on Google's A2UI v0.9 protocol from day one. Renders to React + Flutter + Lit + Angular simultaneously.                                                                                  |
-| **N8**  | **Public Judge Calibration Dashboard**                                          | First commercial autonomous design agent to publish judge calibration externally as a transparency commitment. Defends against the calibration-drift problem 93% of teams hit.                                               |
-| **N9**  | **Open Eval Adapters Library**                                                  | Apache-2.0 PRs to `google/adk-python` for WebGen-Bench, Design2Code, Web2Code, ScreenSpot, FrontendBench. Makes ADK the canonical evaluation runtime for the field.                                                          |
-| **N10** | **Convergence Spec RFC**                                                        | Open standard: how an autonomous design agent declares convergence criteria, emits trajectories, reports calibration drift. Atelier is the reference implementation.                                                         |
-| **N11** | **Public Eval Harness**                                                         | `bench.atelier.dev` accepts agent submissions from any vendor. Atelier becomes the standard evaluation surface for the entire UI-generation field.                                                                           |
-| **N12** | **RLRD** — Recursive Long-Running Discipline                                    | Atelier-as-reference-implementation of Anthropic's published long-running agent harness for a domain-specific agent. The same patterns we use to build Atelier, we ship to users running multi-day, multi-surface campaigns. |
-| **N13** | **PIP** — Pre-Generation Intake Protocol                                        | Adaptive-depth, DAPLab-pattern-mapped, visual-option-driven, skip-when-answered intake. First commercial autonomous design agent to ship structured pre-generation intake.                                                   |
+| #       | Contribution                                                                    | Defense                                                                                                                                                                                                           |
+| ------- | ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **N1**  | **DGF-D2C** — Deterministic-Gate-First Design-to-Convergence                    | Improves on WebGen-Agent (NeurIPS 2025 SOTA at 51.9%) by adding deterministic preconditions before any judge call. Eliminates judge attention dilution.                                                           |
+| **N2**  | **DEMAS-D** — Per-axis Provenance Matrix Design Judge                           | Each axis (a11y, brand, motion, copy, semantics, tokens) sees only its relevant ground-truth variables — never the full DOM.                                                                                      |
+| **N3**  | **PerJudge** — Per-Project DPO Judge with Hebbian Mutator + Few-Shot Cold-Start | Addresses DesignPref's α=0.25 finding (designer disagreement is intrinsic). Personalized judges win with 20× fewer examples.                                                                                      |
+| **N4**  | **PADI** — Project-Agnostic Descriptor Inference                                | Adapts to any tech stack with optional `.atelier.yaml` descriptor; full inference from path + intent.                                                                                                             |
+| **N5**  | **EvoDesign** — AlphaEvolve-Inspired Evolutionary K-Candidate Search            | First transfer of DeepMind's AlphaEvolve methodology to UI generation. K=6 candidates × 8 mutation operators per iteration.                                                                                       |
+| **N6**  | **CSC-D** — Constitutional Self-Critique for Design                             | Self-grades each candidate against the 12-principle Apple-Grade constitution before deterministic gate fires.                                                                                                     |
+| **N7**  | **A2UI-Native Output**                                                          | First autonomous design agent built on Google's A2UI v0.9 protocol from day one. Renders to React + Flutter + Lit + Angular simultaneously.                                                                       |
+| **N8**  | **Public Judge Calibration Dashboard**                                          | First commercial autonomous design agent to publish judge calibration externally as a transparency commitment. Defends against the calibration-drift problem 93% of teams hit.                                    |
+| **N9**  | **Open Eval Adapters Library**                                                  | Apache-2.0 PRs to `google/adk-python` for WebGen-Bench, Design2Code, Web2Code, ScreenSpot, FrontendBench. Makes ADK the canonical evaluation runtime for the field.                                               |
+| **N10** | **Convergence Spec RFC**                                                        | Open standard: how an autonomous design agent declares convergence criteria, emits trajectories, reports calibration drift. Atelier is the reference implementation.                                              |
+| **N11** | **Public Eval Harness**                                                         | A public benchmark scoreboard accepts agent submissions from any vendor. Atelier becomes the standard evaluation surface for the entire UI-generation field.                                                      |
+| **N12** | **RLRD** — Recursive Long-Running Discipline                                    | Multi-session orchestration discipline for long-horizon autonomous campaigns. The same harness architecture that powers Atelier's engine is exposed to users running multi-day, multi-surface redesign campaigns. |
+| **N13** | **PIP** — Pre-Generation Intake Protocol                                        | Adaptive-depth, DAPLab-pattern-mapped, visual-option-driven, skip-when-answered intake. First commercial autonomous design agent to ship structured pre-generation intake.                                        |
 
 ## 10× thesis (5 quantified axes)
 
@@ -126,13 +126,15 @@ Atelier was created for the [Google for Startups AI Agents Challenge 2026](https
 
 ## Live demos & artifacts
 
-- **Live agent**: [atelier.dev](https://atelier.dev)
-- **Documentation**: [docs.atelier.dev](https://docs.atelier.dev)
-- **Public benchmark scoreboard**: [bench.atelier.dev](https://bench.atelier.dev)
-- **Public calibration drift dashboard**: [calibration.atelier.dev](https://calibration.atelier.dev)
-- **Status page**: [status.atelier.dev](https://status.atelier.dev)
-- **Demo video** (4-min): linked from atelier.dev
-- **arXiv preprint** (4-page workshop): linked from docs.atelier.dev/research
+URLs will be published when the production environment is live (Milestone 3). The following surfaces are planned:
+
+- **Live agent** — interactive design session UI
+- **Documentation** — full API reference and guides
+- **Public benchmark scoreboard** — WebGen-Bench and FrontendBench results from any submitted agent
+- **Public calibration drift dashboard** — weekly judge calibration κ data
+- **Status page** — infrastructure uptime
+- **Demo video** (4-min) — end-to-end campaign walkthrough
+- **arXiv preprint** (4-page workshop paper) — methodology and benchmark results
 
 ## Pricing
 
@@ -141,17 +143,16 @@ Atelier was created for the [Google for Startups AI Agents Challenge 2026](https
 - **Team** $50/seat/month — shared workspace, project-history sync, shared judge LoRA across team
 - **Enterprise** usage-based — BYO Cloud KMS keys, VPC-SC perimeter, dedicated tenant pool, custom judge axes
 
-## Inheritance (wrap-don't-fork — see [ADR 0001](docs/decisions/0001-wrap-dont-fork-inheritance-model.md))
+## Technology stack
 
-Atelier consumes upstream code via lockfile-pinned dependencies and wraps it with our own deployment / configuration / security / observability layers. We do **NOT** fork upstream internals.
-
-| Source                                                                                                                    | Consumption mode                    | What we use                                                                                                                         |
-| ------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| [`agent-dag-pipeline`](https://github.com/Manzela/agent-dag-pipeline) (Apache-2.0)                                        | `pip install` lockfile-pinned       | Gate-Agent ABC pattern, DEMAS Provenance Matrix, 3-tier DPO flywheel, Hebbian mutator, ADK integration wrappers                     |
-| [`google-adk`](https://github.com/google/adk-python) v2.0 Beta (Apache-2.0)                                               | `pip install --pre` lockfile-pinned | SequentialAgent, ParallelAgent, LoopAgent, MCPToolset, rubric*based*\*\_v1, Skills for Agents, adk optimize (GEPA), adk conformance |
-| [`hermes-agent`](https://github.com/NousResearch/hermes-agent) (MIT)                                                      | Pattern inheritance only            | Skills system, MEMORY/SOUL files, sandboxing tier model, panic/resume primitives, Atropos GRPO+LoRA training pattern                |
-| [Stitch MCP](https://stitch.googleapis.com/mcp) (Google Labs)                                                             | HTTP MCP via ADK `MCPToolset`       | UI generation primitive (`generate_screen_from_text`, `generate_variants`, `apply_design_system`)                                   |
-| [Anthropic two-prompt harness](https://github.com/anthropics/claude-quickstarts/tree/main/autonomous-coding) (Apache-2.0) | Pattern adoption                    | Initializer + coding agent + JSON ledger + end-to-end test before next feature (build sprint discipline)                            |
+| Component                                                               | Role                                                                                              |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| [Google ADK 2.0](https://github.com/google/adk-python) (Apache-2.0)     | Agent runtime — SequentialAgent, ParallelAgent, LoopAgent, MCPToolset, `adk optimize` (GEPA)      |
+| [Vertex AI](https://cloud.google.com/vertex-ai)                         | Model serving, preference tuning (DPO), Endpoints, Multi-Tuning, Memory Bank                      |
+| [Stitch MCP](https://stitch.googleapis.com/mcp) (Google Labs)           | UI generation primitive (`generate_screen_from_text`, `generate_variants`, `apply_design_system`) |
+| [A2UI v0.9](https://developers.googleblog.com/a2ui-v0-9-generative-ui/) | Multi-framework renderer output (React, Flutter, Lit, Angular)                                    |
+| [BigQuery](https://cloud.google.com/bigquery)                           | Trajectory store, preference pairs, calibration metrics, cost ledger                              |
+| [Cloud Run](https://cloud.google.com/run)                               | Serverless agent job execution                                                                    |
 
 ## Roadmap
 
@@ -173,4 +174,4 @@ See [SECURITY.md](SECURITY.md) for vulnerability reporting and the responsible d
 
 ## License
 
-Apache License 2.0 — see [LICENSE](LICENSE) for details. Built on patterns from [agent-dag-pipeline](https://github.com/Manzela/agent-dag-pipeline) (Apache-2.0), [hermes-agent](https://github.com/NousResearch/hermes-agent) (MIT), and [google-adk](https://github.com/google/adk-python) (Apache-2.0). See [NOTICE](NOTICE) for full attribution.
+Apache License 2.0 — see [LICENSE](LICENSE) for details. Third-party attributions are listed in [NOTICE](NOTICE).

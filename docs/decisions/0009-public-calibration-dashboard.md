@@ -1,4 +1,4 @@
-# 0009. Public calibration dashboard at calibration.atelier.dev
+# 0009. Public calibration dashboard at TBD
 
 **Status:** Accepted
 **Date:** 2026-05-14
@@ -18,7 +18,7 @@ Three options:
 
 ## Decision
 
-We will publish judge calibration drift externally at **`calibration.atelier.dev`** as a continuously-updated public dashboard. Per Anthropic's published guidance, defended by:
+We will publish judge calibration drift externally at **`TBD`** as a continuously-updated public dashboard. Per Anthropic's published guidance, defended by:
 
 - **Frozen golden set**: 100 hand-graded designs per judge axis (500 total), curated pre-launch, never changed without an ADR
 - **Weekly recalibration cron** (Mon 03:17 UTC, matching `limits.calibration.recalibration_cron`): every judge re-scores the frozen golden set; correlation vs. canonical-human-rating is computed
@@ -30,7 +30,7 @@ Architecture:
 
 - Eval workflow runs the calibration suite weekly
 - Results land in `atelier-eval/data/results/calibration_*.json`
-- A small Cloud Function pushes the latest results to Firebase Hosting at `calibration.atelier.dev`
+- A small Cloud Function pushes the latest results to Firebase Hosting at `TBD`
 - Dashboard is a static React + Tailwind page (matches `pipeline-observatory` aesthetic)
 
 ## Consequences
@@ -73,4 +73,4 @@ Architecture:
 - [Galileo: Why LLM-as-a-Judge Fails](https://galileo.ai/blog/why-llm-as-a-judge-fails) (May 2026) — 93% statistic
 - [PRD §11 Strategy v2 + §6.5 Layered Oracle calibration check](../superpowers/specs/2026-05-14-atelier-prd.md)
 - `atelier-eval/src/atelier_eval/calibration_dashboard.py` — implementation
-- `calibration.atelier.dev` — public dashboard URL
+- `TBD` — public dashboard URL

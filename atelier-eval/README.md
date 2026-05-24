@@ -19,8 +19,8 @@ src/atelier_eval/
 │   ├── calibration.json         # 100-task calibration set (weekly recalibration)
 │   └── adversarial.json         # 50-task held-out adversarial set (pre-release only)
 ├── runner.py                    # Evaluation runner with pytest-style parametrization
-├── scoreboard.py                # Publishes results to bench.atelier.dev
-└── calibration_dashboard.py     # Publishes calibration drift to calibration.atelier.dev
+├── scoreboard.py                # Publishes results to TBD
+└── calibration_dashboard.py     # Publishes calibration drift to TBD
 ```
 
 ## Status
@@ -56,5 +56,5 @@ python -m atelier_eval.calibration_dashboard --update --alert-on-drift
 ## See also
 
 - [Evaluation methodology](../docs/eval/methodology.md)
-- [Public scoreboard](https://bench.atelier.dev)
-- [Calibration drift dashboard](https://calibration.atelier.dev)
+- [Public scoreboard](TBD)
+- [Calibration drift dashboard](TBD)

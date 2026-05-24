@@ -1,4 +1,4 @@
-"""Scoreboard — publishes eval results to bench.atelier.dev.
+"""Scoreboard — publishes eval results to TBD.
 
 Phase 1 skeleton: formats results as JSON. Real publication (HTTPS POST
 to the scoreboard API) and Markdown table rendering land in Phase 2.
@@ -40,7 +40,7 @@ def publish_to_scoreboard(
     *,
     benchmark_name: str,
     model_name: str,
-    api_url: str = "https://bench.atelier.dev/api/submit",
+    api_url: str = "TBD/api/submit",
 ) -> None:
     """Publish eval results to the scoreboard API (Phase 2 stub).
 

@@ -37,4 +37,4 @@ jobs:
 ## See also
 
 - [Atelier PRD §5 — N9 Open Eval Adapters](../docs/superpowers/specs/2026-05-14-atelier-prd.md)
-- [Get an API key](https://atelier.dev/settings/api-keys)
+- [Get an API key](TBD/settings/api-keys)

@@ -68,7 +68,7 @@ See [CHANGELOG.md](CHANGELOG.md) for the release tagging plan. Releases are mana
 - **GitHub Discussions** — questions, ideas, general community
 - **Discord** — real-time chat (post-launch +1)
 - **Twitter** — announcements, build-in-public updates
-- **Email** — `hello@atelier.dev` (general), `security@atelier.dev` (vulnerabilities), `conduct@atelier.dev` (CoC violations)
+- **Email** — `hello@TBD` (general), `security@TBD` (vulnerabilities), `conduct@TBD` (CoC violations)
 
 ## Project-strategic decisions
 
@@ -89,7 +89,7 @@ If you disagree with a Maintainer decision:
 
 1. Open a GitHub Discussion to articulate your concern.
 2. The Maintainer will respond within 7 days.
-3. If unresolved, escalate via email to `governance@atelier.dev`.
+3. If unresolved, escalate via email to `governance@TBD`.
 4. As a last resort, you may fork the project (Apache-2.0 license permits this).
 
 We aim to make decisions transparent, reversible where possible, and well-documented in ADRs.

@@ -46,5 +46,5 @@ A locked ADR is hard to change by design. To amend:
 | 0006 | [Google-native stack (no Langfuse, Statsig, PostHog, GKE-S-LoRA, LiteLLM)](0006-google-native-stack-no-langfuse.md) | Accepted |
 | 0007 | [Worktree-per-phase branching](0007-worktree-per-phase-branching.md)                                                | Accepted |
 | 0008 | [Multi-judge Bayesian-weighted consensus + DEMAS-D Provenance per axis](0008-multi-judge-bayesian-consensus.md)     | Accepted |
-| 0009 | [Public calibration dashboard at calibration.atelier.dev](0009-public-calibration-dashboard.md)                     | Accepted |
+| 0009 | [Public calibration dashboard at TBD](0009-public-calibration-dashboard.md)                                         | Accepted |
 | 0010 | [A2UI v0.9 as canonical output protocol](0010-a2ui-native-output-protocol.md)                                       | Accepted |

@@ -17,8 +17,8 @@ Atelier follows semantic versioning. Security fixes are backported to:
 Use one of the following private channels:
 
 1. **GitHub Security Advisory** (preferred) — [Open a private security advisory](https://github.com/Manzela/atelier/security/advisories/new). This routes directly to the maintainers with full encryption.
-2. **Email** — `security@atelier.dev` (PGP key fingerprint published below)
-3. **Encrypted form** — [atelier.dev/security/report](https://atelier.dev/security/report)
+2. **Email** — `security@TBD` (PGP key fingerprint published below)
+3. **Encrypted form** — [TBD/security/report](TBD/security/report)
 
 Include in your report:
 
@@ -38,7 +38,7 @@ We follow **coordinated disclosure**:
 - We will work with you on a fix and disclosure timeline.
 - We will request a 90-day embargo for High/Critical severity issues to allow downstream consumers to update.
 - We will credit you in the security advisory and the release notes (with your permission).
-- We do not currently offer monetary bounties but will publicly acknowledge significant contributions in our [Hall of Fame](https://atelier.dev/security/hall-of-fame).
+- We do not currently offer monetary bounties but will publicly acknowledge significant contributions in our [Hall of Fame](TBD/security/hall-of-fame).
 
 ## Severity definitions
 
@@ -89,7 +89,7 @@ Email reports may be encrypted with the following key:
 
 ```
 Fingerprint: [TO-BE-PUBLISHED-AT-LAUNCH]
-Key URL:     https://atelier.dev/security/pgp.asc
+Key URL:     TBD/security/pgp.asc
 ```
 
 The PGP key will be published before the v1.0.0 release on 2026-06-03.

@@ -7,7 +7,7 @@ name = "atelier-core"
 version = "0.1.0a0"
 description = "Atelier engine — autonomous design agent for Google for Startups AI Agents Challenge 2026"
 readme = "README.md"
-authors = [{ name = "Daniel Manzela", email = "hello@atelier.dev" }]
+authors = [{ name = "Daniel Manzela", email = "hello@TBD" }]
 license = { file = "../LICENSE" }
 requires-python = ">=3.11,<3.13"
 keywords = [
@@ -74,8 +74,8 @@ dev = [
 atelier = "atelier.cli:main"
 
 [project.urls]
-Homepage = "https://atelier.dev"
-Documentation = "https://docs.atelier.dev"
+Homepage = "TBD"
+Documentation = "TBD"
 Repository = "https://github.com/Manzela/atelier"
 Issues = "https://github.com/Manzela/atelier/issues"
 

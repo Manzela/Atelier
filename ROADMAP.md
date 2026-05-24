@@ -45,7 +45,7 @@ Delivers the core quality mechanisms that make Atelier self-improving.
 
 - 12-surface autonomous campaign converges end-to-end without human intervention
 - WebGen-Bench full evaluation at or above NeurIPS 2025 SOTA (51.9%)
-- Calibration dashboard live at [calibration.atelier.dev](https://calibration.atelier.dev)
+- Calibration dashboard live at [TBD](TBD)
 - All four A2UI renderers operational (React, Flutter, Lit, Angular)
 
 ---
@@ -59,10 +59,10 @@ Completes the per-project learning loop, open ecosystem artifacts, and productio
 - Per-project judge LoRA — fine-tuned judge per tenant using accumulated accept/reject signals; 20× lower sample requirement vs generic judge
 - N9 Open Eval Adapters — Apache-2.0 adapters to `google/adk-python` for WebGen-Bench, Design2Code, Web2Code, ScreenSpot, and FrontendBench
 - N10 Convergence Spec RFC v0.1 — open standard for how autonomous design agents declare convergence, emit trajectories, and report calibration drift
-- N11 Public benchmark scoreboard — `bench.atelier.dev` accepts agent submissions from any vendor
+- N11 Public benchmark scoreboard — `TBD` accepts agent submissions from any vendor
 - Atelier Skills Pack — 6 reusable skills for common design patterns
 - Ecosystem integrations — GitHub Marketplace Action, Figma Community plugin, Chrome extension
-- Marketing site — [atelier.dev](https://atelier.dev) with freemium sign-up
+- Marketing site — [TBD](TBD) with freemium sign-up
 
 ---
 
@@ -82,7 +82,7 @@ Completes the per-project learning loop, open ecosystem artifacts, and productio
 
 Atelier aims to become:
 
-1. **The standard evaluation surface for UI-generation** — `bench.atelier.dev` as the canonical public benchmark for autonomous design agents, with the eval-set adapters adopted by independent research teams.
+1. **The standard evaluation surface for UI-generation** — `TBD` as the canonical public benchmark for autonomous design agents, with the eval-set adapters adopted by independent research teams.
 
 2. **The reference implementation of the Convergence Spec** — a community-driven open standard for how any autonomous design agent declares convergence, emits trajectories, and reports calibration drift.
 
