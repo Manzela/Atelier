@@ -11,11 +11,9 @@ import io
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    import numpy as np
-    import numpy.typing as npt
+import numpy as np  # noqa: TC002
+import numpy.typing as npt  # noqa: TC002
 
 
 def render_html_to_screenshot(

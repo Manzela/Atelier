@@ -42,7 +42,7 @@ Audit Reference: §7 (FA-018 model routing, FA-019 weighting, bias mitigation)
 
 import re
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 from uuid import UUID
 
@@ -51,13 +51,13 @@ from atelier.models.constitution_registry import Constitution
 from atelier.models.data_contracts import CandidateUI, JudgeVote
 from atelier.models.enums import JudgeAxis
 from atelier.models.model_registry import JUDGE_MODEL_CONFIG
+from atelier.nodes._types import _JudgeScore
 from atelier.nodes.anti_bias import AntiBiasReport, build_anti_bias_report
 
 if TYPE_CHECKING:
-    # Imported only for type checking to avoid a runtime circular import:
-    # llm_judge depends on _AXIS_SCORERS / _JudgeScore from this module at
-    # import time, while evaluate_candidate below lazily imports
-    # `_resolve_axis_scorers` from llm_judge at call time.
+    # Imported only for type checking. evaluate_candidate lazily imports
+    # `_resolve_axis_scorers` from llm_judge at call time (not module load),
+    # avoiding any circular dependency at import time.
     from atelier.nodes.llm_judge import JudgeClient
 
 # ---------------------------------------------------------------------------
@@ -190,37 +190,12 @@ _HTML_ALT = re.compile(r"<img[^>]*\salt\s*=", re.IGNORECASE)
 # ---------------------------------------------------------------------------
 
 
-@dataclass(frozen=True)
-class _JudgeScore:
-    """Internal per-axis result produced by a ``_score_*`` helper.
-
-    Not exported: callers see :class:`JudgeVote` instances built from this
-    via :func:`_build_judge_vote`. Kept as a separate type so the scoring
-    helpers stay pure (no Pydantic, no UUID) and can be unit-tested in
-    isolation from the consensus aggregation path.
-
-    Attributes:
-        score: Normalized score in ``[0.0, 1.0]``.
-        diagnostic: Human-readable explanation of what was counted and why
-            the score landed where it did. Embedded into
-            :attr:`JudgeVote.reasoning` downstream.
-        provenance_vars: DEMAS-D variable names the scorer "consulted."
-            Phase 1 scorers report the artifact filenames they actually
-            opened; Phase 2 LLM judges will report richer provenance.
-    """
-
-    score: float
-    diagnostic: str
-    provenance_vars: list[str] = field(default_factory=list)
-    #: Optional LLM judge identifier set by Phase 2 LLMJudge.score().
-    #: Defaults to ``None`` so Phase 1 heuristic scorers can construct
-    #: with the original 3-argument signature; _build_judge_vote falls
-    #: back to the Phase 1 stub suffix when this is None.
-    judge_model: str | None = None
-    #: Optional Bayesian confidence interval set by Phase 2 LLMJudge.score().
-    #: Defaults to ``None`` so _build_judge_vote can derive the synthetic
-    #: Phase 1 band via :func:`_confidence_interval` when absent.
-    confidence_interval: tuple[float, float] | None = None
+# _JudgeScore is defined in atelier.nodes._types to break the module-level
+# circular import with atelier.nodes.llm_judge. See _types.py for the full
+# docstring and rationale.
+# Re-exported here so existing references in this module and its tests work
+# without any change to their import paths.
+__all__ = ["_JudgeScore"]  # included so static analysers see the re-export
 
 
 @dataclass(frozen=True)
