@@ -1,0 +1,1 @@
+# atelier-core tests package

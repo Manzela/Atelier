@@ -1,0 +1,112 @@
+# OTel Collector Configuration — Atelier
+#
+# ADR 0006: Google-native observability stack
+# Audit §3: C8 observability alignment
+# PRD §7.3: 15 mandatory span attributes
+#
+# Architecture:
+#   Dev:  OTLP → Collector → Phoenix exporter (localhost:6006)
+#   Prod: OTLP → Collector → Google Cloud Trace + Cloud Monitoring
+#
+# The collector accepts traces via gRPC (4317) and HTTP (4318).
+# Both dev (Phoenix) and prod (Cloud Trace) exporters are always
+# configured; routing is controlled by the pipeline definitions.
+#
+# Tail-based sampling (ADR 0006):
+#   - Errors and slow spans (>5s) are ALWAYS kept
+#   - Successful spans are sampled at 10% to control cost
+#
+# Service Account requirements (for prod pipeline):
+#   The SA running the collector must have:
+#   - roles/cloudtrace.agent
+#   - roles/monitoring.metricWriter
+#   If the SA is not yet provisioned, see terraform/main.tf for
+#   the otel-collector SA resource definition.
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    timeout: 5s
+    send_batch_size: 512
+    send_batch_max_size: 1024
+
+  # Add Atelier-specific resource attributes to all telemetry
+  resource:
+    attributes:
+      - key: gen_ai.system
+        value: atelier
+        action: upsert
+      - key: service.name
+        value: atelier-api
+        action: upsert
+      - key: service.namespace
+        value: atelier
+        action: upsert
+
+  # Tail-based sampling: always keep errors + slow spans, sample success at 10%
+  # Per ADR 0006: controls Cloud Trace cost while preserving debugging signal
+  tail_sampling:
+    decision_wait: 10s
+    num_traces: 100
+    expected_new_traces_per_sec: 50
+    policies:
+      # Always keep error spans
+      - name: errors-always-kept
+        type: status_code
+        status_code:
+          status_codes:
+            - ERROR
+      # Always keep slow spans (latency > 5s)
+      - name: slow-spans-always-kept
+        type: latency
+        latency:
+          threshold_ms: 5000
+      # Sample successful spans at 10%
+      - name: success-probabilistic
+        type: probabilistic
+        probabilistic:
+          sampling_percentage: 10
+
+exporters:
+  # Dev exporter — Phoenix (only active when Phoenix container is running)
+  otlp/phoenix:
+    endpoint: 'phoenix:6006'
+    tls:
+      insecure: true
+
+  # Production exporter — Google Cloud Trace
+  # Requires SA with roles/cloudtrace.agent
+  googlecloud:
+    project: i-for-ai
+    retry_on_failure:
+      enabled: true
+      initial_interval: 5s
+      max_interval: 30s
+      max_elapsed_time: 300s
+
+  # Production metrics — Google Cloud Monitoring
+  # Requires SA with roles/monitoring.metricWriter
+  googlecloud/metrics:
+    project: i-for-ai
+
+  # Debug exporter for local troubleshooting
+  debug:
+    verbosity: basic
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [resource, tail_sampling, batch]
+      exporters: [otlp/phoenix, googlecloud, debug]
+    metrics:
+      receivers: [otlp]
+      processors: [resource, batch]
+      exporters: [googlecloud/metrics, debug]

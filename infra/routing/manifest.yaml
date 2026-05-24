@@ -1,0 +1,78 @@
+# Routing Manifest — Phase-Aware MoE Router Configuration
+# Source-of-truth for phase → expert routing decisions (ADR 0027).
+# Schema: routing_manifest.schema.json
+# Validation: pre-commit hook `validate-routing-manifest` + unit test
+
+version: '1.0'
+router_version: 'v0_managed'
+
+# Cost map source — refreshed monthly per <no_unverified_apis>
+pricing_source: 'infra/pricing/vertex-2026-05.json'
+
+# Phase → Expert mapping (v0 deterministic table per §18.4)
+phases:
+  brief_parse:
+    primary_expert: 'gemini-3-flash'
+    rationale: 'Deterministic JSON extraction; flash is sufficient'
+    budget_sensitive: false
+  intent_schema:
+    primary_expert: 'gemini-3.1-flash-lite'
+    rationale: 'Schema validation; lightest model meets the bar'
+    budget_sensitive: false
+  surface_plan:
+    primary_expert: 'gemini-3-flash'
+    rationale: 'Plan generation; flash matches Pro on this surface per spec §18.4'
+    budget_sensitive: false
+  generate_candidates:
+    primary_expert: 'gemini-3-flash'
+    rationale: 'K=6 candidates; tuned DPO substrate (ADR 0028)'
+    budget_sensitive: true
+    budget_floor_usd: 0.50
+    low_budget_expert: 'gemini-3.1-flash-lite'
+  judge_candidates:
+    primary_expert: 'gemini-2.5-pro'
+    rationale: 'Multi-axis composite judge needs Pro reasoning (§7.1)'
+    budget_sensitive: false
+  select_winner:
+    primary_expert: 'gemini-3.1-flash-lite'
+    rationale: 'Argmax over judge scores; deterministic'
+    budget_sensitive: false
+  polish:
+    primary_expert: 'gemini-3-flash'
+    rationale: 'Surface-level revision; flash is sufficient'
+    budget_sensitive: false
+  emit:
+    primary_expert: 'gemini-3.1-flash-lite'
+    rationale: 'Final serialization; deterministic'
+    budget_sensitive: false
+
+# Fallback chains — ordered nearest-equivalent → cheapest-safe-fallback
+fallback_chains:
+  gemini-3-pro:
+    - 'gemini-3-flash'
+    - 'gemini-3.1-flash-lite'
+  gemini-3-flash:
+    - 'gemini-2.5-flash-001'
+    - 'gemini-3.1-flash-lite'
+  gemini-3.1-flash-lite:
+    - 'gemini-2.5-flash-001'
+  gemini-2.5-pro:
+    - 'gemini-3-pro'
+    - 'gemini-3-flash'
+    - 'gemini-3.1-flash-lite'
+  gemini-2.5-flash-001:
+    - 'gemini-3-flash'
+    - 'gemini-3.1-flash-lite'
+
+# Experts registry — all routable model endpoints
+experts:
+  - id: 'gemini-3-pro'
+    cost_usd_per_1k_input_tokens: 0.00250
+  - id: 'gemini-3-flash'
+    cost_usd_per_1k_input_tokens: 0.00075
+  - id: 'gemini-3.1-flash-lite'
+    cost_usd_per_1k_input_tokens: 0.00015
+  - id: 'gemini-2.5-pro'
+    cost_usd_per_1k_input_tokens: 0.00350
+  - id: 'gemini-2.5-flash-001'
+    cost_usd_per_1k_input_tokens: 0.00075

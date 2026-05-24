@@ -6,7 +6,7 @@ minimum_pre_commit_version: 3.7.0
 
 default_language_version:
   python: python3 # use whatever python3 is in PATH (3.11+ enforced by pyproject.toml)
-  node: '20.11.1'
+  node: '22.20.0' # bumped per R3-09: markdownlint-cli@v0.48.0 requires ^20.19.0 || ^22.13.0 || >=24
 
 default_install_hook_types: [pre-commit, commit-msg]
 default_stages: [pre-commit]
@@ -14,7 +14,7 @@ default_stages: [pre-commit]
 repos:
   # ─── Standard hygiene ──────────────────────────────────────────────────────
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       - id: trailing-whitespace
         exclude: '\.md$'
@@ -42,7 +42,7 @@ repos:
 
   # ─── Python: ruff (lint + format) ──────────────────────────────────────────
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.9
+    rev: v0.15.13
     hooks:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
@@ -50,7 +50,7 @@ repos:
 
   # ─── Python: mypy (strict type checking) ───────────────────────────────────
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.13.0
+    rev: v2.1.0
     hooks:
       - id: mypy
         files: '^atelier-core/src/.*\.py$|^atelier-eval/src/.*\.py$'
@@ -58,6 +58,7 @@ repos:
           - pydantic>=2.6
           - types-PyYAML
           - types-requests
+          - httpx>=0.28 # ships py.typed; needed for github_mcp.py type resolution
 
   # ─── Python: pytest fast subset (<10s) ────────────────────────────────────
   - repo: local
@@ -85,7 +86,7 @@ repos:
 
   # ─── Markdown lint ─────────────────────────────────────────────────────────
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.42.0
+    rev: v0.48.0
     hooks:
       - id: markdownlint
         args: ['--config', '.markdownlint.yaml', '--fix']
@@ -93,21 +94,21 @@ repos:
 
   # ─── YAML lint ─────────────────────────────────────────────────────────────
   - repo: https://github.com/adrienverge/yamllint
-    rev: v1.35.1
+    rev: v1.38.0
     hooks:
       - id: yamllint
         args: ['--strict', '--config-file=.yamllint.yaml']
 
   # ─── Shell: shellcheck ─────────────────────────────────────────────────────
   - repo: https://github.com/shellcheck-py/shellcheck-py
-    rev: v0.10.0.1
+    rev: v0.11.0.1
     hooks:
       - id: shellcheck
         args: ['--severity=warning']
 
   # ─── Shell: shfmt ──────────────────────────────────────────────────────────
   - repo: https://github.com/scop/pre-commit-shfmt
-    rev: v3.10.0-1
+    rev: v3.13.1-1
     hooks:
       - id: shfmt
         args: ['-i', '2', '-ci', '-w']
@@ -128,7 +129,7 @@ repos:
 
   # ─── Conventional Commits ──────────────────────────────────────────────────
   - repo: https://github.com/compilerla/conventional-pre-commit
-    rev: v3.4.0
+    rev: v4.4.0
     hooks:
       - id: conventional-pre-commit
         stages: [commit-msg]
@@ -149,4 +150,34 @@ repos:
             fi
           '
         language: system
+        pass_filenames: false
+
+      - id: features-evidence-tests-gate
+        name: features.json evidence_tests schema gate
+        entry: |
+          bash -c '
+            set -euo pipefail
+            # Gate 1: every feature must have evidence_tests as an array (not null)
+            non_array=$(jq "[.features[] | select(.evidence_tests | type != \"array\")] | length" features.json)
+            if [ "$non_array" -gt 0 ]; then
+              echo "ERROR: ${non_array} features have non-array evidence_tests (must be [])"
+              jq ".features[] | select(.evidence_tests | type != \"array\") | .id" features.json
+              exit 1
+            fi
+            # Gate 2: no passes:true without backing evidence_tests
+            no_evidence=$(jq "[.features[] | select(.passes==true and (.evidence_tests | length)==0)] | length" features.json)
+            if [ "$no_evidence" -gt 0 ]; then
+              echo "ERROR: ${no_evidence} features have passes:true with empty evidence_tests"
+              jq ".features[] | select(.passes==true and (.evidence_tests | length)==0) | .id" features.json
+              exit 1
+            fi
+          '
+        language: system
+        pass_filenames: false
+
+      - id: validate-routing-manifest
+        name: Validate routing manifest against JSON Schema
+        entry: python3 scripts/hooks/validate_routing_manifest.py
+        language: system
+        files: '^infra/routing/.*\.(yaml|yml|json)$'
         pass_filenames: false

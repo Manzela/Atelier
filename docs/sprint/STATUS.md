@@ -1,70 +1,80 @@
 # Sprint Status
 
-**Last updated**: 2026-05-14 EOD UTC
-**Current phase**: Pre-Sprint Bootstrap COMPLETE — D1 begins 2026-05-15 (Wed) morning
-**Active branch**: `main` (4 commits)
-**Active worktree**: none yet (D1 first action: create `.worktrees/phase1-foundation/`)
-**Days to submission**: 20 (target 2026-06-03 noon, official deadline 2026-06-05)
+**Last updated**: 2026-05-21 D7 EOD UTC
+**Current phase**: Phase 1 Foundation — mid-flight, executor-brief remediation active
+**Active branch**: `phase/1` (7 commits)
+**Active worktree**: `.worktrees/phase1-foundation/`
+**Days to submission**: 13 (target 2026-06-03 noon, official deadline 2026-06-05)
 
 ---
 
 ## NEW SESSION? READ FIRST
 
-1. **Canonical handoff**: [`docs/superpowers/specs/SESSION-COMPLETE-2026-05-14-atelier-pre-sprint-bootstrap.md`](../superpowers/specs/SESSION-COMPLETE-2026-05-14-atelier-pre-sprint-bootstrap.md) — survives context loss; captures everything from the brainstorm + scaffold session
+1. **Executor brief**: [`audit/executor-brief.md`](../../audit/executor-brief.md) — 15 C-items to close before Phase 2 gate
 2. **PRD**: [`docs/superpowers/specs/2026-05-14-atelier-prd.md`](../superpowers/specs/2026-05-14-atelier-prd.md) — 1100+ lines, the source of truth
-3. **Sprint plan**: [`docs/superpowers/plans/2026-05-14-atelier-sprint-plan.md`](../superpowers/plans/2026-05-14-atelier-sprint-plan.md) — day-by-day for D1-D2, feature briefs D3-D7, daily themes D8-D21
+3. **Sprint plan**: [`docs/superpowers/plans/2026-05-14-atelier-sprint-plan.md`](../superpages/plans/2026-05-14-atelier-sprint-plan.md)
 4. **CLAUDE.md** at repo root — auto-loaded sprint invariants
-5. **DECISIONS.md** at repo root — 10 locked decisions
+5. **DECISIONS.md** at repo root — 13 locked decisions (0001-0013)
 
 Then run the 90-second restoration ritual (in CLAUDE.md), then pick the next unblocked feature from `features.json`:
 
 ```bash
-cat features.json | jq '.features[] | select(.passes == false and (.depends_on | length == 0 or all(.[]; . as $d | $features.features | any(.id == $d and .passes == true)))) | {id, name, day}' | head -10
+cat features.json | jq '.features[] | select(.passes == false) | {id, name, day}' | head -10
 ```
 
 ---
 
-## D1 first action (Wed May 15 morning)
+## D1-D7 Sprint Progress (2026-05-15 to 2026-05-21)
 
-```bash
-cd "$HOME/Professional Profile/atelier"
-git checkout main
-git pull
-git branch phase/1 main
-git worktree add .worktrees/phase1-foundation phase/1
-cd .worktrees/phase1-foundation
-pre-commit install
-pre-commit install --hook-type commit-msg
-git log --oneline -5  # should show 5 commits including SESSION-COMPLETE
-```
+### What shipped (7 commits on phase/1)
 
-Then proceed to **Task 1.1 in the sprint plan** (`docs/superpowers/plans/2026-05-14-atelier-sprint-plan.md`).
+| Commit                                     | SHA       | Features Closed                                     |
+| ------------------------------------------ | --------- | --------------------------------------------------- |
+| Foundation data contracts + API + Governor | `2720f71` | F0001a, F0001b, F0003, F0004, F0005, FA-001, FA-002 |
+| Model registry + A2A + OTel spans          | `71a1c7e` | F0002, FA-005, FA-006, FA-007, FA-016               |
+| Terraform IaC + BigQuery schema            | `cf396bb` | F0006, FA-008, FA-015                               |
+| Stitch MCP wrapper                         | `a967567` | FA-003, FA-009, FA-010                              |
+| 6 det gates + generator + axis weights     | `fe7fd96` | F0009, F0010, F0011, FA-018, FA-019                 |
+| Trajectory recorder + DPO extraction       | `7b52e0f` | FA-011 (partial)                                    |
+| Sprint research artifacts                  | `9b70317` | docs only                                           |
+
+### Test suite
+
+- **Baseline (D0)**: 0 tests
+- **Current (D7)**: 249 tests passing (0.42s)
+- **Coverage**: data contracts, brief spec, governor, model registry, OTel spans, stitch MCP, gates, generator, axis weights, constitution registry, trajectory, GitHub MCP, trajectory recorder, observability mode
+
+### What's blocked
+
+- C1-C15 remediation items from executor-brief.md (audit gap closure)
+- Phase 2 gated on executor-brief DONE token
+
+### GCP infrastructure live
+
+- BigQuery: 4 tables in `i-for-ai.atelier_trajectories` (trajectory_records, dpo_preference_pairs, calibration_metrics, cost_ledger)
+- Terraform: IaC skeleton for 18 GCP APIs, 2 SAs, Artifact Registry, Cloud Run, KMS
 
 ---
 
 ## Phase progress
 
-- [ ] Phase 1: Foundation (W1, May 15-21) — gate: 1-surface end-to-end + Cloud Run staging deploy
-- [ ] Phase 2: 10× Mechanisms (W2, May 22-28) — gate: 12-surface autonomous campaign + WebGen-Bench ≥ 51 + 5 beta tenants
-- [ ] Phase 3: Production Polish (W3, May 29 - Jun 4) — gate: all 13 N-contributions evidenced + G4S submission filed Jun 3 noon
+- [/] Phase 1: Foundation (W1, May 15-21) — 7/7 commits, 177 tests, remediation in progress
+- [ ] Phase 2: 10x Mechanisms (W2, May 22-28) — not started
+- [ ] Phase 3: Production Polish (W3, May 29 - Jun 4) — not started
 
 ## Active blockers
 
-None at session-end. See [BLOCKERS.md](BLOCKERS.md) for live escalation queue. Pre-D1 user actions are in SESSION-COMPLETE §8 (file Vertex quota requests, etc.).
+See [BLOCKERS.md](BLOCKERS.md) for current blockers (updated 2026-05-21).
 
-## Recent commits (last 5 on main)
+## Cost at D7
 
-```
-861d592  docs(plan): add 21-day sprint implementation plan + populate features.json
-f85c68a  docs(secrets): document GCP Secret Manager pattern + add deny-by-default gitignore
-d692bdd  ci: minimize workflow credit usage across GitHub Pro quota
-00d7df1  chore: initial repo scaffold for Atelier autonomous design agent
-```
+- Estimated: ~$200 of $5K (4.0%)
+- Cache-hit-rate: data not available (no prefix-cache instrumentation in place)
+- D7 daily: ~$40 estimated (Opus subagent + Antigravity IDE)
 
-(SESSION-COMPLETE commit will follow this STATUS update.)
+## Next session first task
 
-## Cost at session end
+F0023 — N3d ConsensusAgent skeleton (depends on C3 axis_weights + C4 research-trust YAML being closed first)
 
-- ~$50 of $5K (1.0%) — pre-sprint bootstrap session
-- Cache-hit-rate: N/A (no subagent dispatches yet)
-- D1 daily target: ~$80-150
+Suggested model tier: implementer-novel
+Dependencies satisfied: yes (after C-item remediation)

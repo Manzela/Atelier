@@ -1,0 +1,67 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anthropics/a2a-protocol/main/schema/agent_card.json",
+  "name": "Atelier",
+  "description": "Autonomous UI/UX design agent — generates, judges, and iterates production-grade web interfaces through an 8-node DAG with deterministic gates and D-O-R-A-V consensus judges.",
+  "version": "0.1.1-alpha",
+  "url": "https://atelier.dev",
+  "provider": {
+    "organization": "Manzela",
+    "url": "https://manzela.com"
+  },
+  "skills": [
+    {
+      "id": "generate-ui",
+      "name": "Generate UI",
+      "description": "Generate production-grade HTML/CSS/JS from a design brief with accessibility compliance and brand alignment",
+      "inputModes": ["text", "file"],
+      "outputModes": ["text", "file"]
+    },
+    {
+      "id": "review-ui",
+      "name": "Review UI",
+      "description": "Review and score existing UI against D-O-R-A-V axes (Design, Originality, Relevance, Accessibility, Visual Clarity)",
+      "inputModes": ["text", "file"],
+      "outputModes": ["text"]
+    },
+    {
+      "id": "campaign-orchestrate",
+      "name": "Campaign Orchestration",
+      "description": "Orchestrate multi-surface design campaigns (12+ pages) with dependency-aware generation ordering and cross-surface coherence verification",
+      "inputModes": ["text"],
+      "outputModes": ["text", "file"]
+    },
+    {
+      "id": "design-system-infer",
+      "name": "Design System Inference",
+      "description": "Infer design system tokens, patterns, and conventions from an existing codebase via PADI (Project-Agnostic Descriptor Inference)",
+      "inputModes": ["file"],
+      "outputModes": ["text"]
+    }
+  ],
+  "protocols": {
+    "a2a": "1.0",
+    "adk": "2.0-beta"
+  },
+  "authentication": {
+    "schemes": [
+      {
+        "type": "bearer",
+        "description": "Firebase ID token from Identity Platform"
+      },
+      {
+        "type": "apiKey",
+        "description": "API key for service-to-service communication",
+        "in": "header",
+        "name": "X-Atelier-API-Key"
+      }
+    ]
+  },
+  "capabilities": {
+    "streaming": true,
+    "pushNotifications": false,
+    "stateTransitionHistory": true,
+    "multiTurn": true
+  },
+  "defaultInputModes": ["text"],
+  "defaultOutputModes": ["text", "file"]
+}

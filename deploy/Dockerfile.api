@@ -1,0 +1,84 @@
+# Atelier API — Production Dockerfile
+# Multi-stage build: slim Python 3.12 image
+# Cloud Run contract: listens on $PORT (default 8080)
+#
+# Security (ADR 0003, Audit §1):
+#   - Non-root user (appuser)
+#   - No shell in production stage
+#   - Read-only filesystem compatible
+#   - No unnecessary system packages
+#
+# Build: docker build -t atelier-api -f deploy/Dockerfile.api .
+# Run:   docker run -p 8080:8080 -e PORT=8080 atelier-api
+
+FROM python:3.12-slim AS base
+
+# Prevent Python from writing .pyc files and enable unbuffered output
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+# Create non-root user
+RUN groupadd --gid 1000 appuser \
+    && useradd --uid 1000 --gid appuser --shell /usr/sbin/nologin --create-home appuser
+
+WORKDIR /app
+
+# ---------------------------------------------------------------------------
+# Stage 1: Dependencies (cached layer)
+# ---------------------------------------------------------------------------
+FROM base AS deps
+
+# Install uv for fast dependency resolution
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+# Copy only dependency files first (Docker cache optimization)
+COPY pyproject.toml ./
+COPY atelier-core/src/ atelier-core/src/
+
+# Install dependencies into a virtual environment
+RUN uv venv /app/.venv \
+    && . /app/.venv/bin/activate \
+    && uv pip install \
+        "google-adk>=2.0.0b1,<3" \
+        "google-cloud-aiplatform>=1.71,<2" \
+        "google-cloud-firestore>=2.18,<3" \
+        "google-cloud-bigquery>=3.25,<4" \
+        "google-cloud-secret-manager>=2.20,<3" \
+        "google-cloud-storage>=2.18,<3" \
+        "opentelemetry-api>=1.27,<2" \
+        "opentelemetry-sdk>=1.27,<2" \
+        "opentelemetry-exporter-gcp-trace>=1.7,<2" \
+        "fastapi>=0.115,<1" \
+        "uvicorn[standard]>=0.30,<1" \
+        structlog pydantic httpx pyyaml
+
+# ---------------------------------------------------------------------------
+# Stage 2: Production image
+# ---------------------------------------------------------------------------
+FROM base AS production
+
+# Copy virtual environment from deps stage
+COPY --from=deps /app/.venv /app/.venv
+
+# Copy application code
+COPY atelier-core/src/ /app/atelier-core/src/
+COPY config/ /app/config/
+
+# Set PATH to use venv
+ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONPATH="/app/atelier-core/src:$PYTHONPATH" \
+    ATELIER_ENV="production" \
+    PORT="8080"
+
+# Switch to non-root user
+USER appuser
+
+# Health check for Docker Compose (Cloud Run uses HTTP probes)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD python -c "import httpx; r = httpx.get('http://localhost:${PORT}/health'); assert r.status_code == 200"
+
+# Cloud Run expects the container to listen on $PORT
+EXPOSE 8080
+
+# Start with uvicorn — Cloud Run sends SIGTERM for graceful shutdown
+CMD ["uvicorn", "atelier.api.app:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "1", "--log-level", "info"]

@@ -1,0 +1,42 @@
+# Secret Scrubber Patterns — Atelier
+#
+# PRD §15: Secret scrubbing
+# Audit §1: FA-002
+#
+# These regex patterns are applied by the tool callback scrubber
+# to prevent accidental exposure of secrets in agent outputs.
+# Each pattern has a name, regex, and replacement placeholder.
+#
+# Integration: Used by `atelier.security.scrubber.SecretScrubber`
+# which is registered as an ADK tool callback (before_tool_call).
+
+patterns:
+  - name: google_api_key
+    description: Google Cloud API keys (AIza...)
+    regex: 'AIza[0-9A-Za-z_-]{35}'
+    replacement: '[REDACTED:GOOGLE_API_KEY]'
+
+  - name: github_token
+    description: GitHub Personal Access Tokens and OAuth tokens
+    regex: 'gh[pousr]_[A-Za-z0-9_]{36,255}'
+    replacement: '[REDACTED:GITHUB_TOKEN]'
+
+  - name: gcp_service_account_key
+    description: GCP Service Account private key fragments
+    regex: '"private_key":\s*"-----BEGIN [A-Z ]+ KEY-----'
+    replacement: '[REDACTED:SA_PRIVATE_KEY]'
+
+  - name: generic_secret
+    description: Common secret patterns in environment variables
+    regex: '(?i)(secret|password|token|api_key|apikey|auth)\s*[:=]\s*["\x27]?[A-Za-z0-9+/=_-]{16,}["\x27]?'
+    replacement: '[REDACTED:GENERIC_SECRET]'
+
+  - name: jwt_token
+    description: JSON Web Tokens
+    regex: 'eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}'
+    replacement: '[REDACTED:JWT]'
+
+  - name: vertex_endpoint
+    description: Vertex AI Endpoint URLs with project IDs
+    regex: 'https://[a-z0-9-]+-aiplatform\.googleapis\.com/v1/projects/[a-z0-9-]+/locations/[a-z0-9-]+/endpoints/[0-9]+'
+    replacement: '[REDACTED:VERTEX_ENDPOINT]'

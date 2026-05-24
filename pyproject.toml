@@ -91,12 +91,16 @@ ignore = [
     "PLR0913", # Too many arguments (Pydantic models)
     "TRY003",  # Avoid specifying long messages outside the exception class
     "TRY301",  # Abstract raise to an inner function
+    "TCH003",  # Pydantic v2 needs types at runtime — can't use TYPE_CHECKING
 ]
 unfixable = ["F401", "F841"]  # Don't auto-remove unused imports/variables
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**/*.py" = ["S101", "PLR2004", "ARG001", "ARG002"]  # asserts + magic numbers + unused args ok in tests
+"tests/**/*.py" = ["S101", "PLR2004", "ARG001", "ARG002", "ANN", "B017", "PT011"]
+"**/tests/**/*.py" = ["S101", "PLR2004", "ARG001", "ARG002", "ANN", "B017", "PT011"]
+"atelier-core/src/atelier/models/enums.py" = ["S105"]  # enum values like 'pass' and 'token-fidelity' are NOT secrets
 "atelier-core/src/atelier/skills/**/*.py" = ["T20"]  # print() ok in skills (CLI output)
+"scripts/**/*.py" = ["T20"]  # print() ok in CLI hook scripts (user-facing output)
 
 [tool.ruff.lint.mccabe]
 max-complexity = 10
@@ -135,6 +139,56 @@ module = "tests.*"
 disallow_untyped_defs = false
 disallow_any_decorated = false
 
+[[tool.mypy.overrides]]
+module = "atelier.api.*"
+disallow_any_unimported = false
+disallow_untyped_decorators = false
+
+[[tool.mypy.overrides]]
+module = "atelier.observability.*"
+disallow_any_unimported = false
+
+# numpy is TYPE_CHECKING-gated in Protocol modules by design (ruff TC002).
+# When mypy resolves TYPE_CHECKING=True paths, NDArray types come from an
+# "unfollowed" perspective in strict mode. These overrides suppress the
+# no-any-unimported error for the Protocol-only modules. Concrete backends
+# that use numpy at runtime are NOT overridden — they import directly and
+# mypy checks them fully. numpy 2.4.6 is in requirements.lock (R7-01).
+[[tool.mypy.overrides]]
+module = "atelier.memory.*"
+disallow_any_unimported = false
+
+[[tool.mypy.overrides]]
+module = "atelier.router.*"
+disallow_any_unimported = false
+
+[[tool.mypy.overrides]]
+module = "skimage.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "atelier_eval.metrics.*"
+disallow_any_unimported = false
+warn_unused_ignores = false
+# scikit-image and PIL lack inline type stubs for strict mypy.
+# allow untyped calls from these third-party libraries.
+disallow_untyped_calls = false
+
+# opentelemetry-api + opentelemetry-sdk are commented out in atelier-core/pyproject.toml
+# (Phase 1 D3+ production deps, not yet uncommented). CI installs only .[dev] extras,
+# so these packages are absent in the CI environment. ignore_missing_imports allows
+# mypy to check the modules that DO import from opentelemetry without failing on the
+# missing stub. When opentelemetry is uncommented in deps, this override remains harmless.
+[[tool.mypy.overrides]]
+module = ["opentelemetry", "opentelemetry.*"]
+ignore_missing_imports = true
+
+# fastapi + starlette are not declared in atelier-core/pyproject.toml (Phase 2+ dep).
+# Same rationale as opentelemetry above.
+[[tool.mypy.overrides]]
+module = ["fastapi", "fastapi.*", "starlette", "starlette.*"]
+ignore_missing_imports = true
+
 [tool.pydantic-mypy]
 init_forbid_extra = true
 init_typed = true
@@ -142,6 +196,7 @@ warn_required_dynamic_aliases = true
 
 [tool.pytest.ini_options]
 minversion = "7.0"
+pythonpath = ["atelier-core/src"]
 testpaths = ["atelier-core/tests", "atelier-eval/tests"]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
