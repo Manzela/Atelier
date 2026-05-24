@@ -50,21 +50,14 @@ Releases are managed via [release-please](https://github.com/googleapis/release-
 - Three-subfolder repo split: `atelier-core/` (engine), `atelier-eval/` (suite + benchmarks), `atelier-deploy/` (infra)
 - Plus: `atelier-dashboard/` (live observability), `atelier-action/` (GitHub Marketplace), `atelier-figma-plugin/`, `atelier-chrome-extension/`
 
-### Notes
+## Planned releases
 
-- This `[Unreleased]` section accumulates work intended for the first tagged release `v0.1.0-alpha` (target: 2026-05-21, Phase 1 acceptance gate).
-- Phases 2 and 3 of the sprint will produce `v0.2.0-beta` (2026-05-28) and `v1.0.0` (2026-06-03 — submission day) respectively.
-
----
-
-## Release tagging plan
-
-| Tag | Date | What it represents |
-|---|---|---|
-| `v0.1.0-alpha` | 2026-05-21 | Phase 1 Foundation gate passed — single-surface end-to-end working on Cloud Run staging |
-| `v0.2.0-beta` | 2026-05-28 | Phase 2 10× Mechanisms gate passed — 12-surface autonomous campaign converges + WebGen-Bench ≥ 51 + 5 beta tenants |
-| `v1.0.0` | 2026-06-03 | Public launch + G4S submission filed |
-| `v1.1.0` | TBD | Post-launch features (multiplayer dashboard, voice input, Discord community) |
-| `v2.0.0` | TBD | SOC 2 Type 2 + per-tenant CMEK + HIPAA tier |
+| Tag | What it represents |
+|---|---|
+| `v0.1.0-alpha` | Milestone 1 — single-surface end-to-end pipeline on Cloud Run staging |
+| `v0.2.0-beta` | Milestone 2 — 12-surface autonomous campaign + WebGen-Bench ≥ 51 |
+| `v1.0.0` | Milestone 3 — public launch; all 13 novel contributions delivered |
+| `v1.1.0` | Multiplayer dashboard; voice input; Discord community |
+| `v2.0.0` | SOC 2 Type 2; per-tenant CMEK; HIPAA tier |
 
 [Unreleased]: https://github.com/Manzela/atelier/compare/v0.0.0...HEAD

@@ -97,41 +97,34 @@ pre-commit install
 # Verify environment
 ./atelier-deploy/scripts/verify-prereqs.sh
 
-# Run end-to-end on the included demo brief
-atelier run \
-  --brief "redesign the hero section of pipeline-observatory" \
-  --reference https://manzela.github.io/pipeline-observatory/
-
-# Or invoke the full Pre-Generation Intake Protocol
-atelier intake --campaign "redesign all 12 pages of my docs site"
+# Run the test suite
+cd atelier-core && pytest tests/unit/ -v
 ```
+
+> The `atelier run` and `atelier intake` CLI commands ship in Milestone 2 (see [ROADMAP.md](ROADMAP.md)). The current release delivers the engine, evaluation suite, and infrastructure foundation.
 
 ## Project layout
 
 ```
 atelier/
-├── docs/                                  # PRD + ADRs + runbooks + conventions
-├── atelier-core/                          # engine: nodes + judges + DAG + intake + campaign
-├── atelier-eval/                          # eval suite + benchmark adapters + golden sets
-├── atelier-deploy/                        # Terraform + Docker + Cloud Build + scripts
-├── atelier-dashboard/                     # live observability + time-machine UI (React)
-├── atelier-action/                        # GitHub Marketplace action
-├── atelier-figma-plugin/                  # Figma Community plugin
-├── atelier-chrome-extension/              # Chrome Web Store extension
-├── .github/                               # CI/CD workflows + issue/PR templates
-├── CLAUDE.md                              # sprint invariants (auto-loaded)
-├── DECISIONS.md                           # locked decisions (auto-injected)
-├── REJECTED.md                            # failed approaches (long-term memory)
-├── features.json                          # Anthropic harness JSON ledger
-├── claude-progress.txt                    # append-only narrative across sessions
-└── init.sh                                # one-time bootstrap
+├── docs/                    # Architecture decision records (ADRs), runbooks, and conventions
+├── atelier-core/            # Engine: DAG nodes, judges, gates, intake, campaign orchestrator
+├── atelier-eval/            # Evaluation suite, benchmark adapters, and calibration golden sets
+├── atelier-deploy/          # Terraform IaC, Docker, Cloud Build, and deployment scripts
+├── atelier-dashboard/       # Observability dashboard with time-machine replay (React)
+├── atelier-action/          # GitHub Marketplace Action
+├── atelier-figma-plugin/    # Figma Community plugin
+├── atelier-chrome-extension/# Chrome Web Store extension
+├── .github/                 # CI/CD workflows, issue templates, and PR templates
+├── DECISIONS.md             # Locked architectural decisions (injected into agent context)
+└── init.sh                  # One-time environment bootstrap
 ```
 
-## Submission target
+## Origin
 
-**[Google for Startups AI Agents Challenge 2026](https://startup.google.com/programs/agents-challenge)** — open category, deadline **2026-06-05**. Atelier files **2026-06-03 noon** (2 days early). Prize pool $90K, mentorship from DeepMind + Google Labs.
+Atelier was created for the [Google for Startups AI Agents Challenge 2026](https://startup.google.com/programs/agents-challenge). It is production-grade software and is developed openly as an Apache-2.0 project independent of the competition.
 
-## Live demos & artifacts (live by 2026-06-03)
+## Live demos & artifacts
 
 - **Live agent**: [atelier.dev](https://atelier.dev)
 - **Documentation**: [docs.atelier.dev](https://docs.atelier.dev)
@@ -162,11 +155,11 @@ Atelier consumes upstream code via lockfile-pinned dependencies and wraps it wit
 
 ## Roadmap
 
-See [ROADMAP.md](ROADMAP.md). Three-week sprint window **2026-05-15 → 2026-06-04**, three phase gates:
+See [ROADMAP.md](ROADMAP.md) for the full milestone plan. The three development milestones are:
 
-- **Phase 1: Foundation** (W1) — repo + ADK plumbing + 1-surface end-to-end + Cloud Run staging deploy
-- **Phase 2: 10× Mechanisms** (W2) — EvoDesign + ConsensusAgent + Campaign Orchestrator + PIP + 12-surface autonomous campaign + WebGen-Bench ≥ 51 + 5 beta tenants
-- **Phase 3: Production Polish + 10× Validation** (W3) — Per-project judge LoRA + Open Eval Adapters + Skills Pack + marketing site + arXiv preprint + demo recording + submission
+- **Milestone 1: Foundation** (complete) — engine scaffold, ADK integration, single-surface end-to-end pipeline, Cloud Run staging deployment
+- **Milestone 2: 10× Mechanisms** (in progress) — EvoDesign, ConsensusAgent, Campaign Orchestrator, PIP, WebGen-Bench ≥ 51, beta tenants
+- **Milestone 3: Production Polish** (planned) — per-project judge LoRA, Open Eval Adapters, public scoreboard, marketing site
 
 ## Contributing
 

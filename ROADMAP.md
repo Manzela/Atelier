@@ -1,129 +1,104 @@
 # Roadmap
 
-> **Three-week sprint to public launch on 2026-06-03 + Google for Startups AI Agents Challenge 2026 submission.**
-
-## Sprint window
-
-**Start**: 2026-05-15 (Wed)
-**Internal target**: 2026-06-03 (Mon) noon — submission filed early
-**Official deadline**: 2026-06-05 (Wed)
-**Build budget**: $5K Claude Opus 4.7 MAX capacity via Vertex AI
+This document describes Atelier's planned milestones, feature releases, and long-term direction.
 
 ---
 
-## Phase 1: Foundation (W1, May 15-21)
+## Current status
 
-Repo bootstrap, ADK plumbing, single-surface end-to-end, Cloud Run staging deploy.
-
-**Worktree**: `.worktrees/phase1-foundation/` on branch `phase/1`.
-
-| Day               | Deliverable                                                                                      |
-| ----------------- | ------------------------------------------------------------------------------------------------ |
-| **D1** Wed May 15 | Repo bootstrap, full SDLC docs, first 3 ADRs, CI green on first commit                           |
-| **D2** Thu May 16 | GCP project + Terraform foundation; quota requests filed                                         |
-| **D3** Fri May 17 | Port `agent-dag-pipeline` ADK plumbing (lockfile-pinned consume, not fork)                       |
-| **D4** Sat May 18 | N1 Brief Parser + N2 Source Resolver + Pydantic v2 frozen data contracts                         |
-| **D5** Sun May 19 | N3a Generator (Stitch MCP) + Apigee cost router                                                  |
-| **D6** Mon May 20 | N3c Deterministic Gate (parallel × 6 axes) + EvoDesign skeleton K=3                              |
-| **D7** Tue May 21 | **Phase 1 Gate**: end-to-end on `pipeline-observatory/index.html`; CI green; deployed to staging |
-
-**Acceptance criteria** (all must pass to tag `phase1-accepted`):
-
-- 1 surface converges end-to-end (PIP → 5 questions → BriefSpec → Generator → Gate → stub Judge → Final Validator → A2UI React render)
-- Cloud Run deployment of API + Agent jobs working
-- OTel + Cloud Trace functional
-- BigQuery trajectory ingest working
-- 50/484 WebGen-Bench task subset passing in CI
-- README + ROADMAP + first 5 ADRs complete
-
-**Cost target**: $1,200 of $5K (24%).
+Atelier is in active development. The engine, evaluation suite, and infrastructure scaffold are complete. End-to-end pipeline integration, the full ConsensusAgent, and the Campaign Orchestrator are in progress.
 
 ---
 
-## Phase 2: 10× Mechanisms (W2, May 22-28)
+## Milestone 1 — Foundation (complete)
 
-EvoDesign + ConsensusAgent + Campaign Orchestrator + PIP + 12-surface autonomous campaign.
+Establishes the core infrastructure: repository, CI/CD, ADK integration, single-surface end-to-end pipeline, and Cloud Run staging deployment.
 
-**Worktree**: `.worktrees/phase2-10x-mechanisms/` on branch `phase/2` (created when phase/1 accepted).
+**Delivered:**
 
-| Days                  | Focus                                                                                                                                                  |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **May 22-23** Wed-Thu | N3b CSC-D + EvoDesign full (K=6, 6 mutation operators) + N3e Fixer/Hebbian via `adk optimize`                                                          |
-| **May 24-25** Fri-Sat | N3d ConsensusAgent + 5 specialized judges + DEMAS-D Provenance Matrix                                                                                  |
-| **May 26** Sun        | N12 Campaign Orchestrator + Surface Manifest + Cross-Surface Coherence Validator                                                                       |
-| **May 27** Mon        | N13 PIP + 13-question catalog + BriefSpec immutability + skip-path resolver                                                                            |
-| **May 28** Tue        | **Phase 2 Gate**: closed beta (5 invited tenants), full 484-task WebGen-Bench eval published, 12-surface autonomous campaign on `pipeline-observatory` |
+- 8-node atomic DAG runtime (Brief Parser → Source Resolver → EvoDesign loop → Final Validator)
+- N1 DGF-D2C: Deterministic-Gate-First pipeline with parallel Lighthouse, axe-core, visual-diff, and token-fidelity gates
+- Google ADK 2.0 integration with Stitch MCP toolset
+- BigQuery trajectory store and OTel observability
+- Cloud Run staging deployment with Terraform IaC
+- Typed Protocol surfaces for Phase-Aware MoE Router (§18), RL Generator Agent (§19), Hierarchical Memory (§20), and AND-Gate Composite Reward (§21)
+- Pre-commit CI/CD with mypy strict, ruff, markdownlint, shellcheck, detect-secrets, CodeQL
+- SDLC documentation, 13 Architecture Decision Records (ADR 0001–0031)
 
-**Acceptance criteria** (all must pass to tag `phase2-accepted`):
+---
+
+## Milestone 2 — 10× Mechanisms (in progress)
+
+Delivers the core quality mechanisms that make Atelier self-improving.
+
+**In progress:**
+
+- N5 EvoDesign — K=6 candidates × 8 mutation operators per iteration; AlphaEvolve-inspired evolutionary search
+- N3d ConsensusAgent — 5 specialized rubric judges (Brand, Copy, Motion, Token-fidelity, Cross-screen-coherence) with DEMAS-D Provenance Matrix and Bayesian-weighted consensus
+- N12 Campaign Orchestrator — multi-surface campaigns with Surface Manifest and Cross-Surface Coherence Validator
+- N13 PIP — Pre-Generation Intake Protocol with 13-question adaptive catalog and immutable BriefSpec
+- 3-tier DPO flywheel — BigQuery episodic memory → Vertex AI Tuning → per-project LoRA promotion
+- ε-Greedy Bandit Router (v1) — online learning phase-to-model routing
+- WebGen-Bench integration — 50-task CI subset + full 484-task nightly evaluation
+
+**Acceptance criteria:**
 
 - 12-surface autonomous campaign converges end-to-end without human intervention
-- WebGen-Bench full eval ≥ 51 (matching SOTA)
-- Calibration dashboard live at calibration.atelier.dev with first-week data
-- All 4 A2UI renderers working (React + Flutter + Lit + Angular)
-- Telegram + CLI + web UI all working
-- 5 beta tenants signed in via Identity Platform
-- Privacy policy + ToS published (legal-template draft)
-- Status page live
-- Documentation 90% complete
-
-**Cost target**: $2,500 of $5K cumulative (50%).
+- WebGen-Bench full evaluation at or above NeurIPS 2025 SOTA (51.9%)
+- Calibration dashboard live at [calibration.atelier.dev](https://calibration.atelier.dev)
+- All four A2UI renderers operational (React, Flutter, Lit, Angular)
 
 ---
 
-## Phase 3: Production Polish + 10× Validation (W3, May 29 - Jun 4)
+## Milestone 3 — Production Polish + Public Launch
 
-Per-project judge LoRA fine-tune, Open Eval Adapters, Skills Pack, marketing site, arXiv preprint, demo recording, submission package.
+Completes the per-project learning loop, open ecosystem artifacts, and production infrastructure.
 
-**Worktree**: `.worktrees/phase3-production-polish/` on branch `phase/3` (created when phase/2 accepted).
+**Planned:**
 
-| Days                  | Focus                                                                                                                                          |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| **May 29-30** Wed-Thu | DPO + LoRA pipeline wired (Vertex AI Tuning + Endpoints + Multi-Tuning + Gemma 4 26B-A4B-it base); first-project LoRA fine-tuned as demo proof |
-| **May 31** Fri        | N9 Open Eval Adapters (5 benchmarks) + N10 Convergence Spec RFC v0.1 + N11 Public scoreboard                                                   |
-| **Jun 1** Sat         | Atelier Skills Pack (6 skills) + atelier-action (GitHub Marketplace) + Figma plugin + Chrome extension + npm constitution package              |
-| **Jun 2** Sun         | Marketing site + waitlist (target ≥500 signups) + Loom walkthrough + arXiv preprint + designer-in-residence testimonials (target ≥3)           |
-| **Jun 3** Mon         | **Phase 3 Gate / v1.0.0 release / G4S submission filed early**                                                                                 |
-| **Jun 4** Tue         | Final eval run + final smoke test on staging + prod; CHANGELOG updated; release v1.0.0 tagged                                                  |
-| **Jun 5** Wed         | Official deadline — already submitted, available for live office hours                                                                         |
-
-**Acceptance criteria** (all must pass to tag `v1.0.0`):
-
-- WebGen-Bench full eval published (target ≥ 60, stretch ≥ 77 with first-project LoRA)
-- All 13 novel contributions have evidence in `atelier-eval/data/results/`
-- All 32 pre-launch artifacts live (see [Pre-Launch Checklist](docs/superpowers/specs/2026-05-14-atelier-prelaunch-checklist.md))
-- Public sign-up live, freemium tier active
-- 4-min demo video + 2-min backup + 60-sec elevator pitch recorded
-- arXiv preprint draft submitted
-- ≥3 designer-in-residence testimonials captured
-- ≥500 waitlist signups
-- Co-marketing 1-pager sent to Google Cloud DA
-- G4S submission package filed by Jun 3 noon
-
-**Cost target**: $5K of $5K cumulative (100%).
+- Per-project judge LoRA — fine-tuned judge per tenant using accumulated accept/reject signals; 20× lower sample requirement vs generic judge
+- N9 Open Eval Adapters — Apache-2.0 adapters to `google/adk-python` for WebGen-Bench, Design2Code, Web2Code, ScreenSpot, and FrontendBench
+- N10 Convergence Spec RFC v0.1 — open standard for how autonomous design agents declare convergence, emit trajectories, and report calibration drift
+- N11 Public benchmark scoreboard — `bench.atelier.dev` accepts agent submissions from any vendor
+- Atelier Skills Pack — 6 reusable skills for common design patterns
+- Ecosystem integrations — GitHub Marketplace Action, Figma Community plugin, Chrome extension
+- Marketing site — [atelier.dev](https://atelier.dev) with freemium sign-up
 
 ---
 
-## Post-launch (Jun 5+)
+## Post-launch versions
 
-| Version  | Target        | What it adds                                                                                                        |
-| -------- | ------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `v1.1.0` | Jun 12        | Multiplayer dashboard annotation, voice input parity (Stitch "vibe design"), Discord community launch               |
-| `v1.2.0` | Jul           | Full N9 adapter suite (all 5 benchmarks), Convergence Spec RFC v0.2 (community-reviewed), additional Atelier Skills |
-| `v1.3.0` | Aug           | Sketch-to-UI dedicated upload, multi-region active-active failover (US + EU), additional A2UI renderers             |
-| `v2.0.0` | Dec (month 6) | SOC 2 Type 2 certification, per-tenant CMEK on Cloud Run path, HIPAA tier, ISO 27001 evidence collection            |
-| `v3.0.0` | TBD           | Federated learning across tenants with differential privacy, cross-project pattern transfer at scale                |
+| Version  | Focus                                                                                                       |
+| -------- | ----------------------------------------------------------------------------------------------------------- |
+| `v1.1.0` | Multiplayer dashboard annotation; voice input parity via Stitch; Discord community launch                   |
+| `v1.2.0` | Full N9 adapter suite (all 5 benchmarks); Convergence Spec RFC v0.2 (community-reviewed); additional skills |
+| `v1.3.0` | Sketch-to-UI upload; multi-region active-active failover (US + EU); additional A2UI renderers               |
+| `v2.0.0` | SOC 2 Type 2 certification; per-tenant CMEK on Cloud Run; HIPAA tier; ISO 27001 evidence collection         |
+| `v3.0.0` | Federated learning across tenants with differential privacy; cross-project pattern transfer at scale        |
 
 ---
 
 ## Long-term vision
 
-Atelier becomes the **standard evaluation surface for the entire UI-generation field** (`bench.atelier.dev`), the **reference implementation of the Convergence Spec** (community-driven RFC), and the **canonical example of Anthropic's long-running-agent harness applied to a domain-specific autonomous agent**. Trajectory data is the compounding moat — never open-sourced; agent core is Apache-2.0 and freely forkable.
+Atelier aims to become:
 
-By end of 2026:
+1. **The standard evaluation surface for UI-generation** — `bench.atelier.dev` as the canonical public benchmark for autonomous design agents, with the eval-set adapters adopted by independent research teams.
 
-- 10K+ active projects on the platform
-- 100K+ trajectories collected
-- ≥3 third-party benchmarks adopt Atelier's eval-set adapters
-- ≥1 published paper (NeurIPS D&B or ICLR or CHI) drawing on Atelier's data
-- ≥5 Atelier Skills published by community contributors
-- ≥1 Google Cloud case study featuring Atelier
+2. **The reference implementation of the Convergence Spec** — a community-driven open standard for how any autonomous design agent declares convergence, emits trajectories, and reports calibration drift.
+
+3. **A compounding data moat** — trajectory data accumulated across tenants drives continuous improvement of the router, the judges, and the generator. Agent core remains Apache-2.0 and freely forkable; the trajectory dataset is proprietary.
+
+**2026 targets:**
+
+- 10,000+ active projects on the platform
+- 100,000+ design trajectories collected
+- 3+ third-party benchmarks adopting Atelier's eval-set adapters
+- 1+ published research paper (NeurIPS D&B, ICLR, or CHI) drawing on Atelier's trajectory data
+- 5+ Atelier Skills published by community contributors
+- 1+ Google Cloud case study featuring Atelier as a production multi-agent system
+
+---
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how to contribute to Atelier's development. Feature requests and roadmap discussion happen in [GitHub Issues](https://github.com/Manzela/Atelier/issues).

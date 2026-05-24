@@ -1,42 +1,60 @@
 # atelier-eval
 
-The Atelier evaluation suite — benchmark adapters, golden sets, and the public scoreboard infrastructure.
+The Atelier evaluation suite — benchmark adapters, calibration golden sets, and public scoreboard infrastructure.
 
-## Subpackages
+## Packages
 
 ```
 src/atelier_eval/
-├── adapters/             # N9 Open Eval Adapters
-│   ├── webgen_bench.py   # NeurIPS 2025 — WebGen-Bench (484 tasks)
-│   ├── design2code.py    # Stanford NAACL 2025 — Design2Code (484 webpages)
-│   ├── web2code.py       # NeurIPS 2024 — Web2Code (1,198 screenshots)
-│   ├── screenspot.py     # ScreenSpot benchmark
-│   └── frontendbench.py  # FrontendBench (arXiv 2506.13832)
+├── adapters/
+│   ├── webgen_bench.py          # WebGen-Bench (NeurIPS 2025, 101 tasks)
+│   ├── design2code.py           # Design2Code (Stanford NAACL 2025, 484 webpages)
+│   ├── web2code.py              # Web2Code (NeurIPS 2024, 1,198 screenshots)
+│   ├── screenspot.py            # ScreenSpot visual grounding benchmark
+│   └── frontendbench.py         # FrontendBench (arXiv 2506.13832, 148 tasks)
+├── metrics/
+│   ├── lighthouse.py            # Core Web Vitals extraction (LCP, CLS, INP)
+│   └── visual_similarity.py     # SSIM perceptual similarity for visual quality
 ├── golden_sets/
-│   ├── calibration.json  # Frozen 100-task calibration set (recalibration weekly)
-│   └── adversarial.json  # Held-out 50-task adversarial set (pre-release)
-├── runner.py             # Eval runner: pytest-style + ADK eval integration
-├── scoreboard.py         # N11 — publishes results to bench.atelier.dev
-└── calibration_dashboard.py  # N8 — publishes drift to calibration.atelier.dev
+│   ├── calibration.json         # 100-task calibration set (weekly recalibration)
+│   └── adversarial.json         # 50-task held-out adversarial set (pre-release only)
+├── runner.py                    # Evaluation runner with pytest-style parametrization
+├── scoreboard.py                # Publishes results to bench.atelier.dev
+└── calibration_dashboard.py     # Publishes calibration drift to calibration.atelier.dev
 ```
 
 ## Status
 
-**Phase 0** — repo scaffold complete; eval suite is a Phase 2 deliverable (W2 May 22-28).
+The package scaffold, adapter stubs, and Core Web Vitals metrics module are complete. Full dataset wiring and live benchmark runs ship in Milestone 2. See [ROADMAP.md](../ROADMAP.md) for the delivery plan.
 
-## Quick start (post-Phase-2)
+## Quick start
 
 ```bash
 pip install -e ".[dev]"
-pytest tests/ -v                          # adapter unit tests
-python -m atelier_eval.runner --suite webgen_bench --subset 50  # subset
-python -m atelier_eval.runner --suite webgen_bench               # full 484-task suite
+pytest tests/ -v
+
+# Run the WebGen-Bench 50-task CI subset
+python -m atelier_eval.runner --suite webgen_bench --subset 50
+
+# Run the full WebGen-Bench suite (requires dataset download)
+python -m atelier_eval.runner --suite webgen_bench
+
+# Update and check calibration dashboard
 python -m atelier_eval.calibration_dashboard --update --alert-on-drift
 ```
 
+## Benchmark coverage
+
+| Benchmark     | Source              | Tasks | Metric                          |
+| ------------- | ------------------- | ----- | ------------------------------- |
+| WebGen-Bench  | NeurIPS 2025        | 101   | Pass rate vs reference          |
+| Design2Code   | Stanford NAACL 2025 | 484   | SSIM visual similarity          |
+| Web2Code      | NeurIPS 2024        | 1,198 | GPT-4V rendering fidelity       |
+| ScreenSpot    | —                   | —     | Visual grounding accuracy       |
+| FrontendBench | arXiv 2506.13832    | 148   | Puppeteer interaction pass rate |
+
 ## See also
 
-- [Atelier PRD §16 — 10× outcome checklist](../docs/superpowers/specs/2026-05-14-atelier-prd.md)
-- [Eval methodology](../docs/eval/methodology.md)
+- [Evaluation methodology](../docs/eval/methodology.md)
 - [Public scoreboard](https://bench.atelier.dev)
-- [Public calibration drift dashboard](https://calibration.atelier.dev)
+- [Calibration drift dashboard](https://calibration.atelier.dev)
