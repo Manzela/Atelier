@@ -1,23 +1,25 @@
-"""Atelier Pipeline Runner — Phase 2 (N1 -> N2 -> N3a + Governor + SessionBackend).
+"""Atelier Pipeline Runner — Phase 2 (N1 → N2 → N3a → N3c → N3d + Governor + SessionBackend).
 
-Chains:
-    N1 (BriefParserGate + BriefParserAgent)
-    -> N2 (SourceResolverGate + SourceResolverAgent)
-    -> N3a (Generator Ensemble via ParallelAgent)
+Full 8-node DAG (Phase 2):
+    N1  BriefParserGate + BriefParserAgent
+    N14 WRAI — web research augmented intake (parallel)
+    N2  SourceResolverGate + SourceResolverAgent
+    N3a Generator Ensemble (ParallelAgent, K=3 candidates)
+    N3c Deterministic Gates (6 gates per candidate — fast, hallucination-free filter)
+    N3d ConsensusAgent (D-O-R-A-V multi-judge evaluation on passing candidates)
+    N4  Final scoring and convergence decision
 
-All pipeline steps execute under MetacognitiveGovernor governance:
-    - Pre-check budget before N3a (fail-loud at $5K MAX cap)
-    - Post-check cost accounting after N3a
-    - Self-heal on 429/503 transients
-    - Fail-soft on tool degradation
+All LLM steps execute under MetacognitiveGovernor governance:
+    - Fail-loud at $5K MAX cap (GovernorBudgetExceeded)
+    - Self-heal on 429/503 transients (3 retries, exponential backoff)
+    - Fail-soft on tool degradation (log + degrade, do not crash)
 
-Session service is injectable via the ``SessionBackend`` Protocol (B4):
-    - Production: ``BigQuerySessionBackend`` (BQ-backed persistence)
-    - Staging: ``VertexAiSessionService`` (ADK managed sessions)
-    - Local dev: ``InMemorySessionService`` (ephemeral, default)
+Session service injectable via ``SessionBackend`` Protocol (B4):
+    - Production: ``BigQuerySessionBackend`` (BQ-backed, cross-instance resumption)
+    - Local dev:  ``InMemorySessionService`` (ephemeral, default fallback)
 
-PRD Reference: section 6.3, section 21 (Failure Trichotomy)
-Audit Reference: FIX-1 (CostGovernor), B4 (SessionBackend swap)
+PRD Reference: §6.3 (N1-N4), §21 (Failure Trichotomy)
+Audit Reference: FIX-1 (CostGovernor), B4 (SessionBackend swap), N2-N3d wiring
 """
 
 from __future__ import annotations
@@ -33,11 +35,14 @@ from google.genai import types as genai_types
 if TYPE_CHECKING:
     from google.adk.sessions import BaseSessionService
 
+from atelier.gates.runner import run_gates
 from atelier.intake.brief_parser import BriefParserAgent, BriefParserGate
 from atelier.intake.source_resolver import source_resolver_agent, source_resolver_gate
 from atelier.intake.web_research import WebResearchReport, research_brief
-from atelier.models.data_contracts import TenantContext
-from atelier.models.enums import GateDecision
+from atelier.models.axis_weights import AxisWeights
+from atelier.models.data_contracts import CandidateUI, TenantContext
+from atelier.models.enums import GateAxis, GateDecision
+from atelier.nodes.consensus import evaluate_candidate
 from atelier.orchestrator.generator_ensemble import create_generator_ensemble
 from atelier.orchestrator.governor import (
     GovernorState,
@@ -46,11 +51,24 @@ from atelier.orchestrator.governor import (
 
 logger = logging.getLogger(__name__)
 
-# Hard $5K MAX cap per PRD section 7.2
+# Hard $5K MAX cap per PRD §7.2
 BUDGET_CAP_USD: float = 5000.0
 
 # Estimated cost per N3a ensemble run (3 generators x ~$0.05 each)
 N3A_COST_ESTIMATE_USD: float = 0.15
+
+# N3c gate axes — all 6 run in Phase 2
+_N3C_GATE_AXES: list[GateAxis] = [
+    GateAxis.SEMANTIC_HTML,
+    GateAxis.LIGHTHOUSE_PERF,
+    GateAxis.TOKEN_FIDELITY,
+    GateAxis.LIGHTHOUSE_A11Y,
+    GateAxis.AXE,
+    GateAxis.VISUAL_DIFF,
+]
+
+# D-O-R-A-V convergence threshold — composite score must meet this to PASS
+CONVERGENCE_THRESHOLD: float = 0.70
 
 # ADK app name constant
 _APP_NAME: str = "atelier"
@@ -105,9 +123,128 @@ class AtelierRunner:
         self._governor = MetacognitiveGovernor(state=state)
         self._session_service = session_service or _default_session_service()
 
+    def _run_n3c_n3d_n4(
+        self,
+        raw_candidates: list[Any],
+        brief_text: str,  # noqa: ARG002  # Phase 2: used for trajectory metadata
+    ) -> dict[str, Any]:
+        """Execute N3c (deterministic gates) → N3d (consensus) → N4 (final pick).
+
+        This is the convergence engine that separates Atelier from one-shot
+        generators. Every candidate from N3a is evaluated through:
+
+            N3c: 6 deterministic gates (semantic HTML, CSS, token fidelity,
+                 Lighthouse heuristic, axe heuristic, visual diff). Only
+                 candidates that pass ALL gates proceed to N3d.
+
+            N3d: D-O-R-A-V consensus evaluation (5-axis weighted scoring).
+                 Produces a composite score per passing candidate.
+
+            N4:  Selects the best-scoring candidate that exceeds the
+                 convergence threshold. Falls back to the best available
+                 candidate if none exceed the threshold.
+
+        The entire stage runs synchronously (no LLM calls — gates are
+        pure-Python, consensus uses heuristic Phase 1 judges). Phase 2
+        wires LLM judges via the ``judge_client`` injection point.
+
+        Args:
+            raw_candidates: List of candidate strings from N3a. Each string
+                is assumed to be raw HTML/CSS output from a generator.
+            brief_text: Original brief text (used to build candidate metadata).
+
+        Returns:
+            Dict with keys: best_candidate, all_gate_results, all_evaluations,
+            converged, composite_score, candidates_evaluated, candidates_passed_gates.
+        """
+        from uuid import uuid4  # noqa: PLC0415
+
+        weights = AxisWeights()
+        gate_results = []
+        evaluations = []
+        candidates_passed_gates = 0
+
+        for raw in raw_candidates:
+            html_content = raw if isinstance(raw, str) else str(raw)
+            if not html_content.strip():
+                continue
+
+            # Build CandidateUI for gate + consensus evaluation
+            candidate = CandidateUI(
+                candidate_id=uuid4(),
+                surface_id=uuid4(),
+                iteration=0,
+                artifacts={"index.html": html_content},
+            )
+
+            # N3c: deterministic gates
+            gate_result = run_gates(candidate, _N3C_GATE_AXES)
+            gate_results.append(gate_result)
+
+            if not gate_result.all_passed:
+                failed_axes = [
+                    o.axis.value for o in gate_result.outcomes if o.decision != GateDecision.PASS
+                ]
+                logger.info(
+                    "N3c: candidate %s REJECTED — failed gates: %s",
+                    str(candidate.candidate_id)[:8],
+                    failed_axes,
+                )
+                continue
+
+            candidates_passed_gates += 1
+
+            # N3d: D-O-R-A-V consensus evaluation
+            evaluation = evaluate_candidate(candidate, weights)
+            evaluations.append((evaluation, html_content))
+            logger.info(
+                "N3d: candidate %s composite=%.3f passed=%s",
+                str(candidate.candidate_id)[:8],
+                evaluation.composite_score,
+                evaluation.passed,
+            )
+
+        # N4: select best candidate
+        best_candidate: str | None = None
+        best_score: float = 0.0
+        converged = False
+
+        if evaluations:
+            # Sort by composite score descending
+            evaluations.sort(key=lambda x: x[0].composite_score, reverse=True)
+            best_evaluation, best_candidate = evaluations[0]
+            best_score = best_evaluation.composite_score
+            converged = best_score >= CONVERGENCE_THRESHOLD
+
+            logger.info(
+                "N4: selected candidate with composite=%.3f (converged=%s, threshold=%.2f)",
+                best_score,
+                converged,
+                CONVERGENCE_THRESHOLD,
+            )
+        elif raw_candidates:
+            # No candidates passed gates — fall back to first raw candidate
+            best_candidate = (
+                raw_candidates[0] if isinstance(raw_candidates[0], str) else str(raw_candidates[0])
+            )
+            logger.warning(
+                "N4: all candidates failed N3c gates; falling back to raw candidate 1/%d",
+                len(raw_candidates),
+            )
+
+        return {
+            "best_candidate": best_candidate,
+            "all_gate_results": gate_results,
+            "all_evaluations": [e for e, _ in evaluations],
+            "converged": converged,
+            "composite_score": best_score,
+            "candidates_evaluated": len(raw_candidates),
+            "candidates_passed_gates": candidates_passed_gates,
+        }
+
     async def _run_n1_n2(
         self,
-        brief_text: str,
+        brief_text: str,  # Phase 2: used for trajectory metadata
         tenant_ctx: TenantContext,
     ) -> tuple[Any, Any, WebResearchReport]:
         """Execute N1 (Brief Parser), WRAI, and N2 (Source Resolver) stages."""
@@ -128,7 +265,7 @@ class AtelierRunner:
 
     async def run(
         self,
-        brief_text: str,
+        brief_text: str,  # Phase 2: used for trajectory metadata
         tenant_ctx: TenantContext | None = None,
     ) -> dict[str, Any]:
         """Run the pipeline from brief text to generated candidates.
@@ -204,7 +341,7 @@ class AtelierRunner:
             # the governor (budget cap, 429 exhaustion, stall timeout, or loop
             # detection). This is NOT a Stitch failure — Stitch's availability is
             # unknown when the governor degrades. stitch_degraded must remain False.
-            candidates: list[Any] = []
+            raw_candidates: list[Any] = []
             stitch_degraded = False
             degradation_reason: str | None = "n3a_governor_fail_soft"
             user_message: str | None = (
@@ -221,7 +358,7 @@ class AtelierRunner:
                 },
             )
         else:
-            candidates, stitch_degraded = governed_result
+            raw_candidates, stitch_degraded = governed_result
             if stitch_degraded:
                 degradation_reason = "stitch_mcp_unavailable"
                 user_message = (
@@ -233,10 +370,49 @@ class AtelierRunner:
                 degradation_reason = None
                 user_message = None
 
+        # N3c → N3d → N4: gate filtering + consensus evaluation + best-pick
+        # This is the convergence loop that defines Atelier's core differentiator:
+        # deterministic-gate-first → probabilistic multi-judge → best candidate.
+        convergence_result = self._run_n3c_n3d_n4(raw_candidates, brief_text)
+        best_candidate = convergence_result["best_candidate"]
+
         return {
             "brief": brief,
             "project_context": project_ctx,
-            "candidates": candidates,
+            # Raw candidates from N3a (all generators)
+            "candidates": raw_candidates,
+            # Best candidate selected by N4 after gate + consensus scoring
+            "best_candidate": best_candidate,
+            # Convergence metadata
+            "converged": convergence_result["converged"],
+            "composite_score": convergence_result["composite_score"],
+            "candidates_evaluated": convergence_result["candidates_evaluated"],
+            "candidates_passed_gates": convergence_result["candidates_passed_gates"],
+            # Gate + evaluation details for the bench dashboard
+            "gate_results": [
+                {
+                    "candidate_id": str(gr.candidate_id),
+                    "all_passed": gr.all_passed,
+                    "outcomes": [
+                        {
+                            "axis": o.axis.value,
+                            "score": o.score,
+                            "passed": o.decision == GateDecision.PASS,
+                        }
+                        for o in gr.outcomes
+                    ],
+                }
+                for gr in convergence_result["all_gate_results"]
+            ],
+            "evaluations": [
+                {
+                    "composite_score": e.composite_score,
+                    "passed": e.passed,
+                    "votes": {axis.value: {"score": v.score} for axis, v in e.votes.items()},
+                }
+                for e in convergence_result["all_evaluations"]
+            ],
+            # Degradation signals
             "stitch_degraded": stitch_degraded,
             "degradation_reason": degradation_reason,
             "user_message": user_message,

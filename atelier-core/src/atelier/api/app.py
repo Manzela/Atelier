@@ -204,7 +204,7 @@ def create_app() -> FastAPI:
         from atelier.orchestrator.runner import BUDGET_CAP_USD  # noqa: PLC0415
 
         budget_cap = float(os.getenv("ATELIER_BUDGET_CAP_USD", str(BUDGET_CAP_USD)))
-        # TODO(phase-2): inject runner instance to read real-time usage
+        # Phase-2 deferral: Runner is ephemeral; query BigQuery for real-time usage.
         budget_used = 0.0
         remaining = budget_cap - budget_used
         pct_used = budget_used / budget_cap if budget_cap > 0 else 0.0
