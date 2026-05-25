@@ -14,6 +14,7 @@ from decimal import Decimal
 from typing import Any
 
 from google.adk.runners import InMemoryRunner
+from google.genai import types as genai_types
 
 from atelier.intake.brief_parser import BriefParserAgent, BriefParserGate
 from atelier.intake.source_resolver import source_resolver_agent, source_resolver_gate
@@ -73,7 +74,14 @@ class AtelierRunner:
         async for event in adk_runner.run_async(
             user_id=tenant_ctx.user_id,
             session_id="session-1",
-            new_message="Generate screens based on the brief and project context.",
+            new_message=genai_types.Content(
+                role="user",
+                parts=[
+                    genai_types.Part(
+                        text="Generate screens based on the brief and project context."
+                    )
+                ],
+            ),
         ):
             # In an actual deployment, we'd look for specific agent output events
             if hasattr(event, "type") and event.type == "message":

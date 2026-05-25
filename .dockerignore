@@ -1,0 +1,61 @@
+# Atelier — .dockerignore
+# Prevents sensitive and unnecessary files from entering container builds.
+
+# Version control
+.git/
+.gitignore
+.gitmodules
+
+# Virtual environments
+.venv/
+venv/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Audit / docs / tests (not needed in production image)
+audit/
+docs/
+*.md
+!README.md
+
+# Tests
+atelier-core/tests/
+atelier-eval/
+
+# Infrastructure / scripts
+infra/
+scripts/
+deploy/cloudbuild.yaml
+
+# Build artifacts
+*.egg-info/
+__pycache__/
+*.pyc
+*.pyo
+dist/
+build/
+*.whl
+
+# Logs
+*.log
+
+# Terraform
+*.tfplan
+tfplan
+.terraform/
+*.tfstate*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Worktrees
+.worktrees/
+
+# Lock files (not used in container — deps installed in Dockerfile)
+uv.lock
+requirements.lock

@@ -26,7 +26,7 @@ from enum import StrEnum
 from typing import Any
 
 from google.adk.tools.mcp_tool.mcp_session_manager import SseConnectionParams
-from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset
+from google.adk.tools.mcp_tool.mcp_toolset import McpToolset
 from google.cloud import secretmanager
 
 
@@ -287,7 +287,7 @@ def _get_api_key() -> str:
         return "dummy-key"
 
 
-def get_stitch_mcp_toolset() -> MCPToolset:
+def get_stitch_mcp_toolset() -> McpToolset:
     """Returns an ADK MCPToolset configured for Stitch MCP."""
     api_key = _get_api_key()
 
@@ -295,4 +295,4 @@ def get_stitch_mcp_toolset() -> MCPToolset:
         url="https://stitch.googleapis.com/mcp", headers={"Authorization": f"Bearer {api_key}"}
     )
 
-    return MCPToolset(connection_params=connection_params, tool_name_prefix="stitch_")
+    return McpToolset(connection_params=connection_params, tool_name_prefix="stitch_")

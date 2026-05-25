@@ -109,7 +109,6 @@ secrets/*.key
 *.gcp-service-account*.json
 *.json.key
 gcp-credentials.json
-.gcloudignore
 
 # Application Default Credentials
 application_default_credentials.json
@@ -121,6 +120,8 @@ application_default_credentials.json
 *.tfvars.json
 .terraform/
 .terraform.lock.hcl
+tfplan
+*.tfplan
 crash.log
 crash.*.log
 

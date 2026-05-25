@@ -2,12 +2,24 @@
 
 Uses ADK ParallelAgent to run K=3 generators simultaneously.
 Each generator attempts to use Stitch MCP first, falling back to gemini-3-pro direct generation.
+
+.. deprecated:: ADK 2.1.0
+    ParallelAgent is deprecated. Migrate to ``Workflow`` when ADK ships it.
 """
 
+from __future__ import annotations
+
+from collections.abc import Sequence
+from typing import TYPE_CHECKING
+
 from google.adk.agents.llm_agent import LlmAgent
-from google.adk.agents.parallel_agent import ParallelAgent
+from google.adk.agents.parallel_agent import ParallelAgent  # TODO(adk-3.0): migrate → Workflow
 
 from atelier.integrations.stitch_mcp import get_stitch_mcp_toolset
+
+if TYPE_CHECKING:
+    from google.adk.agents import BaseAgent
+    from google.adk.tools.base_toolset import BaseToolset
 
 # Standard K=3 ensemble for Phase 1
 ENSEMBLE_SIZE = 3
@@ -22,12 +34,12 @@ def create_generator_ensemble() -> ParallelAgent:  # type: ignore[no-any-unimpor
     try:
         # Initialize the MCP toolset once to share across generators
         stitch_toolset = get_stitch_mcp_toolset()
-        toolsets = [stitch_toolset]
+        toolsets: Sequence[BaseToolset] = [stitch_toolset]
     except Exception:  # noqa: BLE001
         # Fallback if Stitch is completely unconfigurable
         toolsets = []
 
-    sub_agents = []
+    sub_agents: list[BaseAgent] = []
     for i in range(ENSEMBLE_SIZE):
         agent = LlmAgent(
             name=f"Generator_{i + 1}",

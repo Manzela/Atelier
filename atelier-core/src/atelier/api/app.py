@@ -103,7 +103,7 @@ def create_app() -> FastAPI:
         allow_origins=[dashboard_origin],
         allow_credentials=True,
         allow_methods=["GET", "POST"],
-        allow_headers=["*"],
+        allow_headers=["Content-Type", "Authorization", "X-Request-ID"],
     )
 
     # --- Request timing middleware ---

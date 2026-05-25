@@ -112,3 +112,27 @@ RESUME-HERE: Close C1-C15 executor-brief items, then proceed to F0023 (N3d Conse
 - Antigravity brief Priority 1 (fix 6 failing tests) is now moot — Claude already fixed all 6.
 
 **Net suite count post-verification:** 504 passed, 0 failures, 50 xfailed.
+
+---
+
+### D14 (2026-05-25) — R9-B audit + GCP deployment + red-team sweep
+
+**Commits**: `ffc6060` (R9-B audit fixes), `7038186` (D14 GCP deployment), `598b7d5` (deps fix)
+**Branch**: `phase/2`, pushed to `origin/phase/2`
+
+**What shipped**:
+
+- **R9-B Audit** (`ffc6060`): 13 files, 934 insertions. Unblocked test collection (spans.py API), lint sweep across 18 files (F401, PLC0415, TRY400, RET506, PLR2004, SIM103, ARG001, RUF034, RUF059, PT006, I001, W293), InMemoryRunner patch target fix after import refactor.
+- **GCP Deployment** (`7038186`): Terraform 30 resources (18 APIs, 2 SAs, 3 IAM, 1 BQ dataset + 4 tables, 1 AR, 1 Cloud Run). Cloud Build 37s. GEAP secret migrated with SHA-256 verification. Branch protection 7 checks.
+- **Red-team sweep**: 11 findings (0 critical, 3 high, 5 medium, 3 low). 14 vectors verified clean.
+
+**GCP live**:
+
+- Cloud Run: `https://atelier-api-staging-537337457799.us-central1.run.app/health` → HTTP 200
+- BigQuery: `atelier-build-2026.atelier_trajectories` (4 tables)
+- Secret Manager: `atelier-geap-api-key` (SHA-256 `ffdd03bd...`)
+
+**Test count**: 509 passed, 50 xfailed, 0 failures
+**Ruff**: All checks passed
+
+RESUME-HERE: Execute remaining red-team audit findings (F1-F11), then continue Phase 2 feature implementation.
