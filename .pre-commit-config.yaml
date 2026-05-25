@@ -82,7 +82,8 @@ repos:
             package-lock\.json|
             package\.json|
             atelier-core/tests/fixtures/.*|
-            \.secrets\.baseline
+            \.secrets\.baseline|
+            audit/.*
           )$
 
   # ─── Markdown lint ─────────────────────────────────────────────────────────
