@@ -1,0 +1,7 @@
+{
+  "criteria": {
+    "tool_trajectory_avg_score": 0.7,
+    "rubric_based_final_response_quality_v1": 0.65,
+    "multi_turn_trajectory_quality_v1": 0.65
+  }
+}

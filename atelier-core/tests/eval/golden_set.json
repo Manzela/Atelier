@@ -1,0 +1,147 @@
+{
+  "eval_set_id": "atelier-golden-set-v1",
+  "name": "Atelier Golden Evaluation Set",
+  "description": "5 canonical design briefs with expected tool trajectories and quality rubrics. Covers SaaS dashboard, landing page, mobile onboarding, e-commerce PDP, and B2B admin settings.",
+  "eval_cases": [
+    {
+      "eval_id": "saas-dashboard-dark",
+      "conversation": [
+        {
+          "invocation_id": "inv-001",
+          "user_content": {
+            "parts": [
+              {
+                "text": "Build a SaaS analytics dashboard with a dark theme, KPI cards for revenue and churn, and a line chart for monthly trends."
+              }
+            ],
+            "role": "user"
+          },
+          "expected_tool_use": [
+            {
+              "tool_name": "stitch_generate_screen_from_text",
+              "tool_input": {
+                "projectId": "__any__",
+                "prompt": "__contains__:dashboard"
+              }
+            }
+          ],
+          "expected_intermediate_agent_responses": [],
+          "reference": "A responsive dark-theme dashboard with Revenue KPI card, Churn Rate KPI card, and a monthly trend line chart. Must include <header>, <main>, <section> HTML5 semantic elements and CSS custom properties for design tokens."
+        }
+      ],
+      "session_input": { "state": {} }
+    },
+    {
+      "eval_id": "landing-page-saas",
+      "conversation": [
+        {
+          "invocation_id": "inv-002",
+          "user_content": {
+            "parts": [
+              {
+                "text": "Create a landing page for an AI-powered code review tool. Include hero section, feature highlights, and a CTA button."
+              }
+            ],
+            "role": "user"
+          },
+          "expected_tool_use": [
+            {
+              "tool_name": "stitch_generate_screen_from_text",
+              "tool_input": {
+                "projectId": "__any__",
+                "prompt": "__contains__:landing"
+              }
+            }
+          ],
+          "expected_intermediate_agent_responses": [],
+          "reference": "Landing page with hero section, 3 feature cards, and a prominent CTA. WCAG AA compliant. Semantic HTML with <header>, <main>, <footer>."
+        }
+      ],
+      "session_input": { "state": {} }
+    },
+    {
+      "eval_id": "mobile-onboarding",
+      "conversation": [
+        {
+          "invocation_id": "inv-003",
+          "user_content": {
+            "parts": [
+              {
+                "text": "Design a 3-step mobile onboarding flow for a fintech app. Steps: account creation, KYC verification, funding setup."
+              }
+            ],
+            "role": "user"
+          },
+          "expected_tool_use": [
+            {
+              "tool_name": "stitch_generate_screen_from_text",
+              "tool_input": {
+                "projectId": "__any__",
+                "prompt": "__contains__:onboarding"
+              }
+            }
+          ],
+          "expected_intermediate_agent_responses": [],
+          "reference": "3-screen mobile onboarding with progress indicator, form inputs with proper labels, and accessible submit buttons."
+        }
+      ],
+      "session_input": { "state": {} }
+    },
+    {
+      "eval_id": "e-commerce-product",
+      "conversation": [
+        {
+          "invocation_id": "inv-004",
+          "user_content": {
+            "parts": [
+              {
+                "text": "Build an e-commerce product detail page for luxury skincare. Include image gallery, price, reviews, and add-to-cart button."
+              }
+            ],
+            "role": "user"
+          },
+          "expected_tool_use": [
+            {
+              "tool_name": "stitch_generate_screen_from_text",
+              "tool_input": {
+                "projectId": "__any__",
+                "prompt": "__contains__:product"
+              }
+            }
+          ],
+          "expected_intermediate_agent_responses": [],
+          "reference": "Product page with image gallery, price display, 5-star review section, and accessible add-to-cart CTA. Luxury aesthetic with proper typography hierarchy."
+        }
+      ],
+      "session_input": { "state": {} }
+    },
+    {
+      "eval_id": "admin-settings",
+      "conversation": [
+        {
+          "invocation_id": "inv-005",
+          "user_content": {
+            "parts": [
+              {
+                "text": "Create an admin settings panel for a B2B SaaS platform. Include sections for billing, team members, API keys, and notifications."
+              }
+            ],
+            "role": "user"
+          },
+          "expected_tool_use": [
+            {
+              "tool_name": "stitch_generate_screen_from_text",
+              "tool_input": {
+                "projectId": "__any__",
+                "prompt": "__contains__:settings"
+              }
+            }
+          ],
+          "expected_intermediate_agent_responses": [],
+          "reference": "Settings panel with 4 tabbed sections: Billing, Team, API Keys, Notifications. Form elements must have associated labels. Clear section hierarchy."
+        }
+      ],
+      "session_input": { "state": {} }
+    }
+  ]
+}
