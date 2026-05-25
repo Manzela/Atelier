@@ -351,8 +351,10 @@ def _fetch_real_data(project: str) -> dict[str, Any] | None:
             "acceptance_rate": acceptance_rate,
             "avg_composite_score": avg_score,
             "total_cost_usd": total_cost,
-            "avg_latency_ms": avg_latency,
-            "p99_latency_ms": p99_latency,
+            # Latency keys are optional in the schema — omit when no data
+            # available to avoid null → "type: number" validation failure.
+            **({"avg_latency_ms": avg_latency} if avg_latency is not None else {}),
+            **({"p99_latency_ms": p99_latency} if p99_latency is not None else {}),
         },
         "axes": axes_stats,
         "trajectories": trajectories,
