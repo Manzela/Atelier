@@ -1,4 +1,4 @@
-"""Unit tests for GeneratorTuner T7 (mine_pairs) and T14 (tune + promote)."""
+"""Unit tests for GeneratorTuner — mine_pairs surface and tune+promote surface."""
 
 from __future__ import annotations
 

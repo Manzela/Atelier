@@ -1,7 +1,7 @@
-"""GeneratorTuner — Protocol + BigQuery pair miner (T7, spec §9.3).
+"""GeneratorTuner — Protocol + BigQuery pair miner (spec §9.3).
 
-T7 scope: GeneratorTunerProtocol definition + BigQueryPairMiner.mine_pairs().
-T14 scope (added in Task 5): full tune() + evaluate_and_promote().
+Pair-mining surface: GeneratorTunerProtocol definition + BigQueryPairMiner.mine_pairs().
+Full tune-and-promote surface: tune() + evaluate_and_promote().
 
 BigQuery table layout (atelier-build-2026.atelier_trajectories.dpo_pairs):
     surface_id        STRING    — identifies which surface produced this pair
@@ -16,8 +16,8 @@ BigQuery table layout (atelier-build-2026.atelier_trajectories.dpo_pairs):
     tenant_id         STRING    — tenant isolation key (ALWAYS filter on this)
     created_at        TIMESTAMP
 
-Interface contract: this table is populated by Antigravity FA-012 dpo_builder.py
-(JSONL→BQ load step, R9-B). T7 gates execution on at least one row existing.
+Interface contract: this table is populated by the JSONL→BQ load step in the
+data-pipeline tooling. mine_pairs() gates execution on at least one row existing.
 """
 
 from __future__ import annotations
@@ -70,8 +70,8 @@ class PreferencePair:
 class GeneratorTunerProtocol(Protocol):
     """Protocol for all GeneratorTuner implementations.
 
-    T7 ships BigQueryPairMiner (just mine_pairs).
-    T14 ships GeneratorTuner (mine_pairs + tune + evaluate_and_promote).
+    BigQueryPairMiner provides the mine_pairs surface only.
+    GeneratorTuner provides mine_pairs + tune + evaluate_and_promote.
     """
 
     def mine_pairs(
@@ -92,7 +92,7 @@ class BigQueryPairMiner:
     """Concrete GeneratorTunerProtocol implementation — mine_pairs() only.
 
     Reads from `atelier-build-2026.atelier_trajectories.dpo_pairs`.
-    Table must be populated by Antigravity FA-012 before calling mine_pairs().
+    Table must be populated by the data-pipeline tooling before calling mine_pairs().
     """
 
     def __init__(self, project: str = "atelier-build-2026") -> None:
@@ -190,8 +190,8 @@ class BigQueryPairMiner:
 class GeneratorTuner:
     """Full DPO tuning loop: mine pairs → upload to GCS → submit job → evaluate → promote.
 
-    Composes BigQueryPairMiner (T7) and DpoTuningJob (T6) into the full
-    end-to-end tuning workflow (T14, spec §9.3).
+    Composes BigQueryPairMiner and DpoTuningJob into the full end-to-end
+    tuning workflow (spec §9.3).
 
     evaluate_and_promote() applies the κ gate (KAPPA_PROMOTION_THRESHOLD=0.70)
     before promoting the tuned model endpoint. Promotion means returning the

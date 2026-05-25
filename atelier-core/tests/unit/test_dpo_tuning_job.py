@@ -1,4 +1,4 @@
-"""Unit tests for DPO tuning job (T6, ADR 0028).
+"""Unit tests for DPO tuning job (ADR 0028).
 
 API shape verified via Step-1 discovery (google-genai 1.75.0, 2026-05-25):
 - CreateTuningJobConfig(method, beta, epoch_count, adapter_size, validation_dataset)

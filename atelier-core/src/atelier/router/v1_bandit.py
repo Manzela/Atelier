@@ -1,4 +1,4 @@
-"""ε-Greedy Bandit router — v1 PhaseAwareMoERouter implementation (T13, ADR 0027).
+"""ε-Greedy Bandit router — v1 PhaseAwareMoERouter implementation (ADR 0027).
 
 Three routing modes form the v0→v1→v2 Protocol ladder:
   v0 (v0_managed.py): static phase table, Vertex managed routing.

@@ -9,12 +9,12 @@ Stitch provides a design system API that Atelier uses for:
 This module wraps the Stitch MCP tools into a typed Python interface
 that the N3a Generator and EvoDesign nodes can consume.
 
-MCP Server: ``stitch`` (Antigravity IDE native)
+MCP Server: ``stitch`` (IDE-native MCP)
 API Enablement: ``stitch.googleapis.com`` on project ``i-for-ai``
 Auth: Google default credentials (``manzela@tngshopper.com``)
 
 PRD Reference: §6.3 (Pipeline nodes — design system inference)
-Audit Reference: §2 (C8 — MCP integration), FA-003
+Audit Reference: §2 (C8 — MCP integration)
 ADR Reference: 0010 (MCP-first tool integration)
 """
 

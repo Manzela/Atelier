@@ -1,4 +1,4 @@
-"""Unit tests for BigQueryEpisodicBackend (T8, spec §20.5)."""
+"""Unit tests for BigQueryEpisodicBackend (spec §20.5)."""
 
 from __future__ import annotations
 

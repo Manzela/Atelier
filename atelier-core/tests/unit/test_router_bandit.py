@@ -1,4 +1,4 @@
-"""Unit tests for EpsilonGreedyBandit (T13, ADR 0027 v1)."""
+"""Unit tests for EpsilonGreedyBandit (ADR 0027 v1)."""
 
 from __future__ import annotations
 

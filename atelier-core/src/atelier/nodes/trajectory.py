@@ -1,9 +1,9 @@
 """Trajectory Recorder — N3h pipeline node.
 
 Records every step of the pipeline execution to BigQuery for:
-    - DPO preference pair extraction (FA-011)
-    - Calibration metric tracking (FA-012)
-    - Cost ledger accounting (FA-013)
+    - DPO preference pair extraction
+    - Calibration metric tracking
+    - Cost ledger accounting
     - Audit trail compliance (PRD section 15)
 
 Each trajectory record captures the full context of a pipeline step:

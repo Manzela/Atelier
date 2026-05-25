@@ -1,4 +1,4 @@
-"""DPO tuning job — google-genai PREFERENCE_TUNING migration (T6, ADR 0028).
+"""DPO tuning job — google-genai PREFERENCE_TUNING migration (ADR 0028).
 
 Replaces the deprecated vertexai.tuning.sft surface with google.genai
 CreateTuningJobConfig(method=TuningMethod.PREFERENCE_TUNING).

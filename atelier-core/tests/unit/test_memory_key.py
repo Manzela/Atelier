@@ -193,12 +193,12 @@ def test_hierarchical_memory_protocol_is_runtime_unchecked_but_structural() -> N
         isinstance(Incomplete(), HierarchicalMemory)  # type: ignore[misc]
 
 
-# ---- MemoryEvent runtime ndarray tests (unblocked by R7-01 numpy lockfile) --
-# These tests were not possible at T2 time (numpy not in lockfile).
-# Antigravity R7-01 (917b251) added numpy 2.4.6. The TYPE_CHECKING guard
-# in memory/protocol.py is intentional (ruff TC002 design), but at test
-# runtime numpy IS available, so tests can construct MemoryEvent with real
-# ndarrays even though the Protocol annotation is TYPE_CHECKING-gated.
+# ---- MemoryEvent runtime ndarray tests (unblocked by numpy lockfile add) ----
+# These tests were not previously possible (numpy was not in the lockfile).
+# numpy 2.4.6 has since been added. The TYPE_CHECKING guard in memory/protocol.py
+# is intentional (ruff TC002 design), but at test runtime numpy IS available,
+# so tests can construct MemoryEvent with real ndarrays even though the Protocol
+# annotation is TYPE_CHECKING-gated.
 
 
 @pytest.mark.unit
