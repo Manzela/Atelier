@@ -40,46 +40,88 @@ Releases are managed via [release-please](https://github.com/googleapis/release-
 * Bulk pre-commit fixes + relax markdownlint + add Research Knowledge Base ([19dcbcf](https://github.com/Manzela/atelier/commit/19dcbcf73bb02808d254198d06a9cc3183b82e62))
 * Minimize workflow credit usage across GitHub Pro quota ([d692bdd](https://github.com/Manzela/atelier/commit/d692bdddeb1344c41c15849b86c1fe3f200ae18a))
 
-## [0.2.0-beta](https://github.com/Manzela/Atelier/compare/v0.1.2-alpha...v0.2.0-beta) (2026-05-25)
+## [0.2.0-phase-2-gate] — 2026-05-25
 
-Phase 2: 10× Mechanisms — consensus pipeline, trajectory recording, DPO flywheel, production infrastructure.
+Phase 2: consensus pipeline, trajectory recording, DPO flywheel, production infrastructure, evaluation framework.
 
 ### Added
 
-- **Full DAG pipeline**: N3c deterministic gates + N3d multi-judge consensus + N4 best-pick selection
-- **POST `/v1/generate` endpoint** with trajectory recorder wiring and structured error responses
-- **Bench data publisher** (`generate_bench_data.py`): BQ → `bench-schema.json` pipeline with fail-soft DEMO fallback
-- **CI workflow** (`bench-publish.yml`): daily cron + push-on-`phase/2`, Workload Identity Federation, Firebase deploy
-- **Trajectory fixture corpus**: 30-record JSONL golden dataset with exact score distributions
-- **5 parametric unit tests** for DPO builder: completeness, tenant isolation, outcome distribution, judge votes, pair extraction
-- **A2A Agent Card** (`.well-known/agent.json`): Atelier registered as A2A-discoverable agent
-- **agents-cli scaffold** (`examples/agents-cli-scaffold/`): round-trip demo with `agent.yaml`, `agent.py`, README
-- **Optimize pillar README** (`docs/architecture/optimize-pillar.md`): "Observe → Simulate → Verify" DPO flywheel documentation
-- **Govern pillar README** (`docs/architecture/govern-pillar.md`): Registry/Identity/Gateway/Policy/Security/Audit mapping
-- **`latency_ms` computed property** on `TrajectoryRecord`: derived from `started_at`/`ended_at`, emitted in `to_bq_row()`, resolves P1-7 latency gap
+**Core Pipeline (N1→N4 full 8-node DAG)**
 
-### Changed
+- `POST /v1/generate` — authenticated endpoint running the full design pipeline
+- N3c deterministic gates (6 gates: semantic HTML, CSS validity, token fidelity, Lighthouse heuristic, axe a11y, visual-diff structural similarity)
+- N3d D-O-R-A-V consensus evaluation (5-axis Bayesian-weighted scoring)
+- N4 convergence decision with κ=0.70 threshold and best-candidate selection
+- N14 WRAI (Web-Research-Augmented Intake) via Vertex AI Search Grounding
 
-- **CORS**: multi-origin support via comma-separated `ATELIER_DASHBOARD_ORIGIN` env var (was single-origin)
-- **Terraform**: added `ATELIER_DASHBOARD_ORIGIN` env block to Cloud Run container definition
-- **`firebase.json`**: replaced `__ATELIER_API_SERVICE_ID__` placeholder → `atelier-api-staging`; added `!.well-known` ignore override
+**Self-Improving DPO Flywheel**
+
+- `TrajectoryRecorder` streaming trajectory data to BigQuery `atelier_trajectories.trajectory_records`
+- `BigQueryPairMiner.mine_pairs()` — tenant-isolated DPO pair extraction from accepted/rejected candidates
+- `DpoTuningJob` — Vertex AI PREFERENCE_TUNING via `google.genai` SDK (β=0.1, epochs=3, adapter=4)
+- `GeneratorTuner.tune()` + `evaluate_and_promote()` — κ-gated model promotion pipeline
+
+**Session Architecture**
+
+- `BigQuerySessionBackend` — ADK `BaseSessionService` implementation with BQ persistence
+- ADK `Runner(session_service=...)` injection — no more `InMemoryRunner` in production
+- Session state cross-device resumption via BQ + in-memory fallback
+
+**Security & Governance**
+
+- Firebase Authentication (Google SSO) wired end-to-end: auth page → API → BigQuery
+- IAP-protected Cloud Run ingress (allUsers binding removed)
+- PII scrubber on all OTel span attributes (`PiiScrubSpanProcessor`)
+- §20.5 tenant isolation enforced at data layer (WHERE tenant_id = @tenant_id)
+- GovernorBudgetExceeded → HTTP 402 with user-readable response
+
+**Infrastructure**
+
+- Firebase Hosting: bench + replay + auth dashboards at `atelier-build-2026.web.app`
+- A2A Agent Card at `/.well-known/agent.json` — A2A protocol discoverable
+- Cloudflare DNS: all `*.atelier.autonomous-agent.dev` subdomains live
+- Terraform: project migrated from `i-for-ai` to `atelier-build-2026`
+- Multi-origin CORS via comma-separated `ATELIER_DASHBOARD_ORIGIN` env var
+
+**Observability**
+
+- 15-attribute OTel span schema (PRD §7.3) wired through scrubbed `set_atelier_span_attrs()`
+- `latency_ms` computed property on `TrajectoryRecord` (derived from started_at/ended_at)
+- Bench data publisher: BQ → `bench-schema.json` with nightly CI publish
+- `bench-publish.yml` CI workflow: daily cron + push-on-phase/2, Workload Identity Federation
+
+**Evaluation**
+
+- ADK golden evaluation set: 5 canonical design briefs in `EvalSet` format (`tests/eval/golden_set.json`)
+- Trajectory fixture corpus: 30-record JSONL golden dataset with exact score distributions
+- 5 parametric unit tests for DPO builder: completeness, tenant isolation, outcome distribution
+
+**Architecture Documentation**
+
+- `docs/architecture/optimize-pillar.md` — DPO flywheel Observe → Simulate → Verify
+- `docs/architecture/govern-pillar.md` — six-layer governance stack
+- agents-cli scaffold example (`examples/agents-cli-scaffold/`)
 
 ### Fixed
 
-- **AG-04 safety sweep**: all `LlmAgent` declarations use `generate_content_config.safety_settings` (not deprecated `safety_settings` param)
-- **AG-06 Stitch degradation**: `stitch_degraded` flag only reflects Stitch MCP unavailability (not governor budget exhaustion)
-- **AG-07 BigQuerySessionBackend**: implements `SessionBackend` protocol with correct `create_session`/`get_session` signatures
-- **AG-10 PII scrubber**: `PiiScrubSpanProcessor` redacts email/phone/JWT from OTel spans before export
-- **AG-01/02/03 Terraform**: project ID deduplication, IAP-protected ingress, DNS wildcard certificate
-- **Bench data**: SQL injection defense via GCP project ID regex validation
-- **Test fixture**: `test_replay_api.py` app_client fixture `yield` instead of `return` (BYPASS_AUTH context exit)
+- AG-06: `stitch_degraded=False` when governor fail-softs (not conflated with Stitch MCP availability)
+- AG-07: `BigQuerySessionBackend` fully implements `BaseSessionService` protocol
+- IDOR: BQ queries filter by `tenant_id` at data layer (defense-in-depth)
+- CORS: multi-origin support for production + staging domains
+- Null latency schema validation: omit `avg_latency_ms`/`p99_latency_ms` when no data (prevents JSON null → type:number failure)
+- Firebase Hosting ignore: replaced unsupported glob negation with specific dotfile excludes
 
 ### Security
 
-- Removed `allUsers` IAM binding from Cloud Run — all traffic through IAP
-- KMS per-tenant encryption with 90-day key rotation
-- `detect-secrets` pre-commit hook enabled
+- All endpoints require Firebase Auth except `/health` and `/auth/signin`
+- Ownership verification on session replay (`/v1/replay/{session_id}`)
+- `firebase-admin==7.4.0` (Apache-2.0, local JWT verification, sub-1ms cached key lookup)
 - CSP headers on all Firebase Hosting responses
+- SQL injection defense via GCP project ID regex validation in bench publisher
+- `detect-secrets` pre-commit hook enabled
+- KMS per-tenant encryption with 90-day key rotation
+
+[0.2.0-phase-2-gate]: https://github.com/Manzela/atelier/compare/v0.1.2-alpha...v0.2.0-phase-2-gate
 
 ---
 
