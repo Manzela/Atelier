@@ -971,6 +971,17 @@
           <span class="summary-key">Tokens in / out</span>
           <span class="summary-val">${data.total_input_tokens} / ${data.total_output_tokens}</span>
         </div>
+        ${data.degradation_reason ? `
+        <div style="margin-top:16px;padding:12px;border-radius:6px;background:color-mix(in srgb, var(--md-error) 12%, transparent 88%);border:1px solid color-mix(in srgb, var(--md-error) 30%, transparent 70%);">
+          <div style="display:flex;align-items:center;gap:6px;color:var(--md-error);margin-bottom:6px;">
+            <span class="material-symbols-outlined" style="font-size:16px;">warning</span>
+            <span style="font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:0.04em;">Degraded Run</span>
+          </div>
+          <div style="font-size:12px;color:var(--md-on-surface-variant);line-height:1.5;">
+            ${data.user_message || data.degradation_reason}
+          </div>
+        </div>
+        ` : ''}
       `;
     }
 

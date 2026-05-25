@@ -22,6 +22,13 @@ def client() -> TestClient:
     with pytest.MonkeyPatch.context() as mp:
         mp.setenv("FIREBASE_DISABLE_AUTH", "true")
         mp.setenv("ATELIER_ENV", "development")
+
+        import importlib
+
+        import atelier.auth.firebase as auth_mod
+
+        importlib.reload(auth_mod)
+
         from atelier.api.app import create_app
 
         app = create_app()
@@ -137,4 +144,8 @@ def test_account_usage_requires_auth_without_bypass() -> None:
         resp = c.get("/v1/account/usage")
         assert resp.status_code == 401
 
-        importlib.reload(auth_mod)
+    import importlib
+
+    import atelier.auth.firebase as auth_mod
+
+    importlib.reload(auth_mod)

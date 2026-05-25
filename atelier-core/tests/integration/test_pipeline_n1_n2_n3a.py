@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from atelier.intake.brief_parser import BriefParserAgent
@@ -12,9 +12,7 @@ from atelier.orchestrator.runner import AtelierRunner
 
 @pytest.mark.anyio
 async def test_end_to_end_pipeline_n1_n2_n3a() -> None:
-    """End-to-end: N1 \u2192 N2 \u2192 N3a using mocked components."""
-    runner = AtelierRunner()
-
+    """End-to-end: N1 -> N2 -> N3a using mocked components."""
     valid_json = """
     {
         "spec_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -34,6 +32,15 @@ async def test_end_to_end_pipeline_n1_n2_n3a() -> None:
         "approved_by_user_id": "user1"
     }
     """
+
+    # Mock session service that satisfies the Protocol
+    mock_session_service = MagicMock()
+    mock_session = MagicMock()
+    mock_session.id = "test-session-id"
+    mock_session_service.create_session = AsyncMock(return_value=mock_session)
+
+    runner = AtelierRunner(session_service=mock_session_service)
+
     with (
         patch.object(BriefParserAgent, "_call_llm", new_callable=AsyncMock) as mock_n1,
         patch("atelier.orchestrator.runner.source_resolver_gate", return_value=True),
@@ -43,7 +50,7 @@ async def test_end_to_end_pipeline_n1_n2_n3a() -> None:
         patch(
             "atelier.intake.source_resolver.pull_memory_bank_priors", new_callable=AsyncMock
         ) as mock_priors,
-        patch("atelier.orchestrator.runner.InMemoryRunner") as mock_runner,
+        patch("atelier.orchestrator.runner.Runner") as mock_runner_cls,
     ):
         # N1 mock
         mock_n1.return_value = valid_json
@@ -52,8 +59,8 @@ async def test_end_to_end_pipeline_n1_n2_n3a() -> None:
         mock_tokens.return_value = {"primary_color": "#ffffff"}
         mock_priors.return_value = ["fake-prior"]
 
-        # N3a mock
-        mock_runner_instance = mock_runner.return_value
+        # N3a mock — Runner instance with run_async
+        mock_runner_instance = mock_runner_cls.return_value
 
         async def mock_events(*args, **kwargs):
             yield {"type": "message", "data": "candidate1"}
@@ -79,3 +86,16 @@ async def test_end_to_end_pipeline_n1_n2_n3a() -> None:
         # N3a Validation
         assert len(result["candidates"]) == 3
         assert result["candidates"][0] == "candidate1"
+
+        # B4 Validation — session service was called
+        mock_session_service.create_session.assert_called_once()
+
+        # AG-06 Validation — stitch_degraded is surfaced
+        assert "stitch_degraded" in result
+        assert isinstance(result["stitch_degraded"], bool)
+
+        # AG-07 Validation — session_id is returned
+        assert result["session_id"] == "test-session-id"
+
+        # AG-09 Validation — WRAI report is returned
+        assert "web_research" in result

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from atelier.intake.brief_parser import BriefParserAgent
@@ -9,8 +9,14 @@ from atelier.orchestrator.runner import AtelierRunner
 
 @pytest.mark.anyio
 async def test_brief_text_to_brief_spec_via_runner() -> None:
-    """End-to-end: brief text → BriefSpec via AtelierRunner with mocked Gemini."""
-    runner = AtelierRunner()
+    """End-to-end: brief text -> BriefSpec via AtelierRunner with mocked Gemini."""
+    # Mock session service
+    mock_session_service = MagicMock()
+    mock_session = MagicMock()
+    mock_session.id = "test-session-id"
+    mock_session_service.create_session = AsyncMock(return_value=mock_session)
+
+    runner = AtelierRunner(session_service=mock_session_service)
 
     valid_json = """
     {
@@ -42,12 +48,12 @@ async def test_brief_text_to_brief_spec_via_runner() -> None:
             patch(
                 "atelier.orchestrator.runner.source_resolver_agent", new_callable=AsyncMock
             ) as mock_resolver,
-            patch("atelier.orchestrator.runner.InMemoryRunner") as mock_runner,
+            patch("atelier.orchestrator.runner.Runner") as mock_runner_cls,
         ):
             mock_resolver.return_value = "fake_project_ctx"
 
             # Mock runner instance and run_async
-            mock_runner_instance = mock_runner.return_value
+            mock_runner_instance = mock_runner_cls.return_value
 
             async def mock_events(*args, **kwargs):
                 yield {"type": "message", "data": "candidate1"}

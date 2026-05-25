@@ -15,6 +15,8 @@ from __future__ import annotations
 
 from typing import Any, Final
 
+from atelier.observability.scrubber import get_scrubber
+
 # ---------------------------------------------------------------------------
 # Mandatory attribute defaults (PRD §7.3 — 15 attributes)
 # ---------------------------------------------------------------------------
@@ -109,33 +111,39 @@ def set_atelier_span_attrs(
         mutation_op: Optional mutation operation (not set if None).
         convergence_bar: Optional convergence bar (not set if None).
     """
+    # --- PII Scrubber (FIX-2 / AG-10) ---
+    # Scrub all string values before setting on the span to prevent
+    # PII/secrets from leaking through the OTel export path.
+    _scrubber = get_scrubber()
+
+    def _safe_set(key: str, value: str) -> None:
+        span.set_attribute(key, _scrubber.scrub(value))
+
     # 15 mandatory attributes
-    span.set_attribute("gen_ai.system", "atelier")
-    span.set_attribute("gen_ai.operation.name", node_name)
-    span.set_attribute("gen_ai.request.model", model)
-    span.set_attribute("gen_ai.usage.input_tokens", str(input_tokens))
-    span.set_attribute("gen_ai.usage.output_tokens", str(output_tokens))
-    span.set_attribute("atelier.tenant_id", tenant_id)
-    span.set_attribute("atelier.project_id", project_id)
-    span.set_attribute("atelier.session_id", session_id)
-    span.set_attribute("atelier.surface_id", surface_id)
-    span.set_attribute("atelier.node_name", node_name)
-    span.set_attribute("atelier.iteration", str(iteration))
-    span.set_attribute("atelier.candidate_id", candidate_id)
-    span.set_attribute(
-        "atelier.cost_usd", f"{cost_usd:.6f}" if cost_usd is not None else "0.000000"
-    )
-    span.set_attribute("atelier.gate_decision", gate_decision or "")
-    span.set_attribute("atelier.composite_score", str(composite_score))
+    _safe_set("gen_ai.system", "atelier")
+    _safe_set("gen_ai.operation.name", node_name)
+    _safe_set("gen_ai.request.model", model)
+    _safe_set("gen_ai.usage.input_tokens", str(input_tokens))
+    _safe_set("gen_ai.usage.output_tokens", str(output_tokens))
+    _safe_set("atelier.tenant_id", tenant_id)
+    _safe_set("atelier.project_id", project_id)
+    _safe_set("atelier.session_id", session_id)
+    _safe_set("atelier.surface_id", surface_id)
+    _safe_set("atelier.node_name", node_name)
+    _safe_set("atelier.iteration", str(iteration))
+    _safe_set("atelier.candidate_id", candidate_id)
+    _safe_set("atelier.cost_usd", f"{cost_usd:.6f}" if cost_usd is not None else "0.000000")
+    _safe_set("atelier.gate_decision", gate_decision or "")
+    _safe_set("atelier.composite_score", str(composite_score))
 
     # Optional attributes (only set when explicitly provided)
     if cost_usd is not None:
-        span.set_attribute("atelier.cost_usd_detail", f"{cost_usd:.6f}")
+        _safe_set("atelier.cost_usd_detail", f"{cost_usd:.6f}")
     if gate_axis is not None:
-        span.set_attribute("atelier.gate_axis", gate_axis)
+        _safe_set("atelier.gate_axis", gate_axis)
     if gate_decision is not None:
-        span.set_attribute("atelier.gate_decision_detail", gate_decision)
+        _safe_set("atelier.gate_decision_detail", gate_decision)
     if mutation_op is not None:
-        span.set_attribute("atelier.mutation_op", mutation_op)
+        _safe_set("atelier.mutation_op", mutation_op)
     if convergence_bar is not None:
-        span.set_attribute("atelier.convergence_bar", convergence_bar)
+        _safe_set("atelier.convergence_bar", convergence_bar)
