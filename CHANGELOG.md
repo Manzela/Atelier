@@ -48,7 +48,7 @@ Releases are managed via [release-please](https://github.com/googleapis/release-
 - PRD: Atelier autonomous design agent (831 lines, 13 novel contributions, 5 quantified 10× axes, full Google-native production stack)
 - 10 Architecture Decision Records (MADR format) covering wrap-don't-fork inheritance, Cloud Run not Agent Engine for runtime, tiered sandboxing, PIP layer, RLRD, Google-native stack, EvoDesign K-candidate search, multi-judge Bayesian consensus, public calibration dashboard, A2UI-native output
 - Full SDLC documentation: README, CHANGELOG, ROADMAP, SECURITY, CONTRIBUTING, CODE_OF_CONDUCT, GOVERNANCE, NOTICE
-- Sprint discipline scaffold: `CLAUDE.md`, `DECISIONS.md`, `REJECTED.md`, `features.json` (Anthropic harness JSON ledger), `claude-progress.txt`, `init.sh`
+- Repo discipline: locked-decisions index (`DECISIONS.md`), rejected-approaches log (`REJECTED.md`), one-time bootstrap (`init.sh`)
 - GitHub Actions workflows: CI (lint + typecheck + unit + integration + security + build), eval (nightly WebGen-Bench + Design2Code), CodeQL security scanning, release (release-please), docs (mkdocs to Firebase Hosting), stale issue management
 - Pre-commit hooks: ruff format/check, mypy strict, pytest fast subset, commitlint, detect-secrets, markdownlint
 - Issue templates (bug, feature, eval-failure, docs) + PR template + CODEOWNERS + Dependabot config
@@ -59,19 +59,19 @@ Releases are managed via [release-please](https://github.com/googleapis/release-
 
 ### Notes
 
-- This `[Unreleased]` section accumulates work intended for the first tagged release `v0.1.0-alpha` (target: 2026-05-21, Phase 1 acceptance gate).
-- Phases 2 and 3 of the sprint will produce `v0.2.0-beta` (2026-05-28) and `v1.0.0` (2026-06-03 — submission day) respectively.
+- This `[Unreleased]` section accumulates work intended for the first tagged release `v0.1.0-alpha` (Phase 1 acceptance gate).
+- Phases 2 and 3 will produce `v0.2.0-beta` and `v1.0.0` (public launch) respectively.
 
 ---
 
 ## Release tagging plan
 
-| Tag | Date | What it represents |
-|---|---|---|
-| `v0.1.0-alpha` | 2026-05-21 | Phase 1 Foundation gate passed — single-surface end-to-end working on Cloud Run staging |
-| `v0.2.0-beta` | 2026-05-28 | Phase 2 10× Mechanisms gate passed — 12-surface autonomous campaign converges + WebGen-Bench ≥ 51 + 5 beta tenants |
-| `v1.0.0` | 2026-06-03 | Public launch + G4S submission filed |
-| `v1.1.0` | TBD | Post-launch features (multiplayer dashboard, voice input, Discord community) |
-| `v2.0.0` | TBD | SOC 2 Type 2 + per-tenant CMEK + HIPAA tier |
+| Tag            | Date       | What it represents                                                                                                              |
+| -------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `v0.1.0-alpha` | 2026-05-21 | Phase 1 Foundation gate passed — single-surface end-to-end working on Cloud Run staging                                         |
+| `v0.2.0-beta`  | 2026-05-28 | Phase 2 10× Mechanisms gate passed — 12-surface autonomous campaign converges + WebGen-Bench ≥ 51 + beta tenant cohort onboarded |
+| `v1.0.0`       | 2026-06-03 | Public launch + Google for Startups AI Agents Challenge submission filed                                                        |
+| `v1.1.0`       | TBD        | Post-launch features (multiplayer dashboard, voice input, Discord community)                                                    |
+| `v2.0.0`       | TBD        | SOC 2 Type 2 + per-tenant CMEK + HIPAA tier                                                                                     |
 
 [Unreleased]: https://github.com/Manzela/atelier/compare/v0.0.0...HEAD

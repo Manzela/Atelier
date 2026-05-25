@@ -62,15 +62,15 @@ atelier/                                    ← branch: main (accepted-only)
 **Day-to-day**:
 
 ```bash
-# Create a feature branch off the active phase
-cd .worktrees/phase1-foundation
+# Create a feature branch off the active phase worktree
+cd .worktrees/phaseN-<name>
 git checkout -b feat/my-feature
 
 # Work, commit, push
 git push -u origin feat/my-feature
 
-# Open PR against phase/1 (NOT main)
-gh pr create --base phase/1 --title "feat(scope): description"
+# Open PR against the active phase branch (not main)
+gh pr create --base phase/N --title "feat(scope): description"
 ```
 
 ## Commit messages — Conventional Commits 1.0.0

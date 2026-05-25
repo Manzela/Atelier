@@ -119,19 +119,16 @@ atelier/
 ├── atelier-figma-plugin/                  # Figma Community plugin
 ├── atelier-chrome-extension/              # Chrome Web Store extension
 ├── .github/                               # CI/CD workflows + issue/PR templates
-├── CLAUDE.md                              # sprint invariants (auto-loaded)
-├── DECISIONS.md                           # locked decisions (auto-injected)
-├── REJECTED.md                            # failed approaches (long-term memory)
-├── features.json                          # Anthropic harness JSON ledger
-├── claude-progress.txt                    # append-only narrative across sessions
+├── DECISIONS.md                           # locked architectural decisions index
+├── REJECTED.md                            # rejected approaches with rationale
 └── init.sh                                # one-time bootstrap
 ```
 
 ## Submission target
 
-**[Google for Startups AI Agents Challenge 2026](https://startup.google.com/programs/agents-challenge)** — open category, deadline **2026-06-05**. Atelier files **2026-06-03 noon** (2 days early). Prize pool $90K, mentorship from DeepMind + Google Labs.
+**[Google for Startups AI Agents Challenge 2026](https://startup.google.com/programs/agents-challenge)** — open category, deadline **2026-06-05**. Prize pool $90K, mentorship from DeepMind + Google Labs.
 
-## Live demos & artifacts (live by 2026-06-03)
+## Live demos & artifacts
 
 - **Live agent**: [atelier.dev](https://atelier.dev)
 - **Documentation**: [docs.atelier.dev](https://docs.atelier.dev)
@@ -158,15 +155,15 @@ Atelier consumes upstream code via lockfile-pinned dependencies and wraps it wit
 | [`google-adk`](https://github.com/google/adk-python) v2.0 Beta (Apache-2.0)                                               | `pip install --pre` lockfile-pinned | SequentialAgent, ParallelAgent, LoopAgent, MCPToolset, rubric*based*\*\_v1, Skills for Agents, adk optimize (GEPA), adk conformance |
 | [`hermes-agent`](https://github.com/NousResearch/hermes-agent) (MIT)                                                      | Pattern inheritance only            | Skills system, MEMORY/SOUL files, sandboxing tier model, panic/resume primitives, Atropos GRPO+LoRA training pattern                |
 | [Stitch MCP](https://stitch.googleapis.com/mcp) (Google Labs)                                                             | HTTP MCP via ADK `MCPToolset`       | UI generation primitive (`generate_screen_from_text`, `generate_variants`, `apply_design_system`)                                   |
-| [Anthropic two-prompt harness](https://github.com/anthropics/claude-quickstarts/tree/main/autonomous-coding) (Apache-2.0) | Pattern adoption                    | Initializer + coding agent + JSON ledger + end-to-end test before next feature (build sprint discipline)                            |
+| [Anthropic two-prompt harness](https://github.com/anthropics/claude-quickstarts/tree/main/autonomous-coding) (Apache-2.0) | Pattern adoption                    | Long-running agent harness: initializer + coding agent + JSON ledger + end-to-end test gate before next feature                     |
 
 ## Roadmap
 
-See [ROADMAP.md](ROADMAP.md). Three-week sprint window **2026-05-15 → 2026-06-04**, three phase gates:
+See [ROADMAP.md](ROADMAP.md). Three release gates target the submission window:
 
-- **Phase 1: Foundation** (W1) — repo + ADK plumbing + 1-surface end-to-end + Cloud Run staging deploy
-- **Phase 2: 10× Mechanisms** (W2) — EvoDesign + ConsensusAgent + Campaign Orchestrator + PIP + 12-surface autonomous campaign + WebGen-Bench ≥ 51 + 5 beta tenants
-- **Phase 3: Production Polish + 10× Validation** (W3) — Per-project judge LoRA + Open Eval Adapters + Skills Pack + marketing site + arXiv preprint + demo recording + submission
+- **Phase 1 — Foundation**: repo + ADK plumbing + single-surface end-to-end on Cloud Run staging
+- **Phase 2 — 10× Mechanisms**: EvoDesign + ConsensusAgent + Campaign Orchestrator + PIP + 12-surface autonomous campaign + WebGen-Bench ≥ 51 + beta tenant cohort
+- **Phase 3 — Production Polish + 10× Validation**: per-project judge LoRA + Open Eval Adapters + Skills Pack + marketing site + arXiv preprint + demo recording + submission
 
 ## Contributing
 

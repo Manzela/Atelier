@@ -1,8 +1,6 @@
 # REJECTED.md — Failed approaches & dead ends
 
-> Long-term memory of approaches we've tried that didn't work. Future sessions read this before re-attempting anything. Pattern from AutonomousAgent SESSION-COMPLETE doc + Karpathy LLM-wiki convention.
-
-> **Auto-injected into every Claude Code session.** When tempted by an approach not currently in the codebase, check this file first.
+> Long-term log of approaches considered and rejected, with root cause and the chosen alternative. Convention follows Karpathy's LLM-wiki pattern: rejected entries are permanent so future contributors can read why an obvious-looking path was not taken.
 
 ---
 
@@ -49,7 +47,7 @@ These are approaches the research has already shown will fail; documented here s
 ### 2026-05-14 — Fork agent-dag-pipeline as the base codebase
 
 **Approach attempted**: Fork the user's `agent-dag-pipeline` repo as Atelier's starting point; modify internals to retarget from retail-product enrichment to UI/UX.
-**Why it failed (preempted)**: Per AutonomousAgent ADR 0001 lineage, **wrap-don't-fork** preserves upgrade paths and avoids merge friction. Forking breaks the ability to consume upstream improvements; doubles maintenance burden; misaligns governance.
+**Why it failed (preempted)**: **Wrap-don't-fork** preserves upgrade paths and avoids merge friction. Forking breaks the ability to consume upstream improvements; doubles maintenance burden; misaligns governance.
 **What we did instead**: Consume `agent-dag-pipeline` via `pip install agent-dag-pipeline==<pinned-version>` in `requirements.lock`. Subclass public APIs without modifying upstream source. Per [ADR 0001](docs/decisions/0001-wrap-dont-fork-inheritance-model.md).
 **When to revisit**: Only if upstream is abandoned; even then, prefer hard-fork as a separate repo over modifying inline.
 

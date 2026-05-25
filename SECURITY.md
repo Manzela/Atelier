@@ -4,11 +4,11 @@
 
 Atelier follows semantic versioning. Security fixes are backported to:
 
-| Version                             | Supported                                                        |
-| ----------------------------------- | ---------------------------------------------------------------- |
-| `v1.x.y` (current stable)           | ✅                                                               |
-| `v0.x.y` (alpha/beta during sprint) | ⚠️ Best-effort during 2026-05-15 → 2026-06-04 sprint window only |
-| `< v0.1.0`                          | ❌                                                               |
+| Version                   | Supported                                  |
+| ------------------------- | ------------------------------------------ |
+| `v1.x.y` (current stable) | ✅                                         |
+| `v0.x.y` (alpha / beta)   | ⚠️ Best-effort prior to the v1.0.0 release |
+| `< v0.1.0`                | ❌                                         |
 
 ## Reporting a vulnerability
 
@@ -92,7 +92,7 @@ Fingerprint: [TO-BE-PUBLISHED-AT-LAUNCH]
 Key URL:     https://atelier.dev/security/pgp.asc
 ```
 
-The PGP key will be published before the v1.0.0 release on 2026-06-03.
+The PGP key will be published before the v1.0.0 release.
 
 ## Past security advisories
 
