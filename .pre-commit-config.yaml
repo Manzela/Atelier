@@ -151,3 +151,33 @@ repos:
           '
         language: system
         pass_filenames: false
+
+      - id: features-evidence-tests-gate
+        name: features.json evidence_tests schema gate
+        entry: |
+          bash -c '
+            set -euo pipefail
+            # Gate 1: every feature must have evidence_tests as an array (not null)
+            non_array=$(jq "[.features[] | select(.evidence_tests | type != \"array\")] | length" features.json)
+            if [ "$non_array" -gt 0 ]; then
+              echo "ERROR: ${non_array} features have non-array evidence_tests (must be [])"
+              jq ".features[] | select(.evidence_tests | type != \"array\") | .id" features.json
+              exit 1
+            fi
+            # Gate 2: no passes:true without backing evidence_tests
+            no_evidence=$(jq "[.features[] | select(.passes==true and (.evidence_tests | length)==0)] | length" features.json)
+            if [ "$no_evidence" -gt 0 ]; then
+              echo "ERROR: ${no_evidence} features have passes:true with empty evidence_tests"
+              jq ".features[] | select(.passes==true and (.evidence_tests | length)==0) | .id" features.json
+              exit 1
+            fi
+          '
+        language: system
+        pass_filenames: false
+
+      - id: validate-routing-manifest
+        name: Validate routing manifest against JSON Schema
+        entry: python3 scripts/hooks/validate_routing_manifest.py
+        language: system
+        files: '^infra/routing/.*\.(yaml|yml|json)$'
+        pass_filenames: false

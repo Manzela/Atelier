@@ -11,11 +11,13 @@ authors = [{ name = "Daniel Manzela", email = "hello@atelier.dev" }]
 license = { file = "../LICENSE" }
 requires-python = ">=3.11,<3.13"
 
-# Phase 2 W2 will populate full dep list.
 dependencies = [
     "pydantic>=2.6,<3",
     "pyyaml>=6.0,<7",
     "httpx>=0.27,<1",
+    "numpy>=1.26",
+    "pillow>=10.0",
+    "scikit-image>=0.23",
 ]
 
 [project.optional-dependencies]
@@ -24,10 +26,8 @@ dev = [
     "mypy>=1.13,<2",
     "pytest>=8.3,<9",
     "pytest-asyncio>=0.24,<1",
+    "types-Pillow>=10.0",
 ]
-
-[project.scripts]
-atelier-eval = "atelier_eval.runner:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/atelier_eval"]

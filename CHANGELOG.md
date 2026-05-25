@@ -8,6 +8,13 @@ Releases are managed via [release-please](https://github.com/googleapis/release-
 
 ---
 
+## [0.1.2-alpha](https://github.com/Manzela/Atelier/compare/v0.1.1-alpha...v0.1.2-alpha) (2026-05-20)
+
+
+### Documentation
+
+* **research:** Add sprint recovery research & audit artifacts ([9b70317](https://github.com/Manzela/Atelier/commit/9b70317d7834179cb09bd7f0c41b7a79bf326dd5))
+
 ## [0.1.1-alpha](https://github.com/Manzela/atelier/compare/v0.1.0-alpha...v0.1.1-alpha) (2026-05-15)
 
 

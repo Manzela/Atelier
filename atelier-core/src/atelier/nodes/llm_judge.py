@@ -73,7 +73,17 @@ if TYPE_CHECKING:
     # consumers wire CandidateUI through this module.
     from atelier.models.data_contracts import CandidateUI
 from atelier.models.model_registry import JUDGE_MODEL_CONFIG, ModelSpec
-from atelier.nodes.consensus import _AXIS_SCORERS, _JudgeScore
+
+# _JudgeScore is imported from the cycle-neutral _types module (not from
+# consensus directly) so that this module can be imported in any order
+# relative to atelier.nodes.consensus without NameError.
+from atelier.nodes._types import _JudgeScore
+
+# _AXIS_SCORERS is NOT imported at module level — doing so would create a
+# circular dependency because consensus imports _resolve_axis_scorers from
+# this module (lazily), and both modules were previously importing from each
+# other at module load time. Instead, _AXIS_SCORERS is imported inside
+# LLMJudge.__init__ when it is actually needed.
 
 # ---------------------------------------------------------------------------
 # Module-level constants
@@ -449,9 +459,15 @@ class LLMJudge:
         # When no caller-supplied fallback exists, fall back to the Phase 1
         # heuristic for the same axis. This is the failure-soft default and
         # the reason the surrounding pipeline never breaks.
-        self._fallback: Callable[[CandidateUI], _JudgeScore] = (
-            fallback if fallback is not None else _AXIS_SCORERS[self.axis_name]
-        )
+        # _AXIS_SCORERS is imported lazily here (not at module level) to
+        # break the consensus ↔ llm_judge circular import. Both modules are
+        # guaranteed to be fully initialised by the time __init__ is called.
+        if fallback is not None:
+            self._fallback: Callable[[CandidateUI], _JudgeScore] = fallback
+        else:
+            from atelier.nodes.consensus import _AXIS_SCORERS  # noqa: PLC0415
+
+            self._fallback = _AXIS_SCORERS[self.axis_name]
 
     @property
     def model_spec(self) -> ModelSpec:
@@ -646,6 +662,8 @@ def _make_hybrid_scorer(
            calibration dashboards can plot disagreement between modes
            without re-running anything.
     """
+    from atelier.nodes.consensus import _AXIS_SCORERS  # noqa: PLC0415
+
     llm_judge = make_llm_judge(axis_name, client)
     heuristic_scorer = _AXIS_SCORERS[axis_name]
 
@@ -695,6 +713,13 @@ def _resolve_axis_scorers(
             is ``None`` for any non-heuristic mode. Fails loud because
             silent fallback to heuristic would mask a misconfiguration.
     """
+    # Lazy import of _AXIS_SCORERS breaks the consensus ↔ llm_judge cycle.
+    # By the time _resolve_axis_scorers is called, both modules are guaranteed
+    # to be fully initialised (it's called from evaluate_candidate, never at
+    # import time). Python's module cache ensures this import is O(1) after
+    # the first call.
+    from atelier.nodes.consensus import _AXIS_SCORERS  # noqa: PLC0415
+
     if mode is None:
         mode = os.environ.get(ATELIER_JUDGE_MODE_ENV, DEFAULT_JUDGE_MODE)
 

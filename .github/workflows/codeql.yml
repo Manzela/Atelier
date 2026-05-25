@@ -27,7 +27,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: ['python', 'javascript-typescript']
+        language: ['python']
+        # javascript-typescript removed: this is a Python-only repo.
+        # No substantive JS/TS source exists; scanning it causes CodeQL to
+        # error with "no source code seen during build" on every run.
 
     steps:
       - name: Checkout repository

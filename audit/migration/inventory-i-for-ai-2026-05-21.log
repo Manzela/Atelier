@@ -1,0 +1,64 @@
+Inventorying all resources in project i-for-ai
+[environment: untagged] Read more to tag: g.co/cloud/project-env-tag.
+Updated property [core/project].
+
+=== Summary Stats (2026-05-21T14:16:39Z) ===
+Total resource categories: 13
+
+[
+  {
+    "type": "gcs_buckets",
+    "count": 50
+  },
+  {
+    "type": "secrets",
+    "count": 46
+  },
+  {
+    "type": "bigquery_datasets",
+    "count": 24
+  },
+  {
+    "type": "service_accounts",
+    "count": 16
+  },
+  {
+    "type": "artifact_registry",
+    "count": 7
+  },
+  {
+    "type": "cloud_run",
+    "count": 6
+  },
+  {
+    "type": "pubsub_topics",
+    "count": 6
+  },
+  {
+    "type": "firestore",
+    "count": 4
+  },
+  {
+    "type": "vertex_endpoints_us_central1",
+    "count": 0
+  },
+  {
+    "type": "vertex_tuned_models",
+    "count": 0
+  },
+  {
+    "type": "cloud_sql",
+    "count": 0
+  },
+  {
+    "type": "cloud_build_triggers",
+    "count": 0
+  },
+  {
+    "type": "scheduler_jobs",
+    "count": 0
+  }
+]
+
+Notable: 6 Cloud Run services, 50 GCS buckets, 46 secrets, 24 BQ datasets, 16 SAs, 7 AR repos, 6 Pub/Sub topics, 4 Firestore DBs
+Vertex AI: 0 endpoints, 0 tuned models (expected — live serving decommissioned earlier)

@@ -1,0 +1,5 @@
+{
+  "title": "atelier-memory-scope-acl",
+  "description": "Enforces Virtual Context Isolation: callers can only read Memory Bank resources whose memoryScope matches their request attribute.",
+  "expression": "request.attribute[\"aiplatform.googleapis.com/memoryScope\"] == resource.attribute[\"aiplatform.googleapis.com/memoryScope\"]"
+}
