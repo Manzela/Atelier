@@ -163,6 +163,10 @@ module = "atelier.router.*"
 disallow_any_unimported = false
 
 [[tool.mypy.overrides]]
+module = "atelier.optimize.*"
+disallow_any_unimported = false
+
+[[tool.mypy.overrides]]
 module = "skimage.*"
 ignore_missing_imports = true
 
