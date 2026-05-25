@@ -93,7 +93,7 @@ pip install -e atelier-core/
 
 # Verify the API is running
 curl -s https://atelier-api-staging-2h56glloxa-uc.a.run.app/health | python3 -m json.tool
-# {"status":"healthy","version":"0.2.0-alpha","service":"atelier-api","env":"staging"}
+# {"status":"healthy","version":"0.1.0a0","service":"atelier-api","env":"production"}
 
 # Run locally (requires GOOGLE_APPLICATION_CREDENTIALS)
 export FIREBASE_DISABLE_AUTH=true
