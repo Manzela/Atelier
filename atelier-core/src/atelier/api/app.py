@@ -241,11 +241,13 @@ def create_app() -> FastAPI:
         }
 
     # --- Register API routers ─────────────────────────────────────────────────
+    from atelier.api.dream import router as dream_router  # noqa: PLC0415
     from atelier.api.generate import router as generate_router  # noqa: PLC0415
     from atelier.api.replay import router as replay_router  # noqa: PLC0415
 
     application.include_router(generate_router)
     application.include_router(replay_router)
+    application.include_router(dream_router)
 
     # --- Auth info endpoint (documents the Firebase sign-in flow) ─────────────
     # Self-serve SaaS principle: the API itself tells clients how to authenticate.

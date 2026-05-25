@@ -46,6 +46,31 @@ resource "google_bigquery_table" "dpo_preference_pairs" {
   ])
 }
 
+# dpo_pairs: mid-flight preference pairs written by dreaming_module.write_pairs_to_bq()
+# and read by generator_tuner.BigQueryPairMiner.mine_pairs() for Vertex AI PREFERENCE_TUNING.
+# Schema matches BQ_DPO_PAIRS_TABLE in generator_tuner.py and _DPO_PAIRS_TABLE in dreaming_module.py.
+resource "google_bigquery_table" "dpo_pairs" {
+  dataset_id          = google_bigquery_dataset.atelier_trajectories.dataset_id
+  project             = var.project_id
+  table_id            = "dpo_pairs"
+  # staging: false. Production must set deletion_protection = true.
+  deletion_protection = false
+  schema = jsonencode([
+    { name = "surface_id", type = "STRING", mode = "REQUIRED" },
+    { name = "tenant_id", type = "STRING", mode = "REQUIRED" },
+    { name = "session_id", type = "STRING", mode = "REQUIRED" },
+    { name = "node_name", type = "STRING", mode = "REQUIRED" },
+    { name = "iteration", type = "INT64", mode = "REQUIRED" },
+    { name = "prompt", type = "STRING", mode = "REQUIRED" },
+    { name = "chosen_response", type = "STRING", mode = "REQUIRED" },
+    { name = "rejected_response", type = "STRING", mode = "REQUIRED" },
+    { name = "chosen_score", type = "FLOAT64", mode = "REQUIRED" },
+    { name = "rejected_score", type = "FLOAT64", mode = "REQUIRED" },
+    { name = "margin", type = "FLOAT64", mode = "REQUIRED" },
+    { name = "created_at", type = "TIMESTAMP", mode = "REQUIRED" },
+  ])
+}
+
 resource "google_bigquery_table" "calibration_metrics" {
   dataset_id          = google_bigquery_dataset.atelier_trajectories.dataset_id
   project             = var.project_id
