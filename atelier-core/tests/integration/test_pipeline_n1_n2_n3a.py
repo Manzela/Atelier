@@ -37,9 +37,13 @@ async def test_end_to_end_pipeline_n1_n2_n3a() -> None:
     with (
         patch.object(BriefParserAgent, "_call_llm", new_callable=AsyncMock) as mock_n1,
         patch("atelier.orchestrator.runner.source_resolver_gate", return_value=True),
-        patch("atelier.intake.source_resolver.pull_design_tokens", new_callable=AsyncMock) as mock_tokens,
-        patch("atelier.intake.source_resolver.pull_memory_bank_priors", new_callable=AsyncMock) as mock_priors,
-        patch("google.adk.runners.InMemoryRunner") as mock_runner,
+        patch(
+            "atelier.intake.source_resolver.pull_design_tokens", new_callable=AsyncMock
+        ) as mock_tokens,
+        patch(
+            "atelier.intake.source_resolver.pull_memory_bank_priors", new_callable=AsyncMock
+        ) as mock_priors,
+        patch("atelier.orchestrator.runner.InMemoryRunner") as mock_runner,
     ):
         # N1 mock
         mock_n1.return_value = valid_json

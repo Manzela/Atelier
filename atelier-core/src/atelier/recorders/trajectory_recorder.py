@@ -1,7 +1,7 @@
 """TrajectoryRecorder — BigQuery streaming insert writer for trajectory records.
 
 Streams :class:`~atelier.nodes.trajectory.TrajectoryRecord` objects to the
-``i-for-ai.atelier_trajectories.trajectory_records`` BigQuery table with:
+``atelier-build-2026.atelier_trajectories.trajectory_records`` BigQuery table with:
 
     * Async context manager (``async with TrajectoryRecorder(...) as rec``)
     * Auto-flush on buffer size threshold or context manager exit
@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 # Constants (PLR2004 compliance)
 # ---------------------------------------------------------------------------
 
-DEFAULT_TABLE_ID = "i-for-ai.atelier_trajectories.trajectory_records"
+DEFAULT_TABLE_ID = "atelier-build-2026.atelier_trajectories.trajectory_records"
 DEFAULT_BUFFER_SIZE = 50
 SPAN_NAME = "atelier.trajectory.flush"
 

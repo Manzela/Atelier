@@ -13,7 +13,7 @@ from atelier.integrations.stitch_mcp import get_stitch_mcp_toolset
 ENSEMBLE_SIZE = 3
 
 
-def create_generator_ensemble() -> ParallelAgent:
+def create_generator_ensemble() -> ParallelAgent:  # type: ignore[no-any-unimported]
     """Creates a ParallelAgent containing K=3 generators.
 
     Returns:

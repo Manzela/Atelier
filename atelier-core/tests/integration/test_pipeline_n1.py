@@ -4,7 +4,6 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from atelier.intake.brief_parser import BriefParserAgent
-from atelier.intake.brief_spec import BriefSpec
 from atelier.orchestrator.runner import AtelierRunner
 
 
@@ -40,8 +39,10 @@ async def test_brief_text_to_brief_spec_via_runner() -> None:
 
         with (
             patch("atelier.orchestrator.runner.source_resolver_gate", return_value=True),
-            patch("atelier.orchestrator.runner.source_resolver_agent", new_callable=AsyncMock) as mock_resolver,
-            patch("google.adk.runners.InMemoryRunner") as mock_runner,
+            patch(
+                "atelier.orchestrator.runner.source_resolver_agent", new_callable=AsyncMock
+            ) as mock_resolver,
+            patch("atelier.orchestrator.runner.InMemoryRunner") as mock_runner,
         ):
             mock_resolver.return_value = "fake_project_ctx"
 

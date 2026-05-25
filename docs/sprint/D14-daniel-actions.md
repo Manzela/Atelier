@@ -1,14 +1,70 @@
-# D14 Action Checklist for Daniel
+# Daniel Actions — Day 14 (2026-05-28)
 
-This checklist details the final prerequisite actions required for the Phase 1 Gate validation before we perform the `v0.1.0-phase-1-gate` tag.
+These are GCP-gated actions that require your interactive credentials.
+All code is ready; these are the deployment steps.
 
-### Instructions
+## Order-dependent actions (run in sequence)
 
-Please confirm the following actions have been executed in your GCP environment:
+### 1. Create IAM service account
 
-- [ ] Confirm `atelier-build-2026` GCP project exists, has billing enabled, and required APIs are enabled (Vertex AI, Cloud Run, Secret Manager, etc.).
-- [ ] Confirm Secret Manager contains the secret `projects/atelier-build-2026/secrets/atelier-geap-api-key` with the valid Stitch API key.
-- [ ] Confirm IAM permissions allow local `gcloud` credentials to read the secret from Secret Manager.
+```bash
+gcloud iam service-accounts create atelier-runtime \
+  --project=atelier-build-2026 \
+  --display-name="Atelier Runtime SA" \
+  --description="Main runtime SA for Atelier Cloud Run + BigQuery + Vertex"
+```
 
-Once you have verified the above, please reply with your confirmation.
-I will then perform a clean git tag (`v0.1.0-phase-1-gate`) and pause execution for the next directive.
+### 2. Apply Terraform (review plan first)
+
+```bash
+cd infra/terraform
+terraform init
+terraform plan -var-file=staging.tfvars   # REVIEW OUTPUT
+terraform apply -var-file=staging.tfvars  # Only after reviewing plan
+```
+
+Expected outputs: `staging_url` (Cloud Run URL), `bigquery_dataset_id`
+
+### 3. Migrate GEAP secret
+
+```bash
+bash scripts/migration/07_migrate_geap_secret.sh --wet
+```
+
+### 4. Apply branch protection
+
+```bash
+bash scripts/governance/protect_phase_1.sh --apply
+```
+
+### 5. Deploy to Cloud Run (live)
+
+```bash
+agents-cli deploy \
+  --project=atelier-build-2026 \
+  --target=cloud_run \
+  --service=atelier-staging
+```
+
+After this: verify health endpoint responds.
+
+### 6. Submit to UIBench (2h session)
+
+Go to UIBench submission portal → submit Atelier → record DPO labels.
+
+### 7. Phase 1 Gate G1 — verify Cloud Run /health
+
+```bash
+STAGING_URL=$(gcloud run services describe atelier-staging \
+  --project=atelier-build-2026 \
+  --region=europe-west4 \
+  --format='value(status.url)')
+curl -sf "$STAGING_URL/health"  # Should return 200
+```
+
+## Tag the gate (after all 7 steps pass)
+
+```bash
+git tag -a v0.1.0-phase-1-gate -m "Phase 1 Gate: all 7 criteria green"
+git push origin v0.1.0-phase-1-gate
+```
