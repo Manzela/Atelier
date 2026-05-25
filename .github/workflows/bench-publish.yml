@@ -1,0 +1,29 @@
+name: bench-publish
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  push:
+    branches: ['phase/2']
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+      - run: pip install -e "atelier-core[dev]"
+      - run: python atelier-core/scripts/generate_bench_data.py --out docs/dashboards/bench/data.json
+      - run: |
+          npm install -g firebase-tools
+          firebase deploy --only hosting --project atelier-build-2026
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+# TODO: set GCP_WORKLOAD_IDENTITY_PROVIDER, GCP_SERVICE_ACCOUNT, FIREBASE_TOKEN in GitHub repo secrets
