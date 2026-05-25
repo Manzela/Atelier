@@ -40,6 +40,49 @@ Releases are managed via [release-please](https://github.com/googleapis/release-
 * Bulk pre-commit fixes + relax markdownlint + add Research Knowledge Base ([19dcbcf](https://github.com/Manzela/atelier/commit/19dcbcf73bb02808d254198d06a9cc3183b82e62))
 * Minimize workflow credit usage across GitHub Pro quota ([d692bdd](https://github.com/Manzela/atelier/commit/d692bdddeb1344c41c15849b86c1fe3f200ae18a))
 
+## [0.2.0-beta](https://github.com/Manzela/Atelier/compare/v0.1.2-alpha...v0.2.0-beta) (2026-05-25)
+
+Phase 2: 10× Mechanisms — consensus pipeline, trajectory recording, DPO flywheel, production infrastructure.
+
+### Added
+
+- **Full DAG pipeline**: N3c deterministic gates + N3d multi-judge consensus + N4 best-pick selection
+- **POST `/v1/generate` endpoint** with trajectory recorder wiring and structured error responses
+- **Bench data publisher** (`generate_bench_data.py`): BQ → `bench-schema.json` pipeline with fail-soft DEMO fallback
+- **CI workflow** (`bench-publish.yml`): daily cron + push-on-`phase/2`, Workload Identity Federation, Firebase deploy
+- **Trajectory fixture corpus**: 30-record JSONL golden dataset with exact score distributions
+- **5 parametric unit tests** for DPO builder: completeness, tenant isolation, outcome distribution, judge votes, pair extraction
+- **A2A Agent Card** (`.well-known/agent.json`): Atelier registered as A2A-discoverable agent
+- **agents-cli scaffold** (`examples/agents-cli-scaffold/`): round-trip demo with `agent.yaml`, `agent.py`, README
+- **Optimize pillar README** (`docs/architecture/optimize-pillar.md`): "Observe → Simulate → Verify" DPO flywheel documentation
+- **Govern pillar README** (`docs/architecture/govern-pillar.md`): Registry/Identity/Gateway/Policy/Security/Audit mapping
+- **`latency_ms` computed property** on `TrajectoryRecord`: derived from `started_at`/`ended_at`, emitted in `to_bq_row()`, resolves P1-7 latency gap
+
+### Changed
+
+- **CORS**: multi-origin support via comma-separated `ATELIER_DASHBOARD_ORIGIN` env var (was single-origin)
+- **Terraform**: added `ATELIER_DASHBOARD_ORIGIN` env block to Cloud Run container definition
+- **`firebase.json`**: replaced `__ATELIER_API_SERVICE_ID__` placeholder → `atelier-api-staging`; added `!.well-known` ignore override
+
+### Fixed
+
+- **AG-04 safety sweep**: all `LlmAgent` declarations use `generate_content_config.safety_settings` (not deprecated `safety_settings` param)
+- **AG-06 Stitch degradation**: `stitch_degraded` flag only reflects Stitch MCP unavailability (not governor budget exhaustion)
+- **AG-07 BigQuerySessionBackend**: implements `SessionBackend` protocol with correct `create_session`/`get_session` signatures
+- **AG-10 PII scrubber**: `PiiScrubSpanProcessor` redacts email/phone/JWT from OTel spans before export
+- **AG-01/02/03 Terraform**: project ID deduplication, IAP-protected ingress, DNS wildcard certificate
+- **Bench data**: SQL injection defense via GCP project ID regex validation
+- **Test fixture**: `test_replay_api.py` app_client fixture `yield` instead of `return` (BYPASS_AUTH context exit)
+
+### Security
+
+- Removed `allUsers` IAM binding from Cloud Run — all traffic through IAP
+- KMS per-tenant encryption with 90-day key rotation
+- `detect-secrets` pre-commit hook enabled
+- CSP headers on all Firebase Hosting responses
+
+---
+
 ## [Unreleased]
 
 ### Added
