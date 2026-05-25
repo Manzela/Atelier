@@ -39,7 +39,7 @@ def backend(project_id: str) -> VertexSemanticMemoryBackend:
     return VertexSemanticMemoryBackend(project_id=project_id, location="us-central1")
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_write_under_scope_a_is_invisible_under_scope_b(
     backend: VertexSemanticMemoryBackend,
     project_id: str,

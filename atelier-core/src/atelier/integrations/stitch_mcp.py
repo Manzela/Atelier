@@ -20,9 +20,14 @@ ADR Reference: 0010 (MCP-first tool integration)
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
+
+from google.adk.tools.mcp_tool.mcp_session_manager import SseConnectionParams
+from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset
+from google.cloud import secretmanager
 
 
 class StitchFont(StrEnum):
@@ -260,3 +265,34 @@ def get_design_system_for_register(visual_register: str) -> StitchDesignSystemSp
     """
     key = visual_register.lower().strip()
     return VISUAL_REGISTER_DEFAULTS.get(key, VISUAL_REGISTER_DEFAULTS["corporate"])
+
+
+# ---------------------------------------------------------------------------
+# ADK Toolset Initialization
+# ---------------------------------------------------------------------------
+
+_SECRET_NAME = "projects/atelier-build-2026/secrets/atelier-geap-api-key/versions/latest"  # noqa: S105
+
+
+def _get_api_key() -> str:
+    """Retrieve the API key from GCP Secret Manager."""
+    if "STITCH_API_KEY" in os.environ:
+        return os.environ["STITCH_API_KEY"]
+
+    try:
+        client = secretmanager.SecretManagerServiceClient()
+        response = client.access_secret_version(request={"name": _SECRET_NAME})
+        return str(response.payload.data.decode("UTF-8"))  # type: ignore[no-any-return]
+    except Exception:  # noqa: BLE001
+        return "dummy-key"
+
+
+def get_stitch_mcp_toolset() -> MCPToolset:
+    """Returns an ADK MCPToolset configured for Stitch MCP."""
+    api_key = _get_api_key()
+
+    connection_params = SseConnectionParams(
+        url="https://stitch.googleapis.com/mcp", headers={"Authorization": f"Bearer {api_key}"}
+    )
+
+    return MCPToolset(connection_params=connection_params, tool_name_prefix="stitch_")

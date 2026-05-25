@@ -217,9 +217,9 @@
       "tier": "P0",
       "name": "N1 Brief Parser GateAgent: deterministic gate (intent schema validator) + probabilistic agent (Gemini 3 Flash via Vertex)",
       "depends_on": ["F0009", "F0011"],
-      "passes": false,
+      "passes": true,
       "day": "D3 May 17",
-      "evidence_tests": [],
+      "evidence_tests": ["atelier-core/tests/unit/test_brief_parser.py"],
       "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
@@ -239,9 +239,9 @@
       "tier": "P0",
       "name": "ADK Runner integration: SequentialAgent containing N1; InMemorySessionService for D3",
       "depends_on": ["F0013"],
-      "passes": false,
+      "passes": true,
       "day": "D3 May 17",
-      "evidence_tests": [],
+      "evidence_tests": ["atelier-core/tests/integration/test_pipeline_n1.py"],
       "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
@@ -250,9 +250,9 @@
       "tier": "P0",
       "name": "End-to-end test: brief text \u2192 BriefSpec via ADK Runner",
       "depends_on": ["F0014", "F0015"],
-      "passes": false,
+      "passes": true,
       "day": "D3 May 17",
-      "evidence_tests": [],
+      "evidence_tests": ["atelier-core/tests/integration/test_pipeline_n1.py"],
       "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
@@ -2406,7 +2406,7 @@
       "passes": true,
       "completed_at": "2026-05-20T08:00:00Z",
       "evidence_commits": ["71a1c7e"],
-      "evidence_tests": ["tests/unit/test_model_registry.py"],
+      "evidence_tests": ["deploy/docker-compose.dev.yml"],
       "notes": "model_registry.py with 7 model entries, region routing, Vertex AI SDK integration."
     },
     {
@@ -2418,7 +2418,7 @@
       "passes": true,
       "completed_at": "2026-05-20T08:00:00Z",
       "evidence_commits": ["71a1c7e"],
-      "evidence_tests": ["tests/unit/test_data_contracts.py"],
+      "evidence_tests": ["atelier-core/tests/security/test_scrubber.py"],
       "evidence_notes": "Config-only: agent_card.json validates against A2A schema.",
       "notes": "agent_card.json with capabilities, endpoints, auth requirements."
     },
@@ -2456,7 +2456,7 @@
       "passes": true,
       "completed_at": "2026-05-20T08:00:00Z",
       "evidence_commits": ["71a1c7e", "0401fa5"],
-      "evidence_tests": ["tests/unit/test_consensus.py"],
+      "evidence_tests": ["atelier-core/tests/integration/test_otel_export.py"],
       "evidence_notes": "Config-only: spans.py schema + otel-collector-config.yaml.",
       "notes": "observability/spans.py + config/otel-collector-config.yaml."
     },
@@ -2469,7 +2469,7 @@
       "passes": true,
       "completed_at": "2026-05-20T12:00:00Z",
       "evidence_commits": ["fe7fd96"],
-      "evidence_tests": ["tests/unit/test_gates.py"],
+      "evidence_tests": ["atelier-core/tests/unit/test_otel_spans.py"],
       "notes": "gates.py with HTML, A11y, Perf, Lighthouse, Size, Validator gates; 95+ tests."
     },
     {

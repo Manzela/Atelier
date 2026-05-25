@@ -31,7 +31,7 @@ def backend() -> VertexProceduralMemoryBackend:
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_replay_fidelity_and_scope_isolation(
     backend: VertexProceduralMemoryBackend,
 ) -> None:

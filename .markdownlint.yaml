@@ -56,3 +56,7 @@ MD025: false
 
 # Allow duplicate headings (common in long docs: "EOD checkpoint" repeated per day)
 MD024: false
+
+# Table column style — disabled: codebase uses aligned (padded) tables throughout;
+# compact style would require reformatting ~50+ existing tables.
+MD060: false

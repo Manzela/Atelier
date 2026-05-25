@@ -1,85 +1,35 @@
-# Atelier Development Docker Compose
-#
-# Security (ADR 0003, Audit §1):
-#   - shell-sandbox: cap_drop=ALL, read_only, no-new-privileges, network=none
-#   - browser-sandbox: Playwright for visual testing (separate network)
-#   - consensus volumes mounted read-only (FA-009)
-#   - OTel collector for local trace collection (FA-006)
-#
-# Usage:
-#   docker compose -f deploy/docker-compose.dev.yml up -d
-#   docker compose -f deploy/docker-compose.dev.yml down
-#
-# Verification (Audit §8):
-#   docker exec shell-sandbox whoami        # → appuser (NOT root)
-#   docker exec shell-sandbox ping 8.8.8.8  # → FAIL (no network)
-#   docker exec shell-sandbox touch /consensus/test.txt  # → FAIL (read-only)
-
-networks:
-  sandbox_isolated_net:
-    driver: bridge
-    internal: true # No internet access — isolated sandbox
+# deploy/docker-compose.dev.yml
+# Development sandbox — security-hardened containers for code execution
+version: '3.9'
 
 services:
-  # --- Shell Sandbox (cap_drop=ALL, no network, read-only) ---
   shell-sandbox:
     image: python:3.12-slim
-    container_name: shell-sandbox
-    networks: [] # No network at all — complete isolation
     cap_drop:
       - ALL
-    security_opt:
-      - no-new-privileges:true
     read_only: true
-    tmpfs:
-      - /tmp:size=100M
-    volumes:
-      - ../workspace:/workspace # Writable workspace
-      - ../consensus:/consensus:ro # Read-only constitution files (FA-009)
-    working_dir: /workspace
-    user: '1000:1000'
-    command: ['sleep', 'infinity']
-
-  # --- Browser Sandbox (Playwright for visual testing) ---
-  browser-sandbox:
-    image: mcr.microsoft.com/playwright:v1.52.0-noble
-    container_name: browser-sandbox
-    networks:
-      - sandbox_isolated_net # Internal-only network
-    cap_drop:
-      - ALL
-    cap_add:
-      - SYS_ADMIN # Required for Chromium sandbox
     security_opt:
       - no-new-privileges:true
-    shm_size: '2gb'
+    network_mode: none # no outbound network
     tmpfs:
-      - /tmp:size=500M
+      - /tmp:noexec,nosuid,size=64m
     volumes:
-      - ../workspace:/workspace:ro # Read-only access to generated files
-    user: '1000:1000'
-    command: ['sleep', 'infinity']
+      - ./workspace:/workspace:ro # read-only mount
+    working_dir: /workspace
+    command: ['python', '-c', "print('sandbox ready')"]
+    restart: 'no'
 
-  # --- OTel Collector (FA-006) ---
-  otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.113.0
-    container_name: atelier-otel-collector
-    networks:
-      - sandbox_isolated_net
-    ports:
-      - '4317:4317' # gRPC OTLP receiver
-      - '4318:4318' # HTTP OTLP receiver
+  browser-sandbox:
+    image: mcr.microsoft.com/playwright/python:v1.42.0-jammy
+    cap_drop:
+      - ALL
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    network_mode: host # browser needs network for target URL rendering
+    tmpfs:
+      - /tmp:noexec,nosuid,size=256m
     volumes:
-      - ../config/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
-    command: ['--config=/etc/otelcol-contrib/config.yaml']
-
-  # --- Phoenix (dev-only observability — ADR 0006, NOT for production) ---
-  phoenix:
-    image: arizephoenix/phoenix:latest
-    container_name: atelier-phoenix-dev
-    networks:
-      - sandbox_isolated_net
-    ports:
-      - '6006:6006' # Phoenix UI
-    profiles:
-      - dev # Only runs with: docker compose --profile dev up
+      - ./workspace:/workspace:ro
+    working_dir: /workspace
+    restart: 'no'
