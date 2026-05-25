@@ -24,14 +24,39 @@
 
   Expected if rebase is needed: `MISSING — must rebase` for both.
 
-- [ ] **Pull latest main then merge into phase/2**
+- [ ] **Pull latest main then merge into phase/2 — per-file resolution required**
 
   ```bash
   git fetch origin
-  git merge origin/main --no-edit
+  git merge --no-commit --no-ff origin/main
+  # dry-run first to see which files conflict
+  git diff --name-only --diff-filter=U
   ```
 
-  Expected: no conflicts (Antigravity-owned paths vs. Claude-owned paths are disjoint). If conflicts appear on `atelier-core/src/atelier/models/` or `features.json`, accept the `origin/main` version (`git checkout --theirs <file>`), then re-apply any phase/2-specific changes.
+  Real merge from this branch-point produces **7 known conflicts**. Resolve each file
+  with the strategy below — do NOT use `git checkout --theirs` as a blanket fallback
+  (it would discard phase/2 feature-tracking work).
+
+  | File                                          | Resolution strategy                                                                                                                                                             |
+  | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | `DECISIONS.md`                                | Union merge — append new ADR rows from both sides. Do not drop either side's entries.                                                                                           |
+  | `features.json`                               | Union of `features[]` arrays — append new entries from both sides; validate `_meta` invariants after (total count, no duplicate IDs).                                           |
+  | `atelier-core/src/atelier/nodes/consensus.py` | 3-way merge — keep the T1–T5 LLM-integration delta from `origin/main`; preserve any phase/2 local changes. `git mergetool` or manual resolution.                                |
+  | `atelier-core/src/atelier/nodes/llm_judge.py` | Same 3-way merge strategy as consensus.py.                                                                                                                                      |
+  | `.github/workflows/codeql.yml`                | Accept `origin/main` version (`git checkout --theirs .github/workflows/codeql.yml`).                                                                                            |
+  | `pyproject.toml`                              | Accept `origin/main` version (`git checkout --theirs pyproject.toml`), then re-apply any phase/2 `[tool.mypy.overrides]` blocks by hand.                                        |
+  | `requirements.lock`                           | Accept `origin/main` version (`git checkout --theirs requirements.lock`), then re-run `uv pip compile atelier-core/pyproject.toml -o requirements.lock` if the dep set changed. |
+
+  After resolving all conflicts:
+
+  ```bash
+  git add .
+  git commit -m "chore(phase2): merge origin/main — apply T1-T5 SOTA Protocol surfaces
+
+  Per-file resolution: union DECISIONS.md and features.json; 3-way merge
+  consensus.py and llm_judge.py; accept origin/main for codeql.yml,
+  pyproject.toml, requirements.lock."
+  ```
 
 - [ ] **Verify T1–T5 files now present**
 
@@ -73,8 +98,65 @@ atelier-core/src/atelier/orchestrator/
 atelier-core/src/atelier/recorders/
 atelier-core/src/atelier/observability/
 atelier-core/src/atelier/integrations/
+atelier-core/src/atelier/nodes/  (except _types.py — that one IS Claude-owned)
 infra/ deploy/ config/ scripts/
 ```
+
+## Coordination contracts (read before writing any file)
+
+### features.json ownership (F5)
+
+Claude does **NOT** touch `features.json` during T6–T14. Antigravity owns all feature-flip
+commits this run (R9 brief §12 lists `FA-001/002/006/007/011/012/015/016/017` and
+`F0013–F0030`). This prevents list-level ADD/ADD conflicts when both agents commit.
+
+If a T6–T14 deliverable maps to an existing F0XXX entry that Claude must flip: raise it
+explicitly with Daniel rather than self-modifying features.json. Record the dependency in
+`docs/sprint/CHECKPOINTS.md` instead.
+
+### CHECKPOINTS.md / STATUS.md section headers (F6)
+
+Both agents append to `docs/sprint/CHECKPOINTS.md`. To prevent line-level conflicts
+when Antigravity (first committer) and Claude (second committer) both append:
+
+```markdown
+## R9 — Antigravity Pipeline Features
+
+<!-- Antigravity appends batch-end summaries here (R9-A, R9-B, R9-C) -->
+
+## T6-T14 — Claude SOTA Protocol
+
+<!-- Claude appends task completions here -->
+```
+
+When updating CHECKPOINTS.md, append under `## T6-T14 — Claude SOTA Protocol` only.
+Do not write above that section header.
+
+### GCS namespace (F7)
+
+All Claude-owned DPO artifacts use a namespaced prefix:
+
+```
+gs://atelier-build-2026-dpo-pairs/claude-T7/{date}/
+```
+
+Antigravity FA-012 DPO builder uses:
+
+```
+gs://atelier-build-2026-dpo-pairs/antigravity/{date}/
+```
+
+Do not cross-write into the other namespace.
+
+### dpo_pairs BQ table dependency (F4)
+
+`BQ_DPO_PAIRS_TABLE = "atelier-build-2026.atelier_trajectories.dpo_pairs"` (T7)
+requires this table to exist and be populated. **This table is NOT yet created.**
+Resolution: Antigravity R9-B `dpo_builder.py` (FA-012) must also land rows into this
+table after the JSONL export step (or a companion `dpo_loader.py` does the BQ load).
+Claude **gates T7 execution** on confirmation that FA-012 has landed at least one row
+in `atelier_trajectories.dpo_pairs`. Do not run T7 integration paths until that
+confirmation is received from Antigravity or Daniel.
 
 ---
 
@@ -85,7 +167,7 @@ infra/ deploy/ config/ scripts/
 - Create: `atelier-core/src/atelier/optimize/dpo_tuning_job.py`
 - Create: `atelier-core/tests/unit/test_dpo_tuning_job.py`
 
-**Context:** ADR 0028 mandates replacing deprecated `vertexai.tuning.sft` with `google.genai TuningMethod.PREFERENCE_TUNING`. The verified API (google-genai 1.75.0) uses `client.tunings.tune()` with `CreateTuningJobConfig(method=TuningMethod.PREFERENCE_TUNING, preference_optimization_spec=PreferenceOptimizationSpec(...))`. β=0.1, epochCount=3, adapterSize=ADAPTER_SIZE_FOUR.
+**Context:** ADR 0028 mandates replacing deprecated `vertexai.tuning.sft` with `google.genai TuningMethod.PREFERENCE_TUNING`. The API surface is **partially verified** via context7 against google-genai 1.75.0: `PreferenceOptimizationSpec`, `PreferenceOptimizationHyperParameters`, `AdapterSize.ADAPTER_SIZE_FOUR`, and `client.tunings.tune()` are confirmed. **NOT yet confirmed** via context7: `CreateTuningJobConfig.method` field, `CreateTuningJobConfig.preference_optimization_spec` field, and `TuningMethod.PREFERENCE_TUNING` enum value. These three must be discovered via Step 1 introspection **before writing any implementation code**. If the actual field names differ, halt and report — do NOT guess or improvise. β=0.1, epochCount=3, adapterSize=ADAPTER_SIZE_FOUR.
 
 - [ ] **Step 1: Verify the API**
 
@@ -337,9 +419,13 @@ infra/ deploy/ config/ scripts/
                   "epoch_count": DPO_EPOCH_COUNT,
               },
           )
+          # NOTE (F3 fix): training URI is already set on po_spec.training_dataset_uri
+          # (confirmed canonical via Step 1 introspection). Do NOT also pass
+          # training_dataset=TuningDataset(gcs_uri=...) — that is a duplicate that
+          # will cause a double-URI error. If Step 1 shows a different shape, revise
+          # this call accordingly and do not merge until confirmed.
           job = self._client.tunings.tune(
               base_model=DPO_BASE_MODEL,
-              training_dataset=types.TuningDataset(gcs_uri=gcs_pairs_uri),
               config=config,
           )
           logger.info("DPO tuning job submitted", extra={"job_name": job.name})

@@ -120,6 +120,59 @@ atelier-core/src/atelier/nodes/_types.py
   `[project.dependencies]`, run `uv pip compile atelier-core/pyproject.toml -o requirements.lock`,
   commit lock file, then install. Never `pip install` directly.
 
+### CHECKPOINTS.md section ownership (F6 — verification finding)
+
+Both agents append to `docs/sprint/CHECKPOINTS.md`. Use dedicated section headers to prevent
+line-level conflicts. Antigravity writes under:
+
+```markdown
+## R9 — Antigravity Pipeline Features
+```
+
+Claude writes under:
+
+```markdown
+## T6-T14 — Claude SOTA Protocol
+```
+
+Commit order: Antigravity commits first (R9-A/B/C), then Claude commits second (T6-T14).
+Ensure both headers exist in the file before either agent writes beneath them.
+
+### GCS namespace contract (F7 — verification finding)
+
+| Owner                          | GCS prefix                                                                         |
+| ------------------------------ | ---------------------------------------------------------------------------------- |
+| Antigravity FA-012 DPO builder | `gs://atelier-build-2026-dpo-pairs/antigravity/{date}/`                            |
+| Claude T7 pair reader          | `gs://atelier-build-2026-dpo-pairs/antigravity/latest/` (reads Antigravity output) |
+
+Do not write into `gs://atelier-build-2026-dpo-pairs/claude-T7/` from Antigravity paths.
+
+### dpo_pairs BQ table (F4 — verification finding)
+
+Claude's T7 `BigQueryPairMiner` reads `atelier-build-2026.atelier_trajectories.dpo_pairs`.
+This table **does not yet exist**. Antigravity must create it and land rows as part of R9-B
+FA-012 `dpo_builder.py`. Add a BQ load step after the JSONL export:
+
+```python
+# After writing JSONL to GCS, load into BigQuery:
+# Table: atelier-build-2026.atelier_trajectories.dpo_pairs
+# Schema: surface_id STRING, node_name STRING, iteration INT64, prompt STRING,
+#         chosen_response STRING, rejected_response STRING, chosen_score FLOAT64,
+#         rejected_score FLOAT64, margin FLOAT64, tenant_id STRING, created_at TIMESTAMP
+job = bq_client.load_table_from_uri(
+    f"gs://atelier-build-2026-dpo-pairs/antigravity/{date}/*.jsonl",
+    "atelier-build-2026.atelier_trajectories.dpo_pairs",
+    job_config=bigquery.LoadJobConfig(
+        source_format=bigquery.SourceFormat.NEWLINE_DELIMITED_JSON,
+        write_disposition="WRITE_APPEND",
+        schema=[...],  # per schema above
+    ),
+)
+job.result()  # fail-loud; do not swallow
+```
+
+Claude gates T7 execution on confirmation that this table has at least one row.
+
 ---
 
 ## 5. Non-negotiable invariants (from CLAUDE.md)
@@ -1211,6 +1264,13 @@ R9 is DONE when ALL of the following are true. Do not emit a DONE signal until e
 
 - [ ] `docs/sprint/CHECKPOINTS.md` updated with D11–D14 entries
 - [ ] `docs/sprint/STATUS.md` updated: "Phase 1 Gate: G2-G7 passing, G1 pending Daniel action"
+
+**Coordination contracts verified:**
+
+- [ ] `atelier-build-2026.atelier_trajectories.dpo_pairs` BQ table exists and has ≥1 row
+      (prerequisite for Claude T7 — confirm before signalling R9 DONE)
+- [ ] GCS paths follow namespace contract: Antigravity output lands in
+      `gs://atelier-build-2026-dpo-pairs/antigravity/{date}/` (not root or claude-T7 namespace)
 
 **No regressions:**
 
