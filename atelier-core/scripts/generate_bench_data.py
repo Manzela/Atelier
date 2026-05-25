@@ -21,7 +21,7 @@ import re
 import sys
 import uuid
 from collections import defaultdict
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -71,7 +71,8 @@ def _build_demo_data() -> dict[str, Any]:
         "dpo_promotion_events": [
             {
                 "event_id": "evt-001",
-                "promoted_at": "2026-05-25T04:00:00.000Z",
+                # P1-6: dynamic offset so DEMO timestamps stay realistic across runs
+                "promoted_at": (datetime.now(UTC) - timedelta(hours=8)).isoformat(),
                 "job_name": "projects/atelier-build-2026/locations/us-central1/tuningJobs/1001",
                 "kappa": 0.821,
                 "promoted": True,
@@ -79,7 +80,7 @@ def _build_demo_data() -> dict[str, Any]:
             },
             {
                 "event_id": "evt-002",
-                "promoted_at": "2026-05-24T04:00:00.000Z",
+                "promoted_at": (datetime.now(UTC) - timedelta(hours=32)).isoformat(),
                 "job_name": "projects/atelier-build-2026/locations/us-central1/tuningJobs/998",
                 "kappa": 0.631,
                 "promoted": False,
@@ -159,8 +160,9 @@ def _compute_stats(scores: list[float]) -> dict[str, Any]:
 def _safe_isoformat(val: Any) -> str:
     """Convert a value to ISO format string, handling BQ Row types."""
     if hasattr(val, "isoformat"):
-        return val.isoformat()
-    return str(val) if val is not None else ""
+        result: str = val.isoformat()
+        return result
+    return "" if val is None else str(val)
 
 
 # ---------------------------------------------------------------------------
@@ -340,6 +342,12 @@ def _fetch_real_data(project: str) -> dict[str, Any] | None:
             "acceptance_rate": acceptance_rate,
             "avg_composite_score": avg_score,
             "total_cost_usd": total_cost,
+            # P1-7: latency columns not yet in trajectory_records schema (to_bq_row() has no
+            # latency_ms column). Set None here so the dashboard renders "—" consistently
+            # in both BQ and DEMO modes rather than showing values only in DEMO mode.
+            # TODO: add latency_ms to TrajectoryRecord + trajectory_records BQ schema.
+            "avg_latency_ms": None,
+            "p99_latency_ms": None,
         },
         "axes": axes_stats,
         "trajectories": trajectories,

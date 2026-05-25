@@ -426,7 +426,6 @@ async def _search_with_grounding(
         return []
     else:
         return results
-    return []  # unreachable — satisfies mypy no-return-in-except path
 
 
 # ---------------------------------------------------------------------------

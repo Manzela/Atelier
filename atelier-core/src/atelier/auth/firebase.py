@@ -161,26 +161,45 @@ def _decode_token(token: str, *, check_revoked: bool = False) -> dict[str, Any]:
     Raises:
         HTTPException 401: Token is invalid, expired, or revoked.
     """
+    # P1-5: catch typed firebase_admin subclasses so callers receive distinguishable
+    # error codes — required by <no_silent_error_suppression> invariant.
+    # Bare Exception fallback covers SDK initialisation errors (RuntimeError) and
+    # any other unexpected failures, all of which produce HTTP 401.
     try:
         _init_firebase()
         from firebase_admin import auth as fb_auth  # noqa: PLC0415,I001  # type: ignore[import-not-found]
 
         decoded: dict[str, Any] = fb_auth.verify_id_token(token, check_revoked=check_revoked)
     except Exception as exc:
+        # Map typed firebase_admin exceptions to distinct error codes.
+        exc_name = type(exc).__name__
+        if "Expired" in exc_name:
+            error_code = "token_expired"
+            user_detail = "Your session has expired. Sign in again to continue."
+        elif "Revoked" in exc_name:
+            error_code = "token_revoked"
+            user_detail = "Your credential has been revoked. Sign in again."
+        elif "Disabled" in exc_name:
+            error_code = "user_disabled"
+            user_detail = "This account has been disabled. Contact support."
+        else:
+            error_code = "invalid_token"
+            user_detail = (
+                "The provided credential is missing, invalid, or expired. "
+                "Sign in again to obtain a fresh ID token."
+            )
         logger.warning(
-            "Firebase token verification failed: %s — %s",
-            type(exc).__name__,
+            "Firebase token verification failed [%s]: %s — %s",
+            error_code,
+            exc_name,
             str(exc)[:120],
         )
         raise HTTPException(
             status_code=401,
             detail={
-                "error": "invalid_token",
+                "error": error_code,
                 "title": "Authentication required",
-                "detail": (
-                    "The provided credential is missing, invalid, or expired. "
-                    "Sign in again to obtain a fresh ID token."
-                ),
+                "detail": user_detail,
                 "user_action": "Sign in at /auth/signin to refresh your credentials.",
             },
         ) from exc

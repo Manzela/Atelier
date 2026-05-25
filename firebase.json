@@ -32,6 +32,15 @@
         "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
       }
     ],
-    "rewrites": []
+    "rewrites": [
+      {
+        "source": "/api/**",
+        "run": {
+          "serviceId": "__ATELIER_API_SERVICE_ID__",
+          "region": "us-central1",
+          "pinTag": true
+        }
+      }
+    ]
   }
 }

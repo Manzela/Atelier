@@ -1,7 +1,7 @@
 import json
 import pathlib
 from datetime import UTC, datetime
-from uuid import uuid4
+from uuid import UUID, uuid4  # P2-4: moved UUID import to top level
 
 import pytest
 from atelier.nodes.trajectory import TrajectoryRecord, TrajectoryStep, extract_dpo_pairs
@@ -256,8 +256,7 @@ def test_fixture_judge_votes():
 @pytest.mark.unit
 def test_fixture_extract_dpo_pairs():
     """extract_dpo_pairs() produces >= 3 pairs from accepted+rejected records with min_margin=0.05."""
-    from uuid import UUID
-
+    # P2-4: UUID now imported at top level — no need for in-function import
     records = load_fixture()
     trajectory_records = []
     for r in records:
@@ -279,4 +278,8 @@ def test_fixture_extract_dpo_pairs():
         trajectory_records.append(record)
 
     pairs = extract_dpo_pairs(trajectory_records, min_margin=0.05)
-    assert len(pairs) >= 3
+    # P1-1 fix: fixture now keeps all DPO surface pairs within tenant-alpha to prevent
+    # cross-tenant training data pollution. The distribution (18 accepted / 8 rejected)
+    # places only 2 rejected records in tenant-alpha (records 18, 19), yielding 2 pairs.
+    # >= 2 still verifies the core extract_dpo_pairs() functionality end-to-end.
+    assert len(pairs) >= 2

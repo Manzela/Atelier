@@ -249,6 +249,12 @@ ignore_missing_imports = true
 module = ["google.cloud", "google.cloud.*"]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+module = ["jsonschema", "jsonschema.*"]
+# jsonschema ships no PEP-561 py.typed marker. Used only in generate_bench_data.py
+# (scripts/, not shipped code). Suppress import-untyped to keep mypy clean.
+ignore_missing_imports = true
+
 [tool.pydantic-mypy]
 init_forbid_extra = true
 init_typed = true

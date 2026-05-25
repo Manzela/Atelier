@@ -34,6 +34,8 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/v1/generate", tags=["pipeline"])
 
 _PROJECT: str = os.environ.get("GOOGLE_CLOUD_PROJECT", "atelier-build-2026")
+# K=3 ensemble size — must stay in sync with generator_ensemble.ENSEMBLE_SIZE
+_ENSEMBLE_SIZE: int = 3
 
 
 # ---------------------------------------------------------------------------
@@ -157,36 +159,51 @@ async def _record_trajectory(
 ) -> None:
     """Persist trajectory to BigQuery (fail-soft — never raises)."""
     try:
-        from uuid import UUID  # noqa: PLC0415
-
         from atelier.nodes.trajectory import TrajectoryRecord  # noqa: PLC0415
         from atelier.recorders.trajectory_recorder import TrajectoryRecorder  # noqa: PLC0415
 
         now = datetime.now(tz=UTC)
         session_id = result.get("session_id", run_id)
-        composite = result.get("composite_score", 0.0)
         candidates = result.get("candidates", [])
+        evaluations = result.get("evaluations", [])
+        gate_results = result.get("gate_results", [])
+        best_candidate = result.get("best_candidate", "")
 
-        # Build a TrajectoryRecord for each N3a candidate
+        # Build a TrajectoryRecord for each N3a candidate.
+        # P0-4: use actual per-candidate composite_score from evaluations (not 0.0 for losers).
+        # Zero scores corrupt the DPO pair miner margin calculation and produce noise pairs.
+        # P0-3 / P1-3: use _ENSEMBLE_SIZE constant instead of hardcoded 3.
         records = []
-        for i, candidate in enumerate(candidates[:3]):  # cap at K=3
+        eval_cursor = 0
+        for i, candidate in enumerate(candidates[:_ENSEMBLE_SIZE]):
             content = candidate if isinstance(candidate, str) else str(candidate)
-            is_best = content == result.get("best_candidate", "")
+            is_best = content == best_candidate
             outcome = "accepted" if is_best and result.get("converged") else "rejected"
 
+            # Extract actual composite score for this candidate from the evaluations list.
+            # Evaluations only exist for candidates that passed N3c gates.
+            gate_passed = (
+                gate_results[i].get("all_passed", False) if i < len(gate_results) else False
+            )
+            if gate_passed and eval_cursor < len(evaluations):
+                candidate_score = float(evaluations[eval_cursor].get("composite_score", 0.0))
+                eval_cursor += 1
+            else:
+                candidate_score = 0.0  # did not pass gates — no consensus score available
+
             record = TrajectoryRecord(
-                trajectory_id=UUID(int=int(uuid4()) & ((1 << 128) - 1)),
+                trajectory_id=uuid4(),
                 tenant_id=user.tenant_id,
                 project_id=_PROJECT,
-                surface_id=UUID(int=int(uuid4()) & ((1 << 128) - 1)),
+                surface_id=uuid4(),
                 session_id=session_id,
                 campaign_id="",
-                candidate_id=UUID(int=int(uuid4()) & ((1 << 128) - 1)),
+                candidate_id=uuid4(),
                 iteration=i,
                 started_at=now,
                 ended_at=now,
                 outcome=outcome,
-                composite_score=float(composite) if is_best else 0.0,
+                composite_score=candidate_score,
                 total_cost_usd=result.get("budget_used_usd", 0.0) / max(len(candidates), 1),
             )
             records.append(record)
