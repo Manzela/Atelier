@@ -69,3 +69,32 @@
 (Future checkpoints append above the Checkpoint 0 entry.)
 
 RESUME-HERE: Close C1-C15 executor-brief items, then proceed to F0023 (N3d ConsensusAgent skeleton). Next unblocked feature after remediation: F0023.
+
+---
+
+## R9 — Antigravity Pipeline Features
+
+<!-- Antigravity appends batch-end summaries here (R9-A, R9-B, R9-C) -->
+
+---
+
+## T6-T14 — Claude SOTA Protocol
+
+### D11 (2026-05-25) — T6-T14 SOTA Protocol surfaces complete
+
+**Commits**: f1a2628 (T6), 128a9e6 (T7), c4b9577 (T8), 8d10cd8 (T13), 2bcd93a (T14)
+**Branch**: `phase/2`, pushed to `origin/phase/2`
+
+**What shipped**:
+
+- **T6** `atelier/optimize/dpo_tuning_job.py` — DpoTuningJob using `google.genai` PREFERENCE_TUNING. API shape verified via Step-1 introspection: beta/epoch_count/adapter_size flat on CreateTuningJobConfig (no preference_optimization_spec field). 14 tests.
+- **T7** `atelier/optimize/generator_tuner.py` — GeneratorTunerProtocol + BigQueryPairMiner.mine_pairs(). Reads `atelier_trajectories.dpo_pairs`, tenant_id parameterized query. 14 tests.
+- **T8** `atelier/memory/bigquery_backend.py` — BigQueryEpisodicBackend.write_episodic(). ContextVar fail-loud, tenant_id isolation, embedding excluded from BQ rows. 11 tests.
+- **T13** `atelier/router/v1_bandit.py` — EpsilonGreedyBandit v1 PhaseAwareMoERouter. EPSILON_START=0.10, EPSILON_FLOOR=0.02, EPSILON_DECAY=7 days, UCB1_EXPLORATION_CONSTANT=sqrt(2.0). Sub-50ms p99 (in-process arm state). 21 tests.
+- **T14** GeneratorTuner.tune() + evaluate_and_promote() in generator_tuner.py. KAPPA_PROMOTION_THRESHOLD=0.70 gate. Full DPO loop: mine → GCS upload → tune job → promote. 7 tests.
+- Bonus: fixed test_router_v0.py asyncio→anyio markers (Antigravity defect in Claude-owned test file).
+
+**Test count**: 495 passing (0 failures, 1 warning)
+**mypy --strict**: 0 issues on all 5 new files
+
+**T7 gate**: still blocked on Antigravity FA-012 dpo_builder.py creating `atelier_trajectories.dpo_pairs` BQ table. Unit tests mock the BQ client. Integration path not runnable until R9-B lands.
