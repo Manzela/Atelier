@@ -237,3 +237,4 @@ uv.lock
 # These artefacts are intentionally untracked so reviewers see only the
 # shipped product, never the planning scaffolding that produced it.
 .local/
+.firecrawl/
