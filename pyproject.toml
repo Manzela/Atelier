@@ -148,6 +148,13 @@ disallow_untyped_decorators = false
 module = "atelier.observability.*"
 disallow_any_unimported = false
 
+[[tool.mypy.overrides]]
+module = "atelier.models.safety"
+# google.genai (types.SafetySetting, HarmCategory, HarmBlockThreshold) lacks
+# complete inline stubs — enum types resolve to Any in strict mode.
+# The runtime behaviour is correct; this override suppresses the false positive.
+disallow_any_unimported = false
+
 # numpy is TYPE_CHECKING-gated in Protocol modules by design (ruff TC002).
 # When mypy resolves TYPE_CHECKING=True paths, NDArray types come from an
 # "unfollowed" perspective in strict mode. These overrides suppress the
