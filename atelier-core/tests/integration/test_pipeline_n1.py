@@ -38,6 +38,23 @@ async def test_brief_text_to_brief_spec_via_runner() -> None:
         # Valid brief text (10+ tokens)
         brief_text = "This is a brief text that needs to have more than ten words to pass the deterministic gate check."
 
-        result = await runner.run(brief_text)
-        assert isinstance(result, BriefSpec)
-        assert result.intent == "build a landing page"
+        with (
+            patch("atelier.orchestrator.runner.source_resolver_gate", return_value=True),
+            patch("atelier.orchestrator.runner.source_resolver_agent", new_callable=AsyncMock) as mock_resolver,
+            patch("google.adk.runners.InMemoryRunner") as mock_runner,
+        ):
+            mock_resolver.return_value = "fake_project_ctx"
+
+            # Mock runner instance and run_async
+            mock_runner_instance = mock_runner.return_value
+
+            async def mock_events(*args, **kwargs):
+                yield {"type": "message", "data": "candidate1"}
+
+            mock_runner_instance.run_async.side_effect = mock_events
+
+            result = await runner.run(brief_text)
+
+            assert isinstance(result, dict)
+            assert "brief" in result
+            assert result["brief"].intent == "build a landing page"
