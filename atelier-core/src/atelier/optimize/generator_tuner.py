@@ -29,7 +29,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Final, Protocol, runtime_checkable
 
-from google.cloud import bigquery, storage
+from google.cloud import bigquery, storage  # type: ignore[attr-defined]
 
 from atelier.optimize.dpo_tuning_job import DpoTuningJob, TuningJobState
 
