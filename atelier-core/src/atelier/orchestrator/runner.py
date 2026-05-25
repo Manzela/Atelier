@@ -376,6 +376,60 @@ class AtelierRunner:
         convergence_result = self._run_n3c_n3d_n4(raw_candidates, brief_text)
         best_candidate = convergence_result["best_candidate"]
 
+        # Serialize gate results and evaluations once — shared between dashboard
+        # payload and mid-flight DPO pair extraction (fail-soft below).
+        gate_results_serialized = [
+            {
+                "candidate_id": str(gr.candidate_id),
+                "all_passed": gr.all_passed,
+                "outcomes": [
+                    {
+                        "axis": o.axis.value,
+                        "score": o.score,
+                        "passed": o.decision == GateDecision.PASS,
+                    }
+                    for o in gr.outcomes
+                ],
+            }
+            for gr in convergence_result["all_gate_results"]
+        ]
+        evaluations_serialized = [
+            {
+                "composite_score": e.composite_score,
+                "passed": e.passed,
+                "votes": {axis.value: {"score": v.score} for axis, v in e.votes.items()},
+            }
+            for e in convergence_result["all_evaluations"]
+        ]
+
+        # Mid-flight DPO pair extraction — Dreaming Module (fail-soft).
+        # Pairs are written fire-and-forget; write failures must not block response.
+        try:
+            from atelier.optimize.dreaming_module import (  # noqa: PLC0415
+                extract_pairs_midflight,
+                write_pairs_to_bq,
+            )
+
+            dpo_pairs = extract_pairs_midflight(
+                session_id=session.id,
+                tenant_id=tenant_ctx.tenant_id,
+                surface_id=str(uuid.uuid4()),
+                brief_text=brief_text,
+                candidates=[str(c) for c in raw_candidates],
+                evaluations=evaluations_serialized,
+                gate_results=gate_results_serialized,
+                best_candidate=str(best_candidate) if best_candidate is not None else None,
+                converged=convergence_result["converged"],
+            )
+            write_pairs_to_bq(dpo_pairs)
+        except Exception as _dreaming_exc:  # noqa: BLE001
+            # Fail-soft — pair extraction is non-critical, must never break generate
+            logger.warning(
+                "Mid-flight DPO pair extraction failed (fail-soft): %s: %s",
+                type(_dreaming_exc).__name__,
+                str(_dreaming_exc)[:200],
+            )
+
         return {
             "brief": brief,
             "project_context": project_ctx,
@@ -389,29 +443,8 @@ class AtelierRunner:
             "candidates_evaluated": convergence_result["candidates_evaluated"],
             "candidates_passed_gates": convergence_result["candidates_passed_gates"],
             # Gate + evaluation details for the bench dashboard
-            "gate_results": [
-                {
-                    "candidate_id": str(gr.candidate_id),
-                    "all_passed": gr.all_passed,
-                    "outcomes": [
-                        {
-                            "axis": o.axis.value,
-                            "score": o.score,
-                            "passed": o.decision == GateDecision.PASS,
-                        }
-                        for o in gr.outcomes
-                    ],
-                }
-                for gr in convergence_result["all_gate_results"]
-            ],
-            "evaluations": [
-                {
-                    "composite_score": e.composite_score,
-                    "passed": e.passed,
-                    "votes": {axis.value: {"score": v.score} for axis, v in e.votes.items()},
-                }
-                for e in convergence_result["all_evaluations"]
-            ],
+            "gate_results": gate_results_serialized,
+            "evaluations": evaluations_serialized,
             # Degradation signals
             "stitch_degraded": stitch_degraded,
             "degradation_reason": degradation_reason,
