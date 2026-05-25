@@ -1,0 +1,40 @@
+# Atelier Agent Manifest — agents-cli compatible
+#
+# This file configures the Atelier agent for use with Google's agents-cli.
+# See: https://cloud.google.com/products/agent-development-kit
+
+name: atelier
+display_name: Atelier — Autonomous Design Agent
+description: >
+  Generates, evaluates, and optimizes web UI assets through multi-judge
+  Bayesian consensus with human-in-the-loop governance.
+
+# Agent entry point
+agent:
+  module: agent
+  class: AtelierRootAgent
+
+# Runtime configuration
+runtime:
+  python_version: '3.11'
+  dependencies:
+    - 'google-adk>=2.0.0'
+    - 'google-genai>=1.20.0'
+
+# Google Cloud deployment target
+deployment:
+  project: atelier-build-2026
+  region: us-central1
+  target: cloud_run
+  service: atelier-api-staging
+  min_instances: 0
+  max_instances: 5
+  memory: 2Gi
+  cpu: 2
+
+# Environment variables injected at deploy time
+env:
+  ENVIRONMENT: staging
+  BQ_DATASET: atelier_trajectories
+  OTEL_SERVICE_NAME: atelier-api
+  ATELIER_DASHBOARD_ORIGIN: 'https://atelier.autonomous-agent.dev'

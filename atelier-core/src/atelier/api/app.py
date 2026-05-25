@@ -100,11 +100,14 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # --- CORS (restrictive) ---
-    dashboard_origin = os.getenv("ATELIER_DASHBOARD_ORIGIN", "http://localhost:5173")
+    # --- CORS (restrictive, multi-origin) ---
+    # Supports comma-separated origins for staging + production domains.
+    # Default: localhost for development.
+    raw_origins = os.getenv("ATELIER_DASHBOARD_ORIGIN", "http://localhost:5173")
+    allowed_origins = [o.strip() for o in raw_origins.split(",") if o.strip()]
     application.add_middleware(
         CORSMiddleware,
-        allow_origins=[dashboard_origin],
+        allow_origins=allowed_origins,
         allow_credentials=True,
         allow_methods=["GET", "POST"],
         allow_headers=["Content-Type", "Authorization", "X-Request-ID"],

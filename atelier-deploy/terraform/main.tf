@@ -186,6 +186,11 @@ resource "google_cloud_run_v2_service" "api" {
         value = "atelier-api"
       }
 
+      env {
+        name  = "ATELIER_DASHBOARD_ORIGIN"
+        value = "https://atelier.autonomous-agent.dev,https://atelier-build-2026.web.app"
+      }
+
       startup_probe {
         http_get {
           path = "/health"

@@ -110,6 +110,11 @@ class TrajectoryRecord:
     total_output_tokens: int = 0
     error_message: str | None = None
 
+    @property
+    def latency_ms(self) -> float:
+        """Wall-clock latency in milliseconds (derived from started_at / ended_at)."""
+        return (self.ended_at - self.started_at).total_seconds() * 1000
+
     def to_bq_row(self) -> dict[str, Any]:
         """Serialize to a BigQuery-compatible row dictionary.
 
@@ -149,6 +154,7 @@ class TrajectoryRecord:
             "total_cost_usd": self.total_cost_usd,
             "total_input_tokens": self.total_input_tokens,
             "total_output_tokens": self.total_output_tokens,
+            "latency_ms": self.latency_ms,
             "error_message": self.error_message,
         }
 

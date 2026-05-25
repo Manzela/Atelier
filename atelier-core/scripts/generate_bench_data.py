@@ -210,6 +210,7 @@ def _map_trajectories(rows: list[dict[str, Any]], *, limit: int = 50) -> list[di
             "composite_score": float(r["composite_score"]),
             "outcome": str(r["outcome"]),
             "cost_usd": float(r["total_cost_usd"]),
+            "latency_ms": float(r.get("latency_ms", 0)),
         }
         for r in rows[:limit]
     ]
@@ -283,8 +284,9 @@ def _fetch_real_data(project: str) -> dict[str, Any] | None:
 
     # Project ID already validated above via _PROJECT_ID_RE.
     query = (
-        f"SELECT trajectory_id, candidate_id, ts, outcome, composite_score, "  # noqa: S608
-        f"total_cost_usd, judge_votes_json "
+        f"SELECT trajectory_id, candidate_id, ts, ended_at, outcome, composite_score, "  # noqa: S608
+        f"total_cost_usd, judge_votes_json, "
+        f"TIMESTAMP_DIFF(ended_at, ts, MILLISECOND) AS latency_ms "
         f"FROM `{project}.atelier_trajectories.trajectory_records` "
         f"ORDER BY ts DESC LIMIT 1000"
     )
@@ -308,6 +310,13 @@ def _fetch_real_data(project: str) -> dict[str, Any] | None:
     acceptance_rate = len(accepted) / total_trajectories
     avg_score = sum(r["composite_score"] for r in rows) / total_trajectories
     total_cost = sum(r["total_cost_usd"] for r in rows)
+
+    # Latency stats from TIMESTAMP_DIFF computed column
+    latencies = sorted(float(r.get("latency_ms", 0)) for r in rows if r.get("latency_ms"))
+    avg_latency = sum(latencies) / len(latencies) if latencies else None
+    p99_latency = (
+        latencies[min(len(latencies) - 1, int(0.99 * len(latencies)))] if latencies else None
+    )
 
     axes_stats, per_judge_cal = _parse_axes_and_calibration(rows)
     trajectories = _map_trajectories(rows)
@@ -342,12 +351,8 @@ def _fetch_real_data(project: str) -> dict[str, Any] | None:
             "acceptance_rate": acceptance_rate,
             "avg_composite_score": avg_score,
             "total_cost_usd": total_cost,
-            # P1-7: latency columns not yet in trajectory_records schema (to_bq_row() has no
-            # latency_ms column). Set None here so the dashboard renders "—" consistently
-            # in both BQ and DEMO modes rather than showing values only in DEMO mode.
-            # TODO: add latency_ms to TrajectoryRecord + trajectory_records BQ schema.
-            "avg_latency_ms": None,
-            "p99_latency_ms": None,
+            "avg_latency_ms": avg_latency,
+            "p99_latency_ms": p99_latency,
         },
         "axes": axes_stats,
         "trajectories": trajectories,

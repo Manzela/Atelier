@@ -3,7 +3,7 @@
     "public": "docs/dashboards",
     "cleanUrls": true,
     "trailingSlash": false,
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "ignore": ["firebase.json", "**/.*", "!.well-known", "**/node_modules/**"],
     "headers": [
       {
         "source": "**",
@@ -36,7 +36,7 @@
       {
         "source": "/api/**",
         "run": {
-          "serviceId": "__ATELIER_API_SERVICE_ID__",
+          "serviceId": "atelier-api-staging",
           "region": "us-central1",
           "pinTag": true
         }
