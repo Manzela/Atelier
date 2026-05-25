@@ -225,3 +225,15 @@ licenses-summary.json
 
 # uv workspace lock — repo uses requirements.lock (uv pip compile)
 uv.lock
+
+# ─── Local-only working state ───────────────────────────────────────────────
+#
+# `.local/` is reserved for developer-local working state that is not part of
+# the shipped codebase. Subtree of interest:
+#   - .local/sprint/        sprint discipline files (STATUS, BLOCKERS,
+#                           CHECKPOINTS, COST_LEDGER, ROADMAP, features.json,
+#                           claude-progress.txt, and any docs/sprint/* notes)
+#
+# These artefacts are intentionally untracked so reviewers see only the
+# shipped product, never the planning scaffolding that produced it.
+.local/
