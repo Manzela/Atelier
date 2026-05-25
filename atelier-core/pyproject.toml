@@ -53,6 +53,14 @@ dependencies = [
     "google-cloud-aiplatform>=1.71,<2",
     # "google-cloud-firestore>=2.18,<3",
     "google-cloud-bigquery>=3.25,<4",
+    # Direct pin (was transitive via google-adk → google-cloud-aiplatform).
+    # Used by atelier.optimize.generator_tuner for GCS-staged DPO JSONL upload
+    # (storage.Client at line 208, bucket().blob() at line 282). Pinning
+    # directly defends against silent transitive-graph changes (slopsquatting
+    # mitigation per CLAUDE.md <lockfile_only_installs>). Lockfile already
+    # pins 3.10.1 — no regeneration needed for this version.
+    # Docs: https://cloud.google.com/python/docs/reference/storage/latest
+    "google-cloud-storage>=3.10,<4",
     "google-cloud-secret-manager>=2.20,<3",
     # Authentication — Firebase Admin SDK for Google SSO + JWT verification.
     # Version 7.4.0 is the latest stable release (2026-04-09, Apache-2.0).

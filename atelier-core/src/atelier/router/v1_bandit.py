@@ -14,6 +14,31 @@ epsilon-decay schedule (ADR 0027 §18.4):
 
 Exploration strategy: UCB1 (Upper Confidence Bound).
 Exploitation strategy: greedy argmax on posterior mean score.
+
+Hybrid rationale (ε-greedy outer + UCB1 inner):
+  * Pure UCB1 is deterministic given history — pathological for cold-start
+    in multi-tenant settings where one tenant's early failures would lock
+    its routing into a suboptimal arm indefinitely. The ε-greedy outer
+    layer keeps a stochastic exploration floor (EPSILON_FLOOR=0.02) so no
+    arm is ever permanently excluded.
+  * Inside the explore branch UCB1 gives log-regret (Auer et al. 2002),
+    beating uniform-random exploration once arms have ≥1 pull. The hybrid
+    therefore inherits ε-greedy's safety floor *and* UCB1's regret bound.
+  * Exponential decay (vs. linear or 1/√t) on ε was chosen so that early
+    rollouts get materially more exploration than steady-state without
+    over-exploring at convergence; 7-day half-life matches the cadence of
+    the Dreaming Module DPO flywheel (ADR 0028).
+
+References:
+  - arXiv:2502.02743 (2025-02), "Multi-Armed Bandits Approach for LLM
+    Routing" — establishes MAB framing for per-task expert selection;
+    informs the (phase, expert) arm decomposition above.
+  - Sutton & Barto, Reinforcement Learning: An Introduction (2nd ed.),
+    §2.6-2.7 — UCB action selection (eq. 2.10) is the analytic backbone
+    of _ArmState.ucb1(); §2.2 motivates ε as exploration floor.
+  - Auer, Cesa-Bianchi, Fischer (2002), "Finite-time Analysis of the
+    Multiarmed Bandit Problem." Machine Learning 47:235-256 — log-regret
+    bound for UCB1; rationale for c=√2 in UCB1_EXPLORATION_CONSTANT.
 """
 
 from __future__ import annotations
