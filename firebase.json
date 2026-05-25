@@ -3,7 +3,14 @@
     "public": "docs/dashboards",
     "cleanUrls": true,
     "trailingSlash": false,
-    "ignore": ["firebase.json", "**/.*", "!.well-known", "**/node_modules/**"],
+    "ignore": [
+      "firebase.json",
+      "**/.git/**",
+      "**/.DS_Store",
+      "**/.env",
+      "**/.env.*",
+      "**/node_modules/**"
+    ],
     "headers": [
       {
         "source": "**",
