@@ -3,10 +3,12 @@ from __future__ import annotations
 import re
 
 from google.adk.agents import LlmAgent
+from google.genai import types as genai_types
 from pydantic import BaseModel, ConfigDict
 
 from atelier.intake.brief_spec import BriefSpec
 from atelier.models.enums import GateDecision
+from atelier.models.safety import default_safety_settings
 
 
 class BriefGateOutcome(BaseModel):
@@ -57,7 +59,14 @@ class BriefParserAgent:
     def __init__(self, model: str = "gemini-3-flash", project: str = "atelier-build-2026") -> None:
         self.model = model
         self.project = project
-        self._llm = LlmAgent(name="brief_parser_llm", model=model, output_schema=BriefSpec)
+        self._llm = LlmAgent(
+            name="brief_parser_llm",
+            model=model,
+            output_schema=BriefSpec,
+            generate_content_config=genai_types.GenerateContentConfig(
+                safety_settings=default_safety_settings(),
+            ),
+        )
 
     async def parse(self, brief_text: str) -> BriefSpec:
         """Parse validated brief text → BriefSpec. Raises ValueError on parse failure."""

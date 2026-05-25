@@ -13,9 +13,16 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 from google.adk.agents.llm_agent import LlmAgent
-from google.adk.agents.parallel_agent import ParallelAgent  # TODO(adk-3.0): migrate → Workflow
+from google.adk.agents.parallel_agent import (
+    ParallelAgent,  # Deprecation(adk-3.0): migrate -> Workflow
+)
+from google.genai import types as genai_types
 
-from atelier.integrations.stitch_mcp import get_stitch_mcp_toolset
+from atelier.integrations.stitch_mcp import (
+    StitchDegradationInfo,
+    try_get_stitch_mcp_toolset,
+)
+from atelier.models.safety import default_safety_settings
 
 if TYPE_CHECKING:
     from google.adk.agents import BaseAgent
@@ -25,19 +32,15 @@ if TYPE_CHECKING:
 ENSEMBLE_SIZE = 3
 
 
-def create_generator_ensemble() -> ParallelAgent:  # type: ignore[no-any-unimported]
+def create_generator_ensemble() -> tuple[ParallelAgent, StitchDegradationInfo]:  # type: ignore[no-any-unimported]
     """Creates a ParallelAgent containing K=3 generators.
 
     Returns:
-        ParallelAgent configured with LlmAgents that use Stitch MCP.
+        Tuple of (ParallelAgent, StitchDegradationInfo) so the caller can
+        propagate degradation state to session metadata (AG-06 / FIX-3).
     """
-    try:
-        # Initialize the MCP toolset once to share across generators
-        stitch_toolset = get_stitch_mcp_toolset()
-        toolsets: Sequence[BaseToolset] = [stitch_toolset]
-    except Exception:  # noqa: BLE001
-        # Fallback if Stitch is completely unconfigurable
-        toolsets = []
+    stitch_toolset, degradation = try_get_stitch_mcp_toolset()
+    toolsets: Sequence[BaseToolset] = [stitch_toolset] if stitch_toolset is not None else []
 
     sub_agents: list[BaseAgent] = []
     for i in range(ENSEMBLE_SIZE):
@@ -50,10 +53,13 @@ def create_generator_ensemble() -> ParallelAgent:  # type: ignore[no-any-unimpor
                 "Attempt to generate the requested screen using the `stitch_generate_screen_from_text` tool. "
                 "If the tool is unavailable or fails, generate the raw HTML/CSS directly in your response."
             ),
+            generate_content_config=genai_types.GenerateContentConfig(
+                safety_settings=default_safety_settings(),
+            ),
         )
         sub_agents.append(agent)
 
     return ParallelAgent(
         name="GeneratorEnsemble",
         sub_agents=sub_agents,
-    )
+    ), degradation

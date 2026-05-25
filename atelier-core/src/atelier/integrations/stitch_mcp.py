@@ -25,9 +25,29 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
 
+import structlog
 from google.adk.tools.mcp_tool.mcp_session_manager import SseConnectionParams
 from google.adk.tools.mcp_tool.mcp_toolset import McpToolset
 from google.cloud import secretmanager
+
+logger = structlog.get_logger("atelier.stitch")
+
+
+@dataclass(frozen=True)
+class StitchDegradationInfo:
+    """Records Stitch MCP degradation state for session metadata.
+
+    When Stitch is unavailable, this info propagates through:
+        1. BriefSpec.metadata["stitch_degraded"] = True
+        2. structlog.warning with redacted error
+        3. Session metadata for UI acknowledgement
+
+    Per FIX-3: "agent always acknowledges degradation."
+    """
+
+    is_degraded: bool
+    reason: str
+    fallback_mode: str  # "direct_generation" | "cached_design_system"
 
 
 class StitchFont(StrEnum):
@@ -296,3 +316,37 @@ def get_stitch_mcp_toolset() -> McpToolset:
     )
 
     return McpToolset(connection_params=connection_params, tool_name_prefix="stitch_")
+
+
+def try_get_stitch_mcp_toolset() -> tuple[McpToolset | None, StitchDegradationInfo]:
+    """Attempt Stitch MCP initialization with acknowledged-degradation.
+
+    Returns:
+        A 2-tuple of (toolset_or_None, degradation_info).
+        When Stitch is available: (toolset, info.is_degraded=False).
+        When unavailable: (None, info.is_degraded=True) with the error
+        redacted for logging safety.
+
+    Per FIX-3: degradation is surfaced via structlog.warning and propagated
+    to the caller for session metadata injection.
+    """
+    try:
+        toolset = get_stitch_mcp_toolset()
+        return toolset, StitchDegradationInfo(
+            is_degraded=False,
+            reason="Stitch MCP connected successfully.",
+            fallback_mode="none",
+        )
+    except Exception as exc:  # noqa: BLE001
+        # Redact the full error for logging safety — only expose the type name
+        redacted_reason = f"Stitch MCP unavailable: {type(exc).__name__}"
+        logger.warning(
+            "stitch.degradation",
+            reason=redacted_reason,
+            fallback_mode="direct_generation",
+        )
+        return None, StitchDegradationInfo(
+            is_degraded=True,
+            reason=redacted_reason,
+            fallback_mode="direct_generation",
+        )
