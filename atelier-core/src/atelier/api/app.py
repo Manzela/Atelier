@@ -23,14 +23,15 @@ from __future__ import annotations
 import os
 import time
 from contextlib import asynccontextmanager
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Annotated, Any
 
 import structlog
-from fastapi import FastAPI, Request, Response
+from fastapi import Depends, FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from atelier.__version__ import __version__
+from atelier.auth.firebase import FirebaseUser, require_auth
 from atelier.orchestrator.governor import GovernorBudgetExceeded
 
 if TYPE_CHECKING:
@@ -183,8 +184,13 @@ def create_app() -> FastAPI:
         summary="Current generation budget usage for the authenticated user",
         response_model=None,
     )
-    async def account_usage() -> dict[str, Any]:
-        """Return budget consumption and session summary for this account.
+    async def account_usage(
+        user: Annotated[FirebaseUser, Depends(require_auth)],
+    ) -> dict[str, Any]:
+        """Return budget consumption and session summary for the authenticated account.
+
+        Args:
+            user: Verified Firebase user (from Authorization: Bearer header).
 
         Returns:
             budget_cap_usd: The hard per-account budget cap (PRD §7.2).
@@ -218,6 +224,8 @@ def create_app() -> FastAPI:
             )
 
         return {
+            "user_id": user.uid,
+            "tenant_id": user.tenant_id,
             "budget_cap_usd": budget_cap,
             "budget_used_usd": round(budget_used, 4),
             "budget_remaining_usd": round(remaining, 4),
