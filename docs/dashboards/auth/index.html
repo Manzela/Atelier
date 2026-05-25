@@ -245,6 +245,8 @@
   </div>
 
   <!-- Firebase SDK (v10 modular, Google CDN) -->
+  <!-- Firebase project config (public client-side identifier — not a secret) -->
+  <script src="../config.js"></script>
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
     import {
@@ -254,13 +256,8 @@
       onAuthStateChanged,
     } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
-    // Firebase project config — populated from environment at deploy time.
-    // In CI/CD, this is injected by Firebase App Hosting or a build step.
-    const FIREBASE_CONFIG = window.__FIREBASE_CONFIG__ || {
-      apiKey:     window.__FIREBASE_API_KEY__     || 'REPLACE_WITH_API_KEY',
-      authDomain: window.__FIREBASE_AUTH_DOMAIN__ || 'atelier-build-2026.firebaseapp.com',
-      projectId:  window.__FIREBASE_PROJECT_ID__  || 'atelier-build-2026',
-    };
+    // Config loaded from ../config.js (window.__FIREBASE_CONFIG__)
+    const FIREBASE_CONFIG = window.__FIREBASE_CONFIG__;
 
     const app  = initializeApp(FIREBASE_CONFIG);
     const auth = getAuth(app);
