@@ -221,3 +221,6 @@ test-results/
 # License check outputs
 licenses-summary.csv
 licenses-summary.json
+
+# uv workspace lock — repo uses requirements.lock (uv pip compile)
+uv.lock

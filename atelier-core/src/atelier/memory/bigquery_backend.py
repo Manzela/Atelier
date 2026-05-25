@@ -61,6 +61,11 @@ class BigQueryEpisodicBackend:
                 propagates to caller (fail-soft — caller logs + degrades).
         """
         key = current_key()  # LookupError if not bound — fail-loud, by design
+        # Security WARN: blank tenant_id would write a row with an empty discriminator,
+        # making the IAM Conditions the sole isolation layer. Enforce non-empty here.
+        if not key.tenant_id:
+            msg = "MemoryKey.tenant_id is empty — cannot write episodic event without tenant isolation."
+            raise ValueError(msg)
         row = {
             "event_id": event.event_id,
             "session_id": key.session_id,

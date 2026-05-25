@@ -165,6 +165,11 @@ disallow_any_unimported = false
 [[tool.mypy.overrides]]
 module = "atelier.optimize.*"
 disallow_any_unimported = false
+
+[[tool.mypy.overrides]]
+module = "atelier.integrations.*"
+disallow_any_unimported = false
+disallow_untyped_calls = false
 # warn_unused_ignores=false: google.cloud.storage attr-defined suppression via
 # inline type: ignore[attr-defined]. Whether the override or the inline comment
 # fires depends on mypy resolver version — suppress both without error.

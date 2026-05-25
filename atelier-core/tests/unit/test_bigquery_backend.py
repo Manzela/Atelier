@@ -244,3 +244,18 @@ async def test_write_episodic_tenant_isolation_different_keys(
     assert tenant_b_row["tenant_id"] == "tenant-B"
     assert tenant_a_row["event_id"] == "evt-A"
     assert tenant_b_row["event_id"] == "evt-B"
+
+
+@pytest.mark.anyio
+@patch("atelier.memory.bigquery_backend.bigquery.Client")
+async def test_write_episodic_raises_on_empty_tenant_id(mock_bq_cls: MagicMock) -> None:
+    """Security WARN fix: empty tenant_id must fail-loud before writing to BQ."""
+    mock_bq_cls.return_value = MagicMock()
+    empty_key = _make_key(tenant_id="")
+    token = CURRENT_MEMORY_KEY.set(empty_key)
+    try:
+        backend = BigQueryEpisodicBackend(project="atelier-build-2026")
+        with pytest.raises(ValueError, match="tenant_id is empty"):
+            await backend.write_episodic(_make_event())
+    finally:
+        CURRENT_MEMORY_KEY.reset(token)

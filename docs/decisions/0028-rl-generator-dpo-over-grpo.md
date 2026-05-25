@@ -32,13 +32,17 @@ Source model: `gemini-2.5-flash-001` (lockfile-pinned).
 
 Hyperparameters (`Final`, change requires ADR amendment):
 
-| Parameter              | Value | Rationale                                       |
-| ---------------------- | ----- | ----------------------------------------------- |
-| β (KL regulariser)     | 0.1   | Standard DPO default; prevents reward hacking   |
-| epochCount             | 3     | Small dataset (< 1 000 pairs) — 3 epochs avoids |
-|                        |       | overfitting while allowing convergence          |
-| adapterSize            | 4     | LoRA rank 4; minimal parameter footprint        |
-| learningRateMultiplier | 1.0   | Platform default; revisit if eval degrades      |
+| Parameter              | Value | Rationale                                        |
+| ---------------------- | ----- | ------------------------------------------------ |
+| β (KL regulariser)     | 0.1   | Standard DPO default; prevents reward hacking    |
+| epochCount             | 3     | Small dataset (< 1 000 pairs) — 3 epochs avoids  |
+|                        |       | overfitting while allowing convergence           |
+| adapterSize            | 4     | LoRA rank 4; minimal parameter footprint         |
+| learningRateMultiplier | 1.0   | Platform default; revisit if eval degrades       |
+| κ promotion gate       | 0.70  | Cohen's κ floor on WebGen-Bench calibration set  |
+|                        |       | (§19.4). Below 0.70 → reject tuned model; above  |
+|                        |       | → promote endpoint to router. Calibrated against |
+|                        |       | 100-item golden set (Designer-in-Residence D7).  |
 
 **Pair eligibility gate:** the §21 AND-gate composite reward (ADR 0030). Only
 pairs that clear all four predicates are fed to the tuning job. This prevents

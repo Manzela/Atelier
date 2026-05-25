@@ -94,6 +94,43 @@ def test_bigquery_pair_miner_satisfies_protocol() -> None:
     assert isinstance(miner, GeneratorTunerProtocol)
 
 
+# ─── mine_pairs security guards ──────────────────────────────────────────────
+
+
+@patch("atelier.optimize.generator_tuner.bigquery.Client")
+def test_mine_pairs_raises_without_tenant_and_no_allow_flag(mock_bq_cls: MagicMock) -> None:
+    """Security WARN fix: caller must opt-in to cross-tenant scan."""
+    mock_bq_cls.return_value = MagicMock()
+    miner = BigQueryPairMiner(project="atelier-build-2026")
+    with pytest.raises(ValueError, match="allow_cross_tenant=True"):
+        miner.mine_pairs()
+
+
+@patch("atelier.optimize.generator_tuner.bigquery.Client")
+def test_mine_pairs_raises_on_negative_limit(mock_bq_cls: MagicMock) -> None:
+    """EC5: negative limit would produce invalid SQL LIMIT -1."""
+    mock_bq_cls.return_value = MagicMock()
+    miner = BigQueryPairMiner(project="atelier-build-2026")
+    with pytest.raises(ValueError, match="limit must be >= 0"):
+        miner.mine_pairs(tenant_id="tenant-abc", limit=-1)
+
+
+@patch("atelier.optimize.generator_tuner.bigquery.Client")
+def test_mine_pairs_skips_null_margin_rows(mock_bq_cls: MagicMock) -> None:
+    """EC6: BQ NULL in numeric field must be skipped, not silently stored as None."""
+    mock_client = MagicMock()
+    mock_bq_cls.return_value = mock_client
+    null_row = _make_bq_row(chosen_score=0.82, rejected_score=0.55)
+    null_row.margin = None
+    good_row = _make_bq_row(chosen_score=0.80, rejected_score=0.50, surface_id="surf-ok")
+    mock_client.query.return_value.result.return_value = [null_row, good_row]
+
+    miner = BigQueryPairMiner(project="atelier-build-2026")
+    pairs = miner.mine_pairs(tenant_id="tenant-test")
+    assert len(pairs) == 1
+    assert pairs[0].surface_id == "surf-ok"
+
+
 # ─── mine_pairs ───────────────────────────────────────────────────────────────
 
 
@@ -104,7 +141,7 @@ def test_mine_pairs_returns_list_of_preference_pairs(mock_bq_cls: MagicMock) -> 
     mock_client.query.return_value.result.return_value = [_make_bq_row()]
 
     miner = BigQueryPairMiner(project="atelier-build-2026")
-    pairs = miner.mine_pairs(limit=10)
+    pairs = miner.mine_pairs(tenant_id="tenant-test", limit=10)
 
     assert len(pairs) == 1
     assert isinstance(pairs[0], PreferencePair)
@@ -118,7 +155,7 @@ def test_mine_pairs_returns_empty_list_on_no_results(mock_bq_cls: MagicMock) -> 
     mock_client.query.return_value.result.return_value = []
 
     miner = BigQueryPairMiner(project="atelier-build-2026")
-    pairs = miner.mine_pairs()
+    pairs = miner.mine_pairs(tenant_id="tenant-test")
     assert pairs == []
 
 
@@ -129,7 +166,7 @@ def test_mine_pairs_sql_contains_limit(mock_bq_cls: MagicMock) -> None:
     mock_client.query.return_value.result.return_value = []
 
     miner = BigQueryPairMiner(project="atelier-build-2026")
-    miner.mine_pairs(limit=3)
+    miner.mine_pairs(tenant_id="tenant-test", limit=3)
 
     query_sql = mock_client.query.call_args[0][0]
     assert "LIMIT" in query_sql.upper()
@@ -171,7 +208,8 @@ def test_mine_pairs_no_tenant_filter_when_not_provided(mock_bq_cls: MagicMock) -
     mock_client.query.return_value.result.return_value = []
 
     miner = BigQueryPairMiner(project="atelier-build-2026")
-    miner.mine_pairs()
+    # allow_cross_tenant=True required now — explicit admin-path opt-in (Security WARN fix)
+    miner.mine_pairs(allow_cross_tenant=True)
 
     query_sql = mock_client.query.call_args[0][0]
     assert "WHERE" not in query_sql.upper()
@@ -185,7 +223,7 @@ def test_mine_pairs_maps_row_fields_to_preference_pair(mock_bq_cls: MagicMock) -
     mock_client.query.return_value.result.return_value = [row]
 
     miner = BigQueryPairMiner(project="atelier-build-2026")
-    pairs = miner.mine_pairs()
+    pairs = miner.mine_pairs(tenant_id="tenant-test")
 
     assert pairs[0].chosen_score == pytest.approx(0.90)
     assert pairs[0].rejected_score == pytest.approx(0.45)
@@ -206,7 +244,7 @@ def test_mine_pairs_returns_multiple_pairs(mock_bq_cls: MagicMock) -> None:
     ]
 
     miner = BigQueryPairMiner(project="atelier-build-2026")
-    pairs = miner.mine_pairs()
+    pairs = miner.mine_pairs(tenant_id="tenant-test")
 
     assert len(pairs) == 3
     assert {p.surface_id for p in pairs} == {"surf-001", "surf-002", "surf-003"}

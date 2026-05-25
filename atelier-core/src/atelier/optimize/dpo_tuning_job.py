@@ -108,6 +108,10 @@ class DpoTuningJob:
             msg = f"DPO tuning job submit failed (non-retriable): {exc}"
             logger.exception(msg, extra={"gcs_pairs_uri": gcs_pairs_uri})
             raise RuntimeError(msg) from exc
+        # EC1: guard against SDK returning an object with name=None.
+        if not job.name:
+            msg = "DPO tuning job submitted but job.name is empty or None — cannot track job."
+            raise RuntimeError(msg)
         logger.info("DPO tuning job submitted", extra={"job_name": job.name})
         return job
 

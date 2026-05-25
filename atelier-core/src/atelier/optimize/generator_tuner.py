@@ -29,7 +29,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Final, Protocol, runtime_checkable
 
-from google.cloud import bigquery, storage  # type: ignore[attr-defined]
+from google.cloud import bigquery, storage
 
 from atelier.optimize.dpo_tuning_job import DpoTuningJob, TuningJobState
 
@@ -103,22 +103,41 @@ class BigQueryPairMiner:
         *,
         tenant_id: str | None = None,
         limit: int = DEFAULT_MINE_LIMIT,
+        allow_cross_tenant: bool = False,
     ) -> list[PreferencePair]:
         """Mine preference pairs from BigQuery.
 
         Args:
             tenant_id: If provided, filters rows to this tenant only.
-                Never returns cross-tenant data.
+                Never returns cross-tenant data when set.
             limit: Maximum number of pairs to return. Applied in BigQuery
-                (not in Python) to bound cost.
+                to bound cost. Must be >= 0.
+            allow_cross_tenant: Must be explicitly True to call with
+                tenant_id=None (full-table scan for admin/training use).
+                Prevents accidental cross-tenant data leakage from callers
+                that forget to pass tenant_id. Fail-loud if False and
+                tenant_id is None.
 
         Returns:
             List of PreferencePair. Empty list if table has no matching rows.
 
         Raises:
+            ValueError: If limit < 0, or tenant_id is None and
+                allow_cross_tenant is False.
             google.cloud.exceptions.GoogleCloudError: Fail-soft — BQ errors
                 propagate to caller; do not swallow.
         """
+        # Security WARN: require explicit opt-in to cross-tenant scan.
+        if tenant_id is None and not allow_cross_tenant:
+            msg = (
+                "mine_pairs called without tenant_id — this returns ALL tenants' data. "
+                "Pass allow_cross_tenant=True to explicitly enable this admin path."
+            )
+            raise ValueError(msg)
+        # EC5: reject negative limits before they produce invalid SQL (LIMIT -1).
+        if limit < 0:
+            msg = f"mine_pairs limit must be >= 0, got {limit}"
+            raise ValueError(msg)
         where_clause = "WHERE tenant_id = @tenant_id" if tenant_id is not None else ""
         # String concatenation avoids S608. All variable parts are safe:
         # where_clause is a hardcoded literal, limit is int (no user input),
@@ -135,20 +154,34 @@ class BigQueryPairMiner:
             extra={"tenant_id": tenant_id, "limit": limit, "table": BQ_DPO_PAIRS_TABLE},
         )
         rows = list(self._client.query(query, job_config=job_config).result())
-        pairs = [
-            PreferencePair(
-                prompt=row.prompt,
-                chosen=row.chosen_response,
-                rejected=row.rejected_response,
-                margin=row.margin,
-                surface_id=row.surface_id,
-                node_name=row.node_name,
-                iteration=row.iteration,
-                chosen_score=row.chosen_score,
-                rejected_score=row.rejected_score,
+        skipped = 0
+        pairs: list[PreferencePair] = []
+        for row in rows:
+            # EC6: BQ NULLs become None in Python; dataclasses don't enforce float at runtime.
+            # Skip rows with any None in numeric fields rather than propagating silent None
+            # into training data, which would produce NaN in DPO loss calculations.
+            if row.margin is None or row.chosen_score is None or row.rejected_score is None:
+                skipped += 1
+                logger.warning(
+                    "Skipping DPO pair with NULL numeric field",
+                    extra={"surface_id": row.surface_id, "node_name": row.node_name},
+                )
+                continue
+            pairs.append(
+                PreferencePair(
+                    prompt=row.prompt,
+                    chosen=row.chosen_response,
+                    rejected=row.rejected_response,
+                    margin=float(row.margin),
+                    surface_id=row.surface_id,
+                    node_name=row.node_name,
+                    iteration=row.iteration,
+                    chosen_score=float(row.chosen_score),
+                    rejected_score=float(row.rejected_score),
+                )
             )
-            for row in rows
-        ]
+        if skipped:
+            logger.warning("DPO pair mining skipped NULL rows", extra={"skipped": skipped})
         logger.info("DPO pair mining complete", extra={"pair_count": len(pairs)})
         return pairs
 

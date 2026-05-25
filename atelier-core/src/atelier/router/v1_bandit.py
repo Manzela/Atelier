@@ -77,6 +77,13 @@ class _ArmState:
         )
 
     def update(self, score: float) -> None:
+        # EC13: Two separate += operations are not atomically safe under concurrent
+        # asyncio.to_thread calls. Under the asyncio event loop (single-threaded),
+        # concurrent coroutine calls to observe_outcome() are interleaved at await
+        # boundaries, not within synchronous code — so update() IS safe for asyncio
+        # concurrency. If this bandit is ever used from asyncio.to_thread, wrap the
+        # caller in asyncio.Lock. Cloud Run concurrency=1 per container makes this
+        # a non-issue in production today.
         self.total_pulls += 1
         self.total_score += score
 

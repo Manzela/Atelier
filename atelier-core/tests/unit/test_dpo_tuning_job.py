@@ -196,3 +196,17 @@ def test_get_tuned_model_name_returns_endpoint_on_success(mock_client_cls: Magic
     job_obj = DpoTuningJob(project="atelier-build-2026")
     endpoint = job_obj.get_tuned_model_name("projects/.../tuningJobs/123")
     assert "endpoints/456" in endpoint
+
+
+@patch("atelier.optimize.dpo_tuning_job.genai.Client")
+def test_submit_raises_if_job_name_is_none(mock_client_cls: MagicMock) -> None:
+    """EC1: SDK returning job.name=None must fail-loud, not propagate None silently."""
+    mock_client = MagicMock()
+    mock_client_cls.return_value = mock_client
+    bad_job = _make_mock_job()
+    bad_job.name = None
+    mock_client.tunings.tune.return_value = bad_job
+
+    job_obj = DpoTuningJob(project="atelier-build-2026")
+    with pytest.raises(RuntimeError, match=r"job\.name is empty or None"):
+        job_obj.submit(gcs_pairs_uri="gs://bucket/train.jsonl")
