@@ -27,4 +27,4 @@ We implemented this pattern in [Atelier](https://github.com/Manzela/atelier) —
 ## Related
 
 - [ADK Evaluation docs](https://google.github.io/adk-docs/evaluate/)
-- [Vertex AI PREFERENCE_TUNING](https://cloud.google.com/vertex-ai/generative-ai/docs/model-garden/tune-models#preference-tuning)
+- [Vertex AI Gemini Tuning](https://cloud.google.com/vertex-ai/generative-ai/docs/models/gemini-tuning)
