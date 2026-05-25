@@ -304,12 +304,12 @@ async def test_load_session_replay_returns_payload_on_success() -> None:
 
 
 @pytest.fixture
-def app_client() -> TestClient:
+def app_client():
     """TestClient with FIREBASE_DISABLE_AUTH=true (dev bypass)."""
     with patch("atelier.auth.firebase._BYPASS_AUTH", True):
         app = FastAPI()
         app.include_router(router)
-        return TestClient(app, raise_server_exceptions=False)
+        yield TestClient(app, raise_server_exceptions=False)
 
 
 def test_get_replay_returns_404_when_session_not_found(app_client: TestClient) -> None:
