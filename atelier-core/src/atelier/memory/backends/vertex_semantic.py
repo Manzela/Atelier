@@ -87,31 +87,95 @@ class VertexSemanticMemoryBackend:
         )
         return resource_name
 
+    @staticmethod
+    def _tfidf_similarity(query: str, document: str) -> float:
+        """TF-IDF cosine similarity between query and document (stdlib-only).
+
+        Uses term frequency and inverse document frequency computed over the
+        combined vocabulary. Returns 0.0-1.0. Replaces the hardcoded 1.0
+        stub — different documents now score differently against the same query.
+        """
+        import math  # noqa: PLC0415
+        import re  # noqa: PLC0415
+
+        def tokenise(text: str) -> list[str]:
+            return re.findall(r"\b[a-z]{2,}\b", text.lower())
+
+        q_terms = tokenise(query)
+        d_terms = tokenise(document)
+        if not q_terms or not d_terms:
+            return 0.0
+
+        vocab = set(q_terms) | set(d_terms)
+
+        def tf(terms: list[str], term: str) -> float:
+            return terms.count(term) / len(terms) if terms else 0.0
+
+        def idf(term: str) -> float:
+            # Two-document corpus: query + document
+            df = (term in q_terms) + (term in d_terms)
+            return math.log((2 + 1) / (df + 1)) + 1.0  # smoothed IDF
+
+        q_vec = [tf(q_terms, t) * idf(t) for t in vocab]
+        d_vec = [tf(d_terms, t) * idf(t) for t in vocab]
+
+        dot = sum(a * b for a, b in zip(q_vec, d_vec, strict=False))
+        norm_q = sum(a * a for a in q_vec) ** 0.5
+        norm_d = sum(b * b for b in d_vec) ** 0.5
+        if norm_q == 0.0 or norm_d == 0.0:
+            return 0.0
+        return float(dot / (norm_q * norm_d))
+
     async def query_semantic(
         self,
         scope: MemoryScopeKey,
-        query_text: str,  # noqa: ARG002
+        query_text: str,
         *,
         top_k: int = 5,
-        min_similarity: float = 0.0,  # noqa: ARG002
+        min_similarity: float = 0.0,
     ) -> list[SemanticHit]:
-        """Top-k vector search within scope; returns [] on no-match or fail-soft."""
+        """Top-k TF-IDF vector search within scope.
+
+        Replaces the hardcoded similarity=1.0 stub with real TF-IDF cosine
+        similarity (stdlib-only — no sklearn dependency). Different documents
+        score differently against the same query; min_similarity filtering
+        is now functional. Phase 2 replaces with Vertex AI embedding search.
+
+        Args:
+            scope: Memory scope key for isolation.
+            query_text: Natural-language query string.
+            top_k: Maximum hits to return.
+            min_similarity: Minimum similarity threshold (0.0 = return all).
+
+        Returns:
+            Ranked list of SemanticHit, highest similarity first.
+        """
         scope_key = scope.encode()
         entries = self._store.get(scope_key, [])
+
+        scored: list[tuple[float, str, str, dict[str, str]]] = []
+        for rn, content, meta in entries:
+            sim = self._tfidf_similarity(query_text, content)
+            if sim >= min_similarity:
+                scored.append((sim, rn, content, meta))
+
+        scored.sort(key=lambda x: x[0], reverse=True)
 
         hits = [
             SemanticHit(
                 resource_name=rn,
                 content=content,
-                similarity=1.0,  # Stub: exact match similarity
+                similarity=round(sim, 4),
                 metadata=meta,
             )
-            for rn, content, meta in entries[:top_k]
+            for sim, rn, content, meta in scored[:top_k]
         ]
 
         logger.info(
-            "query_semantic: scope=%s hits=%d",
+            "query_semantic: scope=%s query=%r candidates=%d hits=%d",
             scope_key,
+            query_text[:60],
+            len(entries),
             len(hits),
         )
         return hits

@@ -223,31 +223,63 @@ class TestTokenFidelityGate:
 
 @pytest.mark.unit
 class TestStubGates:
-    """Stub gates always PASS with their fixed scores."""
+    """Heuristic stub gates — browser-free, score varies per candidate."""
 
-    def test_lighthouse_stub(self) -> None:
+    def test_lighthouse_stub_passes_and_returns_valid_score(self) -> None:
+        """Lighthouse heuristic must PASS and return a score in [40, 100]."""
         outcome = check_lighthouse_stub(_make_candidate())
         assert outcome.decision is GateDecision.PASS
-        assert outcome.score == LIGHTHOUSE_STUB_SCORE
+        assert 40.0 <= outcome.score <= 100.0
         assert outcome.axis is GateAxis.LIGHTHOUSE_A11Y
 
-    def test_axe_stub(self) -> None:
+    def test_lighthouse_stub_penalises_inline_scripts(self) -> None:
+        """Candidates with many inline scripts must score lower than clean ones."""
+        many_scripts = _make_candidate(
+            {"index.html": "<script>a=1</script>" * 10 + "<main>Hello</main>"}
+        )
+        clean = _make_candidate({"index.html": "<main>Hello</main>"})
+        assert check_lighthouse_stub(many_scripts).score < check_lighthouse_stub(clean).score
+
+    def test_axe_stub_passes_and_returns_valid_score(self) -> None:
+        """axe heuristic must PASS and return a score in [35, 100]."""
         outcome = check_axe_stub(_make_candidate())
         assert outcome.decision is GateDecision.PASS
-        assert outcome.score == AXE_STUB_SCORE
+        assert 35.0 <= outcome.score <= 100.0
         assert outcome.axis is GateAxis.AXE
 
-    def test_visual_diff_stub(self) -> None:
+    def test_axe_stub_penalises_missing_alt(self) -> None:
+        """Candidates with alt-less images score lower than accessible ones."""
+        bad = _make_candidate({"index.html": "<img src='a.png'>" * 5})
+        good = _make_candidate({"index.html": "<img src='a.png' alt='icon'>" * 5})
+        assert check_axe_stub(bad).score < check_axe_stub(good).score
+
+    def test_visual_diff_stub_returns_score_in_range(self) -> None:
+        """Visual diff heuristic must return score in [0, 100]."""
         outcome = check_visual_diff_stub(_make_candidate())
-        assert outcome.decision is GateDecision.PASS
-        assert outcome.score == VISUAL_DIFF_STUB_SCORE
+        assert 0.0 <= outcome.score <= 100.0
         assert outcome.axis is GateAxis.VISUAL_DIFF
 
-    def test_stubs_ignore_artifacts(self) -> None:
+    def test_visual_diff_stub_passes_for_standard_html(self) -> None:
+        """HTML with standard structural tags must pass visual similarity."""
+        standard = _make_candidate(
+            {
+                "index.html": (
+                    "<html><header>H</header><main><section>"
+                    "<article><h1>T</h1><p>Body</p><button>Go</button></article>"
+                    "</section></main><footer>F</footer></html>"
+                )
+            }
+        )
+        assert check_visual_diff_stub(standard).decision is GateDecision.PASS
+
+    def test_stubs_handle_empty_artifacts(self) -> None:
+        """All stubs must not raise on empty artifacts."""
         empty = _make_candidate({})
         assert check_lighthouse_stub(empty).decision is GateDecision.PASS
         assert check_axe_stub(empty).decision is GateDecision.PASS
-        assert check_visual_diff_stub(empty).decision is GateDecision.PASS
+        # Empty HTML has no structural similarity — may PASS or REJECT but must not raise
+        result = check_visual_diff_stub(empty)
+        assert result.score >= 0.0
 
 
 # ---------------------------------------------------------------------------
