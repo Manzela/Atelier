@@ -144,7 +144,7 @@ The Governor enforces per-tenant cost limits. When budget is exhausted, the API 
 The `PiiScrubSpanProcessor` redacts sensitive data from OpenTelemetry spans before they leave the process:
 
 ```python
-# From atelier-core/src/atelier/observability/pii_scrubber.py
+# From atelier-core/src/atelier/observability/scrubber.py
 
 class PiiScrubSpanProcessor(SpanProcessor):
     """Redacts PII from span attributes before export."""
@@ -191,6 +191,6 @@ The [Bench Dashboard](https://atelier.autonomous-agent.dev/bench/) provides real
 - [`firebase.py`](../../atelier-core/src/atelier/auth/firebase.py) — Firebase Auth middleware
 - [`iap.tf`](../../atelier-deploy/terraform/iap.tf) — IAP configuration
 - [`main.tf`](../../atelier-deploy/terraform/main.tf) — Cloud Run + KMS
-- [`pii_scrubber.py`](../../atelier-core/src/atelier/observability/pii_scrubber.py) — PII redaction
+- [`scrubber.py`](../../atelier-core/src/atelier/observability/scrubber.py) — PII redaction
 - [`app.py`](../../atelier-core/src/atelier/api/app.py) — CORS + Governor error handling
 - [`features.json`](../../features.json) — Feature registry

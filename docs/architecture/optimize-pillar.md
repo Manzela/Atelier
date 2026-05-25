@@ -55,7 +55,7 @@ Records are streamed to BigQuery (`atelier_trajectories.trajectory_records`) in 
 The DPO builder scans trajectory records for **preference pairs** — cases where two candidates for the **same surface** received different outcomes.
 
 ```python
-# From atelier-core/src/atelier/nodes/dpo_builder.py
+# From atelier-core/src/atelier/nodes/trajectory.py
 
 def extract_dpo_pairs(
     records: list[TrajectoryRecord],
@@ -127,7 +127,6 @@ BigQuery: trajectory_records
 
 ## Related Files
 
-- [`trajectory.py`](../../atelier-core/src/atelier/nodes/trajectory.py) — TrajectoryRecord dataclass + BQ serialization
-- [`dpo_builder.py`](../../atelier-core/src/atelier/nodes/dpo_builder.py) — DPO pair extraction logic
+- [`trajectory.py`](../../atelier-core/src/atelier/nodes/trajectory.py) — TrajectoryRecord + DPO pair extraction + BQ serialization
 - [`generate_bench_data.py`](../../atelier-core/scripts/generate_bench_data.py) — BQ → dashboard publisher
 - [`bench-schema.json`](../dashboards/bench-schema.json) — Dashboard data contract
