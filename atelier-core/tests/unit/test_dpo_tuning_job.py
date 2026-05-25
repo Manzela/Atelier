@@ -13,6 +13,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from atelier.optimize.dpo_tuning_job import (
     DPO_ADAPTER_SIZE,
+    DPO_BASE_MODEL,
     DPO_BETA,
     DPO_EPOCH_COUNT,
     DPO_GCS_PREFIX,
@@ -36,6 +37,18 @@ def test_constants_match_adr_0028() -> None:
     assert str(DPO_ADAPTER_SIZE) == "AdapterSize.ADAPTER_SIZE_FOUR"
 
 
+def test_dpo_base_model_matches_adr_0028() -> None:
+    """ADR 0028 locks the DPO source model to a Vertex-AI-DPO-supported tier.
+
+    Drift here silently fails at runtime: Vertex AI preference tuning only
+    accepts Gemini 2.5 Flash / Flash-Lite. Any other model id will be rejected
+    by the tuning service after a job has already been submitted, wasting both
+    a job-quota slot and operator attention. This test pins the constant to the
+    locked value so a code review can spot drift before a release.
+    """
+    assert DPO_BASE_MODEL == "gemini-2.5-flash-001"
+
+
 def test_gcs_prefix_targets_correct_project() -> None:
     assert "atelier-build-2026" in DPO_GCS_PREFIX
 
@@ -54,12 +67,14 @@ def test_submit_calls_tune_with_training_dataset_gcs_uri(mock_client_cls: MagicM
     mock_client.tunings.tune.return_value = _make_mock_job()
 
     job_obj = DpoTuningJob(project="atelier-build-2026")
-    job_obj.submit(gcs_pairs_uri="gs://atelier-build-2026-dpo-pairs/antigravity/latest/pairs.jsonl")
+    job_obj.submit(
+        gcs_pairs_uri="gs://atelier-build-2026-dpo-pairs/tuner-pairs/2026-05-25/120000/pairs.jsonl"
+    )
 
     call_kwargs = mock_client.tunings.tune.call_args.kwargs
     assert "training_dataset" in call_kwargs
     assert call_kwargs["training_dataset"].gcs_uri == (
-        "gs://atelier-build-2026-dpo-pairs/antigravity/latest/pairs.jsonl"
+        "gs://atelier-build-2026-dpo-pairs/tuner-pairs/2026-05-25/120000/pairs.jsonl"
     )
 
 

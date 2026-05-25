@@ -26,6 +26,7 @@ import json
 import logging
 import tempfile
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Final, Protocol, runtime_checkable
 
@@ -270,7 +271,13 @@ class GeneratorTuner:
                 f.write(json.dumps(record) + "\n")
             tmp_path = Path(f.name)
 
-        gcs_blob_name = "claude-T7/tuning-pairs-latest.jsonl"
+        # Date-partitioned blob path establishes the F7 audit-trail contract:
+        # every tune() invocation persists its training corpus under a fresh,
+        # timestamped key, so re-runs never silently overwrite the previous
+        # training snapshot and reviewers can reconstruct any prior tuning job
+        # from GCS object versioning alone.
+        date_partition = datetime.now(UTC).strftime("%Y-%m-%d/%H%M%S")
+        gcs_blob_name = f"tuner-pairs/{date_partition}/pairs.jsonl"
         try:
             bucket = self._gcs_client.bucket(self._bucket)
             blob = bucket.blob(gcs_blob_name)
