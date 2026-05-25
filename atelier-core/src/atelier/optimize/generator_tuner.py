@@ -22,17 +22,23 @@ Interface contract: this table is populated by Antigravity FA-012 dpo_builder.py
 
 from __future__ import annotations
 
+import json
 import logging
+import tempfile
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Final, Protocol, runtime_checkable
 
-from google.cloud import bigquery
+from google.cloud import bigquery, storage  # type: ignore[attr-defined]
+
+from atelier.optimize.dpo_tuning_job import DpoTuningJob, TuningJobState
 
 logger = logging.getLogger(__name__)
 
 BQ_DPO_PAIRS_TABLE: Final[str] = "atelier-build-2026.atelier_trajectories.dpo_pairs"
 MIN_PAIRS_FOR_TUNING: Final[int] = 50
 DEFAULT_MINE_LIMIT: Final[int] = 500
+KAPPA_PROMOTION_THRESHOLD: Final[float] = 0.70  # ADR 0028 §9.3: promote if κ ≥ 0.70
 
 # Pre-rendered SELECT template — table name is a Final constant (no user input).
 # String concatenation avoids S608 (f-string SQL injection detection).
@@ -145,3 +151,154 @@ class BigQueryPairMiner:
         ]
         logger.info("DPO pair mining complete", extra={"pair_count": len(pairs)})
         return pairs
+
+
+class GeneratorTuner:
+    """Full DPO tuning loop: mine pairs → upload to GCS → submit job → evaluate → promote.
+
+    Composes BigQueryPairMiner (T7) and DpoTuningJob (T6) into the full
+    end-to-end tuning workflow (T14, spec §9.3).
+
+    evaluate_and_promote() applies the κ gate (KAPPA_PROMOTION_THRESHOLD=0.70)
+    before promoting the tuned model endpoint. Promotion means returning the
+    endpoint for the caller to update the router's active model.
+    """
+
+    def __init__(
+        self,
+        project: str = "atelier-build-2026",
+        gcs_bucket: str = "atelier-build-2026-dpo-pairs",
+    ) -> None:
+        self._miner = BigQueryPairMiner(project=project)
+        self._tuning_job = DpoTuningJob(project=project)
+        self._gcs_client = storage.Client(project=project)
+        self._bucket = gcs_bucket
+        self._project = project
+
+    def mine_pairs(
+        self,
+        *,
+        tenant_id: str | None = None,
+        limit: int = DEFAULT_MINE_LIMIT,
+    ) -> list[PreferencePair]:
+        """Delegate to BigQueryPairMiner."""
+        return self._miner.mine_pairs(tenant_id=tenant_id, limit=limit)
+
+    def tune(
+        self,
+        pairs: list[PreferencePair],
+        *,
+        display_name: str = "atelier-dpo",
+    ) -> str:
+        """Upload pairs to GCS as JSONL and submit a DPO tuning job.
+
+        Args:
+            pairs: Preference pairs (must have len >= MIN_PAIRS_FOR_TUNING).
+            display_name: Human-readable name for the tuned model.
+
+        Returns:
+            The tuning job name (resource path string).
+
+        Raises:
+            ValueError: Fail-loud if fewer than MIN_PAIRS_FOR_TUNING pairs.
+            RuntimeError: Fail-loud if GCS upload or job submit fails.
+        """
+        if len(pairs) < MIN_PAIRS_FOR_TUNING:
+            msg = (
+                f"Insufficient pairs for tuning: {len(pairs)} < {MIN_PAIRS_FOR_TUNING}. "
+                "Collect more trajectory data before tuning."
+            )
+            raise ValueError(msg)
+
+        gcs_uri = self._upload_pairs_to_gcs(pairs)
+        job = self._tuning_job.submit(gcs_pairs_uri=gcs_uri, display_name=display_name)
+        job_name: str = job.name
+        logger.info(
+            "DPO tuning job started", extra={"job_name": job_name, "pair_count": len(pairs)}
+        )
+        return job_name
+
+    def _upload_pairs_to_gcs(self, pairs: list[PreferencePair]) -> str:
+        """Serialize pairs to JSONL and upload to GCS.
+
+        Returns:
+            The GCS URI of the uploaded JSONL file.
+
+        Raises:
+            RuntimeError: Fail-loud if GCS upload fails.
+        """
+        with tempfile.NamedTemporaryFile(suffix=".jsonl", delete=False, mode="w") as f:
+            for pair in pairs:
+                record = {
+                    "prompt": pair.prompt,
+                    "chosen": pair.chosen,
+                    "rejected": pair.rejected,
+                }
+                f.write(json.dumps(record) + "\n")
+            tmp_path = Path(f.name)
+
+        gcs_blob_name = "claude-T7/tuning-pairs-latest.jsonl"
+        try:
+            bucket = self._gcs_client.bucket(self._bucket)
+            blob = bucket.blob(gcs_blob_name)
+            blob.upload_from_filename(str(tmp_path))
+        except Exception as exc:
+            msg = f"GCS upload failed for {gcs_blob_name}: {exc}"
+            logger.exception(msg)
+            raise RuntimeError(msg) from exc
+        finally:
+            tmp_path.unlink(missing_ok=True)
+
+        gcs_uri = f"gs://{self._bucket}/{gcs_blob_name}"
+        logger.info("Pairs uploaded to GCS", extra={"gcs_uri": gcs_uri, "pair_count": len(pairs)})
+        return gcs_uri
+
+    def evaluate_and_promote(
+        self,
+        job_name: str,
+        *,
+        achieved_kappa: float,
+    ) -> str:
+        """Gate the tuned model on κ and return the endpoint if promotion passes.
+
+        The caller is responsible for computing achieved_kappa from a calibration
+        eval run (e.g., InterRater agreement on the golden set). This method
+        applies the threshold gate and returns the endpoint for router wiring.
+
+        Args:
+            job_name: The tuning job resource path from tune().
+            achieved_kappa: κ score from calibration eval (0.0-1.0).
+
+        Returns:
+            The Vertex AI endpoint resource name for the promoted model.
+
+        Raises:
+            ValueError: Fail-loud if achieved_kappa < KAPPA_PROMOTION_THRESHOLD.
+            RuntimeError: Fail-loud if job has not succeeded or endpoint missing.
+        """
+        state = self._tuning_job.get_state(job_name=job_name)
+        if state == TuningJobState.FAILED:
+            msg = f"Tuning job failed — cannot promote: {job_name}"
+            raise RuntimeError(msg)
+        if state != TuningJobState.SUCCEEDED:
+            msg = f"Tuning job not yet succeeded (state={state.value}): {job_name}"
+            raise RuntimeError(msg)
+
+        if achieved_kappa < KAPPA_PROMOTION_THRESHOLD:
+            msg = (
+                f"Promotion blocked: achieved_kappa={achieved_kappa:.3f} < "
+                f"KAPPA_PROMOTION_THRESHOLD={KAPPA_PROMOTION_THRESHOLD}. "
+                "Collect more data or investigate calibration set coverage."
+            )
+            raise ValueError(msg)
+
+        endpoint = self._tuning_job.get_tuned_model_name(job_name)
+        logger.info(
+            "Model promoted",
+            extra={
+                "job_name": job_name,
+                "endpoint": endpoint,
+                "achieved_kappa": achieved_kappa,
+            },
+        )
+        return endpoint

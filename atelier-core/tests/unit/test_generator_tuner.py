@@ -7,8 +7,10 @@ from unittest.mock import MagicMock, patch
 import pytest
 from atelier.optimize.generator_tuner import (
     BQ_DPO_PAIRS_TABLE,
+    KAPPA_PROMOTION_THRESHOLD,
     MIN_PAIRS_FOR_TUNING,
     BigQueryPairMiner,
+    GeneratorTuner,
     GeneratorTunerProtocol,
     PreferencePair,
 )
@@ -208,3 +210,163 @@ def test_mine_pairs_returns_multiple_pairs(mock_bq_cls: MagicMock) -> None:
 
     assert len(pairs) == 3
     assert {p.surface_id for p in pairs} == {"surf-001", "surf-002", "surf-003"}
+
+
+# ─── T14: GeneratorTuner.tune() ───────────────────────────────────────────────
+
+
+def _make_pairs(n: int = 60) -> list[PreferencePair]:
+    return [
+        PreferencePair(
+            prompt=f"prompt-{i}",
+            chosen="chosen",
+            rejected="rejected",
+            margin=0.30,
+            surface_id=f"surf-{i}",
+            node_name="N3a.generator",
+            iteration=0,
+            chosen_score=0.82,
+            rejected_score=0.52,
+        )
+        for i in range(n)
+    ]
+
+
+@patch("atelier.optimize.generator_tuner.storage.Client")
+@patch("atelier.optimize.generator_tuner.bigquery.Client")
+@patch("atelier.optimize.dpo_tuning_job.genai.Client")
+def test_tune_raises_value_error_on_insufficient_pairs(
+    mock_genai_cls: MagicMock, mock_bq_cls: MagicMock, mock_gcs_cls: MagicMock
+) -> None:
+    mock_genai_cls.return_value = MagicMock()
+    mock_bq_cls.return_value = MagicMock()
+    mock_gcs_cls.return_value = MagicMock()
+
+    tuner = GeneratorTuner(project="atelier-build-2026")
+    with pytest.raises(ValueError, match="Insufficient pairs"):
+        tuner.tune(_make_pairs(n=MIN_PAIRS_FOR_TUNING - 1))
+
+
+@patch("atelier.optimize.generator_tuner.storage.Client")
+@patch("atelier.optimize.generator_tuner.bigquery.Client")
+@patch("atelier.optimize.dpo_tuning_job.genai.Client")
+def test_tune_submits_job_with_gcs_uri(
+    mock_genai_cls: MagicMock, mock_bq_cls: MagicMock, mock_gcs_cls: MagicMock
+) -> None:
+    mock_job = MagicMock()
+    mock_job.name = "projects/atelier-build-2026/locations/us-central1/tuningJobs/42"
+    mock_genai_client = MagicMock()
+    mock_genai_client.tunings.tune.return_value = mock_job
+    mock_genai_cls.return_value = mock_genai_client
+    mock_bq_cls.return_value = MagicMock()
+
+    mock_bucket = MagicMock()
+    mock_blob = MagicMock()
+    mock_bucket.blob.return_value = mock_blob
+    mock_gcs_client = MagicMock()
+    mock_gcs_client.bucket.return_value = mock_bucket
+    mock_gcs_cls.return_value = mock_gcs_client
+
+    tuner = GeneratorTuner(project="atelier-build-2026")
+    job_name = tuner.tune(_make_pairs(n=MIN_PAIRS_FOR_TUNING))
+
+    assert job_name == "projects/atelier-build-2026/locations/us-central1/tuningJobs/42"
+    mock_blob.upload_from_filename.assert_called_once()
+
+
+@patch("atelier.optimize.generator_tuner.storage.Client")
+@patch("atelier.optimize.generator_tuner.bigquery.Client")
+@patch("atelier.optimize.dpo_tuning_job.genai.Client")
+def test_tune_returns_job_name_string(
+    mock_genai_cls: MagicMock, mock_bq_cls: MagicMock, mock_gcs_cls: MagicMock
+) -> None:
+    mock_job = MagicMock()
+    mock_job.name = "projects/.../tuningJobs/99"
+    mock_genai_client = MagicMock()
+    mock_genai_client.tunings.tune.return_value = mock_job
+    mock_genai_cls.return_value = mock_genai_client
+    mock_bq_cls.return_value = MagicMock()
+
+    mock_bucket = MagicMock()
+    mock_bucket.blob.return_value = MagicMock()
+    mock_gcs_client = MagicMock()
+    mock_gcs_client.bucket.return_value = mock_bucket
+    mock_gcs_cls.return_value = mock_gcs_client
+
+    tuner = GeneratorTuner(project="atelier-build-2026")
+    result = tuner.tune(_make_pairs(n=MIN_PAIRS_FOR_TUNING))
+    assert isinstance(result, str)
+    assert "tuningJobs" in result
+
+
+# ─── T14: GeneratorTuner.evaluate_and_promote() ───────────────────────────────
+
+
+@patch("atelier.optimize.generator_tuner.storage.Client")
+@patch("atelier.optimize.generator_tuner.bigquery.Client")
+@patch("atelier.optimize.dpo_tuning_job.genai.Client")
+def test_evaluate_and_promote_raises_on_kappa_below_threshold(
+    mock_genai_cls: MagicMock, mock_bq_cls: MagicMock, mock_gcs_cls: MagicMock
+) -> None:
+    mock_genai_client = MagicMock()
+    mock_genai_client.tunings.get.return_value.state = "JOB_STATE_SUCCEEDED"
+    mock_genai_cls.return_value = mock_genai_client
+    mock_bq_cls.return_value = MagicMock()
+    mock_gcs_cls.return_value = MagicMock()
+
+    tuner = GeneratorTuner(project="atelier-build-2026")
+    with pytest.raises(ValueError, match="Promotion blocked"):
+        tuner.evaluate_and_promote(
+            "projects/.../tuningJobs/42",
+            achieved_kappa=KAPPA_PROMOTION_THRESHOLD - 0.01,
+        )
+
+
+@patch("atelier.optimize.generator_tuner.storage.Client")
+@patch("atelier.optimize.generator_tuner.bigquery.Client")
+@patch("atelier.optimize.dpo_tuning_job.genai.Client")
+def test_evaluate_and_promote_raises_on_failed_job(
+    mock_genai_cls: MagicMock, mock_bq_cls: MagicMock, mock_gcs_cls: MagicMock
+) -> None:
+    mock_genai_client = MagicMock()
+    mock_genai_client.tunings.get.return_value.state = "JOB_STATE_FAILED"
+    mock_genai_cls.return_value = mock_genai_client
+    mock_bq_cls.return_value = MagicMock()
+    mock_gcs_cls.return_value = MagicMock()
+
+    tuner = GeneratorTuner(project="atelier-build-2026")
+    with pytest.raises(RuntimeError, match="Tuning job failed"):
+        tuner.evaluate_and_promote(
+            "projects/.../tuningJobs/42",
+            achieved_kappa=KAPPA_PROMOTION_THRESHOLD,
+        )
+
+
+@patch("atelier.optimize.generator_tuner.storage.Client")
+@patch("atelier.optimize.generator_tuner.bigquery.Client")
+@patch("atelier.optimize.dpo_tuning_job.genai.Client")
+def test_evaluate_and_promote_returns_endpoint_on_success(
+    mock_genai_cls: MagicMock, mock_bq_cls: MagicMock, mock_gcs_cls: MagicMock
+) -> None:
+    mock_job = MagicMock()
+    mock_job.state = "JOB_STATE_SUCCEEDED"
+    mock_job.tuned_model_info = MagicMock()
+    mock_job.tuned_model_info.endpoint = (
+        "projects/atelier-build-2026/locations/us-central1/endpoints/99"
+    )
+    mock_genai_client = MagicMock()
+    mock_genai_client.tunings.get.return_value = mock_job
+    mock_genai_cls.return_value = mock_genai_client
+    mock_bq_cls.return_value = MagicMock()
+    mock_gcs_cls.return_value = MagicMock()
+
+    tuner = GeneratorTuner(project="atelier-build-2026")
+    endpoint = tuner.evaluate_and_promote(
+        "projects/.../tuningJobs/42",
+        achieved_kappa=KAPPA_PROMOTION_THRESHOLD,
+    )
+    assert "endpoints/99" in endpoint
+
+
+def test_kappa_promotion_threshold_is_correct() -> None:
+    assert pytest.approx(0.70) == KAPPA_PROMOTION_THRESHOLD

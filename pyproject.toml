@@ -165,6 +165,10 @@ disallow_any_unimported = false
 [[tool.mypy.overrides]]
 module = "atelier.optimize.*"
 disallow_any_unimported = false
+# warn_unused_ignores=false: google.cloud.storage attr-defined suppression via
+# inline type: ignore[attr-defined]. Whether the override or the inline comment
+# fires depends on mypy resolver version — suppress both without error.
+warn_unused_ignores = false
 
 [[tool.mypy.overrides]]
 module = "skimage.*"
@@ -191,6 +195,13 @@ ignore_missing_imports = true
 # Same rationale as opentelemetry above.
 [[tool.mypy.overrides]]
 module = ["fastapi", "fastapi.*", "starlette", "starlette.*"]
+ignore_missing_imports = true
+
+# google-cloud-storage: installed (3.10.1 in requirements.lock) but mypy resolves
+# google.cloud as a namespace package and can't see the storage submodule via
+# attr-defined. Suppress at the google.cloud namespace level.
+[[tool.mypy.overrides]]
+module = ["google.cloud", "google.cloud.*"]
 ignore_missing_imports = true
 
 [tool.pydantic-mypy]
