@@ -2431,10 +2431,10 @@
       "tier": "P0",
       "name": "CI lint rule: atelier-eval/src/atelier_eval/lints/anchor_discipline.py (ADR 0012 mechanical enforcement)",
       "depends_on": ["F0199"],
-      "passes": true,
+      "passes": false,
       "day": "D2 May 16",
-      "notes": "P0-1+P0-2 enforcement; rejects PRs that ship judge/gate/subagent code ignoring BriefSpec; runs in pre-commit + CI [Reconciled D14: code+tests verified by red-team audit 2026-05-25]",
-      "evidence_tests": ["tests/unit/test_routing_manifest_schema.py"],
+      "notes": "P0-1+P0-2 enforcement; rejects PRs that ship judge/gate/subagent code ignoring BriefSpec; runs in pre-commit + CI [Reconciled D14: code+tests verified by red-team audit 2026-05-25] [Reverted D14: anchor_discipline.py lint file does not exist in codebase]",
+      "evidence_tests": [],
       "evidence_gap_note": "Not yet implemented; evidence tests pending"
     },
     {
