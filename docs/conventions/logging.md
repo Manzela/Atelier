@@ -115,4 +115,4 @@ Plus Atelier-specific:
 - `atelier.axis` (for axis-scoped spans)
 - `atelier.decision`, `atelier.score`, `atelier.confidence_interval`
 
-These exact attributes power Cloud Trace + Cloud Monitoring + Atelier Dashboard + the public `calibration.atelier.dev` dashboard.
+These exact attributes power Cloud Trace + Cloud Monitoring + Atelier Dashboard + the public `calibration.atelier.autonomous-agent.dev` dashboard.

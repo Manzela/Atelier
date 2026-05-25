@@ -1,0 +1,13 @@
+{
+  "projects": {
+    "default": "atelier-build-2026"
+  },
+  "targets": {
+    "atelier-build-2026": {
+      "hosting": {
+        "bench": ["atelier-build-2026"],
+        "replay": ["atelier-build-2026"]
+      }
+    }
+  }
+}

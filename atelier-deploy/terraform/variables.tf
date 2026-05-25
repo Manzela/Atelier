@@ -6,9 +6,14 @@
 # --- Project ---
 
 variable "project_id" {
-  description = "GCP project ID"
+  description = "GCP project ID (defaults to GOOGLE_CLOUD_PROJECT env var)"
   type        = string
-  default     = "i-for-ai"
+  default     = null
+
+  validation {
+    condition     = var.project_id != null && var.project_id != ""
+    error_message = "project_id must be set (via tfvars or GOOGLE_CLOUD_PROJECT env var)."
+  }
 }
 
 variable "region" {
@@ -32,7 +37,7 @@ variable "environment" {
 variable "api_image" {
   description = "Container image URL for the Atelier API service"
   type        = string
-  default     = "us-central1-docker.pkg.dev/i-for-ai/atelier/api:latest"
+  default     = "us-central1-docker.pkg.dev/atelier-build-2026/atelier/api:latest"
 }
 
 variable "api_min_instances" {
@@ -86,7 +91,7 @@ variable "kms_key_ring" {
 variable "auth_domain" {
   description = "Custom auth domain for Identity Platform"
   type        = string
-  default     = "auth.atelier.dev"
+  default     = "auth.atelier.autonomous-agent.dev"
 }
 
 # --- Networking ---
@@ -107,4 +112,18 @@ variable "labels" {
     team    = "manzela"
     managed = "terraform"
   }
+}
+
+# --- IAP ---
+
+variable "iap_support_email" {
+  description = "Support email for IAP OAuth consent screen"
+  type        = string
+  default     = "manzela@tngshopper.com"
+}
+
+variable "iap_allowed_members" {
+  description = "IAP-allowed IAM members (e.g. user:x@y.com, group:z@y.com)"
+  type        = list(string)
+  default     = ["user:manzela@tngshopper.com"]
 }

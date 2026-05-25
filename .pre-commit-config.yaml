@@ -59,6 +59,7 @@ repos:
           - types-PyYAML
           - types-requests
           - httpx>=0.28 # ships py.typed; needed for github_mcp.py type resolution
+          - firebase-admin>=7.4,<8 # needed for atelier.auth.firebase import resolution
 
   # ─── Python: pytest fast subset (<10s) ────────────────────────────────────
   - repo: local

@@ -67,7 +67,7 @@ Where every shipped autonomous-design tool today (Stitch, Vercel v0, Subframe, L
 | **N8**  | **Public Judge Calibration Dashboard**                                          | First commercial autonomous design agent to publish judge calibration externally as a transparency commitment. Defends against the calibration-drift problem 93% of teams hit.                                               |
 | **N9**  | **Open Eval Adapters Library**                                                  | Apache-2.0 PRs to `google/adk-python` for WebGen-Bench, Design2Code, Web2Code, ScreenSpot, FrontendBench. Makes ADK the canonical evaluation runtime for the field.                                                          |
 | **N10** | **Convergence Spec RFC**                                                        | Open standard: how an autonomous design agent declares convergence criteria, emits trajectories, reports calibration drift. Atelier is the reference implementation.                                                         |
-| **N11** | **Public Eval Harness**                                                         | `bench.atelier.dev` accepts agent submissions from any vendor. Atelier becomes the standard evaluation surface for the entire UI-generation field.                                                                           |
+| **N11** | **Public Eval Harness**                                                         | `bench.atelier.autonomous-agent.dev` accepts agent submissions from any vendor. Atelier becomes the standard evaluation surface for the entire UI-generation field.                                                          |
 | **N12** | **RLRD** — Recursive Long-Running Discipline                                    | Atelier-as-reference-implementation of Anthropic's published long-running agent harness for a domain-specific agent. The same patterns we use to build Atelier, we ship to users running multi-day, multi-surface campaigns. |
 | **N13** | **PIP** — Pre-Generation Intake Protocol                                        | Adaptive-depth, DAPLab-pattern-mapped, visual-option-driven, skip-when-answered intake. First commercial autonomous design agent to ship structured pre-generation intake.                                                   |
 
@@ -130,13 +130,13 @@ atelier/
 
 ## Live demos & artifacts
 
-- **Live agent**: [atelier.dev](https://atelier.dev)
-- **Documentation**: [docs.atelier.dev](https://docs.atelier.dev)
-- **Public benchmark scoreboard**: [bench.atelier.dev](https://bench.atelier.dev)
-- **Public calibration drift dashboard**: [calibration.atelier.dev](https://calibration.atelier.dev)
-- **Status page**: [status.atelier.dev](https://status.atelier.dev)
-- **Demo video** (4-min): linked from atelier.dev
-- **arXiv preprint** (4-page workshop): linked from docs.atelier.dev/research
+- **Live agent**: [atelier.autonomous-agent.dev](https://atelier.autonomous-agent.dev)
+- **Documentation**: [atelier.autonomous-agent.dev/docs](https://atelier.autonomous-agent.dev/docs)
+- **Public benchmark scoreboard**: [bench.atelier.autonomous-agent.dev](https://bench.atelier.autonomous-agent.dev)
+- **Public calibration drift dashboard**: [calibration.atelier.autonomous-agent.dev](https://calibration.atelier.autonomous-agent.dev)
+- **Status page**: [status.atelier.autonomous-agent.dev](https://status.atelier.autonomous-agent.dev)
+- **Demo video** (4-min): linked from atelier.autonomous-agent.dev
+- **arXiv preprint** (4-page workshop): linked from atelier.autonomous-agent.dev/docs/research
 
 ## Pricing
 

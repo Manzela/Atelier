@@ -54,6 +54,12 @@ dependencies = [
     # "google-cloud-firestore>=2.18,<3",
     "google-cloud-bigquery>=3.25,<4",
     "google-cloud-secret-manager>=2.20,<3",
+    # Authentication — Firebase Admin SDK for Google SSO + JWT verification.
+    # Version 7.4.0 is the latest stable release (2026-04-09, Apache-2.0).
+    # Used by atelier.auth.firebase for FastAPI middleware. Provides local
+    # JWT verification (no round-trip after public key cache) — sub-1ms overhead.
+    # Docs: https://firebase.google.com/docs/auth/admin/verify-id-tokens
+    "firebase-admin>=7.4,<8",
     # "opentelemetry-api>=1.27,<2",
     # "opentelemetry-sdk>=1.27,<2",
     # "opentelemetry-exporter-gcp-trace>=1.7,<2",
@@ -76,8 +82,8 @@ dev = [
 atelier = "atelier.cli:main"
 
 [project.urls]
-Homepage = "https://atelier.dev"
-Documentation = "https://docs.atelier.dev"
+Homepage = "https://atelier.autonomous-agent.dev"
+Documentation = "https://atelier.autonomous-agent.dev/docs"
 Repository = "https://github.com/Manzela/atelier"
 Issues = "https://github.com/Manzela/atelier/issues"
 

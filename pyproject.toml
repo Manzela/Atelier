@@ -155,6 +155,16 @@ module = "atelier.models.safety"
 # The runtime behaviour is correct; this override suppresses the false positive.
 disallow_any_unimported = false
 
+[[tool.mypy.overrides]]
+module = "atelier.auth.*"
+# firebase-admin (7.4.0) ships no PEP-561 py.typed marker. Also, fastapi.security
+# (HTTPAuthorizationCredentials) resolves through Any in strict mode because FastAPI
+# uses Annotated generics that mypy can't fully resolve without stubs.
+# ignore_missing_imports + disallow_any_unimported=false suppress the false positives
+# without disabling other strict checks on Atelier auth logic.
+ignore_missing_imports = true
+disallow_any_unimported = false
+
 # numpy is TYPE_CHECKING-gated in Protocol modules by design (ruff TC002).
 # When mypy resolves TYPE_CHECKING=True paths, NDArray types come from an
 # "unfollowed" perspective in strict mode. These overrides suppress the
