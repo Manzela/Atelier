@@ -98,3 +98,17 @@ RESUME-HERE: Close C1-C15 executor-brief items, then proceed to F0023 (N3d Conse
 **mypy --strict**: 0 issues on all 5 new files
 
 **T7 gate**: still blocked on Antigravity FA-012 dpo_builder.py creating `atelier_trajectories.dpo_pairs` BQ table. Unit tests mock the BQ client. Integration path not runnable until R9-B lands.
+
+### D11 verification pass (2026-05-25) — test fixes + plan contradiction resolved
+
+**Commit**: d9bd9f0 (test fixes)
+
+**Additional fixes found during verification-before-completion:**
+
+- Fixed 6 failing tests (not 0 as initially believed):
+  - `@pytest.mark.asyncio` → `@pytest.mark.anyio` in `test_vertex_memory_bank_scope.py` and `test_vertex_procedural_replay.py` (same asyncio-marker bug as test_router_v0.py; tests were failing due to wrong marker, NOT credentials)
+  - `Path("config/...")` → `Path(__file__).resolve().parents[3] / "config" / "..."` in `test_otel_export.py` and `test_scrubber.py` (relative path was wrong when running from atelier-core/ CWD)
+- Resolved plan F5 contradiction: plan checklist had "Update features.json" step that contradicted the F5 coordination contract. Verified: 0 T6-T14 feature IDs exist in features.json. Marked step N/A.
+- Antigravity brief Priority 1 (fix 6 failing tests) is now moot — Claude already fixed all 6.
+
+**Net suite count post-verification:** 504 passed, 0 failures, 50 xfailed.

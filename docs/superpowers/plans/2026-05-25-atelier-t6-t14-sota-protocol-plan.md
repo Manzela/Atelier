@@ -2102,10 +2102,12 @@ confirmation is received from Antigravity or Daniel.
   **RESUME-HERE:** Merge phase/2 PR when both Claude T6-T14 and Antigravity R9 complete.
   ```
 
-- [ ] **Update features.json**
+- [x] **Update features.json — NOT APPLICABLE (F5 coordination contract)**
 
-  In `features.json`, set `"passes": true` for any feature IDs that map to T6–T14
-  (search for `dpo_tuning`, `generator_tuner`, `episodic_memory`, `bandit`).
+  No T6-T14 feature IDs exist in `features.json` (verified 2026-05-25: 0 keyword
+  matches for dpo_tuning, generator_tuner, episodic_memory, bandit). Per the F5
+  coordination contract in the "Coordination contracts" section above, Claude does
+  NOT touch `features.json` during T6-T14. Antigravity owns all feature flips.
 
 - [ ] **Push to origin**
 
