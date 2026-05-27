@@ -410,9 +410,10 @@ async def _search_with_grounding(
 
         allowed = sum(1 for r in results if r.trust_tier >= 0)
         denied = len(results) - allowed
+        safe_query_preview = query.replace("\r", "").replace("\n", "")[:80]
         logger.info(
             "WRAI grounding search complete: query=%r, results=%d, denied=%d",
-            query[:80],
+            safe_query_preview,
             allowed,
             denied,
         )
