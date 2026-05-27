@@ -4,11 +4,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="color-scheme" content="light dark" />
+  <meta
+    http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self' https://www.gstatic.com/firebasejs/ 'unsafe-inline'; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.google.com; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com;"
+  />
   <title>Atelier — Sign in</title>
   <meta name="description" content="Sign in to Atelier — the autonomous design agent that generates, evaluates, and optimises UI from text briefs." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500&family=Roboto:wght@300;400;500&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Text:wght@400;500&family=Roboto:wght@300;400;500&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
   <style>
     :root {
       color-scheme: light dark;
@@ -57,7 +61,7 @@
       --md-shape-full: 50px;
       --md-ease-standard:      cubic-bezier(0.2, 0, 0, 1);
       --md-ease-emphasized-dec: cubic-bezier(0.05, 0.7, 0.1, 1);
-      --font-sans: 'Google Sans', 'Roboto', system-ui, sans-serif;
+      --font-sans: 'Google Sans Text', 'Roboto', system-ui, sans-serif;
     }
 
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -251,6 +255,22 @@
       border: 0 !important;
       white-space: nowrap !important;
     }
+    /* ── Fallback for browsers without light-dark() ──────────────────────── */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --md-primary: var(--md-primary-dark);
+        --md-primary-container: var(--md-primary-container-dark);
+        --md-on-primary-container: var(--md-on-primary-container-dark);
+        --md-bg: var(--md-bg-dark);
+        --md-surface-container: var(--md-surface-container-dark);
+        --md-surface-container-high: var(--md-surface-container-high-dark);
+        --md-on-surface: var(--md-on-surface-dark);
+        --md-on-surface-variant: var(--md-on-surface-variant-dark);
+        --md-outline-variant: var(--md-outline-variant-dark);
+        --md-outline: var(--md-outline-dark);
+        --md-error: var(--md-error-dark);
+      }
+    }
   </style>
 </head>
 <body>
@@ -342,9 +362,16 @@
         sessionStorage.setItem('atelier_user_name', user.displayName || '');
         sessionStorage.setItem('atelier_user_email', user.email || '');
         const rawRedirect = new URLSearchParams(window.location.search).get('redirect') || '../bench/';
-        // Prevent open redirect — only allow relative paths
-        const isSafe = rawRedirect.startsWith('../') || rawRedirect.startsWith('/');
-        const redirect = isSafe && !rawRedirect.startsWith('//') ? rawRedirect : '../bench/';
+        // Prevent open redirect — WHATWG URL constructor validates origin
+        let redirect = '../bench/';
+        try {
+          const parsed = new URL(rawRedirect, window.location.origin);
+          if (parsed.origin === window.location.origin) {
+            redirect = parsed.pathname + parsed.search + parsed.hash;
+          }
+        } catch {
+          // Invalid URL — fall through to default '../bench/'
+        }
         window.location.replace(redirect);
       }
     });

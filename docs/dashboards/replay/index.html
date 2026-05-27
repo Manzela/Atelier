@@ -8,7 +8,7 @@
   <meta name="description" content="Replay and inspect individual agent sessions — span graphs, gate scorecards, and memory recalls for Atelier trajectory runs." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500&family=Roboto:wght@300;400;500&family=Roboto+Mono:wght@400;500&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Text:wght@400;500&family=Roboto:wght@300;400;500&family=Roboto+Mono:wght@400;500&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
   <style>
     /* ── Material Design 3 — Light-first, Google B2C aesthetic ────────────── */
     :root {
@@ -105,7 +105,7 @@
       --md-dur-m4: 400ms;
       --md-dur-l2: 500ms;
 
-      --font-sans: 'Google Sans', 'Roboto', system-ui, sans-serif;
+      --font-sans: 'Google Sans Text', 'Roboto', system-ui, sans-serif;
       --font-mono: 'Roboto Mono', monospace;
 
       --sidebar-w: 300px;
@@ -680,6 +680,34 @@
       border: 0 !important;
       white-space: nowrap !important;
     }
+    /* ── Fallback for browsers without light-dark() ──────────────────────── */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --md-primary: var(--md-primary-dark);
+        --md-on-primary: var(--md-on-primary-dark);
+        --md-primary-container: var(--md-primary-container-dark);
+        --md-on-primary-container: var(--md-on-primary-container-dark);
+        --md-secondary: var(--md-secondary-dark);
+        --md-secondary-container: var(--md-secondary-container-dark);
+        --md-on-secondary-container: var(--md-on-secondary-container-dark);
+        --md-tertiary: var(--md-tertiary-dark);
+        --md-tertiary-container: var(--md-tertiary-container-dark);
+        --md-on-tertiary-container: var(--md-on-tertiary-container-dark);
+        --md-error: var(--md-error-dark);
+        --md-positive: var(--md-positive-dark);
+        --md-bg: var(--md-bg-dark);
+        --md-surface: var(--md-surface-dark);
+        --md-on-surface: var(--md-on-surface-dark);
+        --md-on-surface-variant: var(--md-on-surface-variant-dark);
+        --md-surface-container-lowest: var(--md-surface-container-lowest-dark);
+        --md-surface-container-low: var(--md-surface-container-low-dark);
+        --md-surface-container: var(--md-surface-container-dark);
+        --md-surface-container-high: var(--md-surface-container-high-dark);
+        --md-surface-container-highest: var(--md-surface-container-highest-dark);
+        --md-outline: var(--md-outline-dark);
+        --md-outline-variant: var(--md-outline-variant-dark);
+      }
+    }
   </style>
 </head>
 <body>
@@ -1048,11 +1076,11 @@
         </div>
         <div class="summary-row">
           <span class="summary-key">Iteration</span>
-          <span class="summary-val">${data.iteration}</span>
+          <span class="summary-val">${escapeHTML(String(data.iteration))}</span>
         </div>
         <div class="summary-row">
           <span class="summary-key">Candidates</span>
-          <span class="summary-val">${data.candidate_count}</span>
+          <span class="summary-val">${escapeHTML(String(data.candidate_count))}</span>
         </div>
         <div class="summary-row">
           <span class="summary-key">Total cost</span>
@@ -1060,7 +1088,7 @@
         </div>
         <div class="summary-row">
           <span class="summary-key">Tokens in / out</span>
-          <span class="summary-val">${data.total_input_tokens} / ${data.total_output_tokens}</span>
+          <span class="summary-val">${escapeHTML(String(data.total_input_tokens))} / ${escapeHTML(String(data.total_output_tokens))}</span>
         </div>
         ${data.degradation_reason ? `
         <div style="margin-top:16px;padding:12px;border-radius:6px;background:color-mix(in srgb, var(--md-error) 12%, transparent 88%);border:1px solid color-mix(in srgb, var(--md-error) 30%, transparent 70%);">

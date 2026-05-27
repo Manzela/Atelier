@@ -5,9 +5,17 @@
   "targets": {
     "atelier-build-2026": {
       "hosting": {
-        "bench": ["atelier-build-2026"],
-        "replay": ["atelier-build-2026"]
+        "bench": [
+          "atelier-build-2026"
+        ],
+        "replay": [
+          "atelier-build-2026"
+        ],
+        "dashboard": [
+          "atelier-build-2026-21a9e"
+        ]
       }
     }
-  }
+  },
+  "etags": {}
 }

@@ -888,7 +888,7 @@ class TestVertexAIClientLazyImport:
         # lazy-import contract holds for the import path.
         # In-method import is deliberate: this test verifies the
         # lazy-import contract for VertexAIJudgeClient.
-        from atelier.nodes import llm_judge as module  # noqa: PLC0415
+        from atelier.nodes import llm_judge as module
 
         assert hasattr(module, "VertexAIJudgeClient")
 
@@ -897,7 +897,7 @@ class TestVertexAIClientLazyImport:
         # the lazy importer to verify no module is fetched until generate().
         # In-method import is deliberate: this test verifies the
         # lazy-import contract for VertexAIJudgeClient.
-        from atelier.nodes import llm_judge as module  # noqa: PLC0415
+        from atelier.nodes import llm_judge as module
 
         client = module.VertexAIJudgeClient(project="atelier-test")
         # The client should not have eagerly created a Vertex AI client.
@@ -909,7 +909,7 @@ class TestVertexAIClientLazyImport:
         # than producing a misleading partial response.
         # In-method import is deliberate: this test verifies the
         # lazy-import contract for VertexAIJudgeClient.
-        from atelier.nodes import llm_judge as module  # noqa: PLC0415
+        from atelier.nodes import llm_judge as module
 
         client = module.VertexAIJudgeClient(project="atelier-test")
         with (
