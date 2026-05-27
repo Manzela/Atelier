@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light dark" />
+  <meta
+    http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self' https://www.gstatic.com/firebasejs/ 'unsafe-inline'; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.google.com; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com;"
+  />
+  <title>Atelier — Sign in</title>
+  <meta name="description" content="Sign in to Atelier — the autonomous design agent that generates, evaluates, and optimises UI from text briefs." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Text:wght@400;500&family=Roboto:wght@300;400;500&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      color-scheme: light dark;
+
+      /* Light palette (Google B2C) */
+      --md-primary-light:            #1a73e8;
+      --md-primary-container-light:  #d3e3fd;
+      --md-on-primary-container-light: #062e6f;
+      --md-bg-light:                 #ffffff;
+      --md-surface-container-light:  #f1f3f4;
+      --md-surface-container-high-light: #e8eaed;
+      --md-on-surface-light:         #202124;
+      --md-on-surface-variant-light: #5f6368;
+      --md-outline-variant-light:    #dadce0;
+      --md-outline-light:            #80868b;
+      --md-error-light:              #d93025;
+
+      /* Dark palette */
+      --md-primary-dark:            #a8c7fa;
+      --md-primary-container-dark:  #284290;
+      --md-on-primary-container-dark: #d6e3ff;
+      --md-bg-dark:                 #101318;
+      --md-surface-container-dark:  #1e2026;
+      --md-surface-container-high-dark: #282a31;
+      --md-on-surface-dark:         #e2e2e9;
+      --md-on-surface-variant-dark: #c4c6d0;
+      --md-outline-variant-dark:    #44464f;
+      --md-outline-dark:            #8e9099;
+      --md-error-dark:              #ffb4ab;
+
+      /* Semantic tokens */
+      --md-primary:            light-dark(var(--md-primary-light), var(--md-primary-dark));
+      --md-primary-container:  light-dark(var(--md-primary-container-light), var(--md-primary-container-dark));
+      --md-on-primary-container: light-dark(var(--md-on-primary-container-light), var(--md-on-primary-container-dark));
+      --md-bg:                 light-dark(var(--md-bg-light), var(--md-bg-dark));
+      --md-surface-container:  light-dark(var(--md-surface-container-light), var(--md-surface-container-dark));
+      --md-surface-container-high: light-dark(var(--md-surface-container-high-light), var(--md-surface-container-high-dark));
+      --md-on-surface:         light-dark(var(--md-on-surface-light), var(--md-on-surface-dark));
+      --md-on-surface-variant: light-dark(var(--md-on-surface-variant-light), var(--md-on-surface-variant-dark));
+      --md-outline-variant:    light-dark(var(--md-outline-variant-light), var(--md-outline-variant-dark));
+      --md-outline:            light-dark(var(--md-outline-light), var(--md-outline-dark));
+      --md-error:              light-dark(var(--md-error-light), var(--md-error-dark));
+
+      --md-shape-md:  12px;
+      --md-shape-lg:  16px;
+      --md-shape-full: 50px;
+      --md-ease-standard:      cubic-bezier(0.2, 0, 0, 1);
+      --md-ease-emphasized-dec: cubic-bezier(0.05, 0.7, 0.1, 1);
+      --font-sans: 'Google Sans Text', 'Roboto', system-ui, sans-serif;
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--md-bg);
+      color: var(--md-on-surface);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      font-size: 24px;
+      line-height: 1;
+    }
+
+    /* Sign-in card */
+    .card {
+      width: 100%;
+      max-width: 400px;
+      margin: 24px;
+      background: var(--md-surface-container);
+      border: 1px solid var(--md-outline-variant);
+      border-radius: var(--md-shape-lg);
+      padding: 40px 36px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+    }
+
+    /* Logo */
+    .logo {
+      margin-bottom: 24px;
+    }
+
+    .logo-mark {
+      width: 48px;
+      height: 48px;
+      display: block;
+      margin: 0 auto 12px;
+    }
+
+    .product-name {
+      font-size: 24px;
+      font-weight: 400;
+      letter-spacing: 0;
+      color: var(--md-on-surface);
+      text-align: center;
+    }
+
+    .product-tagline {
+      font-size: 13px;
+      color: var(--md-on-surface-variant);
+      text-align: center;
+      margin-top: 6px;
+      line-height: 1.5;
+    }
+
+    .divider {
+      width: 100%;
+      height: 1px;
+      background: var(--md-outline-variant);
+      margin: 28px 0;
+    }
+
+    /* Sign-in prompt */
+    .signin-label {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--md-on-surface);
+      margin-bottom: 16px;
+      align-self: flex-start;
+    }
+
+    /* Google Sign-In button (M3 Outlined Button style with Google branding) */
+    .google-btn {
+      width: 100%;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      background: var(--md-surface-container-high);
+      border: 1px solid var(--md-outline-variant);
+      border-radius: var(--md-shape-full);
+      cursor: pointer;
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--md-on-surface);
+      letter-spacing: 0.01em;
+      transition: background 200ms var(--md-ease-standard),
+                  border-color 200ms var(--md-ease-standard),
+                  transform 100ms var(--md-ease-standard);
+    }
+
+    :where(a, button, input, [tabindex]):focus-visible {
+      outline: 3px solid var(--md-primary);
+      outline-offset: 3px;
+    }
+
+    .google-btn:hover {
+      background: color-mix(in srgb, var(--md-surface-container-high) 85%, white 15%);
+      border-color: var(--md-outline);
+    }
+
+    .google-btn:active {
+      transform: scale(0.98);
+    }
+
+    .google-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Google G logo SVG */
+    .google-logo {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+
+    /* Status message */
+    .status {
+      margin-top: 16px;
+      font-size: 12px;
+      color: var(--md-on-surface-variant);
+      text-align: center;
+      min-height: 18px;
+      width: 100%;
+    }
+
+    .status.error {
+      color: var(--md-error);
+    }
+
+    /* Footer */
+    .footer {
+      margin-top: 32px;
+      font-size: 11px;
+      color: var(--md-on-surface-variant);
+      text-align: center;
+      line-height: 1.6;
+      width: 100%;
+    }
+
+    .footer a {
+      color: var(--md-primary);
+      text-decoration: none;
+    }
+
+    .footer a:hover { text-decoration: underline; }
+
+    /* Spinner */
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid var(--md-outline-variant);
+      border-top-color: var(--md-primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      flex-shrink: 0;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    .visually-hidden:where(:not(:focus-within, :active)) {
+      position: absolute !important;
+      clip-path: inset(50%) !important;
+      overflow: hidden !important;
+      width: 1px !important;
+      height: 1px !important;
+      margin: -1px !important;
+      padding: 0 !important;
+      border: 0 !important;
+      white-space: nowrap !important;
+    }
+    /* ── Fallback for browsers without light-dark() ──────────────────────── */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --md-primary: var(--md-primary-dark);
+        --md-primary-container: var(--md-primary-container-dark);
+        --md-on-primary-container: var(--md-on-primary-container-dark);
+        --md-bg: var(--md-bg-dark);
+        --md-surface-container: var(--md-surface-container-dark);
+        --md-surface-container-high: var(--md-surface-container-high-dark);
+        --md-on-surface: var(--md-on-surface-dark);
+        --md-on-surface-variant: var(--md-on-surface-variant-dark);
+        --md-outline-variant: var(--md-outline-variant-dark);
+        --md-outline: var(--md-outline-dark);
+        --md-error: var(--md-error-dark);
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+
+    <!-- Brand -->
+    <div class="logo">
+      <svg class="logo-mark" viewBox="0 0 48 48" fill="none" role="img" aria-label="Atelier">
+        <rect width="48" height="48" rx="12" fill="var(--md-primary-container)"/>
+        <path d="M9 36L19 13L24 26L29 13L39 36"
+              stroke="var(--md-primary)" stroke-width="3"
+              stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="24" cy="26" r="2.5" fill="var(--md-primary)"/>
+      </svg>
+      <h1 class="product-name">Atelier</h1>
+      <p class="product-tagline">Autonomous Design Agent<br>for Google AI Agents Challenge 2026</p>
+    </div>
+
+    <div class="divider"></div>
+
+    <p class="signin-label">Sign in to continue</p>
+
+    <!-- Google Sign-In Button -->
+    <button class="google-btn" id="sign-in-btn" aria-label="Sign in with Google">
+      <!-- Google G logo -->
+      <svg class="google-logo" viewBox="0 0 48 48" aria-hidden="true">
+        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+        <path fill="none" d="M0 0h48v48H0z"/>
+      </svg>
+      Sign in with Google
+    </button>
+
+    <p class="status" id="status-msg" role="status" aria-live="polite"></p>
+
+    <div class="footer">
+      By signing in, you agree to Atelier&rsquo;s
+      <a href="https://atelier.autonomous-agent.dev/terms" rel="noopener">Terms of Service</a>
+      and
+      <a href="https://atelier.autonomous-agent.dev/privacy" rel="noopener">Privacy Policy</a>.<br>
+      <br>
+      Your Google account is used only for authentication.<br>
+      No data is shared with third parties.
+    </div>
+
+  </main>
+
+  <!-- Firebase SDK (v10 modular, Google CDN) -->
+  <!-- Firebase project config (public client-side identifier — not a secret) -->
+  <script src="../config.js"></script>
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+    import {
+      getAuth,
+      GoogleAuthProvider,
+      signInWithPopup,
+      onAuthStateChanged,
+    } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+
+    // Config loaded from ../config.js (window.__FIREBASE_CONFIG__)
+    const FIREBASE_CONFIG = window.__FIREBASE_CONFIG__;
+
+    const app  = initializeApp(FIREBASE_CONFIG);
+    const auth = getAuth(app);
+
+    const btn    = document.getElementById('sign-in-btn');
+    const status = document.getElementById('status-msg');
+
+    function setStatus(msg, isError = false) {
+      status.textContent = msg;
+      status.className   = `status${isError ? ' error' : ''}`;
+    }
+
+    function setLoading(loading) {
+      btn.disabled = loading;
+      btn.innerHTML = loading
+        ? '<div class="spinner"></div><span>Signing in&hellip;</span>'
+        : '<svg class="google-logo" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>Sign in with Google';
+    }
+
+    // Redirect if already signed in
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        setStatus('Signed in. Redirecting…');
+        const idToken = await user.getIdToken();
+        sessionStorage.setItem('atelier_id_token', idToken);
+        sessionStorage.setItem('atelier_user_name', user.displayName || '');
+        sessionStorage.setItem('atelier_user_email', user.email || '');
+        const rawRedirect = new URLSearchParams(window.location.search).get('redirect') || '../bench/';
+        // Prevent open redirect — WHATWG URL constructor validates origin
+        let redirect = '../bench/';
+        try {
+          const parsed = new URL(rawRedirect, window.location.origin);
+          if (parsed.origin === window.location.origin) {
+            redirect = parsed.pathname + parsed.search + parsed.hash;
+          }
+        } catch {
+          // Invalid URL — fall through to default '../bench/'
+        }
+        window.location.replace(redirect);
+      }
+    });
+
+    btn.addEventListener('click', async () => {
+      setLoading(true);
+      setStatus('');
+      try {
+        const provider = new GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
+        await signInWithPopup(auth, provider);
+        // onAuthStateChanged callback will handle redirect
+      } catch (err) {
+        setLoading(false);
+        if (err.code === 'auth/popup-closed-by-user') {
+          setStatus('Sign-in cancelled.');
+        } else if (err.code === 'auth/network-request-failed') {
+          setStatus('Network error. Check your connection and try again.', true);
+        } else {
+          setStatus(`Sign-in failed: ${err.message}`, true);
+        }
+      }
+    });
+  </script>
+</body>
+</html>

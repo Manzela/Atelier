@@ -2,7 +2,7 @@
 
 v0 implementation: thin wrapper over Vertex AI GenerationConfigRoutingConfig.
 v1 implementation: epsilon-greedy multi-armed bandit over the EvoDesign
-    trajectory store (BigQuery-backed arms, per spec §18.4 + T13).
+    trajectory store (BigQuery-backed arms, per spec §18.4).
 v2 implementation: RouteLLM-style matrix-factorization router trained on
     Atelier DPO pairs (Phase-2 stretch, per spec §18.5).
 
@@ -18,7 +18,7 @@ runtime so the import is not needed there. Ruff TC002 enforces this pattern:
 third-party imports used only for annotations belong in TYPE_CHECKING. Router
 implementations (v0_managed.py, v1_bandit.py, v2_matrix.py) construct
 RouteRequest in tests and callers that own numpy at runtime. numpy 2.4.6 is in
-the requirements.lock since Antigravity R7-01.
+the requirements.lock since the numpy lockfile add.
 """
 
 from __future__ import annotations

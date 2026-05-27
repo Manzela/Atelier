@@ -5,7 +5,7 @@
 # Per §2.7 and §24.2 of the post-R4 strategic roadmap.
 #
 # Runs: Sunday 03:17 UTC through submission window (3 runs: 2026-05-24, 2026-05-31, 2026-06-07).
-# Writes 7-day delta to docs/sprint/COST_LEDGER.md.
+# Writes 7-day delta to .local/sprint/docs/COST_LEDGER.md (local-only ledger).
 #
 # Usage:
 #   DRY_RUN=1 bash scripts/migration/06_weekly_cost_tail.sh     # default: dry-run
@@ -18,7 +18,7 @@ PREFIX=""
 
 SRC_PROJECT="i-for-ai"
 DST_PROJECT="atelier-build-2026"
-LEDGER="docs/sprint/COST_LEDGER.md"
+LEDGER=".local/sprint/docs/COST_LEDGER.md"
 TODAY=$(date -u +%F)
 WEEK_AGO=$(date -u -v-7d +%F 2>/dev/null || date -u -d "7 days ago" +%F)
 

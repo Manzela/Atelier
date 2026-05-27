@@ -1,4 +1,4 @@
-"""Unit tests for EpsilonGreedyBandit (T13, ADR 0027 v1)."""
+"""Unit tests for EpsilonGreedyBandit (ADR 0027 v1)."""
 
 from __future__ import annotations
 
@@ -114,28 +114,28 @@ def test_bandit_initial_epsilon_is_epsilon_start() -> None:
 # ─── route() ─────────────────────────────────────────────────────────────────
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_route_returns_route_decision() -> None:
     bandit = EpsilonGreedyBandit(rng=random.Random(42))  # noqa: S311
     decision = await bandit.route(_make_request())
     assert isinstance(decision, RouteDecision)
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_route_decision_routing_mode_is_v1_bandit() -> None:
     bandit = EpsilonGreedyBandit(rng=random.Random(42))  # noqa: S311
     decision = await bandit.route(_make_request())
     assert decision.routing_mode == "v1_bandit"
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_route_decision_expert_is_valid_expert_id() -> None:
     bandit = EpsilonGreedyBandit(rng=random.Random(42))  # noqa: S311
     decision = await bandit.route(_make_request())
     assert decision.expert in ExpertID
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_route_returns_non_empty_fallback_chain() -> None:
     bandit = EpsilonGreedyBandit(rng=random.Random(42))  # noqa: S311
     decision = await bandit.route(_make_request())
@@ -143,14 +143,14 @@ async def test_route_returns_non_empty_fallback_chain() -> None:
     assert decision.expert not in decision.fallback_chain
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_route_span_attrs_contains_epsilon() -> None:
     bandit = EpsilonGreedyBandit(rng=random.Random(42))  # noqa: S311
     decision = await bandit.route(_make_request())
     assert "router.epsilon" in decision.span_attrs
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_route_exploit_picks_highest_mean_arm() -> None:
     """With ε=0 (always exploit), bandit picks arm with highest mean score."""
     rng = random.Random()  # noqa: S311
@@ -167,7 +167,7 @@ async def test_route_exploit_picks_highest_mean_arm() -> None:
     assert decision.expert == ExpertID.GEMINI_3_PRO
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_route_unsampled_arm_always_wins_exploration() -> None:
     """UCB1 returns inf for unsampled arms — they should always be explored first."""
     rng = random.Random()  # noqa: S311
@@ -188,7 +188,7 @@ async def test_route_unsampled_arm_always_wins_exploration() -> None:
 # ─── observe_outcome() ───────────────────────────────────────────────────────
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_observe_outcome_updates_arm_for_expert() -> None:
     bandit = EpsilonGreedyBandit()
     decision = _make_decision(expert=ExpertID.GEMINI_3_FLASH)
@@ -212,7 +212,7 @@ async def test_observe_outcome_updates_arm_for_expert() -> None:
     assert updated_pulls > initial_pulls
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_observe_outcome_improves_mean_score_for_expert() -> None:
     bandit = EpsilonGreedyBandit()
     phase = DAGPhase.GENERATE_CANDIDATES

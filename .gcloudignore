@@ -1,0 +1,53 @@
+# Atelier — .gcloudignore
+# Controls what gcloud builds submit uploads. Mirrors .dockerignore.
+# See: https://cloud.google.com/sdk/gcloud/reference/topic/gcloudignore
+
+# Include the default .gitignore patterns
+#!include:.gitignore
+
+# Version control
+.git/
+
+# Virtual environments
+.venv/
+venv/
+
+# IDE / Editor
+.vscode/
+.idea/
+
+# Audit / docs (not needed for builds)
+audit/
+docs/
+
+# Tests
+atelier-core/tests/
+atelier-eval/
+
+# Infrastructure (not needed in build context)
+infra/
+scripts/
+
+# Build artifacts
+*.egg-info/
+__pycache__/
+dist/
+build/
+
+# Logs
+*.log
+
+# Terraform
+*.tfplan
+tfplan
+.terraform/
+*.tfstate*
+
+# OS files
+.DS_Store
+
+# Worktrees
+.worktrees/
+
+# Lock files
+uv.lock

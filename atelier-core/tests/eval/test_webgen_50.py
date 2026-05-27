@@ -9,7 +9,7 @@ Subset: 50 tasks selected by SHA-256 sort of task ID, first 50
 
 NOTE: The spec references "50/484 WebGen-Bench subset" but the actual
 benchmark has 101 tasks (484 is the Design2Code dataset). The 50-task
-subset from the real 101 is used here. See R6-06 handoff notes.
+subset from the real 101 is used here. See the eval-harness handoff notes.
 """
 
 from __future__ import annotations

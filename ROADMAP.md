@@ -58,7 +58,7 @@ EvoDesign + ConsensusAgent + Campaign Orchestrator + PIP + 12-surface autonomous
 
 - 12-surface autonomous campaign converges end-to-end without human intervention
 - WebGen-Bench full eval ≥ 51 (matching SOTA)
-- Calibration dashboard live at calibration.atelier.dev with first-week data
+- Calibration dashboard live at calibration.atelier.autonomous-agent.dev with first-week data
 - All 4 A2UI renderers working (React + Flutter + Lit + Angular)
 - Telegram + CLI + web UI all working
 - 5 beta tenants signed in via Identity Platform
@@ -117,7 +117,7 @@ Per-project judge LoRA fine-tune, Open Eval Adapters, Skills Pack, marketing sit
 
 ## Long-term vision
 
-Atelier becomes the **standard evaluation surface for the entire UI-generation field** (`bench.atelier.dev`), the **reference implementation of the Convergence Spec** (community-driven RFC), and the **canonical example of Anthropic's long-running-agent harness applied to a domain-specific autonomous agent**. Trajectory data is the compounding moat — never open-sourced; agent core is Apache-2.0 and freely forkable.
+Atelier becomes the **standard evaluation surface for the entire UI-generation field** (`bench.atelier.autonomous-agent.dev`), the **reference implementation of the Convergence Spec** (community-driven RFC), and the **canonical example of Anthropic's long-running-agent harness applied to a domain-specific autonomous agent**. Trajectory data is the compounding moat — never open-sourced; agent core is Apache-2.0 and freely forkable.
 
 By end of 2026:
 

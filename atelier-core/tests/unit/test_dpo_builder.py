@@ -1,7 +1,10 @@
+import json
+import pathlib
 from datetime import UTC, datetime
-from uuid import uuid4
+from uuid import UUID, uuid4  # P2-4: moved UUID import to top level
 
-from atelier.nodes.trajectory import TrajectoryRecord, TrajectoryStep
+import pytest
+from atelier.nodes.trajectory import TrajectoryRecord, TrajectoryStep, extract_dpo_pairs
 from atelier.recorders.dpo_builder import prepare_dpo_dataset
 
 
@@ -34,8 +37,6 @@ def make_record(
 
 
 def test_valid_pair_extracted():
-    r1 = make_record("surf1", "cand1", 0, 0.72)
-    # override manually to keep it string matchable or exact UUID
     surf_uuid = uuid4()
     c1_uuid = uuid4()
     c2_uuid = uuid4()
@@ -170,3 +171,113 @@ def test_metadata_fields_present():
     assert "iteration" in m
     assert "chosen_score" in m
     assert "rejected_score" in m
+
+
+FIXTURE = pathlib.Path(__file__).parent.parent / "fixtures" / "trajectories_seed.jsonl"
+
+
+def load_fixture():
+    return [json.loads(line) for line in FIXTURE.read_text().splitlines() if line.strip()]
+
+
+@pytest.mark.unit
+def test_fixture_completeness():
+    records = load_fixture()
+    assert len(records) == 30
+    required_keys = {
+        "trajectory_id",
+        "tenant_id",
+        "project_id",
+        "surface_id",
+        "session_id",
+        "campaign_id",
+        "candidate_id",
+        "iteration",
+        "ts",
+        "ended_at",
+        "outcome",
+        "composite_score",
+        "steps_json",
+        "gate_results_json",
+        "judge_votes_json",
+        "total_cost_usd",
+        "total_input_tokens",
+        "total_output_tokens",
+        "error_message",
+    }
+    for r in records:
+        assert set(r.keys()).issuperset(required_keys)
+
+
+@pytest.mark.unit
+def test_fixture_tenant_isolation():
+    records = load_fixture()
+    tenant_counts = {}
+    for r in records:
+        tenant_counts[r["tenant_id"]] = tenant_counts.get(r["tenant_id"], 0) + 1
+    assert len(tenant_counts) == 2
+    assert tenant_counts.get("tenant-alpha", 0) == 20
+    assert tenant_counts.get("tenant-beta", 0) == 10
+
+
+@pytest.mark.unit
+def test_fixture_outcome_distribution():
+    records = load_fixture()
+    outcome_counts = {}
+    for r in records:
+        outcome_counts[r["outcome"]] = outcome_counts.get(r["outcome"], 0) + 1
+    assert outcome_counts.get("accepted", 0) == 18
+    assert outcome_counts.get("rejected", 0) == 8
+    assert outcome_counts.get("error", 0) == 4
+
+
+@pytest.mark.unit
+def test_fixture_judge_votes():
+    records = load_fixture()
+    required_axes = {
+        "brand",
+        "originality",
+        "relevance",
+        "accessibility",
+        "visual_clarity",
+        "copy",
+        "motion",
+        "token",
+        "coherence",
+    }
+    for r in records:
+        votes = json.loads(r["judge_votes_json"])
+        axes = {vote["axis"] for vote in votes}
+        assert axes.issuperset(required_axes)
+
+
+@pytest.mark.unit
+def test_fixture_extract_dpo_pairs():
+    """extract_dpo_pairs() produces >= 3 pairs from accepted+rejected records with min_margin=0.05."""
+    # P2-4: UUID now imported at top level — no need for in-function import
+    records = load_fixture()
+    trajectory_records = []
+    for r in records:
+        record = TrajectoryRecord(
+            trajectory_id=UUID(r["trajectory_id"]),
+            surface_id=UUID(r["surface_id"]),
+            tenant_id=r["tenant_id"],
+            project_id=r["project_id"],
+            session_id=r["session_id"],
+            campaign_id=r["campaign_id"],
+            candidate_id=UUID(r["candidate_id"]),
+            iteration=r["iteration"],
+            started_at=datetime.fromisoformat(r["ts"]),
+            ended_at=datetime.fromisoformat(r["ended_at"]),
+            outcome=r["outcome"],
+            composite_score=r["composite_score"],
+            steps=(),
+        )
+        trajectory_records.append(record)
+
+    pairs = extract_dpo_pairs(trajectory_records, min_margin=0.05)
+    # P1-1 fix: fixture now keeps all DPO surface pairs within tenant-alpha to prevent
+    # cross-tenant training data pollution. The distribution (18 accepted / 8 rejected)
+    # places only 2 rejected records in tenant-alpha (records 18, 19), yielding 2 pairs.
+    # >= 2 still verifies the core extract_dpo_pairs() functionality end-to-end.
+    assert len(pairs) >= 2

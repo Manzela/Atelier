@@ -1,8 +1,8 @@
-"""Unit tests for atelier.router.protocol (T3 + R7-01 follow-up).
+"""Unit tests for atelier.router.protocol (numpy-lockfile follow-up).
 
-T3 originally deferred the runtime ndarray smoke because numpy was not
-in requirements.lock. Antigravity R7-01 added numpy 2.4.6; the runtime
-round-trip tests are now included below alongside the structural parity tests.
+The runtime ndarray smoke was originally deferred because numpy was not in
+requirements.lock. numpy 2.4.6 has since been added; the runtime round-trip
+tests are now included below alongside the structural parity tests.
 """
 
 from __future__ import annotations
@@ -217,11 +217,11 @@ def test_phase_aware_moe_router_protocol_is_runtime_unchecked_but_structural() -
         isinstance(Incomplete(), PhaseAwareMoERouter)  # type: ignore[misc]
 
 
-# ---- Runtime ndarray round-trips (unblocked by R7-01 numpy lockfile add) ----
-# These tests were deferred in T3 because numpy was not in requirements.lock.
-# Antigravity R7-01 (917b251) added numpy 2.4.6. The TYPE_CHECKING guard in
-# router/protocol.py is intentional (ruff TC002), but tests construct real
-# RouteRequest instances with ndarrays since numpy is available at test runtime.
+# ---- Runtime ndarray round-trips (unblocked by numpy lockfile add) ----
+# These tests were previously deferred because numpy was not in requirements.lock.
+# numpy 2.4.6 has since been added. The TYPE_CHECKING guard in router/protocol.py
+# is intentional (ruff TC002), but tests construct real RouteRequest instances
+# with ndarrays since numpy is available at test runtime.
 
 
 @pytest.mark.unit

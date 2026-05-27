@@ -96,10 +96,11 @@ ignore = [
 unfixable = ["F401", "F841"]  # Don't auto-remove unused imports/variables
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**/*.py" = ["S101", "PLR2004", "ARG001", "ARG002", "ANN", "B017", "PT011"]
-"**/tests/**/*.py" = ["S101", "PLR2004", "ARG001", "ARG002", "ANN", "B017", "PT011"]
+"tests/**/*.py" = ["S101", "PLR2004", "ARG001", "ARG002", "ANN", "B017", "PT011", "PLC0415", "F401", "B008", "FBT003"]
+"**/tests/**/*.py" = ["S101", "PLR2004", "ARG001", "ARG002", "ANN", "B017", "PT011", "PLC0415", "F401", "B008", "FBT003"]
 "atelier-core/src/atelier/models/enums.py" = ["S105"]  # enum values like 'pass' and 'token-fidelity' are NOT secrets
 "atelier-core/src/atelier/skills/**/*.py" = ["T20"]  # print() ok in skills (CLI output)
+"atelier-core/src/atelier/cli.py" = ["T20", "ERA001", "PLC0415"]  # CLI: print is the output; section headers; lazy imports avoid cycles
 "scripts/**/*.py" = ["T20"]  # print() ok in CLI hook scripts (user-facing output)
 
 [tool.ruff.lint.mccabe]
@@ -143,10 +144,29 @@ disallow_any_decorated = false
 module = "atelier.api.*"
 disallow_any_unimported = false
 disallow_untyped_decorators = false
+warn_unused_ignores = false
 
 [[tool.mypy.overrides]]
 module = "atelier.observability.*"
 disallow_any_unimported = false
+
+[[tool.mypy.overrides]]
+module = "atelier.models.safety"
+# google.genai (types.SafetySetting, HarmCategory, HarmBlockThreshold) lacks
+# complete inline stubs — enum types resolve to Any in strict mode.
+# The runtime behaviour is correct; this override suppresses the false positive.
+disallow_any_unimported = false
+
+[[tool.mypy.overrides]]
+module = "atelier.auth.*"
+# firebase-admin (7.4.0) ships no PEP-561 py.typed marker. Also, fastapi.security
+# (HTTPAuthorizationCredentials) resolves through Any in strict mode because FastAPI
+# uses Annotated generics that mypy can't fully resolve without stubs.
+# ignore_missing_imports + disallow_any_unimported=false suppress the false positives
+# without disabling other strict checks on Atelier auth logic.
+ignore_missing_imports = true
+disallow_any_unimported = false
+disable_error_code = ["import-untyped"]
 
 # numpy is TYPE_CHECKING-gated in Protocol modules by design (ruff TC002).
 # When mypy resolves TYPE_CHECKING=True paths, NDArray types come from an
@@ -157,6 +177,7 @@ disallow_any_unimported = false
 [[tool.mypy.overrides]]
 module = "atelier.memory.*"
 disallow_any_unimported = false
+warn_unused_ignores = false
 
 [[tool.mypy.overrides]]
 module = "atelier.router.*"
@@ -229,6 +250,12 @@ ignore_missing_imports = true
 # attr-defined. Suppress at the google.cloud namespace level.
 [[tool.mypy.overrides]]
 module = ["google.cloud", "google.cloud.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["jsonschema", "jsonschema.*"]
+# jsonschema ships no PEP-561 py.typed marker. Used only in generate_bench_data.py
+# (scripts/, not shipped code). Suppress import-untyped to keep mypy clean.
 ignore_missing_imports = true
 
 [tool.pydantic-mypy]

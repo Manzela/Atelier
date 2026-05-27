@@ -1,0 +1,255 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AtelierBenchDashboardData",
+  "description": "Schema for the Atelier eval + pipeline observatory dashboard (bench.atelier.autonomous-agent.dev). Validated on load by the bench publisher and dashboard renderer. schema_version must be '1.0'.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "run_id",
+    "timestamp",
+    "calibration_pass_rate",
+    "adversarial_pass_rate",
+    "adk_criteria_scores",
+    "per_judge_calibration",
+    "dpo_promotion_events",
+    "meta",
+    "summary",
+    "axes",
+    "trajectories"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Schema version — must be '1.0'. Bump requires a new schema file."
+    },
+    "run_id": {
+      "type": "string",
+      "description": "Unique identifier for this eval run (UUID4 or BigQuery job ID)."
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC ISO 8601 timestamp when this eval run completed."
+    },
+    "calibration_pass_rate": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Fraction of calibration golden set tasks that passed AND-gate threshold. Target >= 0.70."
+    },
+    "adversarial_pass_rate": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Fraction of held-out adversarial set tasks that passed. Pre-release only."
+    },
+    "adk_criteria_scores": {
+      "type": "object",
+      "description": "ADK 11 first-class eval criteria scores from the calibration run.",
+      "required": ["tool_trajectory_avg_score", "multi_turn_trajectory_quality_v1"],
+      "properties": {
+        "tool_trajectory_avg_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Average tool call trajectory correctness score (ADK criterion 1)."
+        },
+        "multi_turn_trajectory_quality_v1": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Multi-turn trajectory quality v1 score (ADK criterion 2)."
+        },
+        "rubric_based_instruction_following": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Rubric-based instruction following score."
+        },
+        "rubric_based_groundedness": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Rubric-based groundedness / factual accuracy score."
+        },
+        "rubric_based_safety": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Rubric-based safety / harmlessness score."
+        }
+      },
+      "additionalProperties": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1
+      }
+    },
+    "per_judge_calibration": {
+      "type": "object",
+      "description": "Per-axis judge calibration scores from the golden set.",
+      "required": ["brand", "copy", "motion", "token", "coherence"],
+      "properties": {
+        "brand": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Brand consistency axis calibration score."
+        },
+        "copy": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Copy quality axis calibration score."
+        },
+        "motion": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Motion / interaction design axis calibration score."
+        },
+        "token": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Token efficiency axis calibration score."
+        },
+        "coherence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Overall coherence axis calibration score."
+        }
+      },
+      "additionalProperties": false
+    },
+    "dpo_promotion_events": {
+      "type": "array",
+      "description": "DPO promotion events recorded during this eval window.",
+      "items": {
+        "type": "object",
+        "required": ["event_id", "promoted_at", "job_name", "kappa", "promoted"],
+        "properties": {
+          "event_id": { "type": "string" },
+          "promoted_at": { "type": "string", "format": "date-time" },
+          "job_name": { "type": "string", "description": "Vertex AI tuning job resource name." },
+          "kappa": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Cohen's kappa at promotion decision time. Must be >= 0.70 to promote."
+          },
+          "promoted": {
+            "type": "boolean",
+            "description": "True if the tuned model endpoint was promoted to production routing."
+          },
+          "endpoint": {
+            "type": "string",
+            "description": "Vertex AI endpoint resource name (present only if promoted=true)."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "meta": {
+      "type": "object",
+      "required": ["generated_at", "pipeline_version", "environment"],
+      "properties": {
+        "generated_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp when this data was generated."
+        },
+        "pipeline_version": {
+          "type": "string",
+          "description": "Atelier pipeline version."
+        },
+        "environment": {
+          "type": "string",
+          "enum": ["development", "staging", "production"],
+          "description": "Deployment environment."
+        },
+        "dataset_id": {
+          "type": "string",
+          "description": "BigQuery dataset ID."
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": [
+        "total_trajectories",
+        "total_candidates",
+        "acceptance_rate",
+        "avg_composite_score",
+        "total_cost_usd"
+      ],
+      "properties": {
+        "total_trajectories": { "type": "integer", "minimum": 0 },
+        "total_candidates": { "type": "integer", "minimum": 0 },
+        "acceptance_rate": { "type": "number", "minimum": 0, "maximum": 1 },
+        "avg_composite_score": { "type": "number", "minimum": 0, "maximum": 1 },
+        "total_cost_usd": { "type": "number", "minimum": 0 },
+        "avg_latency_ms": { "type": "number", "minimum": 0 },
+        "p99_latency_ms": { "type": "number", "minimum": 0 }
+      }
+    },
+    "axes": {
+      "type": "object",
+      "description": "Per-axis D-O-R-A-V score distributions.",
+      "patternProperties": {
+        "^(brand|originality|relevance|accessibility|visual_clarity)$": {
+          "type": "object",
+          "required": ["mean", "median", "p5", "p95", "count"],
+          "properties": {
+            "mean": { "type": "number", "minimum": 0, "maximum": 1 },
+            "median": { "type": "number", "minimum": 0, "maximum": 1 },
+            "p5": { "type": "number", "minimum": 0, "maximum": 1 },
+            "p95": { "type": "number", "minimum": 0, "maximum": 1 },
+            "count": { "type": "integer", "minimum": 0 },
+            "histogram": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["bucket", "count"],
+                "properties": {
+                  "bucket": { "type": "string" },
+                  "count": { "type": "integer", "minimum": 0 }
+                }
+              }
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "trajectories": {
+      "type": "array",
+      "description": "Recent trajectory records for the timeline view.",
+      "items": {
+        "type": "object",
+        "required": ["trajectory_id", "timestamp", "composite_score", "outcome"],
+        "properties": {
+          "trajectory_id": { "type": "string" },
+          "timestamp": { "type": "string", "format": "date-time" },
+          "composite_score": { "type": "number", "minimum": 0, "maximum": 1 },
+          "outcome": { "type": "string", "enum": ["accepted", "rejected", "error"] },
+          "cost_usd": { "type": "number", "minimum": 0 },
+          "latency_ms": { "type": "number", "minimum": 0 },
+          "model_id": { "type": "string" },
+          "per_axis": {
+            "type": "object",
+            "patternProperties": {
+              "^(brand|originality|relevance|accessibility|visual_clarity)$": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

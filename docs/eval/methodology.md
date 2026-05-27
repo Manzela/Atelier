@@ -61,7 +61,7 @@ Each uses ADK's `rubric_based_final_response_quality_v1`. Bayesian-weighted vote
 Per Berkeley RDI's published finding that LLM judges can achieve near-perfect benchmark scores without solving any task, Atelier defends with:
 
 1. **Held-out adversarial set** — never seen during development; only run pre-release
-2. **Calibration golden set** — frozen task-by-task; correlation drop > 5% week-over-week triggers alert (publicly visible at calibration.atelier.dev)
+2. **Calibration golden set** — frozen task-by-task; correlation drop > 5% week-over-week triggers alert (publicly visible at calibration.atelier.autonomous-agent.dev)
 3. **Designer-in-residence sessions** — real designers with real briefs; their thumbs-up/down feeds DPO as ground-truth labels
 4. **ChainPoll** for judges — multi-sample majority voting per judge call
 5. **Reward-hacking guard** — 10% of human accept/reject signal is held out from DPO training; quarterly check that judge-train and judge-holdout scores stay correlated
@@ -71,6 +71,6 @@ Per Berkeley RDI's published finding that LLM judges can achieve near-perfect be
 - [PRD §16 10× outcome checklist](../superpowers/specs/2026-05-14-atelier-prd.md)
 - [ADR 0008 — Multi-judge Bayesian-weighted consensus](../decisions/0008-multi-judge-bayesian-consensus.md)
 - [ADR 0009 — Public calibration dashboard](../decisions/0009-public-calibration-dashboard.md)
-- [bench.atelier.dev](https://bench.atelier.dev) — public scoreboard
-- [calibration.atelier.dev](https://calibration.atelier.dev) — public drift dashboard
+- [bench.atelier.autonomous-agent.dev](https://bench.atelier.autonomous-agent.dev) — public scoreboard
+- [calibration.atelier.autonomous-agent.dev](https://calibration.atelier.autonomous-agent.dev) — public drift dashboard
 - [Anthropic: Demystifying evals for AI agents](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents) (Jan 9, 2026) — three grader types pattern

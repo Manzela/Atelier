@@ -163,7 +163,7 @@ gate_with_reason "13" "pytest tests/eval/ shows no regression" \
 # ─── §13.1 Gate 14: jq evidence_tests type check ───
 gate_14_evidence_type() {
   local count
-  count=$(jq '[.features[] | select(.evidence_tests | type != "array")] | length' features.json)
+  count=$(jq '[.features[] | select(.evidence_tests | type != "array")] | length' .local/sprint/features.json)
   [ "${count}" -eq 0 ]
 }
 gate "14" "R4-audit jq gate: evidence_tests all array-typed" \
@@ -172,23 +172,23 @@ gate "14" "R4-audit jq gate: evidence_tests all array-typed" \
 # ─── §13.1 Gate 15: jq passes+evidence check ───
 gate_15_passes_evidence() {
   local count
-  count=$(jq '[.features[] | select(.passes==true and (.evidence_tests | length)==0)] | length' features.json)
+  count=$(jq '[.features[] | select(.passes==true and (.evidence_tests | length)==0)] | length' .local/sprint/features.json)
   [ "${count}" -eq 0 ]
 }
 gate "15" "No passes:true without backing evidence_tests" \
   gate_15_passes_evidence
 
-# ─── §13.1 Gate 16: features.json schema validation ───
+# ─── §13.1 Gate 16: .local/sprint/features.json schema validation ───
 gate_16_schema() {
   local malformed
   malformed=$(jq '[.features[] | select(
     (.id | type) != "string" or
     (.passes | type) != "boolean" or
     (.evidence_tests | type) != "array"
-  )] | length' features.json)
+  )] | length' .local/sprint/features.json)
   [ "${malformed}" -eq 0 ]
 }
-gate "16" "features.json schema: all entries have id/passes/evidence_tests" \
+gate "16" ".local/sprint/features.json schema: all entries have id/passes/evidence_tests" \
   gate_16_schema
 
 # ─── §13.1 Gate 17: §18-§21 protocol modules mypy --strict ───

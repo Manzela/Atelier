@@ -35,7 +35,7 @@ The script wires all gates from the spec (§4.3 + §13.1):
 | 13   | §13.1   | pytest tests/eval/ no regression       | Test           |
 | 14   | §13.1   | jq evidence_tests type check           | Schema         |
 | 15   | §13.1   | jq passes+evidence check               | Schema         |
-| 16   | §13.1   | features.json schema validation        | Schema         |
+| 16   | §13.1   | feature ledger schema validation       | Schema         |
 | 17   | §13.1   | §18-§21 protocol modules mypy --strict | Type safety    |
 | 18   | §13.1   | ADR 0027-0030 at least one committed   | Documentation  |
 

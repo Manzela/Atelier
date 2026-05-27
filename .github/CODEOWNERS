@@ -23,13 +23,10 @@
 /docs/decisions/                        @Manzela
 /docs/superpowers/specs/                @Manzela
 
-# Sprint state — auto-edited by Claude Code; review for drift
+# Governance ledgers — review for drift on every change
 /CLAUDE.md                              @Manzela
 /DECISIONS.md                           @Manzela
 /REJECTED.md                            @Manzela
-/features.json                          @Manzela
-/claude-progress.txt                    @Manzela
-/docs/sprint/                           @Manzela
 
 # Engine
 /atelier-core/                          @Manzela

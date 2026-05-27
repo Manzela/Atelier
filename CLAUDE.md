@@ -3,9 +3,9 @@
 > **NEW CONVERSATION? READ THESE TWO FIRST (in order)**:
 >
 > 1. [`docs/superpowers/specs/SESSION-COMPLETE-2026-05-14-atelier-pre-sprint-bootstrap.md`](docs/superpowers/specs/SESSION-COMPLETE-2026-05-14-atelier-pre-sprint-bootstrap.md) — canonical handoff from the brainstorm + scaffold session
-> 2. [`docs/sprint/INSIGHTS-2026-05-15.md`](docs/sprint/INSIGHTS-2026-05-15.md) — compact session insights from the pre-D1 wrap (operational lessons + D1 must-do list)
+> 2. `.local/sprint/docs/INSIGHTS-2026-05-15.md` — compact session insights from the pre-D1 wrap (operational lessons + D1 must-do list). Lives outside git in `.local/sprint/` so reviewers see only shipped product, not sprint scaffolding.
 >
-> Then run the 90-second restoration ritual below, then pick the next unblocked feature from `features.json`.
+> Then run the 90-second restoration ritual below, then pick the next unblocked feature from `.local/sprint/features.json`.
 
 > This file is automatically loaded into every Claude Code session in this repository. It encodes the non-negotiable discipline of the Atelier sprint per PRD §11 Strategy v2. Read it at session start; respect it throughout.
 
@@ -25,22 +25,26 @@ Mid-sprint changes to the PRD require an explicit ADR commit, not silent drift.
 
 ## Session restoration ritual (90 seconds, every new session)
 
+All sprint discipline state lives under `.local/sprint/` — gitignored, locally
+authoritative, never shipped. Run from the repo root:
+
 ```bash
 cd "$(git rev-parse --show-toplevel)"
-cat docs/sprint/STATUS.md
-cat docs/sprint/BLOCKERS.md
-tail -50 docs/sprint/CHECKPOINTS.md
-tail -20 docs/sprint/REJECTED.md
-tail -7 docs/sprint/COST_LEDGER.md
-cat features.json | jq '.[] | select(.passes == false) | .id' | head -10
-tail -50 claude-progress.txt
+cat .local/sprint/docs/STATUS.md
+cat .local/sprint/docs/BLOCKERS.md
+tail -50 .local/sprint/docs/CHECKPOINTS.md
+tail -20 .local/sprint/docs/REJECTED.md
+tail -7  .local/sprint/docs/COST_LEDGER.md
+jq '.[] | select(.passes == false) | .id' .local/sprint/features.json | head -10
+tail -50 .local/sprint/claude-progress.txt
 git log --oneline -20
 git status
 git worktree list
 gh run list --limit 5
 ```
 
-If the previous session ended mid-feature, CHECKPOINTS.md ends with a `RESUME-HERE:` marker pointing to the exact file, line, and intent.
+If the previous session ended mid-feature, `CHECKPOINTS.md` ends with a
+`RESUME-HERE:` marker pointing to the exact file, line, and intent.
 
 ## Non-negotiable invariants
 
@@ -183,14 +187,16 @@ Results published to `bench.atelier.dev` + `calibration.atelier.dev`.
 
 ## Daily checkpoint ritual (end of each session)
 
-1. Update `docs/sprint/CHECKPOINTS.md` with what shipped today
+All paths below resolve under the gitignored `.local/sprint/` tree.
+
+1. Update `.local/sprint/docs/CHECKPOINTS.md` with what shipped today
 2. Run full test suite (must pass)
 3. Run eval suite delta (must not regress)
 4. Commit + push to phase branch (NOT main)
-5. Note any new blockers in `docs/sprint/BLOCKERS.md`
-6. Note tomorrow's first task in `docs/sprint/STATUS.md`
-7. Update `docs/sprint/COST_LEDGER.md` (verify cache-hit-rate ≥85%)
-8. Append session summary to `claude-progress.txt`
+5. Note any new blockers in `.local/sprint/docs/BLOCKERS.md`
+6. Note tomorrow's first task in `.local/sprint/docs/STATUS.md`
+7. Update `.local/sprint/docs/COST_LEDGER.md` (verify cache-hit-rate ≥85%)
+8. Append session summary to `.local/sprint/claude-progress.txt`
 
 ## Hard rules that don't bend
 

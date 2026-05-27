@@ -33,9 +33,6 @@ BRANCH_ENCODED="phase%2F1"
 # dependency-review.yml:
 #   - dependency-review  (license + vulnerability check on PRs)
 #
-# features-schema.yml:
-#   - validate-features-schema  (features.json schema gate)
-#
 # Note: 'changes' job from ci.yml is a path filter, not a required check.
 # Note: scorecard.yml 'analysis' runs on push/schedule, not PRs.
 # Note: release.yml jobs only run on tag push, not PRs.
@@ -47,7 +44,6 @@ REQUIRED_CHECKS=(
   "ci-success"
   "analyze"
   "dependency-review"
-  "validate-features-schema"
 )
 
 echo "Branch protection configuration for ${REPO}:${BRANCH}"

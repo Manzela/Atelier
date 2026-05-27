@@ -1,4 +1,4 @@
-"""BigQuery episodic memory backend (T8, ADR 0029 + spec §20).
+"""BigQuery episodic memory backend (ADR 0029 + spec §20).
 
 Implements HierarchicalMemory.write_episodic() for the EPISODIC tier.
 Semantic and procedural tiers (Vertex Memory Bank) are in vertex_semantic.py

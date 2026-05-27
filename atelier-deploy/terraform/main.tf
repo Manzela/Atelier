@@ -185,11 +185,12 @@ resource "google_cloud_run_v2_service" "api" {
         name  = "OTEL_SERVICE_NAME"
         value = "atelier-api"
       }
-    }
 
-    # Startup probe
-    containers {
-      image = var.api_image
+      env {
+        name  = "ATELIER_DASHBOARD_ORIGIN"
+        value = "https://atelier.autonomous-agent.dev,https://atelier-build-2026.web.app"
+      }
+
       startup_probe {
         http_get {
           path = "/health"
@@ -205,13 +206,9 @@ resource "google_cloud_run_v2_service" "api" {
   depends_on = [google_project_service.apis["run.googleapis.com"]]
 }
 
-# Allow unauthenticated access to the API (public endpoint)
-resource "google_cloud_run_v2_service_iam_member" "api_public" {
-  name     = google_cloud_run_v2_service.api.name
-  location = var.region
-  role     = "roles/run.invoker"
-  member   = "allUsers"
-}
+# IAP-protected ingress — see iap.tf
+# The allUsers binding has been removed for security.
+# Access is now controlled via Identity-Aware Proxy (IAP).
 
 # ---------------------------------------------------------------------------
 # KMS — Per-Tenant Encryption (GDPR right-to-be-forgotten)

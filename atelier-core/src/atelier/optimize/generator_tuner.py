@@ -1,7 +1,7 @@
-"""GeneratorTuner — Protocol + BigQuery pair miner (T7, spec §9.3).
+"""GeneratorTuner — Protocol + BigQuery pair miner (spec §9.3).
 
-T7 scope: GeneratorTunerProtocol definition + BigQueryPairMiner.mine_pairs().
-T14 scope (added in Task 5): full tune() + evaluate_and_promote().
+Pair-mining surface: GeneratorTunerProtocol definition + BigQueryPairMiner.mine_pairs().
+Full tune-and-promote surface: tune() + evaluate_and_promote().
 
 BigQuery table layout (atelier-build-2026.atelier_trajectories.dpo_pairs):
     surface_id        STRING    — identifies which surface produced this pair
@@ -16,8 +16,8 @@ BigQuery table layout (atelier-build-2026.atelier_trajectories.dpo_pairs):
     tenant_id         STRING    — tenant isolation key (ALWAYS filter on this)
     created_at        TIMESTAMP
 
-Interface contract: this table is populated by Antigravity FA-012 dpo_builder.py
-(JSONL→BQ load step, R9-B). T7 gates execution on at least one row existing.
+Interface contract: this table is populated by the JSONL→BQ load step in the
+data-pipeline tooling. mine_pairs() gates execution on at least one row existing.
 """
 
 from __future__ import annotations
@@ -26,12 +26,14 @@ import json
 import logging
 import tempfile
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Final, Protocol, runtime_checkable
 
 from google.cloud import bigquery, storage  # type: ignore[attr-defined]
 
 from atelier.optimize.dpo_tuning_job import DpoTuningJob, TuningJobState
+from atelier.utils.log_sanitizer import sanitize
 
 logger = logging.getLogger(__name__)
 
@@ -69,8 +71,8 @@ class PreferencePair:
 class GeneratorTunerProtocol(Protocol):
     """Protocol for all GeneratorTuner implementations.
 
-    T7 ships BigQueryPairMiner (just mine_pairs).
-    T14 ships GeneratorTuner (mine_pairs + tune + evaluate_and_promote).
+    BigQueryPairMiner provides the mine_pairs surface only.
+    GeneratorTuner provides mine_pairs + tune + evaluate_and_promote.
     """
 
     def mine_pairs(
@@ -91,7 +93,7 @@ class BigQueryPairMiner:
     """Concrete GeneratorTunerProtocol implementation — mine_pairs() only.
 
     Reads from `atelier-build-2026.atelier_trajectories.dpo_pairs`.
-    Table must be populated by Antigravity FA-012 before calling mine_pairs().
+    Table must be populated by the data-pipeline tooling before calling mine_pairs().
     """
 
     def __init__(self, project: str = "atelier-build-2026") -> None:
@@ -189,8 +191,8 @@ class BigQueryPairMiner:
 class GeneratorTuner:
     """Full DPO tuning loop: mine pairs → upload to GCS → submit job → evaluate → promote.
 
-    Composes BigQueryPairMiner (T7) and DpoTuningJob (T6) into the full
-    end-to-end tuning workflow (T14, spec §9.3).
+    Composes BigQueryPairMiner and DpoTuningJob into the full end-to-end
+    tuning workflow (spec §9.3).
 
     evaluate_and_promote() applies the κ gate (KAPPA_PROMOTION_THRESHOLD=0.70)
     before promoting the tuned model endpoint. Promotion means returning the
@@ -247,7 +249,8 @@ class GeneratorTuner:
         job = self._tuning_job.submit(gcs_pairs_uri=gcs_uri, display_name=display_name)
         job_name: str = job.name
         logger.info(
-            "DPO tuning job started", extra={"job_name": job_name, "pair_count": len(pairs)}
+            "DPO tuning job started",
+            extra={"job_name": sanitize(job_name), "pair_count": len(pairs)},
         )
         return job_name
 
@@ -270,7 +273,13 @@ class GeneratorTuner:
                 f.write(json.dumps(record) + "\n")
             tmp_path = Path(f.name)
 
-        gcs_blob_name = "claude-T7/tuning-pairs-latest.jsonl"
+        # Date-partitioned blob path establishes the F7 audit-trail contract:
+        # every tune() invocation persists its training corpus under a fresh,
+        # timestamped key, so re-runs never silently overwrite the previous
+        # training snapshot and reviewers can reconstruct any prior tuning job
+        # from GCS object versioning alone.
+        date_partition = datetime.now(UTC).strftime("%Y-%m-%d/%H%M%S")
+        gcs_blob_name = f"tuner-pairs/{date_partition}/pairs.jsonl"
         try:
             bucket = self._gcs_client.bucket(self._bucket)
             blob = bucket.blob(gcs_blob_name)
@@ -329,8 +338,8 @@ class GeneratorTuner:
         logger.info(
             "Model promoted",
             extra={
-                "job_name": job_name,
-                "endpoint": endpoint,
+                "job_name": sanitize(job_name),
+                "endpoint": sanitize(endpoint),
                 "achieved_kappa": achieved_kappa,
             },
         )

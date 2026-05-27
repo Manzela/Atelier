@@ -1,0 +1,45 @@
+{
+  "name": "Atelier",
+  "description": "Autonomous Design Agent — generates, evaluates, and optimizes web UI assets through multi-judge Bayesian consensus with human-in-the-loop governance.",
+  "url": "https://atelier.autonomous-agent.dev",
+  "version": "0.2.0-beta",
+  "capabilities": {
+    "streaming": false,
+    "pushNotifications": false,
+    "stateTransitionHistory": true
+  },
+  "skills": [
+    {
+      "id": "generate-design",
+      "name": "Generate Design",
+      "description": "Generates web UI design candidates from a natural-language brief using a multi-model ensemble (Gemini 3 Pro + Flash).",
+      "tags": ["design", "generative-ai", "web-ui"],
+      "examples": [
+        "Design a landing page for a SaaS product with dark mode",
+        "Create a responsive dashboard with data visualization cards"
+      ]
+    },
+    {
+      "id": "evaluate-design",
+      "name": "Evaluate Design",
+      "description": "Evaluates design candidates across 9 quality axes (brand, originality, relevance, accessibility, visual clarity, copy, motion, token efficiency, coherence) using multi-judge Bayesian consensus.",
+      "tags": ["evaluation", "quality-assurance", "accessibility"]
+    },
+    {
+      "id": "optimize-design",
+      "name": "Optimize Design",
+      "description": "Iteratively improves designs through DPO (Direct Preference Optimization) fine-tuning, using trajectory data from accepted/rejected pairs.",
+      "tags": ["optimization", "dpo", "reinforcement-learning"]
+    }
+  ],
+  "provider": {
+    "organization": "Manzela",
+    "url": "https://autonomous-agent.dev"
+  },
+  "authentication": {
+    "schemes": ["bearer"],
+    "credentials": "Firebase Authentication JWT token required for all API endpoints."
+  },
+  "defaultInputModes": ["text/plain", "application/json"],
+  "defaultOutputModes": ["application/json", "text/html"]
+}

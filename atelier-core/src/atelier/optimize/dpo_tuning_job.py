@@ -1,4 +1,4 @@
-"""DPO tuning job — google-genai PREFERENCE_TUNING migration (T6, ADR 0028).
+"""DPO tuning job — google-genai PREFERENCE_TUNING migration (ADR 0028).
 
 Replaces the deprecated vertexai.tuning.sft surface with google.genai
 CreateTuningJobConfig(method=TuningMethod.PREFERENCE_TUNING).
@@ -27,7 +27,10 @@ from google.genai import types
 
 logger = logging.getLogger(__name__)
 
-DPO_BASE_MODEL: Final[str] = "gemini-2.0-flash-001"
+# ADR 0028 lock. Vertex AI preference tuning supports only Gemini 2.5 Flash / Flash-Lite
+# (per docs.cloud.google.com/vertex-ai/generative-ai/docs/models/tune-gemini-overview).
+# Pro tier is SFT-only; using a non-DPO-capable base model fails at job submission.
+DPO_BASE_MODEL: Final[str] = "gemini-2.5-flash-001"
 DPO_BETA: Final[float] = 0.1
 DPO_EPOCH_COUNT: Final[int] = 3
 DPO_ADAPTER_SIZE: Final[types.AdapterSize] = types.AdapterSize.ADAPTER_SIZE_FOUR

@@ -28,9 +28,60 @@ ADR Reference: 0007 (worktree discipline) — Phase 1 scope only
 """
 
 import re
+from typing import Final
 
 from atelier.models.data_contracts import CandidateUI, GateOutcome
 from atelier.models.enums import GateAxis, GateDecision
+
+# ---------------------------------------------------------------------------
+# Heuristic gate constants — used by upgraded stub implementations
+# ---------------------------------------------------------------------------
+
+#: Penalty per inline <script> block (each adds ~5ms parse cost equivalent)
+_PERF_INLINE_SCRIPT_PENALTY: Final[float] = 5.0
+
+#: Penalty per render-blocking <link rel="stylesheet"> in <head>
+_PERF_BLOCKING_CSS_PENALTY: Final[float] = 3.0
+
+#: Penalty per <img> without loading="lazy"
+_PERF_EAGER_IMG_PENALTY: Final[float] = 2.0
+
+#: Heuristic: score = 100 - sum(penalties), floor 40
+_PERF_FLOOR: Final[float] = 40.0
+
+#: Penalty per <button> or <a> without accessible text
+_A11Y_INACCESSIBLE_CONTROL_PENALTY: Final[float] = 8.0
+
+#: Penalty per <img> without alt attribute
+_A11Y_MISSING_ALT_PENALTY: Final[float] = 6.0
+
+#: Penalty per <input> without associated <label> or aria-label
+_A11Y_MISSING_LABEL_PENALTY: Final[float] = 7.0
+
+#: Penalty per missing viewport meta tag
+_A11Y_MISSING_VIEWPORT_PENALTY: Final[float] = 10.0
+
+#: A11y floor — even malformed HTML gets this minimum
+_A11Y_FLOOR: Final[float] = 35.0
+
+#: Visual diff — structural tag frequency cosine similarity baseline
+_VISUAL_DIFF_GOLDEN_TAGS: Final[tuple[str, ...]] = (
+    "div",
+    "header",
+    "main",
+    "section",
+    "article",
+    "h1",
+    "h2",
+    "h3",
+    "p",
+    "button",
+    "input",
+    "img",
+)
+
+#: Minimum structural similarity to PASS visual diff
+_VISUAL_DIFF_PASS_THRESHOLD: Final[float] = 55.0
 
 # ---------------------------------------------------------------------------
 # Tunable thresholds — kept module-level so tests can assert against them
@@ -289,86 +340,217 @@ def check_token_fidelity(candidate: CandidateUI) -> GateOutcome:
 
 
 def check_lighthouse_stub(candidate: CandidateUI) -> GateOutcome:
-    """Stubbed Lighthouse accessibility gate.
+    """Heuristic Lighthouse performance proxy — browser-free.
 
-    A real Lighthouse run requires a headless browser sandbox (Chrome via
-    Puppeteer or Playwright). Phase 1 is browser-less, so this stub returns a
-    fixed PASS with a high score that mirrors what a well-formed static
-    artifact would typically earn. Phase 2 replaces this with a real
-    ``@lighthouse-ci`` invocation against a rendered preview.
+    Estimates a performance score from static HTML/CSS analysis without
+    a browser sandbox. Penalises patterns that commonly lower real Lighthouse
+    scores: inline scripts, render-blocking CSS, eager image loading. Phase 2
+    replaces this with a real ``@lighthouse-ci`` invocation.
+
+    Scoring formula (per-candidate, so scores vary):
+        score = 100 - Σ(penalties), clamped to [_PERF_FLOOR, 100]
 
     Args:
-        candidate: The :class:`CandidateUI` to evaluate. The stub does not
-            inspect the artifacts; the parameter is kept for signature
-            compatibility with the real implementation.
+        candidate: CandidateUI whose ``index.html`` and ``.css`` artifacts
+            are analysed. Missing ``index.html`` → conservative mid-range score.
 
     Returns:
-        A :class:`GateOutcome` with ``axis = LIGHTHOUSE_A11Y``,
-        ``decision = PASS``, and ``score = LIGHTHOUSE_STUB_SCORE``.
+        GateOutcome with axis LIGHTHOUSE_A11Y, differentiated score per candidate.
     """
+    html = candidate.artifacts.get("index.html", "")
+    if not html:
+        return GateOutcome(
+            candidate_id=candidate.candidate_id,
+            axis=GateAxis.LIGHTHOUSE_A11Y,
+            decision=GateDecision.PASS,
+            score=LIGHTHOUSE_STUB_SCORE,
+            diagnostic="No index.html; returning conservative heuristic score.",
+        )
+
+    lowered = html.lower()
+    penalties: list[str] = []
+    total_penalty = 0.0
+
+    # Inline <script> blocks
+    inline_scripts = lowered.count("<script>") + lowered.count("<script ")
+    if inline_scripts > 0:
+        p = inline_scripts * _PERF_INLINE_SCRIPT_PENALTY
+        penalties.append(f"{inline_scripts} inline script(s) (-{p:.0f})")
+        total_penalty += p
+
+    # Render-blocking CSS in <head>
+    head_match = re.search(r"<head[^>]*>(.*?)</head>", lowered, re.DOTALL)
+    blocking_css = 0
+    if head_match:
+        blocking_css = head_match.group(1).count('rel="stylesheet"') + head_match.group(1).count(
+            "rel='stylesheet'"
+        )
+    if blocking_css > 1:  # one is expected; extra ones block rendering
+        p = (blocking_css - 1) * _PERF_BLOCKING_CSS_PENALTY
+        penalties.append(f"{blocking_css - 1} extra blocking stylesheet(s) (-{p:.0f})")
+        total_penalty += p
+
+    # Eager images (missing loading="lazy")
+    img_count = lowered.count("<img ")
+    lazy_count = lowered.count('loading="lazy"') + lowered.count("loading='lazy'")
+    eager_imgs = max(0, img_count - lazy_count)
+    if eager_imgs > 2:  # noqa: PLR2004
+        p = (eager_imgs - 2) * _PERF_EAGER_IMG_PENALTY
+        penalties.append(f"{eager_imgs - 2} eager image(s) (-{p:.0f})")
+        total_penalty += p
+
+    score = max(_PERF_FLOOR, 100.0 - total_penalty)
+    diagnostic = (
+        "Lighthouse heuristic (no browser). "
+        + ("; ".join(penalties) if penalties else "No performance penalties detected.")
+        + " [Phase 2: real Lighthouse replaces this]"
+    )
     return GateOutcome(
         candidate_id=candidate.candidate_id,
         axis=GateAxis.LIGHTHOUSE_A11Y,
         decision=GateDecision.PASS,
-        score=LIGHTHOUSE_STUB_SCORE,
-        diagnostic=(
-            f"Lighthouse stub: returning score={LIGHTHOUSE_STUB_SCORE}. "
-            "Real Lighthouse requires browser sandbox (Phase 2)."
-        ),
+        score=score,
+        diagnostic=diagnostic,
     )
 
 
 def check_axe_stub(candidate: CandidateUI) -> GateOutcome:
-    """Stubbed axe-core accessibility gate.
+    """Heuristic accessibility gate — browser-free axe-core proxy.
 
-    Real axe-core needs a live DOM, so Phase 1 returns a fixed PASS. The
-    stubbed score is slightly lower than :func:`check_lighthouse_stub` to
-    reflect axe-core's typically stricter rule set.
+    Penalises common accessibility violations detectable from raw HTML:
+    interactive controls without accessible text, images without alt, inputs
+    without labels, missing viewport meta. Phase 2 wires real axe-core against
+    a rendered DOM.
 
     Args:
-        candidate: The :class:`CandidateUI` whose ``candidate_id`` is echoed
-            back in the result. Artifacts are not inspected.
+        candidate: CandidateUI whose ``index.html`` is analysed.
 
     Returns:
-        A :class:`GateOutcome` with ``axis = AXE``, ``decision = PASS``,
-        and ``score = AXE_STUB_SCORE``.
+        GateOutcome with axis AXE, differentiated score per candidate.
     """
+    html = candidate.artifacts.get("index.html", "")
+    if not html:
+        return GateOutcome(
+            candidate_id=candidate.candidate_id,
+            axis=GateAxis.AXE,
+            decision=GateDecision.PASS,
+            score=AXE_STUB_SCORE,
+            diagnostic="No index.html; returning conservative heuristic score.",
+        )
+
+    lowered = html.lower()
+    penalties: list[str] = []
+    total_penalty = 0.0
+
+    # Buttons/anchors without accessible text
+    buttons = re.findall(r"<button[^>]*>(\s*)</button>", lowered)
+    anchors = re.findall(r"<a[^>]*>(\s*)</a>", lowered)
+    inaccessible = len(buttons) + len(anchors)
+    if inaccessible > 0:
+        p = inaccessible * _A11Y_INACCESSIBLE_CONTROL_PENALTY
+        penalties.append(f"{inaccessible} empty button/anchor(s) (-{p:.0f})")
+        total_penalty += p
+
+    # Images without alt
+    imgs = re.findall(r"<img[^>]*>", lowered)
+    imgs_without_alt = sum(1 for img in imgs if "alt=" not in img)
+    if imgs_without_alt > 0:
+        p = imgs_without_alt * _A11Y_MISSING_ALT_PENALTY
+        penalties.append(f"{imgs_without_alt} image(s) missing alt (-{p:.0f})")
+        total_penalty += p
+
+    # Inputs without label (heuristic: inputs without adjacent <label for=>)
+    input_count = lowered.count("<input ")
+    label_count = lowered.count("<label")
+    unlabeled = max(0, input_count - label_count)
+    if unlabeled > 0:
+        p = unlabeled * _A11Y_MISSING_LABEL_PENALTY
+        penalties.append(f"{unlabeled} unlabeled input(s) (-{p:.0f})")
+        total_penalty += p
+
+    # Viewport meta
+    if 'name="viewport"' not in lowered and "name='viewport'" not in lowered:
+        penalties.append("missing viewport meta (-10)")
+        total_penalty += _A11Y_MISSING_VIEWPORT_PENALTY
+
+    score = max(_A11Y_FLOOR, 100.0 - total_penalty)
+    diagnostic = (
+        "Accessibility heuristic (no DOM). "
+        + ("; ".join(penalties) if penalties else "No accessibility violations detected.")
+        + " [Phase 2: real axe-core replaces this]"
+    )
     return GateOutcome(
         candidate_id=candidate.candidate_id,
         axis=GateAxis.AXE,
         decision=GateDecision.PASS,
-        score=AXE_STUB_SCORE,
-        diagnostic=(
-            f"axe-core stub: returning score={AXE_STUB_SCORE}. "
-            "Real axe-core requires DOM (Phase 2)."
-        ),
+        score=score,
+        diagnostic=diagnostic,
     )
 
 
-def check_visual_diff_stub(candidate: CandidateUI) -> GateOutcome:
-    """Stubbed visual-diff gate.
+def _tag_frequency_vector(html: str, tags: tuple[str, ...]) -> list[float]:
+    """Compute a normalised tag-frequency vector for structural similarity."""
+    lowered = html.lower()
+    counts = [float(lowered.count(f"<{tag}")) for tag in tags]
+    total = sum(counts) or 1.0
+    return [c / total for c in counts]
 
-    Real visual diffing requires rasterizing the candidate and comparing
-    against a golden image (typically via ``resemble.js`` or ``pixelmatch``).
-    Phase 1 returns a fixed PASS with a conservative score.
+
+def _cosine_similarity(a: list[float], b: list[float]) -> float:
+    """Cosine similarity between two equal-length vectors."""
+    dot = sum(x * y for x, y in zip(a, b, strict=False))
+    norm_a = sum(x * x for x in a) ** 0.5
+    norm_b = sum(y * y for y in b) ** 0.5
+    if norm_a == 0.0 or norm_b == 0.0:
+        return 0.0
+    return float(dot / (norm_a * norm_b))
+
+
+def check_visual_diff_stub(candidate: CandidateUI) -> GateOutcome:
+    """Heuristic structural similarity gate — no render required.
+
+    Measures how structurally similar the candidate's HTML is to a
+    "golden" reference tag distribution via cosine similarity on a tag-
+    frequency vector. Candidates that generate unusual or empty DOM
+    structures score low; candidates that use standard HTML5 structure
+    score high. Phase 2 replaces this with pixel-level visual diff.
 
     Args:
-        candidate: The :class:`CandidateUI` whose ``candidate_id`` is echoed
-            back. Artifacts are not inspected.
+        candidate: CandidateUI whose ``index.html`` is analysed.
 
     Returns:
-        A :class:`GateOutcome` with ``axis = VISUAL_DIFF``, ``decision = PASS``,
-        and ``score = VISUAL_DIFF_STUB_SCORE``.
+        GateOutcome with axis VISUAL_DIFF. PASS if structural similarity
+        exceeds _VISUAL_DIFF_PASS_THRESHOLD, else REJECT.
     """
+    html = candidate.artifacts.get("index.html", "")
+    if not html:
+        return GateOutcome(
+            candidate_id=candidate.candidate_id,
+            axis=GateAxis.VISUAL_DIFF,
+            decision=GateDecision.PASS,
+            score=VISUAL_DIFF_STUB_SCORE,
+            diagnostic="No index.html; returning conservative heuristic score.",
+        )
+
+    # Golden reference: balanced use of the 12 most common structural tags
+    golden = [1.0 / len(_VISUAL_DIFF_GOLDEN_TAGS)] * len(_VISUAL_DIFF_GOLDEN_TAGS)
+    candidate_vec = _tag_frequency_vector(html, _VISUAL_DIFF_GOLDEN_TAGS)
+    similarity = _cosine_similarity(candidate_vec, golden)
+    score = round(similarity * 100.0, 1)
+    decision = GateDecision.PASS if score >= _VISUAL_DIFF_PASS_THRESHOLD else GateDecision.REJECT
+    diagnostic = (
+        f"Structural similarity score: {score:.1f}/100 "
+        f"(cosine vs golden tag distribution). "
+        f"{'PASS' if decision == GateDecision.PASS else 'REJECT'}: "
+        f"threshold={_VISUAL_DIFF_PASS_THRESHOLD}. "
+        "[Phase 2: pixel-level visual diff replaces this]"
+    )
     return GateOutcome(
         candidate_id=candidate.candidate_id,
         axis=GateAxis.VISUAL_DIFF,
-        decision=GateDecision.PASS,
-        score=VISUAL_DIFF_STUB_SCORE,
-        diagnostic=(
-            f"Visual-diff stub: returning score={VISUAL_DIFF_STUB_SCORE}. "
-            "Real visual diff requires render (Phase 2)."
-        ),
+        decision=decision,
+        score=score,
+        diagnostic=diagnostic,
     )
 
 

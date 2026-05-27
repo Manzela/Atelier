@@ -16,10 +16,10 @@ Protocol surface — it defines the type contract that backends implement. The
 annotation `embedding: NDArray[np.float32] | None` carries meaning for static
 analysis and documentation; the type is not enforced at runtime. Ruff TC002
 enforces this pattern: third-party imports used only for type annotations
-belong in the TYPE_CHECKING block. Concrete backends (BigQuery episodic T8,
-Vertex Memory Bank T11/T12) import numpy directly in their own modules when
-they construct MemoryEvent instances at runtime. numpy 2.4.6 is in the
-requirements.lock since Antigravity R7-01.
+belong in the TYPE_CHECKING block. Concrete backends (BigQuery episodic,
+Vertex Memory Bank semantic/procedural) import numpy directly in their own
+modules when they construct MemoryEvent instances at runtime. numpy 2.4.6
+is in requirements.lock since the numpy lockfile add.
 """
 
 from __future__ import annotations

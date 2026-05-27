@@ -59,6 +59,7 @@ repos:
           - types-PyYAML
           - types-requests
           - httpx>=0.28 # ships py.typed; needed for github_mcp.py type resolution
+          - firebase-admin>=7.4,<8 # needed for atelier.auth.firebase import resolution
 
   # ─── Python: pytest fast subset (<10s) ────────────────────────────────────
   - repo: local
@@ -81,7 +82,8 @@ repos:
             package-lock\.json|
             package\.json|
             atelier-core/tests/fixtures/.*|
-            \.secrets\.baseline
+            \.secrets\.baseline|
+            audit/.*
           )$
 
   # ─── Markdown lint ─────────────────────────────────────────────────────────
@@ -157,18 +159,24 @@ repos:
         entry: |
           bash -c '
             set -euo pipefail
+            # The feature ledger lives under .local/sprint/ (local-only, gitignored).
+            # Skip the gate gracefully on checkouts that have not initialised it.
+            ledger=".local/sprint/features.json"
+            if [ ! -f "$ledger" ]; then
+              exit 0
+            fi
             # Gate 1: every feature must have evidence_tests as an array (not null)
-            non_array=$(jq "[.features[] | select(.evidence_tests | type != \"array\")] | length" features.json)
+            non_array=$(jq "[.features[] | select(.evidence_tests | type != \"array\")] | length" "$ledger")
             if [ "$non_array" -gt 0 ]; then
               echo "ERROR: ${non_array} features have non-array evidence_tests (must be [])"
-              jq ".features[] | select(.evidence_tests | type != \"array\") | .id" features.json
+              jq ".features[] | select(.evidence_tests | type != \"array\") | .id" "$ledger"
               exit 1
             fi
             # Gate 2: no passes:true without backing evidence_tests
-            no_evidence=$(jq "[.features[] | select(.passes==true and (.evidence_tests | length)==0)] | length" features.json)
+            no_evidence=$(jq "[.features[] | select(.passes==true and (.evidence_tests | length)==0)] | length" "$ledger")
             if [ "$no_evidence" -gt 0 ]; then
               echo "ERROR: ${no_evidence} features have passes:true with empty evidence_tests"
-              jq ".features[] | select(.passes==true and (.evidence_tests | length)==0) | .id" features.json
+              jq ".features[] | select(.passes==true and (.evidence_tests | length)==0) | .id" "$ledger"
               exit 1
             fi
           '

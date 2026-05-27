@@ -1,4 +1,4 @@
-"""Unit tests for BigQueryEpisodicBackend (T8, spec §20.5)."""
+"""Unit tests for BigQueryEpisodicBackend (spec §20.5)."""
 
 from __future__ import annotations
 
@@ -48,7 +48,7 @@ def test_bq_table_points_to_session_events() -> None:
 # ─── fail-loud on missing MemoryKey ──────────────────────────────────────────
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 @patch("atelier.memory.bigquery_backend.bigquery.Client")
 async def test_write_episodic_raises_lookup_error_when_no_key(
     mock_bq_cls: MagicMock,
@@ -63,7 +63,7 @@ async def test_write_episodic_raises_lookup_error_when_no_key(
 # ─── happy path ───────────────────────────────────────────────────────────────
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 @patch("atelier.memory.bigquery_backend.bigquery.Client")
 async def test_write_episodic_inserts_row_with_tenant_id(
     mock_bq_cls: MagicMock,
@@ -84,7 +84,7 @@ async def test_write_episodic_inserts_row_with_tenant_id(
     assert rows[0]["tenant_id"] == "tenant-xyz"
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 @patch("atelier.memory.bigquery_backend.bigquery.Client")
 async def test_write_episodic_inserts_row_with_session_id(
     mock_bq_cls: MagicMock,
@@ -105,7 +105,7 @@ async def test_write_episodic_inserts_row_with_session_id(
     assert rows[0]["session_id"] == "sess-001"
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 @patch("atelier.memory.bigquery_backend.bigquery.Client")
 async def test_write_episodic_inserts_row_with_all_required_fields(
     mock_bq_cls: MagicMock,
@@ -132,7 +132,7 @@ async def test_write_episodic_inserts_row_with_all_required_fields(
     assert "payload" in row
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 @patch("atelier.memory.bigquery_backend.bigquery.Client")
 async def test_write_episodic_payload_is_json_string(mock_bq_cls: MagicMock) -> None:
     mock_client = MagicMock()
@@ -153,7 +153,7 @@ async def test_write_episodic_payload_is_json_string(mock_bq_cls: MagicMock) -> 
     assert "ok" in payload
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 @patch("atelier.memory.bigquery_backend.bigquery.Client")
 async def test_write_episodic_inserts_to_correct_table(mock_bq_cls: MagicMock) -> None:
     mock_client = MagicMock()
@@ -172,7 +172,7 @@ async def test_write_episodic_inserts_to_correct_table(mock_bq_cls: MagicMock) -
     assert table_arg == BQ_SESSION_EVENTS_TABLE
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 @patch("atelier.memory.bigquery_backend.bigquery.Client")
 async def test_write_episodic_raises_runtime_error_on_bq_errors(
     mock_bq_cls: MagicMock,
@@ -191,7 +191,7 @@ async def test_write_episodic_raises_runtime_error_on_bq_errors(
         CURRENT_MEMORY_KEY.reset(token)
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 @patch("atelier.memory.bigquery_backend.bigquery.Client")
 async def test_write_episodic_embedding_not_written_to_bq(mock_bq_cls: MagicMock) -> None:
     """Embedding vector is never written to BQ — only to Vertex Memory Bank."""
@@ -211,7 +211,7 @@ async def test_write_episodic_embedding_not_written_to_bq(mock_bq_cls: MagicMock
     assert "embedding" not in row
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 @patch("atelier.memory.bigquery_backend.bigquery.Client")
 async def test_write_episodic_tenant_isolation_different_keys(
     mock_bq_cls: MagicMock,
@@ -246,7 +246,7 @@ async def test_write_episodic_tenant_isolation_different_keys(
     assert tenant_b_row["event_id"] == "evt-B"
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 @patch("atelier.memory.bigquery_backend.bigquery.Client")
 async def test_write_episodic_raises_on_empty_tenant_id(mock_bq_cls: MagicMock) -> None:
     """Security WARN fix: empty tenant_id must fail-loud before writing to BQ."""
