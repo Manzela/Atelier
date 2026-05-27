@@ -8,6 +8,55 @@ Releases are managed via [release-please](https://github.com/googleapis/release-
 
 ---
 
+## [0.2.0-alpha](https://github.com/Manzela/Atelier/compare/v0.1.2-alpha...v0.2.0-alpha) (2026-05-25)
+
+
+### Features
+
+* **intake,observability:** R9-A — Brief Parser + OTel span schema ([5888370](https://github.com/Manzela/Atelier/commit/5888370b41934cf67a16c98e3433957bf5885272))
+* **memory:** T8 — BigQueryEpisodicBackend implements write_episodic() ([c4b9577](https://github.com/Manzela/Atelier/commit/c4b9577a1cce6f772636a6a8f8c749948acf5d0d))
+* **nodes:** ConsensusAgent Phase 2 LLM judge integration ([8b965f7](https://github.com/Manzela/Atelier/commit/8b965f745f408804a2d4754bde4a4d09c09ff21e))
+* **optimize:** T14 — GeneratorTuner.tune() + evaluate_and_promote() ([2bcd93a](https://github.com/Manzela/Atelier/commit/2bcd93afa2ff9262e16e96895e83566358e33002))
+* **optimize:** T6 — DPO tuning job migration to google-genai PREFERENCE_TUNING ([f1a2628](https://github.com/Manzela/Atelier/commit/f1a262806e1df7bb1841cb6899cb74f5c630555e))
+* **optimize:** T7 — GeneratorTunerProtocol + BigQueryPairMiner.mine_pairs() ([128a9e6](https://github.com/Manzela/Atelier/commit/128a9e6887e54a57d5d2b8fee2caf40e40060cb7))
+* **orchestrator:** Implement generator ensemble and pipeline integration (R9-C) ([bc736db](https://github.com/Manzela/Atelier/commit/bc736db78bad67cb75dffc65878bf6fc65093909))
+* **phase2:** Phase 1 Gate — SOTA Protocol surfaces + N1→N3a pipeline ([#26](https://github.com/Manzela/Atelier/issues/26)) ([bd57e3c](https://github.com/Manzela/Atelier/commit/bd57e3cbd4db55f681bb6995f7b5587c2bfd6e96))
+* **router:** T13 — EpsilonGreedyBandit v1 PhaseAwareMoERouter ([8d10cd8](https://github.com/Manzela/Atelier/commit/8d10cd8361e2b711147922985c41a9aabf058c4d))
+
+
+### Bug Fixes
+
+* **ci:** Expand mypy overrides for Antigravity ADK-dependent modules ([bd34071](https://github.com/Manzela/Atelier/commit/bd340711f17a4a8c0a86f9e2eac24c119c241050))
+* **ci:** Resolve mypy errors blocking CI after R9-B pull ([b92e1f1](https://github.com/Manzela/Atelier/commit/b92e1f1630e3c7242157fa2db1bf1b48be87ac82))
+* **deps:** Add google-adk and google-cloud-secret-manager to runtime deps ([598b7d5](https://github.com/Manzela/Atelier/commit/598b7d514a28c808ddcf8e399bcd6899c4124568))
+* **deps:** Align .nvmrc with node 22.20.0 pin (R4-04) ([ca1dd74](https://github.com/Manzela/Atelier/commit/ca1dd745bc9d40735ca088ff28dd063cf0a69fba))
+* **features:** Correct F0006 evidence_tests (R4-01) ([261fcbf](https://github.com/Manzela/Atelier/commit/261fcbfff59854cf5bcbfc9888432d195549d246))
+* **features:** Correct FA-009 evidence_tests (R4-02) ([cb9abd3](https://github.com/Manzela/Atelier/commit/cb9abd3baa646c3bff46efdf668102d5b891fae4))
+* **features:** Correct FA-010 evidence_tests (R4-03) ([129a7d4](https://github.com/Manzela/Atelier/commit/129a7d47f4ceddac76ba108134e374c2470c168b))
+* **governor,dpo,spans,runner:** R9-B audit — unblock test suite + lint sweep + spec compliance ([ffc6060](https://github.com/Manzela/Atelier/commit/ffc606010f7c365621010dcbbfbe0ee7bd68f124))
+* **security,edge-cases:** Parallel audit findings — 5 bugs + 3 WARNs fixed ([bb78d4b](https://github.com/Manzela/Atelier/commit/bb78d4b731089dfe0c68f42a69ee4386e64f1b4e))
+* **tests:** Correct async markers and config file paths in integration/security tests ([d9bd9f0](https://github.com/Manzela/Atelier/commit/d9bd9f0a67129f40a27be8737412143fb60b631a))
+
+
+### Security
+
+* Harden public repo — CodeQL, Scorecard, dep review, action pinning ([23d80aa](https://github.com/Manzela/Atelier/commit/23d80aa2dd3b984c974f39959f8b44aa2a50ca8a))
+
+
+### Documentation
+
+* **audit:** Disclose R3 bulk-commit drift + push reconciliation (R4-05, R4-06) ([a221d9d](https://github.com/Manzela/Atelier/commit/a221d9d4d8b9353b85593886e4a8961dc7d4f796))
+* **audit:** R4 handoff (R4-handoff) ([87e3342](https://github.com/Manzela/Atelier/commit/87e33427e03365cce32712503482d9c43557ee64))
+* **audit:** R9 executor brief — N1 Brief Parser, OTel, Governor, DPO pipeline ([a893ff7](https://github.com/Manzela/Atelier/commit/a893ff72816d6ff0ec04eb5b882556746fb76c1a))
+* **audit:** Round-3 verdict + Round-4 remediation brief ([abac444](https://github.com/Manzela/Atelier/commit/abac444658ccf2bee72c2d2da7256a68735b3234))
+* **audit:** Round-4 verdict (APPROVE close-out) + Round-5 hygiene brief ([0549469](https://github.com/Manzela/Atelier/commit/0549469ad4d9112c8e1ac2b597e23e6b490add1e))
+* **plan,brief:** Apply verification findings F1-F8 (F9 retracted) ([ef4c9b2](https://github.com/Manzela/Atelier/commit/ef4c9b2fe99289fdda69a51a717e374134ec496e))
+* **plan,sprint:** Verification pass — F5 contradiction + test fix record ([db40f73](https://github.com/Manzela/Atelier/commit/db40f73b0cca82f5d4af57a66ba1c511b689df02))
+* **plan:** T6-T14 SOTA Protocol implementation plan ([09d2a3e](https://github.com/Manzela/Atelier/commit/09d2a3e3e26e062b1725b422ab1383ee87e57fa2))
+* **spec:** Add Days 11-21 parallel execution design ([1051dec](https://github.com/Manzela/Atelier/commit/1051decdf42ce3e26e726fa3dd7f7d3d789f6e51))
+* **spec:** Post-R4 strategic roadmap design (§0-§24) — SOTA arch + R4 reconciliation + GCP migration ([0e1c3b1](https://github.com/Manzela/Atelier/commit/0e1c3b1b7823eddb05439a63995a1aa0b51a1c8f))
+* **sprint:** D14 actions — record completed GCP deployment + remove UIBench gate ([7038186](https://github.com/Manzela/Atelier/commit/7038186140864d76b2eae5c24b430597d1fe42dc))
+
 ## [0.1.2-alpha](https://github.com/Manzela/Atelier/compare/v0.1.1-alpha...v0.1.2-alpha) (2026-05-20)
 
 
