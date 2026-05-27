@@ -25,6 +25,7 @@ Audit Reference: FIX-1 (CostGovernor), B4 (SessionBackend swap), N2-N3d wiring
 from __future__ import annotations
 
 import logging
+import os
 import uuid
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any
@@ -34,6 +35,8 @@ from google.genai import types as genai_types
 
 if TYPE_CHECKING:
     from google.adk.sessions import BaseSessionService
+
+    from atelier.nodes.llm_judge import JudgeClient
 
 from atelier.gates.runner import run_gates
 from atelier.intake.brief_parser import BriefParserAgent, BriefParserGate
@@ -111,17 +114,41 @@ class AtelierRunner:
         *,
         budget_cap_usd: float = BUDGET_CAP_USD,
         session_service: BaseSessionService | None = None,
+        judge_client: JudgeClient | None = None,
     ) -> None:
-        """Initialize the runner with a governor and session service.
+        """Initialize the runner with a governor, session service, and optional judge client.
 
         Args:
             budget_cap_usd: Maximum cumulative cost in USD. Defaults to $5K.
             session_service: Injectable session service. Defaults to
                 BigQuerySessionBackend (with InMemorySessionService fallback).
+            judge_client: Injectable LLM judge client. When ``None`` and
+                ``ATELIER_JUDGE_MODE`` is ``"llm"`` or ``"hybrid"``,
+                auto-constructs a :class:`VertexAIJudgeClient` using
+                ``ATELIER_GCP_PROJECT`` (default ``"atelier-build-2026"``).
+                Pass an explicit client in tests to avoid network I/O.
         """
         state = GovernorState(budget_cap_usd=budget_cap_usd)
         self._governor = MetacognitiveGovernor(state=state)
         self._session_service = session_service or _default_session_service()
+
+        # Auto-wire production Vertex client when a non-heuristic mode is
+        # configured via the environment.  Tests inject a fake client to
+        # avoid importing vertexai or hitting the network.
+        from atelier.nodes.llm_judge import (  # noqa: PLC0415
+            ATELIER_JUDGE_MODE_ENV,
+            JUDGE_MODE_HEURISTIC,
+            VertexAIJudgeClient,
+        )
+
+        effective_mode = os.environ.get(ATELIER_JUDGE_MODE_ENV, JUDGE_MODE_HEURISTIC)
+        if judge_client is not None:
+            self._judge_client: JudgeClient | None = judge_client
+        elif effective_mode != JUDGE_MODE_HEURISTIC:
+            project = os.environ.get("ATELIER_GCP_PROJECT", "atelier-build-2026")
+            self._judge_client = VertexAIJudgeClient(project=project)
+        else:
+            self._judge_client = None
 
     def _run_n3c_n3d_n4(
         self,
@@ -144,9 +171,10 @@ class AtelierRunner:
                  convergence threshold. Falls back to the best available
                  candidate if none exceed the threshold.
 
-        The entire stage runs synchronously (no LLM calls — gates are
-        pure-Python, consensus uses heuristic Phase 1 judges). Phase 2
-        wires LLM judges via the ``judge_client`` injection point.
+        Gates are pure-Python (no LLM calls). Consensus mode is controlled
+        by ``ATELIER_JUDGE_MODE``: ``"heuristic"`` (default, Phase 1 scorers),
+        ``"llm"`` (Vertex AI per-axis judges), or ``"hybrid"`` (LLM wins,
+        heuristic disagreement recorded for calibration dashboards).
 
         Args:
             raw_candidates: List of candidate strings from N3a. Each string
@@ -194,8 +222,8 @@ class AtelierRunner:
 
             candidates_passed_gates += 1
 
-            # N3d: D-O-R-A-V consensus evaluation
-            evaluation = evaluate_candidate(candidate, weights)
+            # N3d: D-O-R-A-V consensus evaluation (heuristic or LLM per ATELIER_JUDGE_MODE)
+            evaluation = evaluate_candidate(candidate, weights, judge_client=self._judge_client)
             evaluations.append((evaluation, html_content))
             logger.info(
                 "N3d: candidate %s composite=%.3f passed=%s",
