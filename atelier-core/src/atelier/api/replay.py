@@ -30,6 +30,12 @@ from atelier.auth.firebase import FirebaseUser, require_auth
 
 logger = logging.getLogger(__name__)
 
+
+def _sanitize_for_log(value: str) -> str:
+    """Sanitize untrusted text for safe single-line logging."""
+    return "".join(ch for ch in value if ch not in "\r\n" and ch.isprintable())
+
+
 router = APIRouter(prefix="/v1/replay", tags=["replay"])
 
 _DEFAULT_PROJECT: str = os.environ.get("GOOGLE_CLOUD_PROJECT", "atelier-build-2026")
@@ -263,7 +269,10 @@ async def _load_session_replay(
         rows = [dict(r) for r in client.query(query, job_config=job_config).result()]
 
         if not rows:
-            logger.info("No trajectory records found for session %s", session_id)
+            logger.info(
+                "No trajectory records found for session %s",
+                _sanitize_for_log(session_id),
+            )
             return None
 
         return _assemble_payload(session_id, rows)
