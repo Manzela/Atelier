@@ -31,6 +31,12 @@ from atelier.auth.firebase import FirebaseUser, require_auth
 
 logger = logging.getLogger(__name__)
 
+
+def _sanitize_for_log(value: Any) -> str:
+    """Return a single-line string safe for logging."""
+    return str(value).replace("\r", "").replace("\n", "")
+
+
 router = APIRouter(prefix="/v1/generate", tags=["pipeline"])
 
 _PROJECT: str = os.environ.get("GOOGLE_CLOUD_PROJECT", "atelier-build-2026")
@@ -325,8 +331,8 @@ async def generate(
             "run_id": run_id,
             "tenant_id": user.tenant_id,
             "user_id": user.uid,
-            "brief_length": len(request.brief),
-            "budget_usd": request.budget_usd,
+            "brief_length": _sanitize_for_log(len(request.brief)),
+            "budget_usd": _sanitize_for_log(request.budget_usd),
         },
     )
 
