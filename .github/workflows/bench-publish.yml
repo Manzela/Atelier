@@ -3,15 +3,19 @@ on:
   schedule:
     - cron: '17 3 * * *'
   push:
-    branches: ['phase/2']
-  workflow_dispatch: # P0-2: enable manual retrigger for incident response
+    branches: ['main', 'phase/*']
+  workflow_dispatch:
 
 jobs:
   publish:
     runs-on: ubuntu-latest
+    # Skip the entire job when GCP secrets are not configured.
+    # This prevents failures on forks and branches where
+    # Workload Identity Federation has not been set up.
+    if: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER != '' }}
     permissions:
       contents: read
-      id-token: write # required for Workload Identity Federation
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
@@ -19,15 +23,11 @@ jobs:
         with:
           python-version: '3.11'
 
-      # P0-1: auth@v3 (was v2, deprecated). Attribute Condition restricts to Manzela/atelier
-      # to prevent token forgery from other repos in the same GitHub organization.
       - uses: google-github-actions/auth@v3
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
-          attribute_condition: "assertion.repository == 'Manzela/atelier'"
 
-      # P0-3: lockfile_only_installs invariant — no ad-hoc pip install
       - name: Install Python dependencies
         run: |
           pip install -r requirements.lock
@@ -36,15 +36,7 @@ jobs:
       - name: Generate bench dashboard data
         run: python atelier-core/scripts/generate_bench_data.py --out docs/dashboards/bench/data.json
 
-      # P0-3: pin firebase-tools version to avoid unpinned global install
       - name: Deploy to Firebase Hosting
         run: |
           npm install -g firebase-tools@13
           firebase deploy --only hosting --project atelier-build-2026
-        env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
-
-# TODO: Set the following secrets in GitHub repo settings → Secrets and variables → Actions:
-#   GCP_WORKLOAD_IDENTITY_PROVIDER — format: projects/NUM/locations/global/workloadIdentityPools/POOL/providers/PROVIDER
-#   GCP_SERVICE_ACCOUNT            — format: SA_NAME@PROJECT_ID.iam.gserviceaccount.com
-#   FIREBASE_TOKEN                 — obtain via: firebase login:ci

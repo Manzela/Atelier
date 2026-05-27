@@ -27,13 +27,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict
 
 from atelier.auth.firebase import FirebaseUser, require_auth
+from atelier.utils.log_sanitizer import sanitize
 
 logger = logging.getLogger(__name__)
-
-
-def _sanitize_for_log(value: str) -> str:
-    """Sanitize untrusted text for safe single-line logging."""
-    return "".join(ch for ch in value if ch not in "\r\n" and ch.isprintable())
 
 
 router = APIRouter(prefix="/v1/replay", tags=["replay"])
@@ -271,7 +267,7 @@ async def _load_session_replay(
         if not rows:
             logger.info(
                 "No trajectory records found for session %s",
-                _sanitize_for_log(session_id),
+                sanitize(session_id),
             )
             return None
 
@@ -281,7 +277,7 @@ async def _load_session_replay(
         logger.warning(
             "Failed to load replay from BQ (fail-soft): %s: %s",
             type(exc).__name__,
-            str(exc)[:200],
+            sanitize(str(exc)[:200]),
         )
         return None
 

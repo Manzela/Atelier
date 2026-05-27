@@ -28,6 +28,8 @@ from typing import Any, Final
 
 import yaml
 
+from atelier.utils.log_sanitizer import sanitize
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -422,7 +424,7 @@ async def _search_with_grounding(
         logger.warning(
             "WRAI search failed (fail-soft): %s: %s",
             type(exc).__name__,
-            str(exc)[:200],
+            sanitize(str(exc)[:200]),
         )
         return []
     else:

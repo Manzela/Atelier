@@ -9,11 +9,8 @@ from uuid import uuid4
 
 import pytest
 from atelier.gates.deterministic import (
-    AXE_STUB_SCORE,
-    LIGHTHOUSE_STUB_SCORE,
     SEMANTIC_HTML_PASS_THRESHOLD,
     SEMANTIC_LANDMARKS,
-    VISUAL_DIFF_STUB_SCORE,
     check_axe_stub,
     check_css_validity,
     check_lighthouse_stub,

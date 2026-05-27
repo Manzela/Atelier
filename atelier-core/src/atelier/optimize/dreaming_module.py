@@ -39,6 +39,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Final
 
+from atelier.utils.log_sanitizer import sanitize
+
 logger = logging.getLogger(__name__)
 
 _PROJECT: Final[str] = os.environ.get("GOOGLE_CLOUD_PROJECT", "atelier-build-2026")
@@ -261,7 +263,7 @@ def write_pairs_to_bq(
         logger.warning(
             "Failed to write DPO pairs to BQ (fail-soft): %s: %s",
             type(exc).__name__,
-            str(exc)[:200],
+            sanitize(str(exc)[:200]),
         )
         return 0
 
@@ -335,7 +337,7 @@ def evaluate_kappa_against_calibration(
             logger.warning(
                 "Calibration eval failed for task %s: %s",
                 task["task_id"],
-                str(exc)[:100],
+                sanitize(str(exc)[:100]),
             )
             composite_score = 0.0
 
@@ -430,7 +432,7 @@ def run_dreaming_module(
         )
 
     except Exception as exc:
-        msg = f"Pair mining failed: {type(exc).__name__}: {str(exc)[:200]}"
+        msg = f"Pair mining failed: {type(exc).__name__}: {sanitize(str(exc)[:200])}"
         report.errors.append(msg)
         logger.exception(msg)
         return report
@@ -456,7 +458,7 @@ def run_dreaming_module(
         logger.info("Dreaming Module: tuning job submitted", extra={"job_name": job_name})
 
     except Exception as exc:
-        msg = f"Tuning job submission failed: {type(exc).__name__}: {str(exc)[:200]}"
+        msg = f"Tuning job submission failed: {type(exc).__name__}: {sanitize(str(exc)[:200])}"
         report.errors.append(msg)
         logger.exception(msg)
         return report
@@ -498,7 +500,7 @@ def compute_and_promote(
     try:
         tasks = load_calibration_seed(calibration_seed_path)
     except FileNotFoundError as exc:
-        report.errors.append(str(exc))
+        report.errors.append(sanitize(str(exc)))
         return report
 
     kappa, results = evaluate_kappa_against_calibration(tasks, generate_fn=generate_fn)
@@ -529,7 +531,7 @@ def compute_and_promote(
             extra={"endpoint": endpoint, "kappa": kappa},
         )
     except Exception as exc:
-        msg = f"Promotion failed: {type(exc).__name__}: {str(exc)[:200]}"
+        msg = f"Promotion failed: {type(exc).__name__}: {sanitize(str(exc)[:200])}"
         report.errors.append(msg)
         logger.exception(msg)
 

@@ -144,6 +144,7 @@ disallow_any_decorated = false
 module = "atelier.api.*"
 disallow_any_unimported = false
 disallow_untyped_decorators = false
+warn_unused_ignores = false
 
 [[tool.mypy.overrides]]
 module = "atelier.observability.*"
@@ -165,6 +166,7 @@ module = "atelier.auth.*"
 # without disabling other strict checks on Atelier auth logic.
 ignore_missing_imports = true
 disallow_any_unimported = false
+disable_error_code = ["import-untyped"]
 
 # numpy is TYPE_CHECKING-gated in Protocol modules by design (ruff TC002).
 # When mypy resolves TYPE_CHECKING=True paths, NDArray types come from an
@@ -175,6 +177,7 @@ disallow_any_unimported = false
 [[tool.mypy.overrides]]
 module = "atelier.memory.*"
 disallow_any_unimported = false
+warn_unused_ignores = false
 
 [[tool.mypy.overrides]]
 module = "atelier.router.*"

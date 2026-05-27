@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import re
 
 from google.adk.agents import LlmAgent
@@ -9,6 +10,8 @@ from pydantic import BaseModel, ConfigDict
 from atelier.intake.brief_spec import BriefSpec
 from atelier.models.enums import GateDecision
 from atelier.models.safety import default_safety_settings
+
+logger = logging.getLogger(__name__)
 
 
 class BriefGateOutcome(BaseModel):

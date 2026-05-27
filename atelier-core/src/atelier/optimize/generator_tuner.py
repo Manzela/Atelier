@@ -33,6 +33,7 @@ from typing import Final, Protocol, runtime_checkable
 from google.cloud import bigquery, storage  # type: ignore[attr-defined]
 
 from atelier.optimize.dpo_tuning_job import DpoTuningJob, TuningJobState
+from atelier.utils.log_sanitizer import sanitize
 
 logger = logging.getLogger(__name__)
 
@@ -248,7 +249,8 @@ class GeneratorTuner:
         job = self._tuning_job.submit(gcs_pairs_uri=gcs_uri, display_name=display_name)
         job_name: str = job.name
         logger.info(
-            "DPO tuning job started", extra={"job_name": job_name, "pair_count": len(pairs)}
+            "DPO tuning job started",
+            extra={"job_name": sanitize(job_name), "pair_count": len(pairs)},
         )
         return job_name
 
@@ -336,8 +338,8 @@ class GeneratorTuner:
         logger.info(
             "Model promoted",
             extra={
-                "job_name": job_name,
-                "endpoint": endpoint,
+                "job_name": sanitize(job_name),
+                "endpoint": sanitize(endpoint),
                 "achieved_kappa": achieved_kappa,
             },
         )

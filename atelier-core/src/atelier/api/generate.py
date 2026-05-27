@@ -28,13 +28,9 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, ConfigDict, Field
 
 from atelier.auth.firebase import FirebaseUser, require_auth
+from atelier.utils.log_sanitizer import sanitize
 
 logger = logging.getLogger(__name__)
-
-
-def _sanitize_for_log(value: Any) -> str:
-    """Return a single-line string safe for logging."""
-    return str(value).replace("\r", "").replace("\n", "")
 
 
 router = APIRouter(prefix="/v1/generate", tags=["pipeline"])
@@ -218,7 +214,7 @@ async def _record_trajectory(
             from google.cloud import bigquery as _bq  # noqa: PLC0415
 
             bq_client = _bq.Client(project=_PROJECT)
-            recorder = TrajectoryRecorder(bq_client)
+            recorder = TrajectoryRecorder(bq_client)  # type: ignore[arg-type]  # BQ Client satisfies BigQueryClient Protocol at runtime
             for record in records:
                 recorder.record(record)
             recorder.flush()
@@ -228,7 +224,7 @@ async def _record_trajectory(
         logger.warning(
             "Trajectory recording failed (fail-soft): %s: %s",
             type(exc).__name__,
-            str(exc)[:200],
+            sanitize(str(exc)[:200]),
         )
 
 
@@ -331,8 +327,8 @@ async def generate(
             "run_id": run_id,
             "tenant_id": user.tenant_id,
             "user_id": user.uid,
-            "brief_length": _sanitize_for_log(len(request.brief)),
-            "budget_usd": _sanitize_for_log(request.budget_usd),
+            "brief_length": sanitize(str(len(request.brief))),
+            "budget_usd": sanitize(str(request.budget_usd)),
         },
     )
 

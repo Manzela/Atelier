@@ -66,6 +66,8 @@ from typing import Annotated, Any
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from atelier.utils.log_sanitizer import sanitize
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -99,8 +101,8 @@ def _init_firebase() -> Any:
         return _firebase_app
 
     try:
-        import firebase_admin  # noqa: PLC0415  # type: ignore[import-not-found,import]
-        from firebase_admin import credentials  # noqa: PLC0415  # type: ignore[import-not-found]
+        import firebase_admin  # noqa: PLC0415
+        from firebase_admin import credentials  # noqa: PLC0415
     except ImportError as exc:
         raise RuntimeError(
             "firebase-admin is not installed. "
@@ -192,7 +194,7 @@ def _decode_token(token: str, *, check_revoked: bool = False) -> dict[str, Any]:
             "Firebase token verification failed [%s]: %s — %s",
             error_code,
             exc_name,
-            str(exc)[:120],
+            sanitize(str(exc)[:120]),
         )
         raise HTTPException(
             status_code=401,

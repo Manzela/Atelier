@@ -37,8 +37,6 @@ def make_record(
 
 
 def test_valid_pair_extracted():
-    r1 = make_record("surf1", "cand1", 0, 0.72)
-    # override manually to keep it string matchable or exact UUID
     surf_uuid = uuid4()
     c1_uuid = uuid4()
     c2_uuid = uuid4()

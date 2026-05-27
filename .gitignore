@@ -238,3 +238,4 @@ uv.lock
 # shipped product, never the planning scaffolding that produced it.
 .local/
 .firecrawl/
+.firebase/
