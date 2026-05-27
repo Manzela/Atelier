@@ -408,7 +408,7 @@ def run_dreaming_module(
 
     logger.info(
         "Dreaming Module starting",
-        extra={"tenant_id": tenant_id, "min_pairs": min_pairs, "dry_run": dry_run},
+        extra={"tenant_id": sanitize(tenant_id or ""), "min_pairs": min_pairs, "dry_run": dry_run},
     )
 
     # Step 1: Mine pairs from BQ

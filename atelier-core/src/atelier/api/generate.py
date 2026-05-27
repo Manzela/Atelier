@@ -325,8 +325,8 @@ async def generate(
         "atelier.generate.start",
         extra={
             "run_id": run_id,
-            "tenant_id": user.tenant_id,
-            "user_id": user.uid,
+            "tenant_id": sanitize(user.tenant_id),
+            "user_id": sanitize(user.uid),
             "brief_length": sanitize(str(len(request.brief))),
             "budget_usd": sanitize(str(request.budget_usd)),
         },

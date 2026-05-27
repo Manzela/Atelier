@@ -330,7 +330,7 @@ def _assemble_payload(
     )
     logger.info(
         "Replay assembled for session %s: %d spans, %d gate scores, $%.4f cost",
-        session_id,
+        sanitize(session_id),
         len(spans),
         len(gate_scores),
         total_cost,
