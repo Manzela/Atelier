@@ -166,7 +166,9 @@ class EpsilonGreedyBandit:
         expert = self._select_expert(request.phase, explore=explore)
         arm = self._arms[(request.phase, expert)]
 
-        fallback_chain = tuple(dict.fromkeys(e for e in _PHASE_PREFERENCE.values() if e != expert))[:2]
+        fallback_chain = tuple(dict.fromkeys(e for e in _PHASE_PREFERENCE.values() if e != expert))[
+            :2
+        ]
 
         rationale = (
             f"{'explore:ucb1' if explore else 'exploit:greedy'} "

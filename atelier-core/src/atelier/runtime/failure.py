@@ -42,7 +42,7 @@ class FailureMode(StrEnum):
     SELF_HEAL = "self_heal"
 
 
-def failure_trichotomy(
+def failure_trichotomy(  # noqa: C901
     *,
     fail_mode: FailureMode,
     max_retries: int = 0,
@@ -64,8 +64,9 @@ def failure_trichotomy(
         msg = f"max_retries must be >= 0, got {max_retries}"
         raise ValueError(msg)
 
-    def decorator(func: F) -> F:
+    def decorator(func: F) -> F:  # noqa: C901
         if asyncio.iscoroutinefunction(func):
+
             @functools.wraps(func)
             async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
                 if fail_mode is FailureMode.FAIL_LOUD:
