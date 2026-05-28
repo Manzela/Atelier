@@ -1,7 +1,8 @@
 """N3a Generator Ensemble — Parallel candidate generation.
 
 Uses ADK ParallelAgent to run K=3 generators simultaneously.
-Each generator attempts to use Stitch MCP first, falling back to gemini-3-pro direct generation.
+Each generator attempts to use Stitch MCP first, falling back to direct
+generation via the model pinned in ``model_registry.GENERATOR_MODEL``.
 
 .. deprecated:: ADK 2.1.0
     ParallelAgent is deprecated. Migrate to ``Workflow`` when ADK ships it.
@@ -22,6 +23,7 @@ from atelier.integrations.stitch_mcp import (
     StitchDegradationInfo,
     try_get_stitch_mcp_toolset,
 )
+from atelier.models.model_registry import GENERATOR_MODEL
 from atelier.models.safety import default_safety_settings
 
 if TYPE_CHECKING:
@@ -46,7 +48,7 @@ def create_generator_ensemble() -> tuple[ParallelAgent, StitchDegradationInfo]: 
     for i in range(ENSEMBLE_SIZE):
         agent = LlmAgent(
             name=f"Generator_{i + 1}",
-            model="gemini-3-pro",
+            model=GENERATOR_MODEL.model_id,
             tools=toolsets,
             instruction=(
                 "You are a UX/UI Generator for Atelier. "

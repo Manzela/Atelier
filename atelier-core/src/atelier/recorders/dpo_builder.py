@@ -56,6 +56,11 @@ def prepare_dpo_dataset(records: list[TrajectoryRecord]) -> list[dict[str, Any]]
         if best_chosen.candidate_id == worst_rejected.candidate_id:
             continue
 
+        # M-6: Guard against empty steps — would produce empty-string DPO pairs
+        # that poison the tuning dataset.
+        if not best_chosen.steps or not worst_rejected.steps:
+            continue
+
         prompt = best_chosen.steps[0].input_summary if best_chosen.steps else ""
         chosen_response = best_chosen.steps[-1].output_summary if best_chosen.steps else ""
         rejected_response = worst_rejected.steps[-1].output_summary if worst_rejected.steps else ""

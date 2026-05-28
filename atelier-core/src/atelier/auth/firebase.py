@@ -76,11 +76,24 @@ logger = logging.getLogger(__name__)
 
 _firebase_app: Any = None  # firebase_admin.App instance or None (dev bypass)
 _BYPASS_AUTH: bool = os.getenv("FIREBASE_DISABLE_AUTH", "").lower() in ("1", "true", "yes")
-_PROJECT_ID: str = os.getenv("FIREBASE_PROJECT_ID", "atelier-build-2026")
+_PROJECT_ID: str | None = os.getenv("FIREBASE_PROJECT_ID")
 
-if _BYPASS_AUTH and os.getenv("ATELIER_ENV", "development") == "production":
+# M-8: Require FIREBASE_PROJECT_ID in non-development environments.
+# A missing project ID silently uses the wrong Firebase project.
+if not _PROJECT_ID and os.getenv("ATELIER_ENV", "development") != "development":
     raise RuntimeError(
-        "FIREBASE_DISABLE_AUTH must not be set in production. Unset the variable and restart."
+        "FIREBASE_PROJECT_ID env var is required in non-development environments. "
+        "Set it to your Firebase project ID and restart."
+    )
+_PROJECT_ID = _PROJECT_ID or "atelier-build-2026"
+
+# H-1: Guard against auth bypass outside local development.
+# The old check `== "production"` was bypassable via ATELIER_ENV=staging.
+# Allowlisting "development" as the only safe value closes that loophole.
+if _BYPASS_AUTH and os.getenv("ATELIER_ENV", "development") != "development":
+    raise RuntimeError(
+        "FIREBASE_DISABLE_AUTH must not be set outside local development. "
+        f"ATELIER_ENV={os.getenv('ATELIER_ENV')!r}. Unset and restart."
     )
 
 
@@ -278,18 +291,24 @@ async def optional_auth(
 
     Use for endpoints that work both authenticated and anonymously
     (e.g. health checks, public documentation).
+
+    Security: distinguishes genuinely anonymous callers (no credentials)
+    from callers with invalid/expired tokens. The latter receive 401
+    instead of silent anonymous treatment — prevents token revocation
+    from being silently bypassed.
     """
     if _BYPASS_AUTH:
         return _dev_user()
 
+    # No credentials presented → genuinely anonymous
     if credentials is None or credentials.scheme.lower() != "bearer":
         return None
 
-    try:
-        decoded = _decode_token(credentials.credentials)
-        return _user_from_token(decoded)
-    except HTTPException:
-        return None
+    # Credentials were presented — validate them; any failure is 401.
+    # Do NOT catch HTTPException here: invalid/expired/revoked tokens
+    # must return 401, not degrade to anonymous (None).
+    decoded = _decode_token(credentials.credentials)
+    return _user_from_token(decoded)
 
 
 # Convenience alias that reads more clearly as a FastAPI Depends parameter

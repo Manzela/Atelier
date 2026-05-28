@@ -19,6 +19,7 @@ Audit Reference: B4 (swap InMemoryRunner → VertexAiSessionService)
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import time
@@ -138,7 +139,8 @@ class BigQuerySessionBackend(BaseSessionService):  # type: ignore[misc]
             "updated_at": session.last_update_time,
         }
         try:
-            errors = client.insert_rows_json(self._fqn, [row])
+            loop = asyncio.get_running_loop()
+            errors = await loop.run_in_executor(None, client.insert_rows_json, self._fqn, [row])
             if errors:
                 logger.warning("BQ insert errors for session %s: %s", sid, errors)
                 self._fallback_store[sid] = session
@@ -177,7 +179,7 @@ class BigQuerySessionBackend(BaseSessionService):  # type: ignore[misc]
 
         query = (
             f"SELECT * FROM `{self._fqn}` "  # noqa: S608
-            "WHERE session_id = @session_id AND user_id = @user_id "
+            "WHERE session_id = @session_id AND user_id = @user_id AND app_name = @app_name "
             "ORDER BY updated_at DESC "
             "LIMIT 1"
         )
@@ -188,9 +190,12 @@ class BigQuerySessionBackend(BaseSessionService):  # type: ignore[misc]
                 query_parameters=[
                     bigquery.ScalarQueryParameter("session_id", "STRING", session_id),
                     bigquery.ScalarQueryParameter("user_id", "STRING", user_id),
+                    bigquery.ScalarQueryParameter("app_name", "STRING", app_name),
                 ]
             )
-            result = client.query(query, job_config=job_config).result()
+            loop = asyncio.get_running_loop()
+            query_job = client.query(query, job_config=job_config)
+            result = await loop.run_in_executor(None, query_job.result)
             rows = list(result)
             if not rows:
                 return None
@@ -260,7 +265,9 @@ class BigQuerySessionBackend(BaseSessionService):  # type: ignore[misc]
                 f"{where} ORDER BY updated_at DESC LIMIT 100"
             )
             job_config = bigquery.QueryJobConfig(query_parameters=params)
-            result = client.query(query, job_config=job_config).result()
+            loop = asyncio.get_running_loop()
+            query_job = client.query(query, job_config=job_config)
+            result = await loop.run_in_executor(None, query_job.result)
 
             sessions = [
                 Session(
@@ -310,7 +317,9 @@ class BigQuerySessionBackend(BaseSessionService):  # type: ignore[misc]
                     bigquery.ScalarQueryParameter("user_id", "STRING", user_id),
                 ]
             )
-            client.query(query, job_config=job_config).result()
+            loop = asyncio.get_running_loop()
+            query_job = client.query(query, job_config=job_config)
+            await loop.run_in_executor(None, query_job.result)
         except Exception as exc:  # noqa: BLE001
             logger.warning("Failed to delete session from BQ: %s", type(exc).__name__)
 
@@ -346,7 +355,9 @@ class BigQuerySessionBackend(BaseSessionService):  # type: ignore[misc]
                         bigquery.ScalarQueryParameter("session_id", "STRING", session.id),
                     ]
                 )
-                client.query(query, job_config=job_config).result()
+                loop = asyncio.get_running_loop()
+                query_job = client.query(query, job_config=job_config)
+                await loop.run_in_executor(None, query_job.result)
             except Exception as exc:  # noqa: BLE001
                 logger.warning("Failed to persist event to BQ: %s", type(exc).__name__)
 

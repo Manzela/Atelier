@@ -169,13 +169,14 @@ def create_app() -> FastAPI:
         """Return service health status and metadata.
 
         Unauthenticated. Used by Cloud Run readiness/liveness probes.
+        In production, strips ``env`` and ``version`` to reduce information
+        exposure (M-4).
         """
-        return {
-            "status": "healthy",
-            "version": __version__,
-            "service": "atelier-api",
-            "env": os.getenv("ATELIER_ENV", "development"),
-        }
+        resp: dict[str, str] = {"status": "healthy", "service": "atelier-api"}
+        if os.getenv("ATELIER_ENV", "development") == "development":
+            resp["version"] = __version__
+            resp["env"] = os.getenv("ATELIER_ENV", "development")
+        return resp
 
     # --- Account usage endpoint ───────────────────────────────────────────────
     # Self-serve SaaS principle: users can inspect their own budget consumption

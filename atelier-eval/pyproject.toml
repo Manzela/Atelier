@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "atelier-eval"
-version = "0.1.0a0"
+version = "0.2.0a0"
 description = "Atelier evaluation suite — benchmark adapters and public scoreboard"
 readme = "README.md"
 authors = [{ name = "Daniel Manzela", email = "hello@atelier.dev" }]

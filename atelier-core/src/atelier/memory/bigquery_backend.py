@@ -15,6 +15,7 @@ guard.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from typing import TYPE_CHECKING, Final
@@ -75,7 +76,8 @@ class BigQueryEpisodicBackend:
             "occurred_at": event.occurred_at.isoformat(),
             "payload": json.dumps({k: str(v) for k, v in event.payload.items()}),
         }
-        errors = self._client.insert_rows_json(self._table, [row])
+        loop = asyncio.get_running_loop()
+        errors = await loop.run_in_executor(None, self._client.insert_rows_json, self._table, [row])
         if errors:
             msg = f"BigQuery insert_rows_json failed: {errors}"
             logger.error(msg, extra={"event_id": event.event_id, "tenant_id": key.tenant_id})

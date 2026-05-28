@@ -19,6 +19,7 @@ ADR Reference: 0006 (Google-native stack — BigQuery for telemetry)
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 import uuid
@@ -163,7 +164,8 @@ class TrajectoryRecorder:
     async def __aexit__(self, *args: Any) -> None:
         """Exit the context manager, flushing remaining records."""
         if self._buffer:
-            self.flush()
+            loop = asyncio.get_running_loop()
+            await loop.run_in_executor(None, self.flush)
 
     # -- Public API --------------------------------------------------------
 
@@ -174,7 +176,13 @@ class TrajectoryRecorder:
 
         Args:
             trajectory: The trajectory record to buffer.
+
+        Raises:
+            ValueError: If trajectory.tenant_id is empty.
         """
+        if not trajectory.tenant_id:
+            msg = "TrajectoryRecord.tenant_id must not be empty — cannot write without tenant isolation."
+            raise ValueError(msg)
         self._buffer.append(trajectory)
         if len(self._buffer) >= self._buffer_size:
             self.flush()

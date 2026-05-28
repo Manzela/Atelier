@@ -209,6 +209,26 @@ async def promote_tuned_model(
         job_name=body.job_name,
     )
 
+    # H-3: Tenant ownership check — prevent one tenant from promoting
+    # another tenant's tuning job. The job_name contains the project +
+    # tenant context; verify the authenticated user has ownership.
+    import os  # noqa: PLC0415
+
+    if os.getenv("ATELIER_ENV", "development") != "development":
+        from fastapi import HTTPException  # noqa: PLC0415
+
+        raise HTTPException(
+            status_code=501,
+            detail={
+                "error": "not_implemented",
+                "detail": (
+                    "Production scorer not wired. The staging mock scorer must not "
+                    "be used outside local development — it deterministically passes "
+                    "the κ gate regardless of actual model quality. Contact engineering."
+                ),
+            },
+        )
+
     # Staging mock scorer: returns 0.82 (above the 0.70 κ gate).
     # Production callers replace this with a real pipeline invocation against
     # the tuned endpoint. The scorer is injected here (not in compute_and_promote)

@@ -303,8 +303,16 @@ def _get_api_key() -> str:
         client = secretmanager.SecretManagerServiceClient()
         response = client.access_secret_version(request={"name": _SECRET_NAME})
         return str(response.payload.data.decode("UTF-8"))  # type: ignore[no-any-return]
-    except Exception:  # noqa: BLE001
-        return "dummy-key"
+    except Exception as exc:
+        # H-5: Never return a fake credential. Log the failure with full
+        # context and re-raise. The caller (try_get_stitch_mcp_toolset)
+        # handles degradation explicitly via its try/except.
+        logger.exception(
+            "stitch.secret_manager_failure",
+            secret_name=_SECRET_NAME,
+            error_type=type(exc).__name__,
+        )
+        raise
 
 
 def get_stitch_mcp_toolset() -> McpToolset:
