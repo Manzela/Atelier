@@ -21,7 +21,7 @@ from __future__ import annotations
 from typing import Annotated, Any
 
 import structlog
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from atelier.auth.firebase import FirebaseUser, require_auth
@@ -209,14 +209,22 @@ async def promote_tuned_model(
         job_name=body.job_name,
     )
 
-    # H-3: Tenant ownership check — prevent one tenant from promoting
-    # another tenant's tuning job. The job_name contains the project +
-    # tenant context; verify the authenticated user has ownership.
     import os  # noqa: PLC0415
 
-    if os.getenv("ATELIER_ENV", "development") != "development":
-        from fastapi import HTTPException  # noqa: PLC0415
+    # H-3a: Tenant ownership — prevent one tenant from promoting another's
+    # tuning job. Vertex AI job names contain the project + region context;
+    # verify the authenticated user has ownership via tenant_id.
+    if user.tenant_id not in body.job_name:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "error": "forbidden",
+                "detail": "Tuning job does not belong to the authenticated tenant.",
+            },
+        )
 
+    # H-3b: Gate staging mock scorer — must not run in production.
+    if os.getenv("ATELIER_ENV", "development") != "development":
         raise HTTPException(
             status_code=501,
             detail={
