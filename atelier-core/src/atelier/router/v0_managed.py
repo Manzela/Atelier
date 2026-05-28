@@ -69,6 +69,7 @@ class ManagedRoutingRouter:
             )
             return RouteDecision(
                 expert=primary,
+                phase=request.phase,
                 score=0.5,
                 rationale=rationale,
                 fallback_chain=_FALLBACK_CHAIN_BY_PRIMARY[primary],
@@ -99,6 +100,7 @@ class ManagedRoutingRouter:
 
         return RouteDecision(
             expert=primary,
+            phase=request.phase,
             score=0.95,
             rationale=rationale,
             fallback_chain=_FALLBACK_CHAIN_BY_PRIMARY[primary],

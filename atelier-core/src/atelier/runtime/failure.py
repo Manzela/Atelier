@@ -22,6 +22,7 @@ Three modes per CLAUDE.md §5 (failure-handling trichotomy):
 
 from __future__ import annotations
 
+import asyncio
 import functools
 import logging
 from collections.abc import Callable
@@ -64,6 +65,50 @@ def failure_trichotomy(
         raise ValueError(msg)
 
     def decorator(func: F) -> F:
+        if asyncio.iscoroutinefunction(func):
+            @functools.wraps(func)
+            async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
+                if fail_mode is FailureMode.FAIL_LOUD:
+                    return await func(*args, **kwargs)
+
+                if fail_mode is FailureMode.FAIL_SOFT:
+                    try:
+                        return await func(*args, **kwargs)
+                    except Exception:  # noqa: BLE001
+                        logger.warning(
+                            "FAIL_SOFT in %s: swallowed exception, returning None",
+                            func.__qualname__,
+                            exc_info=True,
+                        )
+                        return None
+
+                # SELF_HEAL async
+                last_exc: BaseException | None = None
+                attempts = max_retries if max_retries > 0 else 1
+                for attempt in range(1, attempts + 1):
+                    try:
+                        return await func(*args, **kwargs)
+                    except Exception as exc:  # noqa: BLE001
+                        last_exc = exc
+                        if attempt < attempts:
+                            logger.info(
+                                "SELF_HEAL retry %d/%d for %s: %s",
+                                attempt,
+                                attempts,
+                                func.__qualname__,
+                                exc,
+                            )
+                logger.error(
+                    "SELF_HEAL exhausted %d retries for %s — escalating to FAIL_LOUD",
+                    attempts,
+                    func.__qualname__,
+                )
+                raise last_exc  # type: ignore[misc]
+
+            async_wrapper._failure_mode = fail_mode  # type: ignore[attr-defined]
+            async_wrapper._max_retries = max_retries  # type: ignore[attr-defined]
+            return async_wrapper  # type: ignore[return-value]
+
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             if fail_mode is FailureMode.FAIL_LOUD:

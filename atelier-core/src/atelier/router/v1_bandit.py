@@ -166,7 +166,7 @@ class EpsilonGreedyBandit:
         expert = self._select_expert(request.phase, explore=explore)
         arm = self._arms[(request.phase, expert)]
 
-        fallback_chain = tuple(e for e in _PHASE_PREFERENCE.values() if e != expert)[:2]
+        fallback_chain = tuple(dict.fromkeys(e for e in _PHASE_PREFERENCE.values() if e != expert))[:2]
 
         rationale = (
             f"{'explore:ucb1' if explore else 'exploit:greedy'} "
@@ -184,6 +184,7 @@ class EpsilonGreedyBandit:
         )
         return RouteDecision(
             expert=expert,
+            phase=request.phase,
             score=arm.mean_score,
             rationale=rationale,
             fallback_chain=fallback_chain,
@@ -212,27 +213,22 @@ class EpsilonGreedyBandit:
             actual_cost_usd: Actual cost incurred (informational).
             actual_latency_ms: Actual latency (informational).
         """
-        # Recover the phase from the span_attrs rationale — we store the arm
-        # key indirectly. In production, the caller always pairs route() with
-        # the RouteRequest they used; phase is available. Here we update all
-        # arms for this expert as a best-effort fallback.
-        # Production fix (T14+): pass RouteRequest alongside RouteDecision.
-        updated = False
-        for (phase, expert), arm in self._arms.items():
-            if expert == decision.expert:
-                arm.update(achieved_score)
-                updated = True
-                logger.debug(
-                    "Bandit arm updated",
-                    extra={
-                        "phase": phase,
-                        "expert": expert,
-                        "achieved_score": achieved_score,
-                        "new_mean": arm.mean_score,
-                    },
-                )
-        if not updated:
+        arm_key = (decision.phase, decision.expert)
+        arm = self._arms.get(arm_key)
+        if arm is None:
             logger.warning(
-                "observe_outcome: no arm found for expert",
-                extra={"expert": decision.expert},
+                "observe_outcome: no arm found for (phase=%s, expert=%s)",
+                decision.phase,
+                decision.expert,
             )
+            return
+        arm.update(achieved_score)
+        logger.debug(
+            "Bandit arm updated",
+            extra={
+                "phase": decision.phase,
+                "expert": decision.expert,
+                "achieved_score": achieved_score,
+                "new_mean": arm.mean_score,
+            },
+        )

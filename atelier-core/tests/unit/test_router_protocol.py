@@ -143,6 +143,7 @@ def test_route_decision_is_not_hashable_by_design() -> None:
     """
     decision = RouteDecision(
         expert=ExpertID.GEMINI_3_FLASH,
+        phase=DAGPhase.GENERATE_CANDIDATES,
         score=0.42,
         rationale="test",
         fallback_chain=(ExpertID.GEMINI_2_5_FLASH,),
@@ -172,6 +173,7 @@ def test_route_decision_span_attrs_defaults_to_empty_dict() -> None:
     """
     a = RouteDecision(
         expert=ExpertID.GEMINI_3_FLASH,
+        phase=DAGPhase.GENERATE_CANDIDATES,
         score=0.5,
         rationale="a",
         fallback_chain=(),
@@ -179,6 +181,7 @@ def test_route_decision_span_attrs_defaults_to_empty_dict() -> None:
     )
     b = RouteDecision(
         expert=ExpertID.GEMINI_3_FLASH,
+        phase=DAGPhase.GENERATE_CANDIDATES,
         score=0.5,
         rationale="b",
         fallback_chain=(),
@@ -192,6 +195,7 @@ def test_route_decision_span_attrs_defaults_to_empty_dict() -> None:
 def test_route_decision_is_frozen_attributes_cannot_be_reassigned() -> None:
     decision = RouteDecision(
         expert=ExpertID.GEMINI_3_FLASH,
+        phase=DAGPhase.GENERATE_CANDIDATES,
         score=0.5,
         rationale="frozen",
         fallback_chain=(),
