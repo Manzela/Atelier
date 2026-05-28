@@ -89,7 +89,7 @@ class TestGovernorExecution:
     ) -> None:
         op = AsyncMock()
         with pytest.raises(GovernorBudgetExceeded):
-            await governor.run_with_governance(op, "step1", cost_estimate_usd=10.0)
+            await governor.run_with_governance(op, "step1", cost_estimate_usd=5001.0)
         op.assert_not_called()
 
     async def test_step_budget_exceeded(self, governor: MetacognitiveGovernor) -> None:
@@ -105,7 +105,7 @@ class TestGovernorExecution:
         await governor.run_with_governance(op, "step2", cost_estimate_usd=0.2)
         assert governor._state.total_cost_usd == 0.4
 
-        governor._state.total_cost_usd = 4.9
+        governor._state.total_cost_usd = 4999.9
         with pytest.raises(GovernorBudgetExceeded):
             await governor.run_with_governance(op, "step3", cost_estimate_usd=0.2)
 
@@ -137,7 +137,7 @@ class TestGovernorState:
         state = GovernorState()
         assert not state.is_over_budget()
 
-        state.total_cost_usd = 6.0
+        state.total_cost_usd = 5001.0
         assert state.is_over_budget()
 
 

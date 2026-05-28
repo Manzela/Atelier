@@ -75,17 +75,27 @@ class AxisWeights:
 
         Args:
             scores: Dictionary mapping axis name to score (0.0-1.0).
+                Must contain all D-O-R-A-V axes.
 
         Returns:
             Weighted composite score (0.0-1.0).
 
         Raises:
-            ValueError: If any score is outside [0.0, 1.0].
+            ValueError: If any required axis is missing from scores,
+                or if any score is outside [0.0, 1.0].
         """
         weights = self.normalized()
+
+        # M-2: Fail-loud on missing axes — silently defaulting to 0.0
+        # hides cases where a judge didn't produce a score.
+        missing = set(weights.keys()) - set(scores.keys())
+        if missing:
+            msg = f"Missing axis scores for compute_composite: {sorted(missing)}"
+            raise ValueError(msg)
+
         composite = 0.0
         for axis, weight in weights.items():
-            score = scores.get(axis, 0.0)
+            score = scores[axis]
             if not 0.0 <= score <= 1.0:
                 msg = f"Score for axis '{axis}' must be in [0.0, 1.0], got {score}"
                 raise ValueError(msg)

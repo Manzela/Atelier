@@ -109,6 +109,7 @@ class RouteDecision:
     """
 
     expert: ExpertID
+    phase: DAGPhase
     score: float
     rationale: str
     fallback_chain: tuple[ExpertID, ...]

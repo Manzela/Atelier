@@ -42,7 +42,7 @@ cd atelier-core && pytest tests/unit/ -v
 
 ## Branching model — worktree-per-phase
 
-Per [ADR 0007](docs/decisions/0007-worktree-per-phase-branching.md), Atelier uses git worktrees with one branch per sprint phase:
+Per the project branching model, Atelier uses git worktrees with one branch per sprint phase:
 
 ```
 atelier/                                    ← branch: main (accepted-only)
@@ -75,7 +75,7 @@ gh pr create --base phase/N --title "feat(scope): description"
 
 ## Commit messages — Conventional Commits 1.0.0
 
-Strictly enforced via `commitlint` pre-commit hook. See [docs/conventions/commit-messages.md](docs/conventions/commit-messages.md) for the full spec.
+Strictly enforced via `commitlint` pre-commit hook.
 
 ```
 <type>(<scope>): <subject>
@@ -165,7 +165,7 @@ python -m atelier_eval.runner --suite webgen_bench --subset 50  # quick subset
 python -m atelier_eval.runner --suite webgen_bench               # full suite
 ```
 
-### Conformance / replay tests (Anthropic harness pattern)
+### Conformance / replay tests
 
 ```bash
 adk conformance record --agent atelier-core/agent.py --eval-set tests/conformance/golden.jsonl
@@ -174,7 +174,7 @@ adk conformance test --mode=replay --agent atelier-core/agent.py
 
 ## Code style
 
-See [docs/conventions/code-style.md](docs/conventions/code-style.md) for the full guide. Highlights:
+Highlights:
 
 - **Python**: ruff format + check (line length 100, target 3.11+)
 - **TypeScript**: prettier + eslint (line length 100, strict mode)
@@ -193,16 +193,15 @@ Use the [bug report](.github/ISSUE_TEMPLATE/bug.yml), [feature request](.github/
 - **Logs** (sanitized — strip secrets)
 - **Atelier session ID** if applicable (helps us trace in BigQuery)
 
-## Proposing an ADR
+## Proposing an Architecture Decision Record
 
 For decisions that lock in tradeoffs, affect code that's hard to unwind, or that future-you would want to know the reasoning for:
 
 1. Open an issue tagged `adr-proposal` describing the problem
-2. After ≥7 days of discussion, copy `docs/decisions/template.md` to `docs/decisions/<NNNN>-<short-kebab-name>.md`
+2. After discussion, create a decision document following the project template
 3. Fill in: Status (`Proposed`), Context, Decision, Consequences, Alternatives
 4. Open a PR titled `docs(adr): <NNNN> <title>`
-5. Maintainer reviews + accepts/rejects
-6. On acceptance: status changes to `Accepted`, ADR is merged, index in `docs/decisions/README.md` is updated
+5. Maintainer reviews and accepts or rejects
 
 ## Recognition
 

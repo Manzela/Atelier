@@ -155,6 +155,14 @@ def _default_scrubber_config() -> ScrubberConfig:
                     r"eyJ[A-Za-z0-9\-_]{20,}\.[A-Za-z0-9\-_]{20,}\.[A-Za-z0-9\-_]{20,}"
                 ),
             ),
+            ScrubPattern(
+                name="Email Address",
+                regex=re.compile(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}"),
+            ),
+            ScrubPattern(
+                name="E.164 Phone Number",
+                regex=re.compile(r"\+?[1-9]\d{7,14}\b"),
+            ),
         ]
     )
 

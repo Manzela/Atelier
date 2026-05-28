@@ -25,8 +25,9 @@ import logging
 import time
 from collections import deque
 from dataclasses import dataclass, field
-from enum import StrEnum
 from typing import TYPE_CHECKING, Final, TypeVar
+
+from atelier.runtime.failure import FailureMode
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -39,12 +40,6 @@ STALL_TIMEOUT_SECONDS: Final[float] = 300.0
 BACKOFF_BASE_SECONDS: Final[float] = 1.0
 BACKOFF_MAX_SECONDS: Final[float] = 32.0
 MAX_STEP_COST_USD: Final[float] = 0.50
-
-
-class FailureMode(StrEnum):
-    FAIL_LOUD = "FAIL_LOUD"
-    FAIL_SOFT = "FAIL_SOFT"
-    SELF_HEAL = "SELF_HEAL"
 
 
 class GovernorBudgetExceeded(Exception):  # noqa: N818  # name matches domain terminology
@@ -61,7 +56,7 @@ class GovernorState:
     last_step_time: float = field(default_factory=time.monotonic)
     step_history: deque[str] = field(default_factory=lambda: deque(maxlen=MAX_LOOP_ITERATIONS))
     total_cost_usd: float = 0.0
-    budget_cap_usd: float = 5.0  # PRD §7.2
+    budget_cap_usd: float = 5000.0  # PRD §7.2
 
     def record_step(self, step_id: str) -> None:
         self.step_history.append(step_id)

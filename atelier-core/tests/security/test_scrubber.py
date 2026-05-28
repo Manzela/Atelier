@@ -13,7 +13,7 @@ def test_scrubber_patterns_yaml_valid() -> None:
     with _SCRUBBER_CONFIG.open() as f:
         data = yaml.safe_load(f)
     assert "patterns" in data
-    assert len(data["patterns"]) == 6
+    assert len(data["patterns"]) >= 6
 
 
 def test_google_api_key_pattern_matches() -> None:

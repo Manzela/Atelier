@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from collections.abc import Sequence
 from dataclasses import dataclass
 
@@ -61,6 +62,15 @@ class VertexProceduralMemoryBackend:
     """
 
     def __init__(self, project_id: str, location: str = "us-central1") -> None:
+        # H-7: In-memory stub loses all data on process restart. In production
+        # (Cloud Run scales to zero), this silently pretends memory works.
+        # Fail-loud outside development until real Vertex Memory Bank is wired.
+        if os.getenv("ATELIER_ENV", "development") != "development":
+            raise NotImplementedError(
+                "VertexProceduralMemoryBackend is an in-memory stub with no persistence. "
+                "It must not be used in non-development environments. "
+                "Wire the real Vertex AI Memory Bank API or set ATELIER_ENV=development."
+            )
         self._project_id = project_id
         self._location = location
         self._store: dict[str, list[_StoredProcedure]] = {}

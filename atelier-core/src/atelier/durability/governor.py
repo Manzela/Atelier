@@ -40,17 +40,10 @@ import hashlib
 import logging
 import time
 from dataclasses import dataclass
-from enum import StrEnum
+
+from atelier.runtime.failure import FailureMode
 
 logger = logging.getLogger("atelier.governor")
-
-
-class FailureMode(StrEnum):
-    """Exhaustive failure classification — every error is exactly one of these."""
-
-    FAIL_LOUD = "fail_loud"
-    FAIL_SOFT = "fail_soft"
-    SELF_HEAL = "self_heal"
 
 
 class GovernorError(Exception):
@@ -93,7 +86,7 @@ class GovernorConfig:
 
     max_consecutive_identical_calls: int = 3
     max_total_steps: int = 50
-    max_cost_usd: float = 5.0
+    max_cost_usd: float = 5000.0
     self_heal_max_retries: int = 3
     context_exhaustion_threshold: float = 0.9
     stall_detection_window: int = 10

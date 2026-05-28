@@ -38,9 +38,13 @@ def _make_request(
     )
 
 
-def _make_decision(expert: ExpertID = ExpertID.GEMINI_3_FLASH) -> RouteDecision:
+def _make_decision(
+    expert: ExpertID = ExpertID.GEMINI_3_FLASH,
+    phase: DAGPhase = DAGPhase.GENERATE_CANDIDATES,
+) -> RouteDecision:
     return RouteDecision(
         expert=expert,
+        phase=phase,
         score=0.75,
         rationale="test",
         fallback_chain=(ExpertID.GEMINI_3_PRO,),
@@ -189,34 +193,32 @@ async def test_route_unsampled_arm_always_wins_exploration() -> None:
 
 
 @pytest.mark.asyncio
-async def test_observe_outcome_updates_arm_for_expert() -> None:
+async def test_observe_outcome_updates_only_the_correct_phase_arm() -> None:
     bandit = EpsilonGreedyBandit()
-    decision = _make_decision(expert=ExpertID.GEMINI_3_FLASH)
+    phase = DAGPhase.GENERATE_CANDIDATES
+    decision = _make_decision(expert=ExpertID.GEMINI_3_FLASH, phase=phase)
 
-    initial_pulls = sum(
-        arm.total_pulls
-        for (_, expert), arm in bandit._arms.items()
-        if expert == ExpertID.GEMINI_3_FLASH
-    )
     await bandit.observe_outcome(
         decision=decision,
         achieved_score=0.82,
         actual_cost_usd=0.0005,
         actual_latency_ms=120,
     )
-    updated_pulls = sum(
-        arm.total_pulls
-        for (_, expert), arm in bandit._arms.items()
-        if expert == ExpertID.GEMINI_3_FLASH
-    )
-    assert updated_pulls > initial_pulls
+    # Only the specific (phase, expert) arm should be updated
+    assert bandit._arms[(phase, ExpertID.GEMINI_3_FLASH)].total_pulls == 1
+    # All other phase arms for the same expert must remain at 0
+    for other_phase in DAGPhase:
+        if other_phase != phase:
+            assert bandit._arms[(other_phase, ExpertID.GEMINI_3_FLASH)].total_pulls == 0, (
+                f"observe_outcome incorrectly updated ({other_phase}, GEMINI_3_FLASH) arm"
+            )
 
 
 @pytest.mark.asyncio
 async def test_observe_outcome_improves_mean_score_for_expert() -> None:
     bandit = EpsilonGreedyBandit()
     phase = DAGPhase.GENERATE_CANDIDATES
-    decision = _make_decision(expert=ExpertID.GEMINI_3_FLASH)
+    decision = _make_decision(expert=ExpertID.GEMINI_3_FLASH, phase=phase)
 
     await bandit.observe_outcome(
         decision=decision,

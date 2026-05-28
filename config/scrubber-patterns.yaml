@@ -26,3 +26,11 @@ patterns:
     description: 'Vertex AI model endpoint URL'
     pattern: 'https://[a-z0-9\-]+\.aiplatform\.googleapis\.com/[^\s]+'
     redact_with: 'REDACTED_VERTEX_ENDPOINT'
+  email_address:
+    description: 'Email address'
+    pattern: '[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}'
+    redact_with: 'REDACTED_EMAIL'
+  phone_e164:
+    description: 'E.164 phone number'
+    pattern: '\+?[1-9]\d{7,14}'
+    redact_with: 'REDACTED_PHONE'

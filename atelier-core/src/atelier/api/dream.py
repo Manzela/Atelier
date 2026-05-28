@@ -21,7 +21,7 @@ from __future__ import annotations
 from typing import Annotated, Any
 
 import structlog
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from atelier.auth.firebase import FirebaseUser, require_auth
@@ -208,6 +208,34 @@ async def promote_tuned_model(
         user_id=user.uid,
         job_name=body.job_name,
     )
+
+    import os  # noqa: PLC0415
+
+    # H-3a: Tenant ownership — prevent one tenant from promoting another's
+    # tuning job. Vertex AI job names contain the project + region context;
+    # verify the authenticated user has ownership via tenant_id.
+    if user.tenant_id not in body.job_name:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "error": "forbidden",
+                "detail": "Tuning job does not belong to the authenticated tenant.",
+            },
+        )
+
+    # H-3b: Gate staging mock scorer — must not run in production.
+    if os.getenv("ATELIER_ENV", "development") != "development":
+        raise HTTPException(
+            status_code=501,
+            detail={
+                "error": "not_implemented",
+                "detail": (
+                    "Production scorer not wired. The staging mock scorer must not "
+                    "be used outside local development — it deterministically passes "
+                    "the κ gate regardless of actual model quality. Contact engineering."
+                ),
+            },
+        )
 
     # Staging mock scorer: returns 0.82 (above the 0.70 κ gate).
     # Production callers replace this with a real pipeline invocation against

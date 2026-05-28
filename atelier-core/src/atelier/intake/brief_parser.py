@@ -84,8 +84,16 @@ class BriefParserAgent:
         else:
             raise TypeError(f"Unexpected response type: {type(response)}")
 
-    async def _call_llm(self, text: str) -> str | BriefSpec:  # noqa: ARG002
-        """Isolated call method to facilitate mocking."""
-        # Stub: The real execution logic is handled by the ADK orchestrator
-        # or replaced by a mock in unit tests.
-        return ""
+    async def _call_llm(self, text: str) -> str | BriefSpec:
+        """Isolated call method to facilitate mocking.
+
+        Raises:
+            NotImplementedError: Always — this stub must be replaced by a
+                real ADK integration or mocked in tests. Returning an empty
+                string silently breaks parse() (model_validate_json("") raises
+                ValidationError, masking the real issue).
+        """
+        raise NotImplementedError(
+            "_call_llm requires real ADK integration or must be mocked in tests. "
+            "The stub must not return an empty string — that silently breaks BriefSpec parsing."
+        )

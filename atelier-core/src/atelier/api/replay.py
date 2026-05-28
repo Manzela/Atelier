@@ -18,6 +18,7 @@ BQ schema note: column names match TrajectoryRecord.to_bq_row() exactly.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import os
@@ -262,7 +263,10 @@ async def _load_session_replay(
             f"{where} ORDER BY ts ASC"
         )
         job_config = bigquery.QueryJobConfig(query_parameters=params)
-        rows = [dict(r) for r in client.query(query, job_config=job_config).result()]
+        query_job = client.query(query, job_config=job_config)
+        loop = asyncio.get_running_loop()
+        result_rows = await loop.run_in_executor(None, query_job.result)
+        rows = [dict(r) for r in result_rows]
 
         if not rows:
             logger.info(

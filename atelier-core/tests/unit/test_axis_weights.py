@@ -61,8 +61,20 @@ class TestAxisWeights:
 
     def test_compute_composite_invalid_score(self) -> None:
         w = AxisWeights()
-        scores = {"brand": 1.5}
+        scores = {
+            "brand": 1.5,
+            "originality": 0.5,
+            "relevance": 0.5,
+            "accessibility": 0.5,
+            "visual_clarity": 0.5,
+        }
         with pytest.raises(ValueError, match="must be in"):
+            w.compute_composite(scores)
+
+    def test_compute_composite_missing_axes(self) -> None:
+        w = AxisWeights()
+        scores = {"brand": 0.8}
+        with pytest.raises(ValueError, match="Missing axis scores"):
             w.compute_composite(scores)
 
     def test_frozen(self) -> None:
