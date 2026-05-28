@@ -19,7 +19,6 @@ Cloud Region Selection:
     - Fallback chain: us-central1 → europe-west4 → europe-west1
 
 PRD Reference: §6.3 (Pipeline nodes)
-Audit Reference: §7 (FA-016 model routing)
 ADR Reference: 0007 (Gemini-only model strategy)
 """
 

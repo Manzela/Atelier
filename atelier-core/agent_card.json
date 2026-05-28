@@ -1,0 +1,51 @@
+{
+  "name": "Atelier",
+  "description": "Autonomous UI/UX Design Agent — generates, evaluates, and iterates on web UI candidates using a multi-judge consensus pipeline. Built on Google ADK 2.0, Gemini 2.5 Flash, and the Vertex AI platform.",
+  "url": "https://atelier-api.run.app",
+  "version": "2.0.0",
+  "provider": {
+    "organization": "Atelier Autonomous Design",
+    "url": "https://atelier.autonomous-agent.dev"
+  },
+  "capabilities": {
+    "streaming": false,
+    "pushNotifications": false,
+    "stateTransitionHistory": false
+  },
+  "authentication": {
+    "schemes": [
+      {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Firebase Authentication ID token. Obtain via Firebase JS SDK signInWithPopup(), then call user.getIdToken()."
+      }
+    ]
+  },
+  "defaultInputModes": ["text/plain"],
+  "defaultOutputModes": ["text/html", "text/css", "application/json"],
+  "skills": [
+    {
+      "id": "generate-ui",
+      "name": "Generate UI from Brief",
+      "description": "Accepts a natural-language design brief and produces UI candidates (HTML/CSS) through a multi-stage pipeline: brief parsing → web research → source resolution → K=3 ensemble generation → 6 deterministic gates → D-O-R-A-V consensus scoring → best candidate selection.",
+      "tags": ["design", "ui", "generation", "html", "css"],
+      "examples": [
+        "Build a SaaS analytics dashboard with a dark theme and KPI cards.",
+        "Design a brutalist landing page for a Bauhaus revival movement.",
+        "Create an accessible form for visually impaired users with screen reader support."
+      ]
+    },
+    {
+      "id": "evaluate-ui",
+      "name": "Evaluate UI Quality",
+      "description": "Evaluates a UI candidate across 5 axes: Design fidelity, Originality, Relevance, Accessibility, Visual clarity (D-O-R-A-V). Returns a composite score and per-axis breakdown.",
+      "tags": ["evaluation", "quality", "accessibility"]
+    },
+    {
+      "id": "dream-dpo",
+      "name": "DPO Tuning Cycle",
+      "description": "Mines preference pairs from past generation trajectories and submits a Vertex AI PREFERENCE_TUNING job to improve the generator model. Includes κ-gate evaluation for safe promotion.",
+      "tags": ["optimization", "dpo", "tuning", "self-improvement"]
+    }
+  ]
+}

@@ -15,7 +15,6 @@ The trajectory table schema matches:
     ``i-for-ai.atelier_trajectories.trajectory_records``
 
 PRD Reference: section 6.3 (N3h), section 7 (Infrastructure)
-Audit Reference: section 5 (C9 Trajectory), FA-011 through FA-014
 """
 
 from __future__ import annotations

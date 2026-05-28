@@ -1,43 +1,83 @@
-# atelier-core
+# Atelier
 
-The Atelier engine — agent runtime, judges, deterministic gates, intake, campaign orchestrator, and ADK integration wrappers.
+Atelier is an autonomous UI/UX design agent built on the Google Agent Development Kit (ADK) and Gen AI Platform. Given a natural-language design brief, Atelier generates production-ready, accessible UI components through a multi-stage pipeline of planning, ensemble generation, deterministic gating, and consensus evaluation.
 
-## Subpackages
+## Architecture
+
+The system is structured as a directed acyclic graph (DAG) of composable agent nodes. Each node is a discrete ADK `LlmAgent` or deterministic gate, orchestrated by a central `Runner`.
+
+### Dynamic Planner
+
+A `PlannerAgent` analyzes each incoming brief and emits a structured `PlanStep` that controls downstream execution:
+
+| Parameter         | Purpose                                                                        |
+| ----------------- | ------------------------------------------------------------------------------ |
+| `should_run_wrai` | Conditionally activates Web Research Augmented Intake based on brief ambiguity |
+| `ensemble_k`      | Scales the parallel generator count (1--3) proportional to task complexity     |
+| `axis_weights`    | Adjusts D-O-R-A-V evaluation axis weights to match the brief's objective       |
+| `constitution`    | Selects the brand constitution applied during generation                       |
+
+### Pipeline Stages
 
 ```
-src/atelier/
-├── intake/           # N13 PIP — Pre-Generation Intake Protocol
-├── campaign/         # N12 RLRD — Campaign Orchestrator + Surface Manifest
-├── dag/              # 8-node atomic DAG (per-surface engine)
-│   ├── nodes/        # N1-N4 node implementations
-│   ├── evolutionary/ # N5 EvoDesign K-candidate search + mutation operators
-│   └── gates/        # N1 DGF-D2C deterministic gates (Lighthouse, axe, etc.)
-├── judges/           # N2 DEMAS-D + N3 PerJudge + N6 CSC-D + ConsensusAgent
-├── flywheel/         # 3-tier DPO + Hebbian mutator + LoRA training
-├── adk/              # ADK 2.0 Beta integration wrappers
-├── tools/            # MCP wrappers (Stitch, design.md, GitHub, Playwright)
-├── render/           # N7 A2UI renderers (React, Flutter, Lit, Angular)
-├── memory/           # Memory Bank + Vector Search 2.0 client
-├── shared/           # Pydantic v2 frozen data contracts + observability + cost router
-└── skills/           # N9 Atelier Skills Pack (case-study, dashboard, etc.)
+Brief --> PlannerAgent --> WRAI (conditional) --> GeneratorEnsemble (K candidates)
+      --> DeterministicGates (6 axes) --> ConsensusAgent (D-O-R-A-V) --> Result
 ```
 
-## Status
+1. **Intake** -- `BriefParserGate` validates input sanitization (XSS, SSTI, CSS injection) and `BriefParserAgent` extracts structured intent.
+2. **Research** -- WRAI performs grounded web research via Google Search, with strict system-instruction boundaries to prevent prompt steering.
+3. **Generation** -- An ADK `ParallelAgent` ensemble produces K candidates, each backed by Stitch MCP with direct-generation fallback.
+4. **Gating** -- Six deterministic gates (accessibility, semantic HTML, performance, responsiveness, visual fidelity, brand alignment) filter candidates without LLM involvement.
+5. **Evaluation** -- `ConsensusAgent` scores surviving candidates across five axes: Design fidelity, Originality, Relevance, Accessibility, and Visual clarity (D-O-R-A-V).
 
-**Phase 0** — repo scaffold complete; source code is a Phase 1 deliverable (D3+, May 17 onwards).
+### Security
 
-`pyproject.toml` is populated; `src/atelier/__init__.py` is a placeholder.
+All LLM interactions are protected by Vertex AI [Model Armor](https://cloud.google.com/security/products/model-armor), configured via centralized enterprise templates. Tenant isolation is enforced through segment-boundary validation on all resource identifiers.
 
-## Quick start (post-Phase-1)
+### Observability
+
+OpenTelemetry instrumentation exports traces to Google Cloud Trace via `BatchSpanProcessor`. A PII scrubber runs on every span export path.
+
+### Evaluation and Simulation
+
+Vertex AI Gen AI Evaluation provides rubric-based scoring of generated candidates. An adversarial simulation library exercises the pipeline against injection attacks, multilingual inputs, boundary conditions, and high-complexity briefs.
+
+### Interoperability
+
+An A2A v1.0 JSON-RPC endpoint enables agent-to-agent communication. The agent card is served at `/.well-known/agent-card.json`.
+
+## Quick Start
+
+### Install
 
 ```bash
 pip install -e ".[dev]"
-pytest tests/unit/ -v
-mypy --strict src
 ```
 
-## See also
+### Run Tests
 
-- [Atelier PRD](../docs/superpowers/specs/2026-05-14-atelier-prd.md)
-- [Architecture index](../docs/architecture/README.md)
-- [ADRs](../docs/decisions/)
+```bash
+pytest tests/ -v
+```
+
+### Deploy
+
+```bash
+python -m atelier.agent_engine_deploy
+```
+
+This deploys the agent as a managed `AdkApp` on Vertex AI Agent Engine.
+
+## Requirements
+
+- Python 3.11+
+- `google-adk >= 1.34.1`
+- `google-genai >= 1.75.0`
+- `pydantic >= 2.9.0`
+- A Google Cloud project with Vertex AI and Model Armor enabled
+
+## Documentation
+
+- [Product Requirements Document](../docs/superpowers/specs/2026-05-14-atelier-prd.md)
+- [Architecture Index](../docs/architecture/README.md)
+- [Architecture Decision Records](../docs/decisions/)

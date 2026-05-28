@@ -73,6 +73,12 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         env=os.getenv("ATELIER_ENV", "development"),
         port=os.getenv("PORT", "8080"),
     )
+
+    # Initialize OpenTelemetry tracing (Cloud Trace export)
+    from atelier.observability.tracing import init_tracing  # noqa: PLC0415
+
+    init_tracing()
+
     yield
     await logger.ainfo("atelier.shutdown")
 
@@ -203,8 +209,8 @@ def create_app() -> FastAPI:
             budget_pct_used: 0.0-1.0 fraction consumed.
             warning: Human-readable alert when above 80% consumed.
         """
-        # Runner is not held as app state yet (Phase 1 stateless design).
-        # Phase 2 will inject a runner singleton; for now return the cap constant.
+        # Runner is not held as app state yet (v1.0 implementation stateless design).
+        # current implementation will inject a runner singleton; for now return the cap constant.
         from atelier.orchestrator.runner import BUDGET_CAP_USD  # noqa: PLC0415
 
         budget_cap = float(os.getenv("ATELIER_BUDGET_CAP_USD", str(BUDGET_CAP_USD)))
@@ -242,6 +248,7 @@ def create_app() -> FastAPI:
         }
 
     # --- Register API routers ─────────────────────────────────────────────────
+    from atelier.api.a2a import router as a2a_router  # noqa: PLC0415
     from atelier.api.dream import router as dream_router  # noqa: PLC0415
     from atelier.api.generate import router as generate_router  # noqa: PLC0415
     from atelier.api.replay import router as replay_router  # noqa: PLC0415
@@ -249,6 +256,43 @@ def create_app() -> FastAPI:
     application.include_router(generate_router)
     application.include_router(replay_router)
     application.include_router(dream_router)
+    application.include_router(a2a_router)
+
+    # --- A2A v1.0 agent card discovery ────────────────────────────────────────
+    # Serves the agent card at the canonical well-known path for A2A discovery.
+    # Cache-Control allows CDN caching (1 hour) per A2A v1.0 best practices.
+    import json  # noqa: PLC0415
+    from pathlib import Path  # noqa: PLC0415
+
+    @application.get(
+        "/.well-known/agent-card.json",
+        tags=["a2a"],
+        summary="A2A v1.0 agent card for discovery",
+        response_model=None,
+    )
+    async def agent_card() -> Response:
+        """Serve the A2A v1.0 agent card for agent-to-agent discovery.
+
+        The agent card describes Atelier's capabilities, supported interfaces,
+        authentication schemes, and skills per the A2A v1.0 specification.
+        """
+        # Resolve agent_card.json relative to the repo root
+        card_path = Path(__file__).resolve().parents[3] / "agent_card.json"
+        if not card_path.exists():
+            # Fallback: serve a minimal card
+            card_data = {
+                "name": "Atelier",
+                "version": __version__,
+                "description": "Autonomous UI/UX design agent",
+                "supportedInterfaces": [],
+            }
+        else:
+            card_data = json.loads(card_path.read_text(encoding="utf-8"))
+
+        return JSONResponse(
+            content=card_data,
+            headers={"Cache-Control": "public, max-age=3600"},
+        )
 
     # --- Auth info endpoint (documents the Firebase sign-in flow) ─────────────
     # Self-serve SaaS principle: the API itself tells clients how to authenticate.

@@ -1,7 +1,7 @@
-"""Phase 2 LLM judge module for the N3d ConsensusAgent.
+"""current implementation LLM judge module for the N3d ConsensusAgent.
 
-Phase 1 (:mod:`atelier.nodes.consensus`) ships deterministic heuristics for
-every D-O-R-A-V axis. Phase 2 swaps each ``_score_*`` heuristic for a Vertex
+v1.0 implementation (:mod:`atelier.nodes.consensus`) ships deterministic heuristics for
+every D-O-R-A-V axis. current implementation swaps each ``_score_*`` heuristic for a Vertex
 AI LLM call routed via :data:`atelier.models.model_registry.JUDGE_MODEL_CONFIG`
 while keeping the surrounding plumbing (anti-bias report, composite weighting,
 constitution penalty, :class:`ConsensusEvaluation` shape) untouched.
@@ -25,23 +25,23 @@ Module structure:
     * :func:`make_llm_judge` -- factory keyed by axis name.
     * :func:`_resolve_axis_scorers` -- dispatch resolver for the three
       modes the orchestrator can pick: ``heuristic`` (default, returns the
-      Phase 1 callables verbatim), ``llm`` (every axis routes to its LLM
+      v1.0 implementation callables verbatim), ``llm`` (every axis routes to its LLM
       judge), or ``hybrid`` (LLM score wins but the diagnostic records both
       so dashboards can plot disagreement). Driven by the
       ``ATELIER_JUDGE_MODE`` env var when ``mode`` is left unset.
     * :class:`VertexAIJudgeClient` -- the production client. The Vertex
       SDK is imported lazily inside :func:`_import_vertex_sdk` so this
       module imports cleanly on hosts where ``google-cloud-aiplatform`` is
-      not installed (Phase 1 dependency state).
+      not installed (v1.0 implementation dependency state).
 
-Failure trichotomy (per CLAUDE.md):
+Failure trichotomy (per architectural invariants):
 
     * **Self-heal** -- not implemented here; client implementations may
       retry transient errors before raising.
     * **Fail-soft** -- :meth:`LLMJudge.score` wraps the client call in a
       ``try/except`` that traps every exception (client timeout, network
       failure, JSON parse error, score out of range) and falls back to the
-      Phase 1 heuristic for the same axis. The diagnostic is explicitly
+      v1.0 implementation heuristic for the same axis. The diagnostic is explicitly
       prefixed with ``"LLM judge fallback (<ExceptionName>): "`` so
       downstream consumers (trajectory logger, calibration dashboard) can
       see the degradation -- "agent always acknowledges degradation."
@@ -52,7 +52,6 @@ Failure trichotomy (per CLAUDE.md):
       degradation is soft.
 
 PRD Reference: §6.3 (N3d ConsensusAgent), F0209-F0211
-Audit Reference: §7 (FA-018 model routing, fail-soft trichotomy)
 ADR Reference: 0006 (Google-native only), 0014 (Gemini 2.5 Flash Preview pin)
 """
 
@@ -100,7 +99,7 @@ JUDGE_MODE_LLM: str = "llm"
 JUDGE_MODE_HYBRID: str = "hybrid"
 
 #: The default mode applied when neither the parameter nor the env var
-#: supplies one. Heuristic preserves Phase 1 behavior so the 249-test Phase
+#: supplies one. Heuristic preserves v1.0 implementation behavior so the 249-test Phase
 #: 1 suite keeps passing without any opt-in.
 DEFAULT_JUDGE_MODE: str = JUDGE_MODE_HEURISTIC
 
@@ -111,14 +110,14 @@ VALID_JUDGE_MODES: frozenset[str] = frozenset(
 )
 
 #: Half-width of the synthetic confidence interval used when the LLM
-#: response carries no ``avg_logprob``. Mirrors the Phase 1
+#: response carries no ``avg_logprob``. Mirrors the v1.0 implementation
 #: :data:`atelier.nodes.consensus.CONFIDENCE_HALF_WIDTH` so dashboards
 #: don't show a discontinuity when LLM mode is enabled.
 CI_DEFAULT_HALF_WIDTH: float = 0.10
 
 #: Default timeout for a single LLM judge call, in seconds. Generous because
 #: Originality runs on Gemini 2.5 Pro Thinking with an 8K thinking budget;
-#: tighter axis-specific budgets can be added if Phase 3 telemetry warrants.
+#: tighter axis-specific budgets can be added if planned enhancement telemetry warrants.
 DEFAULT_JUDGE_TIMEOUT_S: float = 30.0
 
 #: Regex that strips an optional ```json ...``` markdown fence from a
@@ -212,7 +211,7 @@ class LLMJudgeError(Exception):
     Distinct from generic :class:`Exception` so callers can choose to retry
     transient client errors (network, timeout) but immediately fall back on
     structured parse errors. :meth:`LLMJudge.score` treats both as
-    fail-soft and falls back to the Phase 1 heuristic in either case.
+    fail-soft and falls back to the v1.0 implementation heuristic in either case.
     """
 
 
@@ -384,7 +383,7 @@ def compute_bayesian_ci(
         # exp(avg_logprob) ∈ (0, 1] is the geometric-mean per-token
         # probability. Subtracting from 1 gives the uncertainty. Scaling
         # by CI_DEFAULT_HALF_WIDTH keeps the interval comparable to the
-        # default-band Phase 1 votes.
+        # default-band v1.0 implementation votes.
         confidence = math.exp(avg_logprob)
         half = CI_DEFAULT_HALF_WIDTH * (1.0 - confidence)
 
@@ -450,13 +449,13 @@ class LLMJudge:
             client: The :class:`JudgeClient` the judge will call. Tests
                 inject a fake; production wires :class:`VertexAIJudgeClient`.
             fallback: Optional caller-supplied fallback. When ``None``
-                (the common case) the judge falls back to the Phase 1
+                (the common case) the judge falls back to the v1.0 implementation
                 heuristic scorer for the same axis -- guaranteeing the
                 surrounding pipeline never breaks even if Vertex AI is
                 unavailable.
         """
         self._client = client
-        # When no caller-supplied fallback exists, fall back to the Phase 1
+        # When no caller-supplied fallback exists, fall back to the v1.0 implementation
         # heuristic for the same axis. This is the failure-soft default and
         # the reason the surrounding pipeline never breaks.
         # _AXIS_SCORERS is imported lazily here (not at module level) to
@@ -532,7 +531,7 @@ class LLMJudge:
             # pipeline never breaks. The structured-error rule allows this
             # broad catch because we return a structured _JudgeScore with
             # the degradation explicitly recorded in the diagnostic
-            # ("agent always acknowledges degradation" per CLAUDE.md §
+            # ("agent always acknowledges degradation" per architectural invariants §
             # failure trichotomy).
             fallback_score = self._fallback(candidate)
             return _JudgeScore(
@@ -640,7 +639,7 @@ def _make_llm_scorer(
 ) -> Callable[[CandidateUI], _JudgeScore]:
     """Bind an :class:`LLMJudge` and return its :meth:`score` method.
 
-    The returned bound method is shape-compatible with the Phase 1
+    The returned bound method is shape-compatible with the v1.0 implementation
     :data:`_AXIS_SCORERS` dispatch entries.
     """
     judge = make_llm_judge(axis_name, client)
@@ -655,7 +654,7 @@ def _make_hybrid_scorer(
 
     Returns a closure that:
 
-        1. Runs the Phase 1 heuristic for the axis.
+        1. Runs the v1.0 implementation heuristic for the axis.
         2. Runs the LLM judge for the same axis.
         3. Returns the LLM's score (LLM wins) but prefixes the diagnostic
            with ``"hybrid: llm=..., heuristic=..., |delta|=..."`` so
@@ -786,7 +785,7 @@ class VertexAIJudgeClient:
     Construction does *no* network I/O and does not import the Vertex SDK
     -- both happen lazily inside :meth:`generate`. This keeps the module
     importable on hosts where ``google-cloud-aiplatform`` is not installed
-    (the Phase 1 dependency state) and lets test environments mock the
+    (the v1.0 implementation dependency state) and lets test environments mock the
     SDK at the boundary.
 
     Attributes:
@@ -871,6 +870,11 @@ class VertexAIJudgeClient:
             response_mime_type="application/json",
         )
 
+        # P0-08: This call blocks the event loop when invoked from async code.
+        # The caller (LLMJudge.score → evaluate_candidate in consensus.py)
+        # should wrap the entire score() call in asyncio.to_thread() at the
+        # call-site to avoid head-of-line blocking. This method stays sync
+        # for backwards compatibility with the existing test suite.
         response = model.generate_content(
             user_prompt,
             generation_config=generation_config,

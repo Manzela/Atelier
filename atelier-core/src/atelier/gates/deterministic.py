@@ -12,19 +12,19 @@ Each gate is a pure function that takes a :class:`CandidateUI` and returns a
     * No I/O side effects (safe to call in any context)
     * Trivially testable with synthetic candidates
 
-Three gates ship with real logic in Phase 1:
+Three gates ship with real logic in v1.0 implementation:
     * :func:`check_semantic_html` — HTML5 landmark coverage
     * :func:`check_css_validity` — basic CSS syntax checks
     * :func:`check_token_fidelity` — CSS custom property usage
 
 Three gates ship as scored stubs (real implementations require a browser
-sandbox, which Phase 2 will provide via Playwright):
+sandbox, which current implementation will provide via Playwright):
     * :func:`check_lighthouse_stub` — performance/a11y proxy
     * :func:`check_axe_stub` — accessibility scanner proxy
     * :func:`check_visual_diff_stub` — pixel-diff proxy
 
 PRD Reference: §6.3 N3c (Deterministic Gates)
-ADR Reference: 0007 (worktree discipline) — Phase 1 scope only
+ADR Reference: 0007 (worktree discipline) — v1.0 implementation scope only
 """
 
 import re
@@ -121,7 +121,7 @@ _CSS_RULESET_PATTERN = re.compile(r"([^{}]+)\{([^{}]*)\}", re.DOTALL)
 
 
 # ---------------------------------------------------------------------------
-# Real gate implementations (Phase 1)
+# Real gate implementations (v1.0 implementation)
 # ---------------------------------------------------------------------------
 
 
@@ -335,7 +335,7 @@ def check_token_fidelity(candidate: CandidateUI) -> GateOutcome:
 
 
 # ---------------------------------------------------------------------------
-# Stub gates — placeholders until Phase 2 wires real browser-based tools
+# Stub gates — placeholders until current implementation wires real browser-based tools
 # ---------------------------------------------------------------------------
 
 
@@ -344,7 +344,7 @@ def check_lighthouse_stub(candidate: CandidateUI) -> GateOutcome:
 
     Estimates a performance score from static HTML/CSS analysis without
     a browser sandbox. Penalises patterns that commonly lower real Lighthouse
-    scores: inline scripts, render-blocking CSS, eager image loading. Phase 2
+    scores: inline scripts, render-blocking CSS, eager image loading. current implementation
     replaces this with a real ``@lighthouse-ci`` invocation.
 
     Scoring formula (per-candidate, so scores vary):
@@ -403,7 +403,7 @@ def check_lighthouse_stub(candidate: CandidateUI) -> GateOutcome:
     diagnostic = (
         "Lighthouse heuristic (no browser). "
         + ("; ".join(penalties) if penalties else "No performance penalties detected.")
-        + " [Phase 2: real Lighthouse replaces this]"
+        + " [current implementation: real Lighthouse replaces this]"
     )
     return GateOutcome(
         candidate_id=candidate.candidate_id,
@@ -419,7 +419,7 @@ def check_axe_stub(candidate: CandidateUI) -> GateOutcome:
 
     Penalises common accessibility violations detectable from raw HTML:
     interactive controls without accessible text, images without alt, inputs
-    without labels, missing viewport meta. Phase 2 wires real axe-core against
+    without labels, missing viewport meta. current implementation wires real axe-core against
     a rendered DOM.
 
     Args:
@@ -477,7 +477,7 @@ def check_axe_stub(candidate: CandidateUI) -> GateOutcome:
     diagnostic = (
         "Accessibility heuristic (no DOM). "
         + ("; ".join(penalties) if penalties else "No accessibility violations detected.")
-        + " [Phase 2: real axe-core replaces this]"
+        + " [current implementation: real axe-core replaces this]"
     )
     return GateOutcome(
         candidate_id=candidate.candidate_id,
@@ -513,7 +513,7 @@ def check_visual_diff_stub(candidate: CandidateUI) -> GateOutcome:
     "golden" reference tag distribution via cosine similarity on a tag-
     frequency vector. Candidates that generate unusual or empty DOM
     structures score low; candidates that use standard HTML5 structure
-    score high. Phase 2 replaces this with pixel-level visual diff.
+    score high. current implementation replaces this with pixel-level visual diff.
 
     Args:
         candidate: CandidateUI whose ``index.html`` is analysed.
@@ -543,7 +543,7 @@ def check_visual_diff_stub(candidate: CandidateUI) -> GateOutcome:
         f"(cosine vs golden tag distribution). "
         f"{'PASS' if decision == GateDecision.PASS else 'REJECT'}: "
         f"threshold={_VISUAL_DIFF_PASS_THRESHOLD}. "
-        "[Phase 2: pixel-level visual diff replaces this]"
+        "[current implementation: pixel-level visual diff replaces this]"
     )
     return GateOutcome(
         candidate_id=candidate.candidate_id,

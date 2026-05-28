@@ -12,7 +12,6 @@ without ADR + lockfile regen + Snyk scan.
 Auth: ``GITHUB_TOKEN`` env var or constructor ``token`` param.
 
 PRD Reference: section 6.3 (N14 WRAI), section 15 (research flow)
-Audit Reference: C5 (FA-004 GitHub MCP wrapper)
 ADR Reference: 0011 (Web-Research-Augmented Intake)
 """
 

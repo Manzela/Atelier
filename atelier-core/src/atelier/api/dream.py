@@ -211,10 +211,20 @@ async def promote_tuned_model(
 
     import os  # noqa: PLC0415
 
-    # H-3a: Tenant ownership — prevent one tenant from promoting another's
-    # tuning job. Vertex AI job names contain the project + region context;
-    # verify the authenticated user has ownership via tenant_id.
-    if user.tenant_id not in body.job_name:
+    # P0-03: Tenant ownership — prevent one tenant from promoting another's
+    # tuning job. The previous `in` check was vulnerable to substring attacks
+    # (tenant "t1" would match job names containing "t123"). This fix uses
+    # segment-boundary matching: the tenant_id must appear as a complete
+    # segment between '/' delimiters or at string boundaries.
+    #
+    # Vertex AI job name format:
+    #   projects/{project}/locations/{location}/tuningJobs/{job_id}
+    # Tenant isolation is enforced by checking that the tenant_id appears as
+    # a whole segment (bounded by '/' or string start/end) in the job_name.
+    import re  # noqa: PLC0415
+
+    tenant_pattern = re.compile(r"(?:^|/)" + re.escape(user.tenant_id) + r"(?:/|$)")
+    if not tenant_pattern.search(body.job_name):
         raise HTTPException(
             status_code=403,
             detail={

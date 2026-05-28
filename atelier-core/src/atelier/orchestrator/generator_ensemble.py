@@ -24,13 +24,13 @@ from atelier.integrations.stitch_mcp import (
     try_get_stitch_mcp_toolset,
 )
 from atelier.models.model_registry import GENERATOR_MODEL
-from atelier.models.safety import default_safety_settings
+from atelier.models.safety import default_model_armor_config
 
 if TYPE_CHECKING:
     from google.adk.agents import BaseAgent
     from google.adk.tools.base_toolset import BaseToolset
 
-# Standard K=3 ensemble for Phase 1
+# Standard K=3 ensemble for v1.0 implementation
 ENSEMBLE_SIZE = 3
 
 
@@ -56,7 +56,7 @@ def create_generator_ensemble() -> tuple[ParallelAgent, StitchDegradationInfo]: 
                 "If the tool is unavailable or fails, generate the raw HTML/CSS directly in your response."
             ),
             generate_content_config=genai_types.GenerateContentConfig(
-                safety_settings=default_safety_settings(),
+                model_armor_config=default_model_armor_config(),
             ),
         )
         sub_agents.append(agent)

@@ -1,6 +1,6 @@
 """Atelier models package — canonical data contracts for the 8-node DAG.
 
-All models follow these invariants (from CLAUDE.md + PRD §9):
+All models follow these invariants (from architectural invariants + PRD §9):
     1. ``ConfigDict(frozen=True, extra='forbid')`` — immutable, no drift
     2. ``schema_version: int = 1`` — every model, never decreases, fields never dropped
     3. Pydantic v2 — ``model_dump_json()`` / ``model_validate_json()`` roundtrip

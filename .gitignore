@@ -239,3 +239,7 @@ uv.lock
 .local/
 .firecrawl/
 .firebase/
+
+# Internal sprint documents — rehearsal scripts, action items, etc.
+docs/sprint/
+**/docs/sprint/

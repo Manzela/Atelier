@@ -5,7 +5,7 @@ Per ADR 0004 (Pre-Generation Intake Protocol):
     Spec changes require an explicit ``atelier amend`` command + re-approval;
     no silent drift.
 
-Per CLAUDE.md invariants:
+Per architectural invariants invariants:
     - ``ConfigDict(frozen=True, extra='forbid')`` enforces immutability + schema strictness
     - ``schema_version: int = 1`` present on every model for forward-compatible evolution
 

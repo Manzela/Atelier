@@ -41,16 +41,16 @@ class _JudgeScore:
             the score landed where it did. Embedded into
             :attr:`JudgeVote.reasoning` downstream.
         provenance_vars: DEMAS-D variable names the scorer "consulted."
-            Phase 1 scorers report artifact filenames actually opened; Phase
+            v1.0 implementation scorers report artifact filenames actually opened; Phase
             2 LLM judges report richer provenance.
-        judge_model: Optional LLM judge identifier set by Phase 2
-            LLMJudge.score(). Defaults to ``None`` so Phase 1 heuristic
+        judge_model: Optional LLM judge identifier set by current implementation
+            LLMJudge.score(). Defaults to ``None`` so v1.0 implementation heuristic
             scorers construct with the original 3-argument signature;
-            ``_build_judge_vote`` falls back to the Phase 1 stub suffix when
+            ``_build_judge_vote`` falls back to the v1.0 implementation stub suffix when
             this is None.
         confidence_interval: Optional Bayesian confidence interval set by
-            Phase 2 LLMJudge.score(). Defaults to ``None`` so
-            ``_build_judge_vote`` can derive the synthetic Phase 1 band via
+            current implementation LLMJudge.score(). Defaults to ``None`` so
+            ``_build_judge_vote`` can derive the synthetic v1.0 implementation band via
             :func:`_confidence_interval` when absent.
     """
 

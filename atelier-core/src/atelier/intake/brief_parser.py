@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict
 
 from atelier.intake.brief_spec import BriefSpec
 from atelier.models.enums import GateDecision
-from atelier.models.safety import default_safety_settings
+from atelier.models.safety import default_model_armor_config
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +67,7 @@ class BriefParserAgent:
             model=model,
             output_schema=BriefSpec,
             generate_content_config=genai_types.GenerateContentConfig(
-                safety_settings=default_safety_settings(),
+                model_armor_config=default_model_armor_config(),
             ),
         )
 
@@ -85,15 +85,61 @@ class BriefParserAgent:
             raise TypeError(f"Unexpected response type: {type(response)}")
 
     async def _call_llm(self, text: str) -> str | BriefSpec:
-        """Isolated call method to facilitate mocking.
+        """Execute the LlmAgent via ADK Runner and return the parsed response.
+
+        Uses an ephemeral InMemorySessionService — brief parsing is stateless
+        and does not need cross-session persistence. The Runner iterates over
+        events; the last event with non-empty ``content`` is the LLM response.
+
+        Args:
+            text: The validated brief text to parse into a BriefSpec.
+
+        Returns:
+            The LLM response as a string (JSON) or a pre-validated BriefSpec
+            if the ADK ``output_schema`` produced a typed object.
 
         Raises:
-            NotImplementedError: Always — this stub must be replaced by a
-                real ADK integration or mocked in tests. Returning an empty
-                string silently breaks parse() (model_validate_json("") raises
-                ValidationError, masking the real issue).
+            ValueError: If the LLM returns no content after all events.
         """
-        raise NotImplementedError(
-            "_call_llm requires real ADK integration or must be mocked in tests. "
-            "The stub must not return an empty string — that silently breaks BriefSpec parsing."
+        from google.adk.runners import Runner  # noqa: PLC0415
+        from google.adk.sessions import InMemorySessionService  # noqa: PLC0415
+        from google.genai import types as _types  # noqa: PLC0415
+
+        session_service = InMemorySessionService()
+        runner = Runner(
+            agent=self._llm,
+            app_name="atelier_brief_parser",
+            session_service=session_service,
         )
+
+        user_id = "brief-parser-system"
+        session = await session_service.create_session(
+            app_name="atelier_brief_parser",
+            user_id=user_id,
+        )
+
+        last_text: str | None = None
+        async for event in runner.run_async(
+            user_id=user_id,
+            session_id=session.id,
+            new_message=_types.Content(
+                role="user",
+                parts=[_types.Part(text=text)],
+            ),
+        ):
+            if event.content and event.content.parts:
+                for part in event.content.parts:
+                    if part.text:
+                        last_text = part.text
+
+        if last_text is None:
+            raise ValueError(
+                "BriefParserAgent LLM returned no content. "
+                "Check model availability and prompt configuration."
+            )
+
+        logger.debug(
+            "brief_parser_llm_response",
+            extra={"response_length": len(last_text)},
+        )
+        return last_text

@@ -1,18 +1,18 @@
 """N3a Generator — template-based candidate UI synthesis.
 
-This is the Phase 1 implementation of the N3a node in the 8-node DAG.
-Phase 1 is intentionally template-driven: no LLM calls, no Vertex AI, no
+This is the v1.0 implementation implementation of the N3a node in the 8-node DAG.
+v1.0 implementation is intentionally template-driven: no LLM calls, no Vertex AI, no
 network I/O. The generator's job is to produce a deterministic, gate-clean
 :class:`CandidateUI` from a :class:`BriefSpec` + :class:`SurfaceState` pair
 so that downstream gates (N3c) and tests have something concrete to chew on.
 
-Phase 2 will swap the template path for an ADK-orchestrated LLM call that
+current implementation will swap the template path for an ADK-orchestrated LLM call that
 respects the spec's ``visual_register`` and ``stack``. The function
 signatures defined here are stable — the generation strategy is the only
 thing that changes between phases.
 
 PRD Reference: §6.3 N3a (Generator)
-ADR Reference: 0007 (worktree discipline) — Phase 1 scope only
+ADR Reference: 0007 (worktree discipline) — v1.0 implementation scope only
 """
 
 from uuid import UUID, uuid4
@@ -27,7 +27,7 @@ from atelier.models.data_contracts import CandidateUI, SurfaceState
 #: Per-visual-register design token defaults. Each entry is a tuple of
 #: ``(primary, surface, ink, font_stack)`` — a deliberately small set of
 #: tokens that exercises the token-fidelity gate without bloating the
-#: template. Phase 2 will derive these from the project's DESIGN.md.
+#: template. current implementation will derive these from the project's DESIGN.md.
 _REGISTER_TOKENS: dict[VisualRegister, tuple[str, str, str, str]] = {
     VisualRegister.EDITORIAL: (
         "#1a1a1a",
@@ -210,7 +210,7 @@ def generate_candidate(
 ) -> CandidateUI:
     """Synthesize a :class:`CandidateUI` from a BriefSpec + SurfaceState.
 
-    Phase 1 is template-driven: the brief's :class:`VisualRegister` selects a
+    v1.0 implementation is template-driven: the brief's :class:`VisualRegister` selects a
     palette + typography combination, and the surface's name + brief drive the
     page content. The output is deterministic given the same inputs (modulo
     the random ``candidate_id``).

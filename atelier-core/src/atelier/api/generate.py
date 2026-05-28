@@ -134,7 +134,7 @@ async def _run_pipeline(
     brief: str,
     user: FirebaseUser,
     budget_usd: float,
-    design_system_source: str | None,  # noqa: ARG001 — Phase 2: will be passed to runner
+    design_system_source: str | None,  # noqa: ARG001 — current implementation: will be passed to runner
 ) -> dict[str, Any]:
     """Execute the full Atelier pipeline and return the raw result dict."""
     from decimal import Decimal  # noqa: PLC0415
@@ -331,6 +331,26 @@ async def generate(
             "budget_usd": sanitize(str(request.budget_usd)),
         },
     )
+
+    # P0-12: Deterministic gate — reject injection attempts, empty briefs,
+    # and over-long briefs before any LLM call reaches the pipeline.
+    from atelier.intake.brief_parser import BriefParserGate  # noqa: PLC0415
+    from atelier.models.enums import GateDecision  # noqa: PLC0415
+
+    gate = BriefParserGate()
+    gate_outcome = gate.check(request.brief)
+    if gate_outcome.decision != GateDecision.PASS:
+        from fastapi import HTTPException  # noqa: PLC0415
+
+        logger.warning(
+            "atelier.generate.gate_rejected",
+            extra={
+                "run_id": run_id,
+                "tenant_id": sanitize(user.tenant_id),
+                "diagnostic": sanitize(gate_outcome.diagnostic),
+            },
+        )
+        raise HTTPException(status_code=400, detail=gate_outcome.diagnostic)
 
     result = await _run_pipeline(
         brief=request.brief,

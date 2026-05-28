@@ -31,7 +31,6 @@ Usage:
         ...
 
 PRD Reference: §21 (Failure Trichotomy)
-Audit Reference: §6 (C7, G12 fix)
 """
 
 from __future__ import annotations

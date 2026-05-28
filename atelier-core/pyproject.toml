@@ -68,9 +68,9 @@ dependencies = [
     # JWT verification (no round-trip after public key cache) — sub-1ms overhead.
     # Docs: https://firebase.google.com/docs/auth/admin/verify-id-tokens
     "firebase-admin>=7.4,<8",
-    # "opentelemetry-api>=1.27,<2",
-    # "opentelemetry-sdk>=1.27,<2",
-    # "opentelemetry-exporter-gcp-trace>=1.7,<2",
+    "opentelemetry-api>=1.27,<2",
+    "opentelemetry-sdk>=1.27,<2",
+    "opentelemetry-exporter-gcp-trace>=1.7,<2",
 ]
 
 [project.optional-dependencies]

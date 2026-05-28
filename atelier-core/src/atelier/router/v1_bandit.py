@@ -6,7 +6,7 @@ Three routing modes form the v0→v1→v2 Protocol ladder:
   v2 (future):        RouteLLM-style matrix factorization on DPO pairs.
 
 Arm state lives in-process (dict). This makes route() sub-50ms p99 trivially.
-Phase 2 will add BigQuery persistence for arm warm-start across restarts.
+BigQuery persistence for arm warm-start is a planned enhancement for arm warm-start across restarts.
 
 epsilon-decay schedule (ADR 0027 §18.4):
   epsilon(t) = max(EPSILON_FLOOR, EPSILON_START * exp(-t / EPSILON_DECAY_SECONDS))
@@ -64,7 +64,7 @@ EPSILON_FLOOR: Final[float] = 0.02
 EPSILON_DECAY_SECONDS: Final[float] = 7.0 * 24 * 3600  # 7 days
 UCB1_EXPLORATION_CONSTANT: Final[float] = math.sqrt(2.0)
 
-# Phase 1 static expert preferences — fallback order if bandit has no data yet.
+# Default expert preferences — fallback order if bandit has no data yet.
 # Flash-family for most phases; Pro for high-stakes judge + selection nodes.
 _PHASE_PREFERENCE: Final[dict[DAGPhase, ExpertID]] = {
     DAGPhase.BRIEF_PARSE: ExpertID.GEMINI_3_1_FLASH_LITE,
@@ -204,8 +204,8 @@ class EpsilonGreedyBandit:
         *,
         decision: RouteDecision,
         achieved_score: float,
-        actual_cost_usd: float,  # noqa: ARG002 — Protocol signature; reserved for BQ cost tracking (Phase 2+)
-        actual_latency_ms: int,  # noqa: ARG002 — Protocol signature; reserved for latency-aware arm updates (Phase 2+)
+        actual_cost_usd: float,  # noqa: ARG002 — Protocol signature; reserved for BQ cost tracking (current implementation+)
+        actual_latency_ms: int,  # noqa: ARG002 — Protocol signature; reserved for latency-aware arm updates (current implementation+)
     ) -> None:
         """Update arm posterior with the observed score.
 

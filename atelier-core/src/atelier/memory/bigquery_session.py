@@ -14,7 +14,6 @@ In local development (no BQ SDK), transparently falls back to in-memory
 storage per failure trichotomy (§21 fail-soft).
 
 PRD Reference: §6.3 (N3h session persistence), §7 (infrastructure)
-Audit Reference: B4 (swap InMemoryRunner → VertexAiSessionService)
 """
 
 from __future__ import annotations
