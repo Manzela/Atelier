@@ -8,6 +8,13 @@ Releases are managed via [release-please](https://github.com/googleapis/release-
 
 ---
 
+## [0.2.1-alpha](https://github.com/Manzela/Atelier/compare/v0.2.0-alpha...v0.2.1-alpha) (2026-05-28)
+
+
+### Bug Fixes
+
+* **audit:** HANDOFF-R12 remediation — 25 production blockers + security hardening ([#29](https://github.com/Manzela/Atelier/issues/29)) ([7e652d0](https://github.com/Manzela/Atelier/commit/7e652d02b131790e254ada7b8868ad3d665c8497))
+
 ## [0.2.0-phase-2-gate] — 2026-05-25
 
 Phase 2: consensus pipeline, trajectory recording, DPO flywheel, production infrastructure, evaluation framework.
