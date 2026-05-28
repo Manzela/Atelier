@@ -2,7 +2,7 @@
   "name": "Atelier",
   "description": "Autonomous UI/UX Design Agent — generates, evaluates, and iterates on web UI candidates using a multi-judge consensus pipeline. Built on Google ADK 2.0, Gemini 2.5 Flash, and the Vertex AI platform.",
   "url": "https://atelier-api.run.app",
-  "version": "2.0.0",
+  "version": "1.0.0",
   "provider": {
     "organization": "Atelier Autonomous Design",
     "url": "https://atelier.autonomous-agent.dev"

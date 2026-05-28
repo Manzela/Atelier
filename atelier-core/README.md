@@ -19,9 +19,12 @@ A `PlannerAgent` analyzes each incoming brief and emits a structured `PlanStep` 
 
 ### Pipeline Stages
 
-```
-Brief --> PlannerAgent --> WRAI (conditional) --> GeneratorEnsemble (K candidates)
-      --> DeterministicGates (6 axes) --> ConsensusAgent (D-O-R-A-V) --> Result
+```text
+Brief --> PlannerAgent --> WRAI (conditional) --> [Convergence Loop:
+    GeneratorEnsemble (K candidates) --> DeterministicGates (6 axes)
+    --> ConsensusAgent (D-O-R-A-V) --> FixerAgent (if not converged)
+    --> Loop back to GeneratorEnsemble
+] --> Result
 ```
 
 1. **Intake** -- `BriefParserGate` validates input sanitization (XSS, SSTI, CSS injection) and `BriefParserAgent` extracts structured intent.

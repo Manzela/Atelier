@@ -400,15 +400,16 @@ def check_lighthouse_stub(candidate: CandidateUI) -> GateOutcome:
         total_penalty += p
 
     score = max(_PERF_FLOOR, 100.0 - total_penalty)
+    decision = GateDecision.PASS if score >= 80.0 else GateDecision.REJECT
     diagnostic = (
         "Lighthouse heuristic (no browser). "
         + ("; ".join(penalties) if penalties else "No performance penalties detected.")
-        + " [current implementation: real Lighthouse replaces this]"
+        + " [Heuristic-based evaluation]"
     )
     return GateOutcome(
         candidate_id=candidate.candidate_id,
         axis=GateAxis.LIGHTHOUSE_A11Y,
-        decision=GateDecision.PASS,
+        decision=decision,
         score=score,
         diagnostic=diagnostic,
     )
@@ -474,15 +475,16 @@ def check_axe_stub(candidate: CandidateUI) -> GateOutcome:
         total_penalty += _A11Y_MISSING_VIEWPORT_PENALTY
 
     score = max(_A11Y_FLOOR, 100.0 - total_penalty)
+    decision = GateDecision.PASS if score >= 70.0 else GateDecision.REJECT
     diagnostic = (
         "Accessibility heuristic (no DOM). "
         + ("; ".join(penalties) if penalties else "No accessibility violations detected.")
-        + " [current implementation: real axe-core replaces this]"
+        + " [Heuristic-based evaluation]"
     )
     return GateOutcome(
         candidate_id=candidate.candidate_id,
         axis=GateAxis.AXE,
-        decision=GateDecision.PASS,
+        decision=decision,
         score=score,
         diagnostic=diagnostic,
     )
@@ -543,7 +545,7 @@ def check_visual_diff_stub(candidate: CandidateUI) -> GateOutcome:
         f"(cosine vs golden tag distribution). "
         f"{'PASS' if decision == GateDecision.PASS else 'REJECT'}: "
         f"threshold={_VISUAL_DIFF_PASS_THRESHOLD}. "
-        "[current implementation: pixel-level visual diff replaces this]"
+        "[Heuristic-based evaluation]"
     )
     return GateOutcome(
         candidate_id=candidate.candidate_id,

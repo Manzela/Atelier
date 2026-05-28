@@ -23,15 +23,14 @@ from __future__ import annotations
 import os
 import time
 from contextlib import asynccontextmanager
-from typing import TYPE_CHECKING, Annotated, Any
+from typing import TYPE_CHECKING, Any
 
 import structlog
-from fastapi import Depends, FastAPI, Request, Response
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from atelier.__version__ import __version__
-from atelier.auth.firebase import FirebaseUser, require_auth
 from atelier.orchestrator.governor import GovernorBudgetExceeded
 
 if TYPE_CHECKING:
@@ -183,69 +182,6 @@ def create_app() -> FastAPI:
             resp["version"] = __version__
             resp["env"] = os.getenv("ATELIER_ENV", "development")
         return resp
-
-    # --- Account usage endpoint ───────────────────────────────────────────────
-    # Self-serve SaaS principle: users can inspect their own budget consumption
-    # without contacting support. Explainable AI: surfaces exactly what the
-    # governor has spent and what the cap is.
-    @application.get(
-        "/v1/account/usage",
-        tags=["account"],
-        summary="Current generation budget usage for the authenticated user",
-        response_model=None,
-    )
-    async def account_usage(
-        user: Annotated[FirebaseUser, Depends(require_auth)],
-    ) -> dict[str, Any]:
-        """Return budget consumption and session summary for the authenticated account.
-
-        Args:
-            user: Verified Firebase user (from Authorization: Bearer header).
-
-        Returns:
-            budget_cap_usd: The hard per-account budget cap (PRD §7.2).
-            budget_used_usd: Cumulative spend in the current runner session.
-            budget_remaining_usd: Remaining before GovernorBudgetExceeded fires.
-            budget_pct_used: 0.0-1.0 fraction consumed.
-            warning: Human-readable alert when above 80% consumed.
-        """
-        # Runner is not held as app state yet (v1.0 implementation stateless design).
-        # current implementation will inject a runner singleton; for now return the cap constant.
-        from atelier.orchestrator.runner import BUDGET_CAP_USD  # noqa: PLC0415
-
-        budget_cap = float(os.getenv("ATELIER_BUDGET_CAP_USD", str(BUDGET_CAP_USD)))
-        # Phase-2 deferral: Runner is ephemeral; query BigQuery for real-time usage.
-        budget_used = 0.0
-        remaining = budget_cap - budget_used
-        pct_used = budget_used / budget_cap if budget_cap > 0 else 0.0
-
-        warning: str | None = None
-        budget_warn_critical = 0.90
-        budget_warn_high = 0.80
-        if pct_used >= budget_warn_critical:
-            warning = (
-                f"You have used {pct_used * 100:.1f}% of your generation budget. "
-                "Further requests may be blocked. Contact support to raise your cap."
-            )
-        elif pct_used >= budget_warn_high:
-            warning = (
-                f"You have used {pct_used * 100:.1f}% of your generation budget. "
-                "Consider reviewing your usage to avoid interruptions."
-            )
-
-        return {
-            "user_id": user.uid,
-            "tenant_id": user.tenant_id,
-            "budget_cap_usd": budget_cap,
-            "budget_used_usd": round(budget_used, 4),
-            "budget_remaining_usd": round(remaining, 4),
-            "budget_pct_used": round(pct_used, 4),
-            "warning": warning,
-            "info": (
-                "Budget is enforced per-runner session. The $5,000 cap prevents "
-                "runaway generation costs per PRD §7.2. Unused budget does not roll over."
-            ),
-        }
 
     # --- Register API routers ─────────────────────────────────────────────────
     from atelier.api.a2a import router as a2a_router  # noqa: PLC0415
