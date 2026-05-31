@@ -106,14 +106,10 @@ SEMANTIC_LANDMARKS: tuple[str, ...] = (
 #: Minimum semantic-HTML coverage score (0-100) required to PASS.
 SEMANTIC_HTML_PASS_THRESHOLD: float = 50.0
 
-#: Stub score for :func:`check_lighthouse_stub` (real Lighthouse needs browser).
-LIGHTHOUSE_STUB_SCORE: float = 95.0
-
-#: Stub score for :func:`check_axe_stub` (real axe-core needs DOM).
-AXE_STUB_SCORE: float = 90.0
-
-#: Stub score for :func:`check_visual_diff_stub` (real visual diff needs render).
-VISUAL_DIFF_STUB_SCORE: float = 85.0
+# NOTE (AT-010): the former LIGHTHOUSE/AXE/VISUAL_DIFF_STUB_SCORE constants (95/90/85)
+# were removed. They were the *inverted-gate bug* (G2): empty/missing index.html was
+# scored 95/90/85 and PASSed. Empty/skeleton HTML now REJECTs at 0 via
+# _structure_floor_reject(); substantive HTML is scored by each stub's heuristic.
 
 
 #: Cap on per-file CSS validation errors to keep diagnostics readable.
@@ -341,8 +337,83 @@ def check_token_fidelity(candidate: CandidateUI) -> GateOutcome:
 
 
 # ---------------------------------------------------------------------------
-# Stub gates — placeholders until current implementation wires real browser-based tools
+# Stub gates — heuristic browser-free proxies (real tools land in AT-011/AT-013)
 # ---------------------------------------------------------------------------
+
+#: A skeleton has fewer than this many content elements (and no visible text).
+_SKELETON_MIN_CONTENT_ELEMENTS = 2
+#: Opening tags that are pure document boilerplate / non-rendered, not "content".
+#: ``script``/``style``/``template``/``link``/``noscript`` are excluded so a
+#: page whose only markup is inline scripts or styles still counts as a skeleton.
+_BOILERPLATE_TAGS = (
+    "html",
+    "head",
+    "body",
+    "meta",
+    "title",
+    "br",
+    "hr",
+    "script",
+    "style",
+    "template",
+    "link",
+    "noscript",
+)
+_CONTENT_TAG_RE = re.compile(
+    r"<(?!/)(?!(?:" + "|".join(_BOILERPLATE_TAGS) + r")\b)[a-z][a-z0-9-]*",
+    re.IGNORECASE,
+)
+#: ``<script>``/``<style>``/``<template>`` bodies are not user-visible text.
+_NON_RENDERED_BLOCK_RE = re.compile(
+    r"<(script|style|template)\b[^>]*>.*?</\1>",
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def _is_skeleton(html: str) -> bool:
+    """A placeholder skeleton: no visible text AND fewer than two content elements.
+
+    A real screen has either visible text or multiple structural elements; an
+    empty/near-empty placeholder (e.g. ``<html><body></body></html>``) has
+    neither and must REJECT rather than pass a quality gate (AT-010 / R2).
+
+    ``<script>``/``<style>``/``<template>`` bodies are stripped first so a page
+    whose only "text" lives inside a script or style block does not masquerade
+    as substantive content (would otherwise evade the floor — review nit, PR #33).
+    """
+    rendered = _NON_RENDERED_BLOCK_RE.sub("", html)
+    visible_text = re.sub(r"<[^>]+>", "", rendered).strip()
+    if visible_text:
+        return False
+    return len(_CONTENT_TAG_RE.findall(rendered)) < _SKELETON_MIN_CONTENT_ELEMENTS
+
+
+def _structure_floor_reject(
+    candidate: CandidateUI, html: str, axis: GateAxis
+) -> GateOutcome | None:
+    """Empty or skeleton HTML can never pass a quality gate (AT-010 / G2 / R2).
+
+    Returns a REJECT outcome scored 0 for empty/skeleton input; ``None`` for
+    substantive HTML so the caller proceeds to its heuristic. This replaces the
+    inverted ``if not html: PASS`` stubs that scored empty artifacts 95/90/85.
+    """
+    if not html or not html.strip():
+        return GateOutcome(
+            candidate_id=candidate.candidate_id,
+            axis=axis,
+            decision=GateDecision.REJECT,
+            score=0.0,
+            diagnostic="REJECT: empty/missing index.html cannot pass a quality gate.",
+        )
+    if _is_skeleton(html):
+        return GateOutcome(
+            candidate_id=candidate.candidate_id,
+            axis=axis,
+            decision=GateDecision.REJECT,
+            score=0.0,
+            diagnostic="REJECT: skeleton HTML (no substantive content).",
+        )
+    return None
 
 
 def check_lighthouse_stub(candidate: CandidateUI) -> GateOutcome:
@@ -364,14 +435,9 @@ def check_lighthouse_stub(candidate: CandidateUI) -> GateOutcome:
         GateOutcome with axis LIGHTHOUSE_A11Y, differentiated score per candidate.
     """
     html = candidate.artifacts.get("index.html", "")
-    if not html:
-        return GateOutcome(
-            candidate_id=candidate.candidate_id,
-            axis=GateAxis.LIGHTHOUSE_A11Y,
-            decision=GateDecision.PASS,
-            score=LIGHTHOUSE_STUB_SCORE,
-            diagnostic="No index.html; returning conservative heuristic score.",
-        )
+    floor = _structure_floor_reject(candidate, html, GateAxis.LIGHTHOUSE_A11Y)
+    if floor is not None:
+        return floor
 
     lowered = html.lower()
     penalties: list[str] = []
@@ -436,14 +502,9 @@ def check_axe_stub(candidate: CandidateUI) -> GateOutcome:
         GateOutcome with axis AXE, differentiated score per candidate.
     """
     html = candidate.artifacts.get("index.html", "")
-    if not html:
-        return GateOutcome(
-            candidate_id=candidate.candidate_id,
-            axis=GateAxis.AXE,
-            decision=GateDecision.PASS,
-            score=AXE_STUB_SCORE,
-            diagnostic="No index.html; returning conservative heuristic score.",
-        )
+    floor = _structure_floor_reject(candidate, html, GateAxis.AXE)
+    if floor is not None:
+        return floor
 
     lowered = html.lower()
     penalties: list[str] = []
@@ -531,14 +592,9 @@ def check_visual_diff_stub(candidate: CandidateUI) -> GateOutcome:
         exceeds _VISUAL_DIFF_PASS_THRESHOLD, else REJECT.
     """
     html = candidate.artifacts.get("index.html", "")
-    if not html:
-        return GateOutcome(
-            candidate_id=candidate.candidate_id,
-            axis=GateAxis.VISUAL_DIFF,
-            decision=GateDecision.PASS,
-            score=VISUAL_DIFF_STUB_SCORE,
-            diagnostic="No index.html; returning conservative heuristic score.",
-        )
+    floor = _structure_floor_reject(candidate, html, GateAxis.VISUAL_DIFF)
+    if floor is not None:
+        return floor
 
     # Golden reference: balanced use of the 12 most common structural tags
     golden = [1.0 / len(_VISUAL_DIFF_GOLDEN_TAGS)] * len(_VISUAL_DIFF_GOLDEN_TAGS)
