@@ -39,7 +39,7 @@ COPY atelier-core/src/ atelier-core/src/
 RUN uv venv /app/.venv \
     && . /app/.venv/bin/activate \
     && uv pip install \
-        "google-adk>=2.0.0b1,<3" \
+        "google-adk==1.34.1" \
         "google-cloud-aiplatform>=1.71,<2" \
         "google-cloud-firestore>=2.18,<3" \
         "google-cloud-bigquery>=3.25,<4" \

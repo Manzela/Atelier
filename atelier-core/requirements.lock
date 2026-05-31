@@ -30,6 +30,8 @@ attrs==26.1.0
     #   referencing
 authlib==1.7.2
     # via google-adk
+cachecontrol==0.14.4
+    # via firebase-admin
 certifi==2026.5.20
     # via
     #   httpcore
@@ -60,6 +62,8 @@ fastapi==0.136.3
     # via
     #   atelier-core (atelier-core/pyproject.toml)
     #   google-adk
+firebase-admin==7.4.0
+    # via atelier-core (atelier-core/pyproject.toml)
 frozenlist==1.8.0
     # via
     #   aiohttp
@@ -68,6 +72,7 @@ google-adk==1.34.1
     # via atelier-core (atelier-core/pyproject.toml)
 google-api-core==2.30.3
     # via
+    #   firebase-admin
     #   google-api-python-client
     #   google-cloud-aiplatform
     #   google-cloud-appengine-logging
@@ -77,6 +82,7 @@ google-api-core==2.30.3
     #   google-cloud-core
     #   google-cloud-dataplex
     #   google-cloud-discoveryengine
+    #   google-cloud-firestore
     #   google-cloud-iam
     #   google-cloud-logging
     #   google-cloud-monitoring
@@ -103,6 +109,7 @@ google-auth==2.53.0
     #   google-cloud-core
     #   google-cloud-dataplex
     #   google-cloud-discoveryengine
+    #   google-cloud-firestore
     #   google-cloud-iam
     #   google-cloud-logging
     #   google-cloud-monitoring
@@ -136,6 +143,7 @@ google-cloud-core==2.6.0
     # via
     #   google-cloud-bigquery
     #   google-cloud-bigtable
+    #   google-cloud-firestore
     #   google-cloud-logging
     #   google-cloud-spanner
     #   google-cloud-storage
@@ -143,6 +151,8 @@ google-cloud-dataplex==2.19.0
     # via google-adk
 google-cloud-discoveryengine==0.13.12
     # via google-adk
+google-cloud-firestore==2.27.0
+    # via firebase-admin
 google-cloud-iam==2.23.0
     # via google-cloud-aiplatform
 google-cloud-logging==3.15.0
@@ -169,6 +179,8 @@ google-cloud-speech==2.39.0
     # via google-adk
 google-cloud-storage==3.10.1
     # via
+    #   atelier-core (atelier-core/pyproject.toml)
+    #   firebase-admin
     #   google-adk
     #   google-cloud-aiplatform
 google-cloud-trace==1.19.0
@@ -217,6 +229,7 @@ grpcio==1.80.0
     #   google-cloud-bigquery-storage
     #   google-cloud-bigtable
     #   google-cloud-dataplex
+    #   google-cloud-firestore
     #   google-cloud-iam
     #   google-cloud-logging
     #   google-cloud-monitoring
@@ -237,6 +250,10 @@ h11==0.16.0
     # via
     #   httpcore
     #   uvicorn
+h2==4.3.0
+    # via httpx
+hpack==4.1.0
+    # via h2
 httpcore==1.0.9
     # via httpx
 httplib2==0.31.2
@@ -248,11 +265,14 @@ httptools==0.7.1
 httpx==0.28.1
     # via
     #   atelier-core (atelier-core/pyproject.toml)
+    #   firebase-admin
     #   google-adk
     #   google-genai
     #   mcp
 httpx-sse==0.4.3
     # via mcp
+hyperframe==6.1.0
+    # via h2
 hypothesis==6.152.9
     # via atelier-core (atelier-core/pyproject.toml)
 idna==3.16
@@ -281,6 +301,8 @@ mcp==1.27.1
     #   google-adk
 mmh3==5.2.1
     # via google-cloud-spanner
+msgpack==1.1.2
+    # via cachecontrol
 multidict==6.7.1
     # via
     #   aiohttp
@@ -289,6 +311,7 @@ numpy==2.4.6
     # via atelier-core (atelier-core/pyproject.toml)
 opentelemetry-api==1.41.1
     # via
+    #   atelier-core (atelier-core/pyproject.toml)
     #   google-adk
     #   google-cloud-logging
     #   google-cloud-pubsub
@@ -308,6 +331,7 @@ opentelemetry-exporter-gcp-monitoring==1.12.0a0
     # via google-adk
 opentelemetry-exporter-gcp-trace==1.12.0
     # via
+    #   atelier-core (atelier-core/pyproject.toml)
     #   google-adk
     #   google-cloud-aiplatform
 opentelemetry-exporter-otlp-proto-common==1.41.1
@@ -329,6 +353,7 @@ opentelemetry-resourcedetector-gcp==1.12.0a0
     #   opentelemetry-exporter-gcp-trace
 opentelemetry-sdk==1.41.1
     # via
+    #   atelier-core (atelier-core/pyproject.toml)
     #   google-adk
     #   google-cloud-aiplatform
     #   google-cloud-pubsub
@@ -359,6 +384,7 @@ proto-plus==1.28.0
     #   google-cloud-bigtable
     #   google-cloud-dataplex
     #   google-cloud-discoveryengine
+    #   google-cloud-firestore
     #   google-cloud-iam
     #   google-cloud-logging
     #   google-cloud-monitoring
@@ -378,6 +404,7 @@ protobuf==6.33.6
     #   google-cloud-bigtable
     #   google-cloud-dataplex
     #   google-cloud-discoveryengine
+    #   google-cloud-firestore
     #   google-cloud-iam
     #   google-cloud-logging
     #   google-cloud-monitoring
@@ -414,7 +441,9 @@ pydantic-core==2.46.4
 pydantic-settings==2.14.1
     # via mcp
 pyjwt==2.13.0
-    # via mcp
+    # via
+    #   firebase-admin
+    #   mcp
 pyopenssl==26.2.0
     # via google-auth
 pyparsing==3.3.2
@@ -441,6 +470,7 @@ referencing==0.37.0
     #   jsonschema-specifications
 requests==2.34.2
     # via
+    #   cachecontrol
     #   google-adk
     #   google-api-core
     #   google-auth

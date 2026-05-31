@@ -48,7 +48,10 @@ dependencies = [
     "fastapi>=0.100,<1",
     "uvicorn[standard]>=0.20,<1",
     # Production deps — Phase 1 D3+ (now active):
-    "google-adk>=1.0.0,<2",
+    # Pinned exact per AT-002 / PRD §22 D5: single google-adk version across
+    # venv + both locks + pyproject + Dockerfile. Stay on 1.34.1 (verified
+    # working, 608 tests green); a 2.x major bump is a separate scoped migration.
+    "google-adk==1.34.1",
     # "agent-dag-pipeline>=3.0.0,<4",
     "google-cloud-aiplatform>=1.71,<2",
     # "google-cloud-firestore>=2.18,<3",
