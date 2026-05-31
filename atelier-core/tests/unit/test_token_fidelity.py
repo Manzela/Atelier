@@ -209,6 +209,33 @@ def test_on_token_css_artifact_passes() -> None:
     assert outcome.decision == GateDecision.PASS
 
 
+@pytest.mark.unit
+@pytest.mark.parametrize("attr", ["fill", "stroke", "stop-color"])
+def test_svg_presentation_attr_off_token_rejects(attr: str) -> None:
+    """Raw color in an SVG presentation attribute (fill/stroke/...) → REJECT.
+
+    A token-bypass the CSS-only scan would miss (PR #35 review): SVG carries the
+    color value directly on the attribute rather than via a style declaration.
+    """
+    html = f'<html><body><svg><rect {attr}="#3b82f6" /></svg></body></html>'
+    candidate = _candidate({"index.html": html, "tokens.json": _DTCG_TWO_COLORS})
+    outcome = check_token_fidelity(candidate)
+
+    assert outcome.decision == GateDecision.REJECT
+    assert outcome.score == 0.0
+    assert "off-token" in outcome.diagnostic
+
+
+@pytest.mark.unit
+def test_svg_presentation_attr_on_token_passes() -> None:
+    """SVG fill using a value that resolves to a tokens.json entry → PASS."""
+    html = '<html><body><svg><rect fill="#2563eb" /></svg></body></html>'
+    candidate = _candidate({"index.html": html, "tokens.json": _DTCG_TWO_COLORS})
+    outcome = check_token_fidelity(candidate)
+
+    assert outcome.decision == GateDecision.PASS
+
+
 # ---------------------------------------------------------------------------
 # 7. Source-guard: oracle independence
 # ---------------------------------------------------------------------------

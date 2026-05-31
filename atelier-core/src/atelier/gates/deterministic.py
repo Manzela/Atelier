@@ -138,6 +138,12 @@ _COLOR_LITERAL_PATTERN = re.compile(
 _CSS_VAR_DECL_VALUE_PATTERN = re.compile(r"--[a-zA-Z0-9_-]+\s*:\s*([^;}]+)")
 _HTML_STYLE_BLOCK_PATTERN = re.compile(r"<style[^>]*>(.*?)</style>", re.IGNORECASE | re.DOTALL)
 _HTML_INLINE_STYLE_PATTERN = re.compile(r"""style\s*=\s*(?:"([^"]*)"|'([^']*)')""", re.IGNORECASE)
+# SVG presentation attributes carry a raw color VALUE directly (e.g. fill="#3b82f6"),
+# a token-bypass the CSS-only scan would miss (PR #35 review). Scanned in HTML/SVG.
+_SVG_COLOR_ATTR_PATTERN = re.compile(
+    r"""(?:fill|stroke|stop-color|flood-color)\s*=\s*(?:"([^"]*)"|'([^']*)')""",
+    re.IGNORECASE,
+)
 
 
 def _normalize_color(literal: str) -> str:
@@ -153,10 +159,13 @@ def _collect_style_text(artifacts: dict[str, str]) -> str:
         lowered = name.lower()
         if lowered.endswith(".css"):
             parts.append(content)
-        elif lowered.endswith((".html", ".htm")):
+        elif lowered.endswith((".html", ".htm", ".svg")):
             parts.extend(_HTML_STYLE_BLOCK_PATTERN.findall(content))
             parts.extend(
                 quoted or apos for quoted, apos in _HTML_INLINE_STYLE_PATTERN.findall(content)
+            )
+            parts.extend(
+                quoted or apos for quoted, apos in _SVG_COLOR_ATTR_PATTERN.findall(content)
             )
     return "\n".join(parts)
 
