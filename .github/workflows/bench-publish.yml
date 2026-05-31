@@ -2,8 +2,6 @@ name: bench-publish
 on:
   schedule:
     - cron: '17 3 * * *'
-  push:
-    branches: ['main', 'phase/*']
   workflow_dispatch:
 
 jobs:
@@ -56,5 +54,6 @@ jobs:
 
       - name: Deploy to Vertex AI Agent Engine
         run: |
-          # Requires google-cloud-aiplatform and ADK 2.0 dependencies
+          # Requires google-cloud-aiplatform + google-adk (version pinned in
+          # requirements.lock per AT-002; the 1.34.1 pin, not ADK 2.0).
           python atelier-core/src/atelier/agent_engine_deploy.py
