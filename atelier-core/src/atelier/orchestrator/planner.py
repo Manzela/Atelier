@@ -26,6 +26,7 @@ from google.adk.agents import LlmAgent
 from google.genai import types as genai_types
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from atelier.models.model_registry import resolve_model_id
 from atelier.models.safety import default_model_armor_config
 
 logger = logging.getLogger(__name__)
@@ -109,17 +110,18 @@ class PlannerAgent:
         False  # narrow brief — skip web research
     """
 
-    def __init__(self, model: str = "gemini-2.5-flash") -> None:
+    def __init__(self, model: str | None = None) -> None:
         """Initialize the PlannerAgent with an LLM agent.
 
         Args:
-            model: Gemini model ID. Defaults to ``gemini-2.5-flash`` (GA).
-                Override in tests with a mock.
+            model: Gemini model ID. Defaults to the pinned served id
+                (``resolve_model_id()`` → ``GEMINI_MODEL_ID`` env or
+                ``gemini-2.5-pro`` GA, AT-024). Override in tests with a mock.
         """
-        self.model = model
+        self.model = model or resolve_model_id()
         self._llm = LlmAgent(
             name="atelier_planner",
-            model=model,
+            model=self.model,
             output_schema=PlanStep,
             instruction=_PLANNER_SYSTEM_PROMPT,
             generate_content_config=genai_types.GenerateContentConfig(

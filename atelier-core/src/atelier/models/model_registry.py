@@ -24,8 +24,21 @@ ADR Reference: 0007 (Gemini-only model strategy)
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from enum import StrEnum
+from typing import Final
+
+#: AT-024 (§22 D5 / G13) — the single served Gemini model id. GA default
+#: ``gemini-2.5-pro`` (operator-pinned 2026-05-31; confirmed GA in Vertex Model
+#: Garden for atelier-build-2026/us-central1). Override per-env via GEMINI_MODEL_ID.
+#: All 3.x-pro ids were preview at pin time, so the GA pro model is the default.
+DEFAULT_GEMINI_MODEL_ID: Final[str] = "gemini-2.5-pro"
+
+
+def resolve_model_id() -> str:
+    """Return the pinned served Gemini model id: ``GEMINI_MODEL_ID`` env or the GA default."""
+    return os.environ.get("GEMINI_MODEL_ID", DEFAULT_GEMINI_MODEL_ID)
 
 
 class ModelTier(StrEnum):
@@ -80,7 +93,7 @@ class ModelSpec:
 
 # Design (Brand Alignment) — needs visual understanding to assess design quality
 JUDGE_MODEL_DESIGN = ModelSpec(
-    model_id="gemini-2.5-flash-preview-05-20",
+    model_id=resolve_model_id(),
     display_name="Design Judge (Flash Vision)",
     tier=ModelTier.FLASH,
     capabilities=frozenset({ModelCapability.VISION}),
@@ -90,7 +103,7 @@ JUDGE_MODEL_DESIGN = ModelSpec(
 
 # Originality — needs deep reasoning to assess creative novelty
 JUDGE_MODEL_ORIGINALITY = ModelSpec(
-    model_id="gemini-2.5-pro-preview-05-06",
+    model_id=resolve_model_id(),
     display_name="Originality Judge (Pro Thinking)",
     tier=ModelTier.PRO,
     capabilities=frozenset({ModelCapability.THINKING}),
@@ -101,7 +114,7 @@ JUDGE_MODEL_ORIGINALITY = ModelSpec(
 
 # Relevance — needs search grounding to verify factual accuracy
 JUDGE_MODEL_RELEVANCE = ModelSpec(
-    model_id="gemini-2.5-flash-preview-05-20",
+    model_id=resolve_model_id(),
     display_name="Relevance Judge (Flash + Grounding)",
     tier=ModelTier.FLASH,
     capabilities=frozenset({ModelCapability.GROUNDING}),
@@ -111,7 +124,7 @@ JUDGE_MODEL_RELEVANCE = ModelSpec(
 
 # Accessibility — primarily deterministic gates; LLM fallback for edge cases
 JUDGE_MODEL_ACCESSIBILITY = ModelSpec(
-    model_id="gemini-2.5-flash-preview-05-20",
+    model_id=resolve_model_id(),
     display_name="Accessibility Judge (Flash Lite Fallback)",
     tier=ModelTier.FLASH_LITE,
     capabilities=frozenset(),
@@ -121,7 +134,7 @@ JUDGE_MODEL_ACCESSIBILITY = ModelSpec(
 
 # Visual Clarity — visual similarity scoring via embeddings
 JUDGE_MODEL_VISUAL = ModelSpec(
-    model_id="gemini-2.5-flash-preview-05-20",
+    model_id=resolve_model_id(),
     display_name="Visual Clarity Judge (Flash + Embedding)",
     tier=ModelTier.FLASH,
     capabilities=frozenset({ModelCapability.VISION, ModelCapability.EMBEDDING}),
@@ -131,7 +144,7 @@ JUDGE_MODEL_VISUAL = ModelSpec(
 
 # Generator — primary generation model (high creativity, vision for reference images)
 GENERATOR_MODEL = ModelSpec(
-    model_id="gemini-2.5-flash-preview-05-20",
+    model_id=resolve_model_id(),
     display_name="UI Generator (Flash)",
     tier=ModelTier.FLASH,
     capabilities=frozenset({ModelCapability.VISION, ModelCapability.CODE}),
@@ -141,7 +154,7 @@ GENERATOR_MODEL = ModelSpec(
 
 # Copy Editor — prose quality, grammar, tone
 COPY_EDITOR_MODEL = ModelSpec(
-    model_id="gemini-2.5-flash-preview-05-20",
+    model_id=resolve_model_id(),
     display_name="Copy Editor (Flash)",
     tier=ModelTier.FLASH,
     capabilities=frozenset(),
@@ -151,7 +164,7 @@ COPY_EDITOR_MODEL = ModelSpec(
 
 # Fixer — targeted code fixes based on gate/judge feedback
 FIXER_MODEL = ModelSpec(
-    model_id="gemini-2.5-flash-preview-05-20",
+    model_id=resolve_model_id(),
     display_name="Fixer (Flash Code)",
     tier=ModelTier.FLASH,
     capabilities=frozenset({ModelCapability.CODE}),
