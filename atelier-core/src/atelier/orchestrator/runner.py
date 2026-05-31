@@ -23,6 +23,7 @@ PRD Reference: §6.3 (N1-N4), §21 (Failure Trichotomy)
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import uuid
@@ -51,6 +52,14 @@ from atelier.orchestrator.governor import (
     GovernorState,
     MetacognitiveGovernor,
 )
+from atelier.orchestrator.stop_reason import (
+    StopReason,
+    StopSignals,
+    candidate_fingerprint,
+    is_duplicate,
+    is_no_improvement,
+    resolve_stop_reason,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +84,35 @@ CONVERGENCE_THRESHOLD: float = 0.70
 
 # ADK app name constant
 _APP_NAME: str = "atelier"
+
+
+def _compose_anchor(brief: Any, project_ctx: Any, wrai_report: Any) -> str:
+    """R4 (ADR-0012 anchored_context): the immutable anchor re-injected into the
+    generator prompt every iteration -- the signed-off brief + design tokens +
+    research findings, serialized deterministically so the re-injection is
+    byte-identical across iterations regardless of accumulated fixer history.
+    """
+    brief_blob = brief.model_dump_json() if hasattr(brief, "model_dump_json") else str(brief)
+    tokens = getattr(project_ctx, "design_tokens", None) or {}
+    tokens_blob = json.dumps(tokens, sort_keys=True, default=str)
+    findings = getattr(wrai_report, "results", None) or []
+    research_blob = json.dumps([str(f) for f in findings], sort_keys=True)
+    return (
+        "--- BRIEF (anchor; do not deviate) ---\n"
+        + brief_blob
+        + "\n--- DESIGN TOKENS (anchor) ---\n"
+        + tokens_blob
+        + "\n--- RESEARCH FINDINGS (anchor) ---\n"
+        + research_blob
+    )
+
+
+def _compose_generator_prompt(anchor: str, screen: str, directive: str) -> str:
+    """Compose one iteration's generator prompt: the immutable anchor + the screen
+    task + ONLY the latest fixer directive (rejected-variant history is never
+    accumulated -- R4)."""
+    base = f"{anchor}\n\n--- TASK ---\nGenerate the screen: '{screen}'."
+    return f"{base}\n\n--- LATEST FIXER DIRECTIVE ---\n{directive}" if directive else base
 
 
 def _default_session_service() -> BaseSessionService:
@@ -315,7 +353,7 @@ class AtelierRunner:
             wrai_report = await research_brief(brief_text)
         else:
             logger.info("N14 WRAI: skipped per PlannerAgent (should_run_wrai=False)")
-            wrai_report = WebResearchReport(results=[], query=brief_text)
+            wrai_report = WebResearchReport(results=[])
 
         if not source_resolver_gate(tenant_ctx, brief):
             raise ValueError("Source resolver gate failed (no descriptor or design source).")
@@ -384,10 +422,12 @@ class AtelierRunner:
             if progress_callback:
                 await progress_callback("screen_start", {"screen": screen, "index": idx})
 
-            # Initialize convergence state for this screen
-            generator_prompt = (
-                f"Generate the screen: '{screen}' based on the brief and project context."
-            )
+            # Initialize convergence state for this screen.
+            # R4: build the immutable anchor once; re-inject it (never accumulate)
+            # each iteration so fixer feedback cannot displace the brief/tokens/research.
+            anchor = _compose_anchor(brief, project_ctx, wrai_report)
+            latest_directive = ""
+            generator_prompt = _compose_generator_prompt(anchor, screen, latest_directive)
             best_candidate = None
             convergence_result: dict[str, Any] = {}
             stitch_degraded = False
@@ -396,8 +436,10 @@ class AtelierRunner:
             gate_results_serialized: list[dict[str, Any]] = []
             evaluations_serialized: list[dict[str, Any]] = []
             raw_candidates: list[Any] = []
-            exit_reason = "max_iterations"
+            exit_reason: StopReason = StopReason.MAX_ITERATIONS
             iteration = 0
+            previous_best_score: float | None = None
+            seen_fingerprints: set[str] = set()
 
             for iteration in range(self._max_iterations):
                 self._governor._state.record_step(f"convergence_loop_{screen}_{iteration}")
@@ -409,13 +451,19 @@ class AtelierRunner:
 
                 if self._governor._state.is_over_budget():
                     logger.warning("Convergence loop halted: budget exceeded.")
-                    exit_reason = "budget_exhausted"
+                    # Deprecated legacy USD path (retired by AT-095); kept as an
+                    # alias until the per-user token cap replaces the USD governor.
+                    exit_reason = StopReason.BUDGET_EXHAUSTED
                     break
 
                 if self._governor._state.is_loop():
                     logger.warning("Convergence loop halted: governor detected infinite loop.")
-                    exit_reason = "governor_loop_detected"
+                    exit_reason = StopReason.GOVERNOR_LOOP_DETECTED
                     break
+
+                # R4: re-inject the immutable anchor + only the latest fixer
+                # directive (clear accumulated rejected-variant history).
+                generator_prompt = _compose_generator_prompt(anchor, screen, latest_directive)
 
                 # N3a: Generator Ensemble — governed
                 async def _run_ensemble(prompt: str = generator_prompt) -> tuple[list[Any], bool]:
@@ -463,7 +511,7 @@ class AtelierRunner:
                             "budget_cap_usd": self._governor._state.budget_cap_usd,
                         },
                     )
-                    exit_reason = "governor_fail_soft"
+                    exit_reason = StopReason.GOVERNOR_FAIL_SOFT
                     break
                 raw_candidates, stitch_degraded = governed_result
                 if stitch_degraded:
@@ -522,14 +570,38 @@ class AtelierRunner:
                         {"screen": screen, "evaluations": evaluations_serialized},
                     )
 
-                if convergence_result.get("converged"):
+                # R1 stop-reason precedence: collapse the post-generation signals to
+                # the single highest-precedence reason (converged > max_iterations >
+                # no_improvement > duplicate). token_cap_exhausted / governor signals
+                # are handled at their own halt points above.
+                best_score = float(convergence_result.get("composite_score", 0.0))
+                fresh_candidate = best_candidate if isinstance(best_candidate, str) else ""
+                signals = StopSignals(
+                    converged=bool(convergence_result.get("converged")),
+                    max_iterations_reached=iteration == self._max_iterations - 1,
+                    no_improvement=is_no_improvement(previous_best_score, best_score),
+                    duplicate=bool(fresh_candidate)
+                    and is_duplicate(fresh_candidate, seen_fingerprints),
+                )
+                resolved = resolve_stop_reason(signals)
+                if resolved is not None:
                     logger.info(
-                        "Convergence achieved at iteration %d for screen %s", iteration, screen
+                        "Loop stop for screen %s at iteration %d: %s (composite=%.3f)",
+                        screen,
+                        iteration,
+                        resolved.value,
+                        best_score,
                     )
-                    exit_reason = "converged"
+                    exit_reason = resolved
                     break
 
-                # If not converged and we have more iterations, run FixerAgent
+                # Not stopping this iteration: record anchors for the next round
+                # (R4 re-anchoring of the running best + duplicate fingerprints).
+                previous_best_score = best_score
+                if fresh_candidate:
+                    seen_fingerprints.add(candidate_fingerprint(fresh_candidate))
+
+                # Run FixerAgent for the next iteration.
                 if iteration < self._max_iterations - 1:
                     logger.info(
                         "Iteration %d did not converge for screen %s. Running FixerAgent.",
@@ -556,9 +628,9 @@ class AtelierRunner:
 
                     # Mutate prompt for next iteration
                     amendments = "\n".join(directive.prompt_amendments)
-                    generator_prompt += (
-                        f"\n\n--- FEEDBACK FROM ITERATION {iteration} ---\n{amendments}"
-                    )
+                    # R4: REPLACE the directive (do not accumulate); the anchor is
+                    # re-injected fresh next iteration by _compose_generator_prompt.
+                    latest_directive = amendments
                     logger.info(
                         "FixerAgent proposed mutations for screen %s: %s",
                         screen,
@@ -580,7 +652,7 @@ class AtelierRunner:
                 "best_candidate": best_candidate,
                 "candidates": raw_candidates,
                 "convergence_iteration": iteration,
-                "exit_reason": exit_reason,
+                "exit_reason": exit_reason.value,
                 "converged": convergence_result.get("converged", False),
                 "composite_score": convergence_result.get("composite_score", 0.0),
                 "candidates_evaluated": convergence_result.get("candidates_evaluated", 0),

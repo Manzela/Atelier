@@ -61,6 +61,10 @@ class FixerAgent:
             model=FIXER_MODEL.model_id,
             output_schema=FixerDirective,
             instruction=_FIXER_SYSTEM_PROMPT,
+            # R4 (anchored_context): the fixer carries NO conversation history;
+            # each fix is grounded only in the gate/consensus inputs it is given,
+            # so accumulated rejected-variant context cannot drift the directive.
+            include_contents="none",
             generate_content_config=genai_types.GenerateContentConfig(
                 temperature=FIXER_MODEL.temperature,
                 model_armor_config=default_model_armor_config(),
