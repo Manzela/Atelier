@@ -58,9 +58,9 @@ verify-types: _deps
 	@"$(PY)" -m mypy "$(CORE)/src"
 
 verify-tests: _deps
-	@echo "[verify:tests] offline pytest (unit)"
-	@cd "$(CORE)" && "$(PY)" -m pytest tests/unit -q -p no:cacheprovider
-	@echo "[verify:tests] NOTE integration + the section-16 golden-path run hermetically once AT-003 lands"
+	@echo "[verify:tests] offline pytest (unit + AT-003 record/replay determinism)"
+	@cd "$(CORE)" && "$(PY)" -m pytest tests/unit tests/integration/test_record_replay_determinism.py -q -p no:cacheprovider
+	@echo "[verify:tests] NOTE the full section-16 golden-path integration grows as E1-E4 land"
 
 verify-lint:
 	@echo "[verify:lint] markdownlint (per PRD AT-004; ruff/format are enforced by pre-commit + CI)"
@@ -77,9 +77,10 @@ verify-eval:
 	@echo "[verify:eval] SKIP - offline eval composite-mean gate lands with AT-100 (eval set + baseline)"
 
 # ---- replay -----------------------------------------------------------------
-replay:
-	@echo "[replay] deterministic replay of a recorded real production trajectory"
-	@echo "[replay] SKIP - the record/replay harness lands with AT-003"
+replay: _deps
+	@echo "[replay] deterministic record/replay harness (AT-003): 3x byte-identical canonical trajectory, zero live calls"
+	@cd "$(CORE)" && "$(PY)" -m pytest tests/integration/test_record_replay_determinism.py -q -p no:cacheprovider
+	@echo "[replay] NOTE a recorded REAL production trajectory replaces the golden fixture once the operator captures one"
 
 # ---- preflight --------------------------------------------------------------
 preflight:
