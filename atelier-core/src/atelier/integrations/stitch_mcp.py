@@ -14,7 +14,6 @@ API Enablement: ``stitch.googleapis.com`` on project ``i-for-ai``
 Auth: Google default credentials (``manzela@tngshopper.com``)
 
 PRD Reference: §6.3 (Pipeline nodes — design system inference)
-Audit Reference: §2 (C8 — MCP integration)
 ADR Reference: 0010 (MCP-first tool integration)
 """
 

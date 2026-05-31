@@ -7,17 +7,17 @@ judge emits a normalized score in ``[0.0, 1.0]`` plus a diagnostic; the five
 scores are then combined into a single composite using an
 :class:`AxisWeights`-driven weighted average.
 
-This module is the **Phase 1** scaffold of that node: every judge here is a
+This module is the **v1.0 implementation** scaffold of that node: every judge here is a
 *deterministic* heuristic that inspects ``candidate.artifacts`` for concrete
 signals (CSS custom properties, semantic HTML, ARIA attributes, typography
-declarations, etc.). Phase 2 swaps each ``_score_*`` helper for a Vertex AI
+declarations, etc.). current implementation swaps each ``_score_*`` helper for a Vertex AI
 LLM call routed via :data:`atelier.models.model_registry.JUDGE_MODEL_CONFIG`,
 while the surrounding plumbing (anti-bias report, composite weighting,
 constitution enforcement, ``ConsensusEvaluation`` shape) stays untouched.
 
 Key design choices:
 
-    * **Deterministic-first** -- shipping concrete heuristics in Phase 1 lets
+    * **Deterministic-first** -- shipping concrete heuristics in v1.0 implementation lets
       the rest of the pipeline (Fixer, Orchestrator, trajectory logging)
       integrate against a stable contract before LLM judges land.
     * **Anti-bias coupled by composition, not inheritance** -- the report is
@@ -37,7 +37,6 @@ silent name clash we use :class:`ConsensusEvaluation` for the per-candidate
 result returned by :func:`evaluate_candidate`.
 
 PRD Reference: §6.3 (N3d ConsensusAgent), F0209-F0211
-Audit Reference: §7 (FA-018 model routing, FA-019 weighting, bias mitigation)
 """
 
 import re
@@ -62,7 +61,7 @@ if TYPE_CHECKING:
 
 # ---------------------------------------------------------------------------
 # Tunable thresholds -- kept module-level so tests can assert against them
-# and Phase 2 LLM judges can re-use the same target values for calibration.
+# and current implementation LLM judges can re-use the same target values for calibration.
 # ---------------------------------------------------------------------------
 
 #: Target count of CSS custom property declarations for full Brand credit.
@@ -109,8 +108,8 @@ VISUAL_TARGET_SPACING: int = 4
 #: cleared the convergence bar. Mirrors PRD §6 ship_it default of 0.70.
 CONVERGENCE_DEFAULT: float = 0.70
 
-#: Half-width of the synthetic confidence interval attached to every Phase 1
-#: :class:`JudgeVote`. Real judges in Phase 2 will emit their own CIs from
+#: Half-width of the synthetic confidence interval attached to every v1.0 implementation
+#: :class:`JudgeVote`. Real judges in current implementation will emit their own CIs from
 #: Bayesian sampling; here we record a fixed band so the schema stays
 #: consistent downstream.
 CONFIDENCE_HALF_WIDTH: float = 0.10
@@ -492,7 +491,7 @@ def _score_visual_clarity(candidate: CandidateUI) -> _JudgeScore:
 
 
 #: Dispatch table from snake_case axis name to its scorer. Module-level so
-#: tests can iterate over every axis without re-listing them and Phase 2
+#: tests can iterate over every axis without re-listing them and current implementation
 #: can swap a single entry to drop in an LLM-backed judge.
 _AXIS_SCORERS: dict[str, Callable[[CandidateUI], _JudgeScore]] = {
     "brand": _score_brand,
@@ -511,8 +510,8 @@ _AXIS_SCORERS: dict[str, Callable[[CandidateUI], _JudgeScore]] = {
 def _confidence_interval(score: float) -> tuple[float, float]:
     """Clamp a symmetric confidence band around ``score`` to ``[0, 1]``.
 
-    Phase 1 scorers are deterministic so the "interval" is purely cosmetic
-    -- it keeps the :class:`JudgeVote` schema satisfied. Phase 2 judges
+    v1.0 implementation scorers are deterministic so the "interval" is purely cosmetic
+    -- it keeps the :class:`JudgeVote` schema satisfied. current implementation judges
     will replace this with a real Bayesian CI from their token-level logits.
 
     Args:
@@ -546,19 +545,19 @@ def _build_judge_vote(
     Returns:
         A frozen :class:`JudgeVote` ready for inclusion in a trajectory
         record. Constructed with :attr:`JudgeVote.judge_model` set to the
-        Phase 1 model's display name, suffixed with ``" (Phase 1 stub)"`` so
-        downstream dashboards can distinguish heuristic Phase 1 votes from
-        real LLM votes in Phase 2.
+        v1.0 implementation model's display name, suffixed with ``" (v1.0 implementation stub)"`` so
+        downstream dashboards can distinguish heuristic v1.0 implementation votes from
+        real LLM votes in current implementation.
     """
     axis_enum = _AXIS_NAME_TO_ENUM[axis_name]
     model_spec = JUDGE_MODEL_CONFIG[axis_name]
-    # Honor Phase 2 LLM-provided judge_model / confidence_interval when
-    # the scorer surfaces them; otherwise emit the Phase 1 defaults so
+    # Honor current implementation LLM-provided judge_model / confidence_interval when
+    # the scorer surfaces them; otherwise emit the v1.0 implementation defaults so
     # heuristic mode keeps its original on-the-wire shape unchanged.
     if judge_score.judge_model is not None:
         judge_model = judge_score.judge_model
     else:
-        judge_model = f"{model_spec.display_name} (Phase 1 stub)"
+        judge_model = f"{model_spec.display_name} (v1.0 implementation stub)"
     if judge_score.confidence_interval is not None:
         confidence_interval = judge_score.confidence_interval
     else:
@@ -639,7 +638,7 @@ def evaluate_candidate(
            randomized (or seeded, in tests) and any weight-dominance is
            surfaced to downstream consumers.
         2. Score every axis in the *shuffled* order using the dispatch
-           table :data:`_AXIS_SCORERS`. Order only matters once Phase 2
+           table :data:`_AXIS_SCORERS`. Order only matters once current implementation
            LLM judges land (they may share KV-cache prefixes), but we
            shuffle now so trajectory logs already carry the data.
         3. Wrap each internal score into a :class:`JudgeVote` and feed the

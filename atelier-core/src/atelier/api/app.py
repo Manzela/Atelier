@@ -23,15 +23,14 @@ from __future__ import annotations
 import os
 import time
 from contextlib import asynccontextmanager
-from typing import TYPE_CHECKING, Annotated, Any
+from typing import TYPE_CHECKING, Any
 
 import structlog
-from fastapi import Depends, FastAPI, Request, Response
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from atelier.__version__ import __version__
-from atelier.auth.firebase import FirebaseUser, require_auth
 from atelier.orchestrator.governor import GovernorBudgetExceeded
 
 if TYPE_CHECKING:
@@ -73,6 +72,12 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         env=os.getenv("ATELIER_ENV", "development"),
         port=os.getenv("PORT", "8080"),
     )
+
+    # Initialize OpenTelemetry tracing (Cloud Trace export)
+    from atelier.observability.tracing import init_tracing  # noqa: PLC0415
+
+    init_tracing()
+
     yield
     await logger.ainfo("atelier.shutdown")
 
@@ -178,70 +183,12 @@ def create_app() -> FastAPI:
             resp["env"] = os.getenv("ATELIER_ENV", "development")
         return resp
 
-    # --- Account usage endpoint ───────────────────────────────────────────────
-    # Self-serve SaaS principle: users can inspect their own budget consumption
-    # without contacting support. Explainable AI: surfaces exactly what the
-    # governor has spent and what the cap is.
-    @application.get(
-        "/v1/account/usage",
-        tags=["account"],
-        summary="Current generation budget usage for the authenticated user",
-        response_model=None,
-    )
-    async def account_usage(
-        user: Annotated[FirebaseUser, Depends(require_auth)],
-    ) -> dict[str, Any]:
-        """Return budget consumption and session summary for the authenticated account.
-
-        Args:
-            user: Verified Firebase user (from Authorization: Bearer header).
-
-        Returns:
-            budget_cap_usd: The hard per-account budget cap (PRD §7.2).
-            budget_used_usd: Cumulative spend in the current runner session.
-            budget_remaining_usd: Remaining before GovernorBudgetExceeded fires.
-            budget_pct_used: 0.0-1.0 fraction consumed.
-            warning: Human-readable alert when above 80% consumed.
-        """
-        # Runner is not held as app state yet (Phase 1 stateless design).
-        # Phase 2 will inject a runner singleton; for now return the cap constant.
-        from atelier.orchestrator.runner import BUDGET_CAP_USD  # noqa: PLC0415
-
-        budget_cap = float(os.getenv("ATELIER_BUDGET_CAP_USD", str(BUDGET_CAP_USD)))
-        # Phase-2 deferral: Runner is ephemeral; query BigQuery for real-time usage.
-        budget_used = 0.0
-        remaining = budget_cap - budget_used
-        pct_used = budget_used / budget_cap if budget_cap > 0 else 0.0
-
-        warning: str | None = None
-        budget_warn_critical = 0.90
-        budget_warn_high = 0.80
-        if pct_used >= budget_warn_critical:
-            warning = (
-                f"You have used {pct_used * 100:.1f}% of your generation budget. "
-                "Further requests may be blocked. Contact support to raise your cap."
-            )
-        elif pct_used >= budget_warn_high:
-            warning = (
-                f"You have used {pct_used * 100:.1f}% of your generation budget. "
-                "Consider reviewing your usage to avoid interruptions."
-            )
-
-        return {
-            "user_id": user.uid,
-            "tenant_id": user.tenant_id,
-            "budget_cap_usd": budget_cap,
-            "budget_used_usd": round(budget_used, 4),
-            "budget_remaining_usd": round(remaining, 4),
-            "budget_pct_used": round(pct_used, 4),
-            "warning": warning,
-            "info": (
-                "Budget is enforced per-runner session. The $5,000 cap prevents "
-                "runaway generation costs per PRD §7.2. Unused budget does not roll over."
-            ),
-        }
+    # Legacy USD /v1/account/usage endpoint removed here (matching phase/2): the
+    # per-RUN USD budget surface is the legacy path PRD v2.2 AT-095 deletes. The
+    # token-based usage surface is rebuilt by AT-095/AT-096 (token meter) in Phase C.
 
     # --- Register API routers ─────────────────────────────────────────────────
+    from atelier.api.a2a import router as a2a_router  # noqa: PLC0415
     from atelier.api.dream import router as dream_router  # noqa: PLC0415
     from atelier.api.generate import router as generate_router  # noqa: PLC0415
     from atelier.api.replay import router as replay_router  # noqa: PLC0415
@@ -249,6 +196,43 @@ def create_app() -> FastAPI:
     application.include_router(generate_router)
     application.include_router(replay_router)
     application.include_router(dream_router)
+    application.include_router(a2a_router)
+
+    # --- A2A v1.0 agent card discovery ────────────────────────────────────────
+    # Serves the agent card at the canonical well-known path for A2A discovery.
+    # Cache-Control allows CDN caching (1 hour) per A2A v1.0 best practices.
+    import json  # noqa: PLC0415
+    from pathlib import Path  # noqa: PLC0415
+
+    @application.get(
+        "/.well-known/agent-card.json",
+        tags=["a2a"],
+        summary="A2A v1.0 agent card for discovery",
+        response_model=None,
+    )
+    async def agent_card() -> Response:
+        """Serve the A2A v1.0 agent card for agent-to-agent discovery.
+
+        The agent card describes Atelier's capabilities, supported interfaces,
+        authentication schemes, and skills per the A2A v1.0 specification.
+        """
+        # Resolve agent_card.json relative to the repo root
+        card_path = Path(__file__).resolve().parents[3] / "agent_card.json"
+        if not card_path.exists():
+            # Fallback: serve a minimal card
+            card_data = {
+                "name": "Atelier",
+                "version": __version__,
+                "description": "Autonomous UI/UX design agent",
+                "supportedInterfaces": [],
+            }
+        else:
+            card_data = json.loads(card_path.read_text(encoding="utf-8"))
+
+        return JSONResponse(
+            content=card_data,
+            headers={"Cache-Control": "public, max-age=3600"},
+        )
 
     # --- Auth info endpoint (documents the Firebase sign-in flow) ─────────────
     # Self-serve SaaS principle: the API itself tells clients how to authenticate.

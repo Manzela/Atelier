@@ -33,3 +33,14 @@ resource "google_project_iam_member" "api_sa_secret_accessor" {
   role    = "roles/secretmanager.secretAccessor"
   member  = "serviceAccount:${google_service_account.atelier_api.email}"
 }
+
+resource "google_cloud_run_v2_service_iam_binding" "api_invoker" {
+  project  = var.project_id
+  location = var.region
+  name     = "atelier-api-${var.env}"
+  role     = "roles/run.invoker"
+  members = [
+    # Enforce authenticated invocation only
+    "serviceAccount:${google_service_account.atelier_api.email}"
+  ]
+}

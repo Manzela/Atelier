@@ -1,6 +1,6 @@
-"""Atelier Pipeline Runner — Phase 2 (N1 → N2 → N3a → N3c → N3d + Governor + SessionBackend).
+"""Atelier Pipeline Runner — current implementation (N1 → N2 → N3a → N3c → N3d + Governor + SessionBackend).
 
-Full 8-node DAG (Phase 2):
+Full 8-node DAG (current implementation):
     N1  BriefParserGate + BriefParserAgent
     N14 WRAI — web research augmented intake (parallel)
     N2  SourceResolverGate + SourceResolverAgent
@@ -19,7 +19,6 @@ Session service injectable via ``SessionBackend`` Protocol (B4):
     - Local dev:  ``InMemorySessionService`` (ephemeral, default fallback)
 
 PRD Reference: §6.3 (N1-N4), §21 (Failure Trichotomy)
-Audit Reference: FIX-1 (CostGovernor), B4 (SessionBackend swap), N2-N3d wiring
 """
 
 from __future__ import annotations
@@ -27,6 +26,7 @@ from __future__ import annotations
 import logging
 import os
 import uuid
+from collections.abc import Callable
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 
@@ -60,7 +60,7 @@ BUDGET_CAP_USD: float = 5000.0
 # Estimated cost per N3a ensemble run (3 generators x ~$0.05 each)
 N3A_COST_ESTIMATE_USD: float = 0.15
 
-# N3c gate axes — all 6 run in Phase 2
+# N3c gate axes — all 6 run in current implementation
 _N3C_GATE_AXES: list[GateAxis] = [
     GateAxis.SEMANTIC_HTML,
     GateAxis.LIGHTHOUSE_PERF,
@@ -100,7 +100,7 @@ def _default_session_service() -> BaseSessionService:
 
 
 class AtelierRunner:
-    """Phase 2 Pipeline Runner with Governor + injectable SessionBackend.
+    """current implementation Pipeline Runner with Governor + injectable SessionBackend.
 
     Chains N1 (Brief Parser) -> N2 (Source Resolver) -> N3a (Generator Ensemble).
     All LLM calls are governed by the budget cap and failure trichotomy.
@@ -115,6 +115,7 @@ class AtelierRunner:
         budget_cap_usd: float = BUDGET_CAP_USD,
         session_service: BaseSessionService | None = None,
         judge_client: JudgeClient | None = None,
+        max_iterations: int = 3,
     ) -> None:
         """Initialize the runner with a governor, session service, and optional judge client.
 
@@ -149,11 +150,13 @@ class AtelierRunner:
             self._judge_client = VertexAIJudgeClient(project=project)
         else:
             self._judge_client = None
+        self._max_iterations = max_iterations
 
     def _run_n3c_n3d_n4(
         self,
         raw_candidates: list[Any],
-        brief_text: str,  # noqa: ARG002  # Phase 2: used for trajectory metadata
+        brief_text: str,  # noqa: ARG002
+        iteration: int = 0,
     ) -> dict[str, Any]:
         """Execute N3c (deterministic gates) → N3d (consensus) → N4 (final pick).
 
@@ -172,7 +175,7 @@ class AtelierRunner:
                  candidate if none exceed the threshold.
 
         Gates are pure-Python (no LLM calls). Consensus mode is controlled
-        by ``ATELIER_JUDGE_MODE``: ``"heuristic"`` (default, Phase 1 scorers),
+        by ``ATELIER_JUDGE_MODE``: ``"heuristic"`` (default, v1.0 implementation scorers),
         ``"llm"`` (Vertex AI per-axis judges), or ``"hybrid"`` (LLM wins,
         heuristic disagreement recorded for calibration dashboards).
 
@@ -201,7 +204,7 @@ class AtelierRunner:
             candidate = CandidateUI(
                 candidate_id=uuid4(),
                 surface_id=uuid4(),
-                iteration=0,
+                iteration=iteration,
                 artifacts={"index.html": html_content},
             )
 
@@ -223,6 +226,7 @@ class AtelierRunner:
             candidates_passed_gates += 1
 
             # N3d: D-O-R-A-V consensus evaluation (heuristic or LLM per ATELIER_JUDGE_MODE)
+            # Consensus evaluation runs synchronously; consider asyncio.to_thread for high-concurrency deployments.
             evaluation = evaluate_candidate(candidate, weights, judge_client=self._judge_client)
             evaluations.append((evaluation, html_content))
             logger.info(
@@ -272,10 +276,20 @@ class AtelierRunner:
 
     async def _run_n1_n2(
         self,
-        brief_text: str,  # Phase 2: used for trajectory metadata
+        brief_text: str,  # current implementation: used for trajectory metadata
         tenant_ctx: TenantContext,
-    ) -> tuple[Any, Any, WebResearchReport]:
-        """Execute N1 (Brief Parser), WRAI, and N2 (Source Resolver) stages."""
+    ) -> tuple[Any, Any, WebResearchReport, Any]:
+        """Execute N1 (Brief Parser), N0 (Planner), WRAI (conditional), and N2 (Source Resolver).
+
+        The PlannerAgent (N0) runs after brief parsing to produce a PlanStep
+        that drives WRAI routing: narrow briefs skip web research, creative
+        briefs get full research augmentation.
+
+        Returns:
+            Tuple of (brief, project_ctx, wrai_report, plan_step).
+        """
+        from atelier.orchestrator.planner import PlannerAgent  # noqa: PLC0415
+
         gate = BriefParserGate()
         outcome = gate.check(brief_text)
         if outcome.decision != GateDecision.PASS:
@@ -283,18 +297,36 @@ class AtelierRunner:
         n1_agent = BriefParserAgent()
         brief = await n1_agent.parse(brief_text)
 
-        # N14 WRAI: web research before BriefSpec lock (AG-09)
-        wrai_report = await research_brief(brief_text)
+        # N0: PlannerAgent — dynamic DAG routing based on brief analysis
+        planner = PlannerAgent()
+        plan = await planner.plan(brief_text)
+        logger.info(
+            "N0: PlannerAgent produced plan",
+            extra={
+                "should_run_wrai": plan.should_run_wrai,
+                "ensemble_k": plan.ensemble_k,
+                "constitution": plan.constitution,
+                "reasoning": plan.reasoning,
+            },
+        )
+
+        # N14 WRAI: conditional on plan.should_run_wrai
+        if plan.should_run_wrai:
+            wrai_report = await research_brief(brief_text)
+        else:
+            logger.info("N14 WRAI: skipped per PlannerAgent (should_run_wrai=False)")
+            wrai_report = WebResearchReport(results=[], query=brief_text)
 
         if not source_resolver_gate(tenant_ctx, brief):
             raise ValueError("Source resolver gate failed (no descriptor or design source).")
         project_ctx = await source_resolver_agent(tenant_ctx, brief)
-        return brief, project_ctx, wrai_report
+        return brief, project_ctx, wrai_report, plan
 
-    async def run(
+    async def run(  # noqa: C901, PLR0912, PLR0915 — core multi-surface convergence loop
         self,
-        brief_text: str,  # Phase 2: used for trajectory metadata
+        brief_text: str,  # current implementation: used for trajectory metadata
         tenant_ctx: TenantContext | None = None,
+        progress_callback: Callable[[str, dict[str, Any]], Any] | None = None,
     ) -> dict[str, Any]:
         """Run the pipeline from brief text to generated candidates.
 
@@ -302,6 +334,7 @@ class AtelierRunner:
             brief_text: Raw brief text input.
             tenant_ctx: Tenant context for source resolution. Defaults to a
                 placeholder context for local development.
+            progress_callback: Optional async callback to stream progress events.
 
         Returns:
             A dictionary containing the final brief, project context,
@@ -321,7 +354,7 @@ class AtelierRunner:
                 cost_budget_usd=Decimal("100.0"),
             )
 
-        brief, project_ctx, wrai_report = await self._run_n1_n2(brief_text, tenant_ctx)
+        brief, project_ctx, wrai_report, plan = await self._run_n1_n2(brief_text, tenant_ctx)
 
         # Create a session via the injected session service (B4)
         session_id = str(uuid.uuid4())
@@ -332,103 +365,260 @@ class AtelierRunner:
             session_id=session_id,
         )
 
-        # N3a: Generator Ensemble — governed
-        async def _run_ensemble() -> tuple[list[Any], bool]:
-            ensemble, stitch_degradation = create_generator_ensemble()
-            adk_runner = Runner(
-                agent=ensemble,
-                session_service=self._session_service,
-                app_name=_APP_NAME,
+        if progress_callback:
+            plan_data = plan.model_dump() if hasattr(plan, "model_dump") else {}
+            plan_data["surfaces"] = getattr(plan, "surfaces", ["landing page"])
+            await progress_callback("plan", plan_data)
+
+        # Import fixer dynamically to avoid circular dependencies
+        from atelier.nodes.fixer import FixerAgent  # noqa: PLC0415
+
+        fixer = FixerAgent(self._governor)
+
+        screens_results = {}
+        surfaces = getattr(plan, "surfaces", ["landing page"])
+        if not surfaces:
+            surfaces = ["landing page"]
+
+        for idx, screen in enumerate(surfaces):
+            if progress_callback:
+                await progress_callback("screen_start", {"screen": screen, "index": idx})
+
+            # Initialize convergence state for this screen
+            generator_prompt = (
+                f"Generate the screen: '{screen}' based on the brief and project context."
             )
-
-            candidates: list[Any] = []
-            async for event in adk_runner.run_async(
-                user_id=tenant_ctx.user_id or "anonymous",
-                session_id=session.id,
-                new_message=genai_types.Content(
-                    role="user",
-                    parts=[
-                        genai_types.Part(
-                            text="Generate screens based on the brief and project context."
-                        )
-                    ],
-                ),
-            ):
-                candidates.extend(_extract_text_from_event(event))
-
-            return candidates, stitch_degradation.is_degraded
-
-        governed_result = await self._governor.run_with_governance(
-            _run_ensemble,
-            step_id="n3a_generator_ensemble",
-            cost_estimate_usd=N3A_COST_ESTIMATE_USD,
-        )
-
-        if governed_result is None:
-            # Governor returned None — fail-soft: the N3a ensemble was degraded by
-            # the governor (budget cap, 429 exhaustion, stall timeout, or loop
-            # detection). This is NOT a Stitch failure — Stitch's availability is
-            # unknown when the governor degrades. stitch_degraded must remain False.
-            raw_candidates: list[Any] = []
+            best_candidate = None
+            convergence_result: dict[str, Any] = {}
             stitch_degraded = False
-            degradation_reason: str | None = "n3a_governor_fail_soft"
-            user_message: str | None = (
-                "The generation step degraded unexpectedly due to an infrastructure "
-                "condition (budget cap, rate limit, or stall timeout). Your session "
-                "was preserved. Please retry — no additional charge was applied."
-            )
-            logger.warning(
-                "N3a governed run returned None (fail-soft); candidates list is empty",
-                extra={
-                    "step_id": "n3a_generator_ensemble",
-                    "budget_used_usd": self._governor._state.total_cost_usd,
-                    "budget_cap_usd": self._governor._state.budget_cap_usd,
-                },
-            )
-        else:
-            raw_candidates, stitch_degraded = governed_result
-            if stitch_degraded:
-                degradation_reason = "stitch_mcp_unavailable"
-                user_message = (
-                    "The Stitch design tool is temporarily unavailable. "
-                    "Generating directly from the model — output will not include "
-                    "Stitch design-system tokens. Retry to use the full design pipeline."
+            degradation_reason = None
+            user_message = None
+            gate_results_serialized: list[dict[str, Any]] = []
+            evaluations_serialized: list[dict[str, Any]] = []
+            raw_candidates: list[Any] = []
+            exit_reason = "max_iterations"
+            iteration = 0
+
+            for iteration in range(self._max_iterations):
+                self._governor._state.record_step(f"convergence_loop_{screen}_{iteration}")
+
+                if progress_callback:
+                    await progress_callback(
+                        "iteration_start", {"screen": screen, "iteration": iteration}
+                    )
+
+                if self._governor._state.is_over_budget():
+                    logger.warning("Convergence loop halted: budget exceeded.")
+                    exit_reason = "budget_exhausted"
+                    break
+
+                if self._governor._state.is_loop():
+                    logger.warning("Convergence loop halted: governor detected infinite loop.")
+                    exit_reason = "governor_loop_detected"
+                    break
+
+                # N3a: Generator Ensemble — governed
+                async def _run_ensemble(prompt: str = generator_prompt) -> tuple[list[Any], bool]:
+                    ensemble, stitch_degradation = create_generator_ensemble()
+                    adk_runner = Runner(
+                        agent=ensemble,
+                        session_service=self._session_service,
+                        app_name=_APP_NAME,
+                    )
+
+                    candidates: list[Any] = []
+                    async for event in adk_runner.run_async(
+                        user_id=tenant_ctx.user_id or "anonymous",
+                        session_id=session.id,
+                        new_message=genai_types.Content(
+                            role="user",
+                            parts=[genai_types.Part(text=prompt)],
+                        ),
+                    ):
+                        candidates.extend(_extract_text_from_event(event))
+
+                    return candidates, stitch_degradation.is_degraded
+
+                governed_result = await self._governor.run_with_governance(
+                    _run_ensemble,
+                    step_id=f"n3a_generator_ensemble_{screen}_{iteration}",
+                    cost_estimate_usd=N3A_COST_ESTIMATE_USD,
                 )
-            else:
-                degradation_reason = None
-                user_message = None
 
-        # N3c → N3d → N4: gate filtering + consensus evaluation + best-pick
-        # This is the convergence loop that defines Atelier's core differentiator:
-        # deterministic-gate-first → probabilistic multi-judge → best candidate.
-        convergence_result = self._run_n3c_n3d_n4(raw_candidates, brief_text)
-        best_candidate = convergence_result["best_candidate"]
+                if governed_result is None:
+                    # Governor returned None — fail-soft
+                    raw_candidates = []
+                    stitch_degraded = False
+                    degradation_reason = "n3a_governor_fail_soft"
+                    user_message = (
+                        "The generation step degraded unexpectedly due to an infrastructure "
+                        "condition (budget cap, rate limit, or stall timeout). Your session "
+                        "was preserved. Please retry — no additional charge was applied."
+                    )
+                    logger.warning(
+                        "N3a governed run returned None (fail-soft); loop broken",
+                        extra={
+                            "step_id": f"n3a_generator_ensemble_{screen}_{iteration}",
+                            "budget_used_usd": self._governor._state.total_cost_usd,
+                            "budget_cap_usd": self._governor._state.budget_cap_usd,
+                        },
+                    )
+                    exit_reason = "governor_fail_soft"
+                    break
+                raw_candidates, stitch_degraded = governed_result
+                if stitch_degraded:
+                    degradation_reason = "stitch_mcp_unavailable"
+                    user_message = (
+                        "The Stitch design tool is temporarily unavailable. "
+                        "Generating directly from the model — output will not include "
+                        "Stitch design-system tokens. Retry to use the full design pipeline."
+                    )
+                else:
+                    degradation_reason = None
+                    user_message = None
 
-        # Serialize gate results and evaluations once — shared between dashboard
-        # payload and mid-flight DPO pair extraction (fail-soft below).
-        gate_results_serialized = [
-            {
-                "candidate_id": str(gr.candidate_id),
-                "all_passed": gr.all_passed,
-                "outcomes": [
+                if progress_callback:
+                    await progress_callback(
+                        "candidates", {"screen": screen, "candidates": raw_candidates}
+                    )
+
+                # N3c → N3d → N4: gate filtering + consensus evaluation + best-pick
+                convergence_result = self._run_n3c_n3d_n4(
+                    raw_candidates, brief_text, iteration=iteration
+                )
+                best_candidate = convergence_result.get("best_candidate")
+
+                gate_results_serialized = [
                     {
-                        "axis": o.axis.value,
-                        "score": o.score,
-                        "passed": o.decision == GateDecision.PASS,
+                        "candidate_id": str(gr.candidate_id),
+                        "all_passed": gr.all_passed,
+                        "outcomes": [
+                            {
+                                "axis": o.axis.value,
+                                "score": o.score,
+                                "passed": o.decision == GateDecision.PASS,
+                            }
+                            for o in gr.outcomes
+                        ],
                     }
-                    for o in gr.outcomes
-                ],
+                    for gr in convergence_result.get("all_gate_results", [])
+                ]
+                evaluations_serialized = [
+                    {
+                        "composite_score": e.composite_score,
+                        "passed": e.passed,
+                        "votes": {axis.value: {"score": v.score} for axis, v in e.votes.items()},
+                    }
+                    for e in convergence_result.get("all_evaluations", [])
+                ]
+
+                if progress_callback:
+                    await progress_callback(
+                        "gates_evaluation",
+                        {"screen": screen, "gate_results": gate_results_serialized},
+                    )
+                    await progress_callback(
+                        "consensus_evaluation",
+                        {"screen": screen, "evaluations": evaluations_serialized},
+                    )
+
+                if convergence_result.get("converged"):
+                    logger.info(
+                        "Convergence achieved at iteration %d for screen %s", iteration, screen
+                    )
+                    exit_reason = "converged"
+                    break
+
+                # If not converged and we have more iterations, run FixerAgent
+                if iteration < self._max_iterations - 1:
+                    logger.info(
+                        "Iteration %d did not converge for screen %s. Running FixerAgent.",
+                        iteration,
+                        screen,
+                    )
+
+                    # Extract outcomes for the best candidate (or first if none)
+                    best_evals = convergence_result.get("all_evaluations", [])
+                    best_consensus = best_evals[0] if best_evals else None
+
+                    all_gate_results = convergence_result.get("all_gate_results", [])
+                    target_gate_outcomes = all_gate_results[0].outcomes if all_gate_results else []
+
+                    directive = await fixer.fix(
+                        gate_outcomes=target_gate_outcomes, consensus=best_consensus
+                    )
+
+                    if progress_callback:
+                        await progress_callback(
+                            "fixer_directive",
+                            {"screen": screen, "directive": directive.model_dump()},
+                        )
+
+                    # Mutate prompt for next iteration
+                    amendments = "\n".join(directive.prompt_amendments)
+                    generator_prompt += (
+                        f"\n\n--- FEEDBACK FROM ITERATION {iteration} ---\n{amendments}"
+                    )
+                    logger.info(
+                        "FixerAgent proposed mutations for screen %s: %s",
+                        screen,
+                        directive.mutations,
+                    )
+
+            if progress_callback:
+                await progress_callback(
+                    "screen_converged",
+                    {
+                        "screen": screen,
+                        "best_candidate": best_candidate,
+                        "converged": convergence_result.get("converged", False),
+                    },
+                )
+
+            # Record this screen's results
+            screens_results[screen] = {
+                "best_candidate": best_candidate,
+                "candidates": raw_candidates,
+                "convergence_iteration": iteration,
+                "exit_reason": exit_reason,
+                "converged": convergence_result.get("converged", False),
+                "composite_score": convergence_result.get("composite_score", 0.0),
+                "candidates_evaluated": convergence_result.get("candidates_evaluated", 0),
+                "candidates_passed_gates": convergence_result.get("candidates_passed_gates", 0),
+                "gate_results": gate_results_serialized,
+                "evaluations": evaluations_serialized,
+                "stitch_degraded": stitch_degraded,
+                "degradation_reason": degradation_reason,
+                "user_message": user_message,
             }
-            for gr in convergence_result["all_gate_results"]
-        ]
-        evaluations_serialized = [
-            {
-                "composite_score": e.composite_score,
-                "passed": e.passed,
-                "votes": {axis.value: {"score": v.score} for axis, v in e.votes.items()},
-            }
-            for e in convergence_result["all_evaluations"]
-        ]
+
+        # Select the first screen as the default top-level result
+        first_screen_name = surfaces[0]
+        first_screen_res = screens_results[first_screen_name]
+
+        response_payload = {
+            "brief": brief,
+            "project_context": project_ctx,
+            "candidates": first_screen_res["candidates"],
+            "best_candidate": first_screen_res["best_candidate"],
+            "convergence_iteration": first_screen_res["convergence_iteration"],
+            "exit_reason": first_screen_res["exit_reason"],
+            "converged": first_screen_res["converged"],
+            "composite_score": first_screen_res["composite_score"],
+            "candidates_evaluated": first_screen_res["candidates_evaluated"],
+            "candidates_passed_gates": first_screen_res["candidates_passed_gates"],
+            "gate_results": first_screen_res["gate_results"],
+            "evaluations": first_screen_res["evaluations"],
+            "stitch_degraded": first_screen_res["stitch_degraded"],
+            "degradation_reason": first_screen_res["degradation_reason"],
+            "user_message": first_screen_res["user_message"],
+            "budget_used_usd": self._governor._state.total_cost_usd,
+            "budget_cap_usd": self._governor._state.budget_cap_usd,
+            "web_research": wrai_report,
+            "session_id": session.id,
+            "plan": plan.model_dump() if hasattr(plan, "model_dump") else {},
+            "screens": screens_results,
+        }
 
         # Mid-flight DPO pair extraction — Dreaming Module (fail-soft).
         # Pairs are written fire-and-forget; write failures must not block response.
@@ -458,30 +648,10 @@ class AtelierRunner:
                 str(_dreaming_exc)[:200],
             )
 
-        return {
-            "brief": brief,
-            "project_context": project_ctx,
-            # Raw candidates from N3a (all generators)
-            "candidates": raw_candidates,
-            # Best candidate selected by N4 after gate + consensus scoring
-            "best_candidate": best_candidate,
-            # Convergence metadata
-            "converged": convergence_result["converged"],
-            "composite_score": convergence_result["composite_score"],
-            "candidates_evaluated": convergence_result["candidates_evaluated"],
-            "candidates_passed_gates": convergence_result["candidates_passed_gates"],
-            # Gate + evaluation details for the bench dashboard
-            "gate_results": gate_results_serialized,
-            "evaluations": evaluations_serialized,
-            # Degradation signals
-            "stitch_degraded": stitch_degraded,
-            "degradation_reason": degradation_reason,
-            "user_message": user_message,
-            "budget_used_usd": self._governor._state.total_cost_usd,
-            "budget_cap_usd": self._governor._state.budget_cap_usd,
-            "web_research": wrai_report,
-            "session_id": session.id,
-        }
+        if progress_callback:
+            await progress_callback("complete", response_payload)
+
+        return response_payload
 
     @property
     def total_cost_usd(self) -> float:

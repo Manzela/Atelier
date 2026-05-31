@@ -13,7 +13,6 @@ Auth: uses Application Default Credentials via ``google-cloud-bigquery``.
 The BQ client is injected via constructor for testability.
 
 PRD Reference: §6.3 N3h (Trajectory Logger)
-Audit Reference: C6 (FA-011 TrajectoryRecorder class)
 ADR Reference: 0006 (Google-native stack — BigQuery for telemetry)
 """
 
@@ -43,7 +42,7 @@ SPAN_NAME = "atelier.trajectory.flush"
 class TrajectoryRecorderError(Exception):
     """Raised on non-retriable BigQuery failures (auth, quota, schema).
 
-    Per the failure-trichotomy (CLAUDE.md): fail-loud for errors that
+    Per the failure-trichotomy (architectural invariants): fail-loud for errors that
     indicate a configuration or quota problem that won't self-heal.
     """
 
@@ -187,9 +186,9 @@ class TrajectoryRecorder:
         if len(self._buffer) >= self._buffer_size:
             self.flush()
 
-    # Phase-1 scope: fail-loud only on BQ errors.
-    # Self-heal (retry on 503/429) + fail-soft (partial-batch separation)
-    # deferred to F0222 per audit Run 2 P1-3. Full trichotomy required for Phase-2 production.
+    # Current scope: fail-loud only on BQ errors.
+    # Fallback to local disk (stateless sidecar) or metric degradation is
+    # deferred to F0222. Full trichotomy required for production.
     def flush(self) -> int:
         """Flush the buffer to BigQuery.
 
@@ -242,7 +241,6 @@ class TrajectoryRecorder:
                 raise TrajectoryRecorderError(msg)
 
             self._total_flushed += count
-            self._buffer.clear()
             logger.info(
                 "Flushed %d trajectory rows to %s (%.1fms)",
                 count,
@@ -252,6 +250,10 @@ class TrajectoryRecorder:
             return count
 
         finally:
+            # P0-09: Clear buffer in finally to prevent unbounded memory growth.
+            # Without this, failed rows stayed in the buffer and new records
+            # kept appending on top, causing a memory leak on sustained BQ errors.
+            self._buffer.clear()
             if hasattr(span, "end"):
                 span.end()
 

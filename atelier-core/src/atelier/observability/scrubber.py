@@ -8,7 +8,6 @@ The patterns are loaded from ``config/scrubber-patterns.yaml`` (already
 defined in the audit checklist) and compiled once at import time.
 
 PRD Reference: §7.3 (OTel span schema), §15 (audit trail compliance)
-Audit Reference: FIX-2 (PII scrubber on every span export path)
 ADR Reference: 0006 (Google-native observability — scrub before export)
 """
 

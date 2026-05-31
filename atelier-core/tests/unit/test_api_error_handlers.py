@@ -105,47 +105,6 @@ def test_auth_signin_info_returns_200(client: TestClient) -> None:
     assert len(body["flow"]) >= 4
 
 
-# ---------------------------------------------------------------------------
-# /v1/account/usage — authenticated endpoint
-# ---------------------------------------------------------------------------
-
-
-def test_account_usage_returns_budget_info(client: TestClient) -> None:
-    """With FIREBASE_DISABLE_AUTH=true, dev user is injected — should return 200."""
-    resp = client.get("/v1/account/usage")
-    assert resp.status_code == 200
-    body = resp.json()
-    assert "budget_cap_usd" in body
-    assert "budget_used_usd" in body
-    assert "budget_remaining_usd" in body
-    assert "budget_pct_used" in body
-    assert body["budget_cap_usd"] > 0
-    assert body["budget_remaining_usd"] <= body["budget_cap_usd"]
-    # Dev user wired
-    assert "user_id" in body
-    assert body["user_id"] == "dev-user-local"
-
-
-def test_account_usage_requires_auth_without_bypass() -> None:
-    """Without FIREBASE_DISABLE_AUTH, missing token returns 401."""
-    with pytest.MonkeyPatch.context() as mp:
-        mp.setenv("FIREBASE_DISABLE_AUTH", "false")
-        mp.setenv("ATELIER_ENV", "development")
-        import importlib
-
-        import atelier.auth.firebase as auth_mod
-
-        importlib.reload(auth_mod)
-
-        from atelier.api.app import create_app
-
-        app = create_app()
-        c = TestClient(app, raise_server_exceptions=False)
-        resp = c.get("/v1/account/usage")
-        assert resp.status_code == 401
-
-    import importlib
-
-    import atelier.auth.firebase as auth_mod
-
-    importlib.reload(auth_mod)
+# The legacy USD /v1/account/usage tests were removed with the endpoint
+# (PRD v2.2 AT-095 deletes the per-RUN USD path). Token-based usage coverage
+# is added by AT-095/AT-096 in Phase C.

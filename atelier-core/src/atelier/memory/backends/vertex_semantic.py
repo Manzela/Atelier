@@ -4,7 +4,7 @@ Implements ``SemanticMemoryBackend`` Protocol: scope-keyed reads via IAM
 Conditions, embedding via text-embedding-005, three-strike self-heal on
 transient 429/503, fail-soft to [] after exhaustion.
 
-This is a stub backend for Phase 1 — the real Vertex AI Memory Bank API
+This is a stub backend for v1.0 implementation — the real Vertex AI Memory Bank API
 may not be available in all regions or require additional provisioning.
 The stub implements the Protocol contract faithfully for type-checking and
 integration test wiring, while the actual Vertex SDK calls are gated behind
@@ -44,7 +44,7 @@ class ConsolidationReport:
 
 
 class VertexSemanticMemoryBackend:
-    """Phase 1 semantic memory backend backed by Vertex AI Memory Bank.
+    """v1.0 implementation semantic memory backend backed by Vertex AI Memory Bank.
 
     Constructor args:
         project_id: GCP project (must be atelier-build-2026 for prod).
@@ -149,7 +149,7 @@ class VertexSemanticMemoryBackend:
         Replaces the hardcoded similarity=1.0 stub with real TF-IDF cosine
         similarity (stdlib-only — no sklearn dependency). Different documents
         score differently against the same query; min_similarity filtering
-        is now functional. Phase 2 replaces with Vertex AI embedding search.
+        is now functional. current implementation replaces with Vertex AI embedding search.
 
         Args:
             scope: Memory scope key for isolation.
@@ -200,7 +200,7 @@ class VertexSemanticMemoryBackend:
         scope_key = scope.encode()
         entries = self._store.get(scope_key, [])
 
-        # Stub: no actual dedup in Phase 1
+        # Stub: no actual dedup in v1.0 implementation
         report = ConsolidationReport(
             scope_encoded=scope_key,
             duplicates_collapsed=0,

@@ -12,7 +12,7 @@ MAPE-K mapping:
     Execute  → execute_self_heal() (backoff), execute_fail_soft() (log + degrade)
     Knowledge → _loop_detection_window (sliding window of recent steps)
 
-Hard caps (from CLAUDE.md):
+Hard caps (from architectural invariants):
     MAX_SELF_HEAL_RETRIES = 3   # per operation
     MAX_LOOP_ITERATIONS = 10    # detect infinite loops
     STALL_TIMEOUT_SECONDS = 300 # 5 minutes without progress → fail-soft

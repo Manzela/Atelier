@@ -1,6 +1,6 @@
 """Atelier observability package — OTel spans, traces, and metrics.
 
-Phase-1 status: ATELIER_OBSERVABILITY_MODE is READ but NOT BRANCHED ON.
+Current status: ATELIER_OBSERVABILITY_MODE is READ but NOT BRANCHED ON.
 config/otel-collector-config.yaml statically routes to BOTH Phoenix and Google Cloud
 regardless of mode value. Real conditional routing tracked as F0223 per audit Run 2 P1-4.
 

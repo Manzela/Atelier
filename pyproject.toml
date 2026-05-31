@@ -219,6 +219,27 @@ module = "atelier.nodes.*"
 ignore_errors = true
 
 [[tool.mypy.overrides]]
+module = "atelier.evaluation.*"
+# google-cloud-aiplatform Vertex GenAI Eval API (EvalTask, model-based metric
+# Literals like "coherence"/"fluency"/"groundedness") ships incomplete inline
+# stubs; the resulting list-item/arg-type errors are stub gaps, not runtime
+# bugs. These are provisional Optimize/eval surfaces; full strict typing lands
+# when AT-100 (AgentEvaluator) and AT-027 (simulation) wire them into V1.
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "atelier.observability.*"
+# opentelemetry-exporter-gcp-trace (CloudTraceSpanExporter) ships no inline
+# stubs, producing a no-untyped-call false positive; the call is correct.
+disallow_untyped_calls = false
+
+[[tool.mypy.overrides]]
+module = "atelier.agent_engine_deploy"
+# Vertex AI Agent Engine deploy API (AdkApp, agent_engines.create) stub gaps.
+# Provisional deploy entrypoint; full strict typing lands with AT-082.
+ignore_errors = true
+
+[[tool.mypy.overrides]]
 module = "skimage.*"
 ignore_missing_imports = true
 

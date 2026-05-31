@@ -12,7 +12,6 @@ The constitutions are mounted read-only in Docker (FA-009) to prevent
 any agent from modifying the quality standards during execution.
 
 PRD Reference: §6.3 (N6 CSC-D), F0213-F0214
-Audit Reference: §4 (C6, FA-021)
 """
 
 from __future__ import annotations

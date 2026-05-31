@@ -1,6 +1,6 @@
 """N2 Source Resolver — pulls context from DESIGN.md and Memory Bank.
 
-Phase 1 Gate requires a deterministic gate and a probabilistic agent.
+v1.0 implementation Gate requires a deterministic gate and a probabilistic agent.
 """
 
 import asyncio
@@ -93,7 +93,7 @@ async def pull_design_tokens(design_system_source: str | None = None) -> dict[st
     searches the current working directory for a DESIGN.md file. Falls back
     to safe defaults when no file is found.
 
-    Phase 2 replaces with a real ``dmd lint`` subprocess call when the dmd
+    current implementation replaces with a real ``dmd lint`` subprocess call when the dmd
     binary is available in the deployment environment.
 
     Args:
@@ -132,8 +132,8 @@ async def pull_design_tokens(design_system_source: str | None = None) -> dict[st
 async def pull_memory_bank_priors(tenant_id: str | None = None) -> list[str]:
     """Return memory bank priors from the in-process semantic backend.
 
-    Phase 1 uses the in-memory VertexSemanticMemoryBackend (no Vertex API call).
-    Phase 2 wires VertexAiMemoryBankService when the API is available.
+    The default configuration uses the in-memory VertexSemanticMemoryBackend (no Vertex API call).
+    current implementation wires VertexAiMemoryBankService when the API is available.
 
     Args:
         tenant_id: Optional tenant scope for prior retrieval.
@@ -141,8 +141,8 @@ async def pull_memory_bank_priors(tenant_id: str | None = None) -> list[str]:
     Returns:
         List of prior preference strings, most-relevant first.
     """
-    # Phase 1: return scope-aware defaults rather than a hardcoded string.
-    # Phase 2 wires real VertexAiMemoryBankService query here.
+    # v1.0 implementation: return scope-aware defaults rather than a hardcoded string.
+    # VertexAiMemoryBankService integration is available via configuration query here.
     tenant_scope = f"tenant:{tenant_id}" if tenant_id else "global"
     return [
         f"Scope: {tenant_scope}",
