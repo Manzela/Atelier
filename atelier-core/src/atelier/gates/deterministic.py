@@ -15,7 +15,8 @@ Each gate is a pure function that takes a :class:`CandidateUI` and returns a
 Three gates ship with real logic in v1.0 implementation:
     * :func:`check_semantic_html` — HTML5 landmark coverage
     * :func:`check_css_validity` — basic CSS syntax checks
-    * :func:`check_token_fidelity` — CSS custom property usage
+    * :func:`check_token_fidelity` — DTCG token fidelity (zero-tolerance: any
+      off-token color literal → REJECT) + custom-property use ratio
 
 Three gates ship as scored stubs (real implementations require a browser
 sandbox, which current implementation will provide via Playwright):
@@ -27,6 +28,7 @@ PRD Reference: §6.3 N3c (Deterministic Gates)
 ADR Reference: 0007 (worktree discipline) — v1.0 implementation scope only
 """
 
+import json
 import re
 from typing import Final
 
@@ -120,6 +122,98 @@ _MAX_CSS_ERRORS_PER_FILE: int = 5
 _CSS_VAR_DECL_PATTERN = re.compile(r"--[a-zA-Z0-9_-]+\s*:")
 _CSS_VAR_USE_PATTERN = re.compile(r"var\(\s*--[a-zA-Z0-9_-]+")
 _CSS_RULESET_PATTERN = re.compile(r"([^{}]+)\{([^{}]*)\}", re.DOTALL)
+
+# --- AT-012 DTCG token-fidelity (zero-tolerance off-token color literals) ----
+# A color literal is hex (#rgb/#rgba/#rrggbb/#rrggbbaa) or an rgb()/hsl() function.
+# Named colors (``red``) are intentionally NOT matched: ambiguous in prose and
+# absent from the PRD acceptance (#3b82f6); the value-ratio path still flags
+# token-less CSS. Style literals are detected ONLY inside style contexts
+# (``<style>`` blocks, inline ``style=`` attrs, ``.css`` artifacts) — never in
+# arbitrary HTML text — to avoid false positives. A literal is permitted only if
+# it resolves to a tokens.json color ``$value`` or a CSS ``--token`` definition.
+_COLOR_LITERAL_PATTERN = re.compile(
+    r"#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3,4})\b|rgba?\([^)]*\)|hsla?\([^)]*\)",
+    re.IGNORECASE,
+)
+_CSS_VAR_DECL_VALUE_PATTERN = re.compile(r"--[a-zA-Z0-9_-]+\s*:\s*([^;}]+)")
+_HTML_STYLE_BLOCK_PATTERN = re.compile(r"<style[^>]*>(.*?)</style>", re.IGNORECASE | re.DOTALL)
+_HTML_INLINE_STYLE_PATTERN = re.compile(r"""style\s*=\s*(?:"([^"]*)"|'([^']*)')""", re.IGNORECASE)
+
+
+def _normalize_color(literal: str) -> str:
+    """Canonicalize a color literal for set membership (case + inner whitespace)."""
+    return re.sub(r"\s+", "", literal).lower()
+
+
+def _collect_style_text(artifacts: dict[str, str]) -> str:
+    """Concatenate every style context: ``.css`` files, ``<style>`` blocks, and
+    inline ``style=`` attribute values from any HTML artifact."""
+    parts: list[str] = []
+    for name, content in artifacts.items():
+        lowered = name.lower()
+        if lowered.endswith(".css"):
+            parts.append(content)
+        elif lowered.endswith((".html", ".htm")):
+            parts.extend(_HTML_STYLE_BLOCK_PATTERN.findall(content))
+            parts.extend(
+                quoted or apos for quoted, apos in _HTML_INLINE_STYLE_PATTERN.findall(content)
+            )
+    return "\n".join(parts)
+
+
+def _declared_token_values(style_text: str) -> set[str]:
+    """Color literals that appear AS a ``--token: value`` declaration value —
+    the legitimate place a raw literal may live (the token definition itself)."""
+    values: set[str] = set()
+    for raw_value in _CSS_VAR_DECL_VALUE_PATTERN.findall(style_text):
+        for literal in _COLOR_LITERAL_PATTERN.findall(raw_value):
+            values.add(_normalize_color(literal))
+    return values
+
+
+def _tokens_json_color_values(artifacts: dict[str, str]) -> set[str]:
+    """Color ``$value`` entries from a DTCG ``tokens.json`` artifact (recursive)."""
+    raw = artifacts.get("tokens.json")
+    if not raw:
+        return set()
+    try:
+        data = json.loads(raw)
+    except (json.JSONDecodeError, ValueError, TypeError):
+        # Fail-closed: a malformed tokens.json yields NO allowed values, so any
+        # color literal becomes off-token → REJECT. Erring toward stricter is the
+        # safe direction for a credibility gate; no silent permissive fallback.
+        return set()
+    values: set[str] = set()
+
+    def _walk(node: object) -> None:
+        if isinstance(node, dict):
+            for key, value in node.items():
+                if key == "$value" and isinstance(value, str):
+                    for literal in _COLOR_LITERAL_PATTERN.findall(value):
+                        values.add(_normalize_color(literal))
+                else:
+                    _walk(value)
+        elif isinstance(node, list):
+            for item in node:
+                _walk(item)
+
+    _walk(data)
+    return values
+
+
+def _offending_color_literals(style_text: str, allowed: set[str]) -> list[str]:
+    """Color literals used in style contexts that do not resolve to an allowed
+    token value. Order-preserving, de-duplicated; original form kept for the
+    diagnostic."""
+    offenders: list[str] = []
+    seen: set[str] = set()
+    for literal in _COLOR_LITERAL_PATTERN.findall(style_text):
+        norm = _normalize_color(literal)
+        if norm in allowed or norm in seen:
+            continue
+        seen.add(norm)
+        offenders.append(literal)
+    return offenders
 
 
 # ---------------------------------------------------------------------------
@@ -268,52 +362,50 @@ def check_css_validity(candidate: CandidateUI) -> GateOutcome:
 
 
 def check_token_fidelity(candidate: CandidateUI) -> GateOutcome:
-    """Verify CSS custom properties (design tokens) are declared and referenced.
+    """Enforce DTCG token fidelity over the candidate's styles (PRD §6.5, AT-012).
 
-    Atelier's design-token discipline (PRD §6.5) requires generated CSS to
-    declare tokens via CSS custom properties (``--token-name: value``) and
-    reference them via ``var(--token-name)``. This gate ensures both halves
-    of that contract are present:
+    Two checks, fail-closed first:
 
-        * At least one declaration found → tokens exist
-        * Score reflects the *use* ratio = ``var()`` references / declarations
+    1. **Zero-tolerance off-token literals (AT-012).** Every color literal used in
+       a style context (``<style>`` blocks, inline ``style=``, ``.css`` files) must
+       resolve to a ``tokens.json`` color ``$value`` or a CSS ``--token`` definition.
+       A single unresolvable literal — e.g. a raw ``#3b82f6`` instead of
+       ``var(--color-primary)`` — → REJECT(0). Colors must flow through tokens.
+    2. **Token-discipline use ratio.** Tokens must be present (declared, referenced,
+       or defined in ``tokens.json``); the score reflects ``var()`` references per
+       declaration, capped at 100.
 
-    A high ratio (≥ 1.0) means every declared token is used at least once.
-    A low ratio means tokens are declared but ignored — a hallucination
-    smell. The score is capped at ``100.0`` to keep the GateOutcome bounds
-    well-defined.
+    The gate is a pure function and imports no generator module (oracle
+    independence — a gate that blesses off-system output is a P0 defect, §8).
 
     Args:
-        candidate: The :class:`CandidateUI` whose ``.css`` artifacts are
-            scanned for CSS custom property declarations and references.
+        candidate: The :class:`CandidateUI` whose style artifacts are scanned.
 
     Returns:
-        A :class:`GateOutcome` with:
-            * ``axis`` = :attr:`GateAxis.TOKEN_FIDELITY`
-            * ``score`` ∈ ``[0.0, 100.0]``
-            * ``decision`` = PASS if at least one custom property is declared,
-              else REJECT
-            * ``diagnostic`` with declaration + reference counts
+        A :class:`GateOutcome` on the :attr:`GateAxis.TOKEN_FIDELITY` axis.
     """
-    css_blobs: list[str] = [
-        content for name, content in candidate.artifacts.items() if name.endswith(".css")
-    ]
-    if not css_blobs:
+    style_text = _collect_style_text(candidate.artifacts)
+    tokens_json_values = _tokens_json_color_values(candidate.artifacts)
+    allowed = _declared_token_values(style_text) | tokens_json_values
+
+    offenders = _offending_color_literals(style_text, allowed)
+    if offenders:
+        listed = ", ".join(offenders[:8])
         return GateOutcome(
             candidate_id=candidate.candidate_id,
             axis=GateAxis.TOKEN_FIDELITY,
             decision=GateDecision.REJECT,
             score=0.0,
-            diagnostic="No CSS artifacts present; cannot evaluate token fidelity.",
+            diagnostic=(
+                f"REJECT: {len(offenders)} off-token color literal(s) not resolvable to a "
+                f"tokens.json entry: {listed}. Reference design tokens via var(--token)."
+            ),
         )
 
-    declarations = 0
-    references = 0
-    for blob in css_blobs:
-        declarations += len(_CSS_VAR_DECL_PATTERN.findall(blob))
-        references += len(_CSS_VAR_USE_PATTERN.findall(blob))
+    declarations = len(_CSS_VAR_DECL_PATTERN.findall(style_text))
+    references = len(_CSS_VAR_USE_PATTERN.findall(style_text))
 
-    if declarations == 0:
+    if declarations == 0 and references == 0 and not tokens_json_values:
         return GateOutcome(
             candidate_id=candidate.candidate_id,
             axis=GateAxis.TOKEN_FIDELITY,
@@ -322,8 +414,15 @@ def check_token_fidelity(candidate: CandidateUI) -> GateOutcome:
             diagnostic="No CSS custom properties declared; design tokens missing.",
         )
 
-    use_ratio = references / declarations
-    score = min(use_ratio * 100.0, 100.0)
+    if declarations > 0:
+        use_ratio = references / declarations
+        score = min(use_ratio * 100.0, 100.0)
+        ratio_note = f"use ratio {use_ratio:.2f}"
+    else:
+        # Tokens resolve via tokens.json / var() references with no inline decls.
+        score = 100.0
+        ratio_note = "tokens resolved via tokens.json / references"
+
     return GateOutcome(
         candidate_id=candidate.candidate_id,
         axis=GateAxis.TOKEN_FIDELITY,
@@ -331,7 +430,7 @@ def check_token_fidelity(candidate: CandidateUI) -> GateOutcome:
         score=score,
         diagnostic=(
             f"Token fidelity: {declarations} declaration(s), {references} reference(s), "
-            f"use ratio {use_ratio:.2f}."
+            f"{ratio_note}; no off-token color literals."
         ),
     )
 
