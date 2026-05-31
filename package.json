@@ -28,6 +28,7 @@
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md,yml,yaml}\"",
     "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,md,yml,yaml}\"",
     "clean": "rm -rf node_modules .turbo .next out dist build",
+    "lhci": "npx -y @lhci/cli@0.15.1 autorun --config=./lighthouserc.json",
     "prepare": "test -d .git && (pre-commit install --install-hooks || true) || true"
   },
   "devDependencies": {
