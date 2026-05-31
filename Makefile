@@ -38,7 +38,7 @@ help:
 	@echo "  make replay    - deterministic replay of a recorded trajectory (AT-003)"
 
 # ---- verify -----------------------------------------------------------------
-verify: _deps verify-types verify-tests verify-lint verify-dashboard verify-eval
+verify: _deps verify-types verify-tests verify-lint verify-dashboard verify-tokens verify-eval
 	@echo "[verify] OK - all enabled checks passed"
 
 _deps:
@@ -72,6 +72,17 @@ verify-dashboard:
 	@if [ -f "$(DASH)/tsconfig.json" ]; then \
 	   echo "[verify:dashboard] tsc --noEmit"; cd "$(DASH)" && npx --no-install tsc --noEmit; \
 	 else echo "[verify:dashboard] SKIP - no $(DASH)/tsconfig.json yet (lands with the Next.js dashboard adoption)"; fi
+
+verify-tokens:
+	@if [ -d node_modules/style-dictionary ]; then \
+	   echo "[verify:tokens] style-dictionary build (DTCG -> CSS/Tailwind/Swift/Kotlin)"; \
+	   npm run build:tokens >/dev/null && \
+	   for f in design-tokens/build/css/variables.css design-tokens/build/tailwind/tokens.js \
+	            design-tokens/build/swift/AtelierTokens.swift design-tokens/build/kotlin/AtelierTokens.kt; do \
+	     test -s "$$f" || { echo "[verify:tokens] FAIL missing/empty $$f"; exit 1; }; \
+	   done; \
+	   echo "[verify:tokens] OK - 4 platform outputs produced"; \
+	 else echo "[verify:tokens] SKIP - style-dictionary not installed (run npm ci; covered by the CI tokens job)"; fi
 
 verify-eval:
 	@echo "[verify:eval] SKIP - offline eval composite-mean gate lands with AT-100 (eval set + baseline)"
