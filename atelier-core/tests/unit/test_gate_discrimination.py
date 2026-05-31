@@ -48,6 +48,10 @@ _SKELETONS = (
     "<html><head></head><body></body></html>",
     "<div></div>",
     "<html><body><main></main></body></html>",  # single empty content element
+    # script/style-only pages: "text" lives in non-rendered blocks (PR #33 nit).
+    "<html><body><script>console.log('this is a long script body');</script></body></html>",
+    "<html><head><style>.x{color:#fff;background:#000;padding:2rem}</style></head><body></body></html>",
+    "<html><body><script>var a=1</script><script>var b=2</script></body></html>",
 )
 
 

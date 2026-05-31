@@ -342,11 +342,31 @@ def check_token_fidelity(candidate: CandidateUI) -> GateOutcome:
 
 #: A skeleton has fewer than this many content elements (and no visible text).
 _SKELETON_MIN_CONTENT_ELEMENTS = 2
-#: Opening tags that are pure document boilerplate, not "content".
-_BOILERPLATE_TAGS = ("html", "head", "body", "meta", "title", "br", "hr")
+#: Opening tags that are pure document boilerplate / non-rendered, not "content".
+#: ``script``/``style``/``template``/``link``/``noscript`` are excluded so a
+#: page whose only markup is inline scripts or styles still counts as a skeleton.
+_BOILERPLATE_TAGS = (
+    "html",
+    "head",
+    "body",
+    "meta",
+    "title",
+    "br",
+    "hr",
+    "script",
+    "style",
+    "template",
+    "link",
+    "noscript",
+)
 _CONTENT_TAG_RE = re.compile(
     r"<(?!/)(?!(?:" + "|".join(_BOILERPLATE_TAGS) + r")\b)[a-z][a-z0-9-]*",
     re.IGNORECASE,
+)
+#: ``<script>``/``<style>``/``<template>`` bodies are not user-visible text.
+_NON_RENDERED_BLOCK_RE = re.compile(
+    r"<(script|style|template)\b[^>]*>.*?</\1>",
+    re.IGNORECASE | re.DOTALL,
 )
 
 
@@ -356,11 +376,16 @@ def _is_skeleton(html: str) -> bool:
     A real screen has either visible text or multiple structural elements; an
     empty/near-empty placeholder (e.g. ``<html><body></body></html>``) has
     neither and must REJECT rather than pass a quality gate (AT-010 / R2).
+
+    ``<script>``/``<style>``/``<template>`` bodies are stripped first so a page
+    whose only "text" lives inside a script or style block does not masquerade
+    as substantive content (would otherwise evade the floor — review nit, PR #33).
     """
-    visible_text = re.sub(r"<[^>]+>", "", html).strip()
+    rendered = _NON_RENDERED_BLOCK_RE.sub("", html)
+    visible_text = re.sub(r"<[^>]+>", "", rendered).strip()
     if visible_text:
         return False
-    return len(_CONTENT_TAG_RE.findall(html)) < _SKELETON_MIN_CONTENT_ELEMENTS
+    return len(_CONTENT_TAG_RE.findall(rendered)) < _SKELETON_MIN_CONTENT_ELEMENTS
 
 
 def _structure_floor_reject(
