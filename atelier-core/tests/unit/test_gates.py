@@ -269,14 +269,19 @@ class TestStubGates:
         )
         assert check_visual_diff_stub(standard).decision is GateDecision.PASS
 
-    def test_stubs_handle_empty_artifacts(self) -> None:
-        """All stubs must not raise on empty artifacts."""
+    def test_stubs_reject_empty_artifacts(self) -> None:
+        """AT-010 (G2 fix): empty artifacts must REJECT at score 0, never PASS.
+
+        Rewritten from the prior ``test_stubs_handle_empty_artifacts``, which
+        asserted empty -> PASS (95/90/85) and ENSHRINED the inverted-gate bug
+        (PRD §8: a gate that passes known-bad is a P0 defect). This assertion
+        FAILS on the pre-AT-010 code and PASSes only after the inversion.
+        """
         empty = _make_candidate({})
-        assert check_lighthouse_stub(empty).decision is GateDecision.PASS
-        assert check_axe_stub(empty).decision is GateDecision.PASS
-        # Empty HTML has no structural similarity — may PASS or REJECT but must not raise
-        result = check_visual_diff_stub(empty)
-        assert result.score >= 0.0
+        for check in (check_lighthouse_stub, check_axe_stub, check_visual_diff_stub):
+            outcome = check(empty)
+            assert outcome.decision is GateDecision.REJECT
+            assert outcome.score == 0.0
 
 
 # ---------------------------------------------------------------------------
