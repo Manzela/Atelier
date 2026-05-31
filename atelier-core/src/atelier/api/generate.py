@@ -18,17 +18,23 @@ PRD Reference: §7.1 (API surface), §6.3 (N1-N4 pipeline)
 
 from __future__ import annotations
 
+import asyncio
+import json
 import logging
 import os
 from datetime import UTC, datetime
-from typing import Annotated, Any
+from typing import TYPE_CHECKING, Annotated, Any
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 
 from atelier.auth.firebase import FirebaseUser, require_auth
 from atelier.utils.log_sanitizer import sanitize
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
 
 logger = logging.getLogger(__name__)
 
@@ -376,3 +382,88 @@ async def generate(
     )
 
     return response
+
+
+@router.post(
+    "/stream",
+    summary="Generate UI candidates as a real-time event stream",
+    description="Streams the pipeline progress events (plan, screen_start, candidates, evaluations, fixer, complete) in EventSource format.",
+)
+async def generate_stream(  # noqa: C901 — SSE orchestrator with nested pipeline + generator tasks
+    request: GenerateRequest,
+    user: Annotated[FirebaseUser, Depends(require_auth)],
+) -> StreamingResponse:
+    """Run the pipeline and stream events in real-time.
+
+    Args:
+        request: Brief text and optional configuration.
+        user: Verified Firebase user from Authorization: Bearer header.
+
+    Returns:
+        StreamingResponse yielding EventSource events.
+    """
+    from atelier.intake.brief_parser import BriefParserGate  # noqa: PLC0415
+    from atelier.models.enums import GateDecision  # noqa: PLC0415
+
+    # Deterministic validation before starting the pipeline
+    gate = BriefParserGate()
+    gate_outcome = gate.check(request.brief)
+    if gate_outcome.decision != GateDecision.PASS:
+        from fastapi import HTTPException  # noqa: PLC0415
+
+        raise HTTPException(status_code=400, detail=gate_outcome.diagnostic)
+
+    queue: asyncio.Queue[tuple[str, Any]] = asyncio.Queue()
+
+    async def progress_callback(event_type: str, payload: dict[str, Any]) -> None:
+        await queue.put((event_type, payload))
+
+    async def _run_pipeline_task() -> None:
+        from decimal import Decimal  # noqa: PLC0415
+
+        from atelier.models.data_contracts import TenantContext  # noqa: PLC0415
+        from atelier.orchestrator.runner import AtelierRunner  # noqa: PLC0415
+
+        tenant_ctx = TenantContext(
+            tenant_id=user.tenant_id,
+            user_id=user.uid,
+            project_id=_PROJECT,
+            cost_budget_usd=Decimal(str(request.budget_usd)),
+        )
+
+        runner = AtelierRunner(budget_cap_usd=request.budget_usd)
+        try:
+            result = await runner.run(
+                request.brief, tenant_ctx, progress_callback=progress_callback
+            )
+            await _record_trajectory(result, user, result.get("session_id", "default-id"))
+        except Exception as e:
+            logger.exception("Error in streaming generation pipeline task")
+            await queue.put(("error", {"detail": str(e)}))
+
+    async def sse_generator() -> AsyncGenerator[str, None]:
+        # Start the pipeline in the background
+        task = asyncio.create_task(_run_pipeline_task())
+
+        while True:
+            try:
+                # Wait for an event with a 1.0 second timeout to support keep-alive pinging
+                event_type, payload = await asyncio.wait_for(queue.get(), timeout=1.0)
+                yield f"event: {event_type}\ndata: {json.dumps(payload)}\n\n"
+                queue.task_done()
+                if event_type in {"complete", "error"}:
+                    break
+            except TimeoutError:
+                if task.done():
+                    # Process remaining items in the queue
+                    while not queue.empty():
+                        event_type, payload = queue.get_nowait()
+                        yield f"event: {event_type}\ndata: {json.dumps(payload)}\n\n"
+                        queue.task_done()
+                    break
+                # Yield keep-alive comment
+                yield ": ping\n\n"
+
+        await task
+
+    return StreamingResponse(sse_generator(), media_type="text/event-stream")

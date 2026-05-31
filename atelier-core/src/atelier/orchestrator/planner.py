@@ -39,6 +39,9 @@ _DEFAULT_AXIS_WEIGHTS: dict[str, float] = {
     "visual_clarity": 0.2,
 }
 
+# Tolerance for the axis_weights sum-to-one validator (floating-point slack).
+_AXIS_WEIGHT_SUM_TOLERANCE = 0.05
+
 # PlannerAgent system prompt — instructs the LLM to produce PlanStep JSON
 _PLANNER_SYSTEM_PROMPT: str = (
     "You are the planning node of an autonomous UI/UX design agent called Atelier. "
@@ -51,6 +54,7 @@ _PLANNER_SYSTEM_PROMPT: str = (
     "  (e.g. 'accessible' → accessibility=0.4; 'brutalist' → originality=0.35)\n"
     "- constitution='brutalist' if brief mentions brutalism, raw, raw-css, monochrome grid\n"
     "- constitution='apple-grade' if brief mentions premium, minimal, Apple-inspired\n"
+    "- Identify the screens or surfaces requested in the brief and list them in the `surfaces` field (e.g. ['landing page', 'pricing page']). If the brief requests only one screen or doesn't specify, default to ['landing page'].\n"
     "- reasoning: one sentence explaining your top routing decision\n"
     "Output valid JSON matching PlanStep schema. No other text."
 )
@@ -68,6 +72,7 @@ class PlanStep(BaseModel):
         axis_weights: D-O-R-A-V axis weight distribution (must sum to ~1.0).
         constitution: Brand constitution to apply (or None for default).
         gate_axes_to_skip: Deterministic gate axes to skip for efficiency.
+        surfaces: List of screens or pages to generate sequentially.
         reasoning: One-sentence justification for the plan.
     """
 
@@ -78,13 +83,14 @@ class PlanStep(BaseModel):
     axis_weights: dict[str, float] = Field(default_factory=lambda: dict(_DEFAULT_AXIS_WEIGHTS))
     constitution: Literal["apple-grade", "brutalist"] | None = None
     gate_axes_to_skip: list[str] = Field(default_factory=list)
+    surfaces: list[str] = Field(default_factory=lambda: ["landing page"])
     reasoning: str = ""
 
     @model_validator(mode="after")
     def weights_sum_to_one(self) -> PlanStep:
         """Validate that axis_weights sum to approximately 1.0."""
         total = sum(self.axis_weights.values())
-        if abs(total - 1.0) > 0.05:
+        if abs(total - 1.0) > _AXIS_WEIGHT_SUM_TOLERANCE:
             raise ValueError(f"axis_weights sum={total:.3f}; must be within 0.05 of 1.0")
         return self
 
