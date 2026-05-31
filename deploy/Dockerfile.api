@@ -50,6 +50,8 @@ RUN uv venv /app/.venv \
         "opentelemetry-exporter-gcp-trace>=1.7,<2" \
         "fastapi>=0.115,<1" \
         "uvicorn[standard]>=0.30,<1" \
+        "playwright>=1.49,<2" \
+        "axe-playwright-python>=0.1.7,<0.2" \
         structlog pydantic httpx pyyaml
 
 # ---------------------------------------------------------------------------
@@ -64,11 +66,21 @@ COPY --from=deps /app/.venv /app/.venv
 COPY atelier-core/src/ /app/atelier-core/src/
 COPY config/ /app/config/
 
-# Set PATH to use venv
+# Set PATH to use venv. PLAYWRIGHT_BROWSERS_PATH pins the chromium location to a
+# shared, world-readable dir so the non-root appuser can launch it (AT-011).
 ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONPATH="/app/atelier-core/src:$PYTHONPATH" \
     ATELIER_ENV="production" \
+    PLAYWRIGHT_BROWSERS_PATH="/ms-playwright" \
     PORT="8080"
+
+# AT-011: bake a launchable chromium + its runtime system libraries into the
+# image so the real axe-core a11y gate (and the AT-007 run-oracle) work in prod.
+# Runs as root (before the USER switch); the gate launches with --no-sandbox in
+# production (atelier.gates.axe_core._launch_args) since the platform sandboxes
+# the container. chmod makes the browser readable by appuser.
+RUN playwright install --with-deps chromium \
+    && chmod -R a+rX /ms-playwright
 
 # Switch to non-root user
 USER appuser

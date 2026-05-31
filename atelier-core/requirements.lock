@@ -20,6 +20,8 @@ attrs==26.1.0
     #   referencing
 authlib==1.7.2
     # via google-adk
+axe-playwright-python==0.1.7
+    # via atelier-core (atelier-core/pyproject.toml)
 cachecontrol==0.14.4
     # via firebase-admin
 certifi==2026.5.20
@@ -122,6 +124,8 @@ googleapis-common-protos==1.75.0
     #   grpcio-status
 graphviz==0.21
     # via google-adk
+greenlet==3.5.1
+    # via playwright
 grpc-google-iam-v1==0.14.4
     # via
     #   google-cloud-resource-manager
@@ -209,6 +213,10 @@ packaging==26.2
     #   google-adk
     #   google-cloud-aiplatform
     #   google-cloud-bigquery
+playwright==1.60.0
+    # via
+    #   atelier-core (atelier-core/pyproject.toml)
+    #   axe-playwright-python
 proto-plus==1.28.0
     # via
     #   google-api-core
@@ -248,6 +256,8 @@ pydantic-core==2.46.4
     # via pydantic
 pydantic-settings==2.14.1
     # via mcp
+pyee==13.0.1
+    # via playwright
 pyjwt==2.13.0
     # via
     #   firebase-admin
@@ -323,6 +333,7 @@ typing-extensions==4.15.0
     #   opentelemetry-semantic-conventions
     #   pydantic
     #   pydantic-core
+    #   pyee
     #   pyopenssl
     #   referencing
     #   starlette

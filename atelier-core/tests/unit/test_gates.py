@@ -50,9 +50,20 @@ def _make_candidate(artifacts: dict[str, str] | None = None) -> CandidateUI:
     """
     if artifacts is None:
         artifacts = {
+            # Accessible by construction: lang + title + charset + the six HTML5
+            # landmarks with real text, a named link, no empty controls / alt-less
+            # images. Passes every real gate INCLUDING AT-011 real axe-core (and
+            # the fail-soft heuristic), so the AXE outcome agrees with/without
+            # chromium — keeps the hermetic lane deterministic.
             "index.html": (
-                "<header></header><nav></nav><main></main>"
-                "<section></section><article></article><footer></footer>"
+                "<html lang='en'><head><meta charset='utf-8'>"
+                "<title>Atelier Gate Fixture</title></head><body>"
+                "<header><h1>Atelier</h1></header>"
+                "<nav aria-label='Primary'><a href='/home'>Home</a></nav>"
+                "<main><section aria-label='Intro'><h2>Welcome</h2>"
+                "<p>Substantive content for the gate fixture.</p></section>"
+                "<article><h2>Details</h2><p>More real content here.</p></article>"
+                "</main><footer><p>Contact us</p></footer></body></html>"
             ),
             "main.css": (
                 ":root { --color-primary: #000; --space: 1rem; }\n"

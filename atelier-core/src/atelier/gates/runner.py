@@ -18,8 +18,8 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from uuid import UUID
 
+from atelier.gates.axe_core import check_axe
 from atelier.gates.deterministic import (
-    check_axe_stub,
     check_css_validity,
     check_lighthouse_stub,
     check_semantic_html,
@@ -45,7 +45,7 @@ _AXIS_TO_GATE: dict[GateAxis, Callable[[CandidateUI], GateOutcome]] = {
     GateAxis.LIGHTHOUSE_PERF: check_css_validity,
     GateAxis.TOKEN_FIDELITY: check_token_fidelity,
     GateAxis.LIGHTHOUSE_A11Y: check_lighthouse_stub,
-    GateAxis.AXE: check_axe_stub,
+    GateAxis.AXE: check_axe,  # AT-011: real axe-core (was check_axe_stub; stub is the fail-soft proxy)
     GateAxis.VISUAL_DIFF: check_visual_diff_stub,
 }
 
