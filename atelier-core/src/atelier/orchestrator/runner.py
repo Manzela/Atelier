@@ -4,7 +4,7 @@ Full 8-node DAG (current implementation):
     N1  BriefParserGate + BriefParserAgent
     N14 WRAI — web research augmented intake (parallel)
     N2  SourceResolverGate + SourceResolverAgent
-    N3a Generator Ensemble (ParallelAgent, K=3 candidates)
+    N3a DDLC Specialist Pipeline (SequentialAgent of 6 role specialists — AT-020)
     N3c Deterministic Gates (6 gates per candidate — fast, hallucination-free filter)
     N3d ConsensusAgent (D-O-R-A-V multi-judge evaluation on passing candidates)
     N4  Final scoring and convergence decision
@@ -47,11 +47,11 @@ from atelier.models.axis_weights import AxisWeights
 from atelier.models.data_contracts import CandidateUI, TenantContext
 from atelier.models.enums import GateAxis, GateDecision
 from atelier.nodes.consensus import evaluate_candidate
-from atelier.orchestrator.generator_ensemble import create_generator_ensemble
 from atelier.orchestrator.governor import (
     GovernorState,
     MetacognitiveGovernor,
 )
+from atelier.orchestrator.specialists import create_specialist_pipeline
 from atelier.orchestrator.stop_reason import (
     StopReason,
     StopSignals,
@@ -66,7 +66,7 @@ logger = logging.getLogger(__name__)
 # Hard $5K MAX cap per PRD §7.2
 BUDGET_CAP_USD: float = 5000.0
 
-# Estimated cost per N3a ensemble run (3 generators x ~$0.05 each)
+# Estimated cost per N3a run (DDLC SequentialAgent — 6 specialists, AT-020)
 N3A_COST_ESTIMATE_USD: float = 0.15
 
 # N3c gate axes — all 6 run in current implementation
@@ -140,7 +140,7 @@ def _default_session_service() -> BaseSessionService:
 class AtelierRunner:
     """current implementation Pipeline Runner with Governor + injectable SessionBackend.
 
-    Chains N1 (Brief Parser) -> N2 (Source Resolver) -> N3a (Generator Ensemble).
+    Chains N1 (Brief Parser) -> N2 (Source Resolver) -> N3a (DDLC Specialist Pipeline).
     All LLM calls are governed by the budget cap and failure trichotomy.
 
     The session service is injectable via the ``SessionBackend`` Protocol (B4).
@@ -465,11 +465,11 @@ class AtelierRunner:
                 # directive (clear accumulated rejected-variant history).
                 generator_prompt = _compose_generator_prompt(anchor, screen, latest_directive)
 
-                # N3a: Generator Ensemble — governed
+                # N3a: DDLC Specialist Pipeline (SequentialAgent, AT-020) — governed
                 async def _run_ensemble(prompt: str = generator_prompt) -> tuple[list[Any], bool]:
-                    ensemble, stitch_degradation = create_generator_ensemble()
+                    pipeline, stitch_degradation = create_specialist_pipeline()
                     adk_runner = Runner(
-                        agent=ensemble,
+                        agent=pipeline,
                         session_service=self._session_service,
                         app_name=_APP_NAME,
                     )

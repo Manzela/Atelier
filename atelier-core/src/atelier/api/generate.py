@@ -42,8 +42,10 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/v1/generate", tags=["pipeline"])
 
 _PROJECT: str = os.environ.get("GOOGLE_CLOUD_PROJECT", "atelier-build-2026")
-# K=3 ensemble size — must stay in sync with generator_ensemble.ENSEMBLE_SIZE
-_ENSEMBLE_SIZE: int = 3
+# Upper bound on per-run candidate trajectory records emitted for the DPO data
+# flywheel. The N3a node is now the DDLC specialist SequentialAgent (AT-020), not
+# a K-candidate ensemble; this cap is independent of the specialist count.
+_MAX_CANDIDATE_RECORDS: int = 3
 
 
 # ---------------------------------------------------------------------------
@@ -180,10 +182,10 @@ async def _record_trajectory(
         # Build a TrajectoryRecord for each N3a candidate.
         # P0-4: use actual per-candidate composite_score from evaluations (not 0.0 for losers).
         # Zero scores corrupt the DPO pair miner margin calculation and produce noise pairs.
-        # P0-3 / P1-3: use _ENSEMBLE_SIZE constant instead of hardcoded 3.
+        # P0-3 / P1-3: use the _MAX_CANDIDATE_RECORDS constant instead of hardcoded 3.
         records = []
         eval_cursor = 0
-        for i, candidate in enumerate(candidates[:_ENSEMBLE_SIZE]):
+        for i, candidate in enumerate(candidates[:_MAX_CANDIDATE_RECORDS]):
             content = candidate if isinstance(candidate, str) else str(candidate)
             is_best = content == best_candidate
             outcome = "accepted" if is_best and result.get("converged") else "rejected"

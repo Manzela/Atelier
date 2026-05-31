@@ -58,8 +58,8 @@ verify-types: _deps
 	@"$(PY)" -m mypy "$(CORE)/src"
 
 verify-tests: _deps
-	@echo "[verify:tests] offline pytest (unit + AT-003 record/replay determinism)"
-	@cd "$(CORE)" && "$(PY)" -m pytest tests/unit tests/integration/test_record_replay_determinism.py -q -p no:cacheprovider
+	@echo "[verify:tests] offline pytest (unit + AT-003 record/replay + AT-020 specialist pipeline)"
+	@cd "$(CORE)" && "$(PY)" -m pytest tests/unit tests/integration/test_record_replay_determinism.py tests/integration/test_specialist_pipeline.py -q -p no:cacheprovider
 	@echo "[verify:tests] NOTE the full section-16 golden-path integration grows as E1-E4 land"
 
 verify-lint:
