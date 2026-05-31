@@ -1,6 +1,6 @@
 """Core data contracts for the Atelier 8-node DAG pipeline.
 
-All models follow CLAUDE.md invariants:
+All models follow architectural invariants invariants:
     - ``ConfigDict(frozen=True, extra='forbid')``
     - ``schema_version: int = 1`` (never decreases, fields never dropped)
     - Pydantic v2 roundtrip: ``model_dump_json()`` ↔ ``model_validate_json()``

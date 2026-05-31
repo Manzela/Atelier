@@ -23,7 +23,6 @@ Everything here is pure-function and side-effect-free; the
 two concerns stay decoupled so each can be unit-tested in isolation.
 
 PRD Reference: §6.3 N3d (ConsensusAgent), F0211 (anti-bias)
-Audit Reference: §7 (FA-018 model routing + bias mitigation)
 """
 
 import random
@@ -74,7 +73,7 @@ class AntiBiasReport:
     Attributes:
         evaluation_order: The order in which judges were invoked for this
             candidate. A tuple of axis-name strings drawn from
-            :data:`DEFAULT_AXIS_ORDER`. Order matters because some Phase 2
+            :data:`DEFAULT_AXIS_ORDER`. Order matters because some current implementation
             judges may share KV-cache prefixes -- the order is logged so
             cache-affinity regressions are debuggable.
         dominant_axis: The axis whose normalized weight exceeds

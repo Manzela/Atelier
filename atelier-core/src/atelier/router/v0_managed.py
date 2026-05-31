@@ -56,7 +56,7 @@ _FALLBACK_CHAIN_BY_PRIMARY: Final[dict[ExpertID, tuple[ExpertID, ...]]] = {
 
 
 class ManagedRoutingRouter:
-    """Phase 1 router. Deterministic phase x budget -> ExpertID map."""
+    """v1.0 implementation router. Deterministic phase x budget -> ExpertID map."""
 
     async def route(self, request: RouteRequest) -> RouteDecision:
         """Return a route decision based on the static phase table."""

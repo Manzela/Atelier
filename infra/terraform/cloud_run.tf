@@ -27,6 +27,10 @@ resource "google_cloud_run_v2_service" "atelier_api" {
           memory = "512Mi"
         }
       }
+      env {
+        name  = "FIXER_MODEL"
+        value = "gemini-2.5-flash"
+      }
     }
     scaling {
       min_instance_count = 0
@@ -42,4 +46,14 @@ resource "google_cloud_run_v2_service" "atelier_api" {
     google_project_service.required,
     google_artifact_registry_repository.atelier_images,
   ]
+}
+
+resource "google_storage_bucket" "rag_datastore_staging" {
+  name          = "atelier-rag-staging-${var.project_id}-${var.env}"
+  location      = var.region
+  force_destroy = true
+
+  uniform_bucket_level_access = true
+
+  depends_on = [google_project_service.required]
 }

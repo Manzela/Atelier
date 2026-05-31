@@ -68,7 +68,7 @@ HIGH_COMPOSITE = 0.90
 LOW_COMPOSITE = 0.40
 
 # JudgeVote provenance suffix appended to the model display name.
-PHASE_1_SUFFIX = "(Phase 1 stub)"
+PHASE_1_SUFFIX = "(v1.0 implementation stub)"
 
 # Convergence thresholds used in `evaluate_candidate` tests.
 EASY_THRESHOLD = 0.01  # trivially passable

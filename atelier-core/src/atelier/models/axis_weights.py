@@ -11,7 +11,6 @@ The composite score is:
 This module is consumed by the ConsensusAgent (N3d) to compute final scores.
 
 PRD Reference: §6.3 (N15 MJG), F0209-F0210
-Audit Reference: §7 (FA-018, FA-019)
 """
 
 from __future__ import annotations

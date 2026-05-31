@@ -5,7 +5,7 @@ MUST be decorated with ``@failure_trichotomy`` to declare its failure mode at
 the type level. This eliminates silent error suppression and makes the failure
 contract machine-verifiable via grep + mypy.
 
-Three modes per CLAUDE.md §5 (failure-handling trichotomy):
+Three modes per architectural invariants §5 (failure-handling trichotomy):
 
 - **FAIL_LOUD**: Raise immediately. No retries. Used for auth failures,
   missing projects, corrupted state — situations where retrying is

@@ -4,7 +4,7 @@ v0 implementation: thin wrapper over Vertex AI GenerationConfigRoutingConfig.
 v1 implementation: epsilon-greedy multi-armed bandit over the EvoDesign
     trajectory store (BigQuery-backed arms, per spec §18.4).
 v2 implementation: RouteLLM-style matrix-factorization router trained on
-    Atelier DPO pairs (Phase-2 stretch, per spec §18.5).
+    Atelier DPO pairs (planned enhancement, per spec §18.5).
 
 All three implementations satisfy the same Protocol — the EvoDesign loop is
 agnostic to which router is wired in. Adding a fourth router (e.g.

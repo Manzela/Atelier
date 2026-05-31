@@ -4,7 +4,7 @@ Implements ``ProceduralMemoryBackend`` Protocol: scope-keyed reads via IAM
 Conditions (shared with semantic tier), JSON-line step serialization,
 archetype-based querying.
 
-Phase 1 stub — in-memory store implementing the Protocol contract faithfully
+v1.0 implementation stub — in-memory store implementing the Protocol contract faithfully
 for type-checking and integration test wiring.
 """
 
@@ -54,7 +54,7 @@ class _StoredProcedure:
 
 
 class VertexProceduralMemoryBackend:
-    """Phase 1 procedural memory backend backed by Vertex AI Memory Bank.
+    """v1.0 implementation procedural memory backend backed by Vertex AI Memory Bank.
 
     Constructor args:
         project_id: GCP project (must be atelier-build-2026 for prod).

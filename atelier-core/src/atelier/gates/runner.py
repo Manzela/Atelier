@@ -11,7 +11,7 @@ to ``GateRunResult`` so downstream code can make a clean PASS/REJECT decision
 without inspecting individual outcomes.
 
 PRD Reference: §6.3 N3c (Deterministic Gates)
-ADR Reference: 0007 (worktree discipline) — Phase 1 scope only
+ADR Reference: 0007 (worktree discipline) — v1.0 implementation scope only
 """
 
 from collections.abc import Callable
@@ -37,7 +37,7 @@ from atelier.models.enums import GateAxis, GateDecision
 #: function. CSS validity rides on the LIGHTHOUSE_PERF axis (until a dedicated
 #: axis exists), so a request for that axis runs the CSS-validity gate.
 #:
-#: The RESPONSIVE axis is intentionally absent from this table: Phase 1 does
+#: The RESPONSIVE axis is intentionally absent from this table: v1.0 implementation does
 #: not ship a responsive-design gate (browser rendering required). Requests
 #: for unsupported axes are reported in :attr:`GateRunResult.unsupported_axes`.
 _AXIS_TO_GATE: dict[GateAxis, Callable[[CandidateUI], GateOutcome]] = {
@@ -72,7 +72,7 @@ class GateRunResult:
             should inspect ``len(outcomes)`` explicitly.
         failed_axes: The :class:`GateAxis` of every non-PASS outcome.
             Includes both REJECT and DEFER decisions.
-        unsupported_axes: Axes that were requested but have no Phase 1
+        unsupported_axes: Axes that were requested but have no v1.0 implementation
             implementation (e.g., :attr:`GateAxis.RESPONSIVE`). Logged for
             visibility; does not by itself fail the run.
     """
@@ -168,7 +168,7 @@ class GateRunner:
 
         Args:
             axes_required: Default axes to evaluate. If ``None``, every axis
-                with a Phase 1 implementation is run.
+                with a v1.0 implementation implementation is run.
         """
         self.axes_required: list[GateAxis] = (
             axes_required if axes_required is not None else list(_AXIS_TO_GATE.keys())
