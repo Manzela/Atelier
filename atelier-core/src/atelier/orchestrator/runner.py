@@ -23,6 +23,7 @@ PRD Reference: §6.3 (N1-N4), §21 (Failure Trichotomy)
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import uuid
@@ -83,6 +84,35 @@ CONVERGENCE_THRESHOLD: float = 0.70
 
 # ADK app name constant
 _APP_NAME: str = "atelier"
+
+
+def _compose_anchor(brief: Any, project_ctx: Any, wrai_report: Any) -> str:
+    """R4 (ADR-0012 anchored_context): the immutable anchor re-injected into the
+    generator prompt every iteration -- the signed-off brief + design tokens +
+    research findings, serialized deterministically so the re-injection is
+    byte-identical across iterations regardless of accumulated fixer history.
+    """
+    brief_blob = brief.model_dump_json() if hasattr(brief, "model_dump_json") else str(brief)
+    tokens = getattr(project_ctx, "design_tokens", None) or {}
+    tokens_blob = json.dumps(tokens, sort_keys=True, default=str)
+    findings = getattr(wrai_report, "results", None) or []
+    research_blob = json.dumps([str(f) for f in findings], sort_keys=True)
+    return (
+        "--- BRIEF (anchor; do not deviate) ---\n"
+        + brief_blob
+        + "\n--- DESIGN TOKENS (anchor) ---\n"
+        + tokens_blob
+        + "\n--- RESEARCH FINDINGS (anchor) ---\n"
+        + research_blob
+    )
+
+
+def _compose_generator_prompt(anchor: str, screen: str, directive: str) -> str:
+    """Compose one iteration's generator prompt: the immutable anchor + the screen
+    task + ONLY the latest fixer directive (rejected-variant history is never
+    accumulated -- R4)."""
+    base = f"{anchor}\n\n--- TASK ---\nGenerate the screen: '{screen}'."
+    return f"{base}\n\n--- LATEST FIXER DIRECTIVE ---\n{directive}" if directive else base
 
 
 def _default_session_service() -> BaseSessionService:
@@ -392,10 +422,12 @@ class AtelierRunner:
             if progress_callback:
                 await progress_callback("screen_start", {"screen": screen, "index": idx})
 
-            # Initialize convergence state for this screen
-            generator_prompt = (
-                f"Generate the screen: '{screen}' based on the brief and project context."
-            )
+            # Initialize convergence state for this screen.
+            # R4: build the immutable anchor once; re-inject it (never accumulate)
+            # each iteration so fixer feedback cannot displace the brief/tokens/research.
+            anchor = _compose_anchor(brief, project_ctx, wrai_report)
+            latest_directive = ""
+            generator_prompt = _compose_generator_prompt(anchor, screen, latest_directive)
             best_candidate = None
             convergence_result: dict[str, Any] = {}
             stitch_degraded = False
@@ -428,6 +460,10 @@ class AtelierRunner:
                     logger.warning("Convergence loop halted: governor detected infinite loop.")
                     exit_reason = StopReason.GOVERNOR_LOOP_DETECTED
                     break
+
+                # R4: re-inject the immutable anchor + only the latest fixer
+                # directive (clear accumulated rejected-variant history).
+                generator_prompt = _compose_generator_prompt(anchor, screen, latest_directive)
 
                 # N3a: Generator Ensemble — governed
                 async def _run_ensemble(prompt: str = generator_prompt) -> tuple[list[Any], bool]:
@@ -592,9 +628,9 @@ class AtelierRunner:
 
                     # Mutate prompt for next iteration
                     amendments = "\n".join(directive.prompt_amendments)
-                    generator_prompt += (
-                        f"\n\n--- FEEDBACK FROM ITERATION {iteration} ---\n{amendments}"
-                    )
+                    # R4: REPLACE the directive (do not accumulate); the anchor is
+                    # re-injected fresh next iteration by _compose_generator_prompt.
+                    latest_directive = amendments
                     logger.info(
                         "FixerAgent proposed mutations for screen %s: %s",
                         screen,
