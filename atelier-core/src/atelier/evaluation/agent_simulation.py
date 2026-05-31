@@ -18,7 +18,6 @@ from __future__ import annotations
 import logging
 import random
 from dataclasses import dataclass, field
-from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -227,7 +226,6 @@ async def run_simulation(
     Returns:
         List of SimulationResult objects.
     """
-    import asyncio  # noqa: PLC0415
     import time  # noqa: PLC0415
 
     from atelier.intake.brief_parser import BriefParserGate  # noqa: PLC0415

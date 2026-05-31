@@ -8,7 +8,6 @@ will then index this bucket for the Atelier RAG Datastore.
 
 import logging
 import urllib.request
-from typing import List
 
 from google.cloud import storage
 
@@ -34,21 +33,22 @@ def extract_and_upload(project_id: str, bucket_name: str) -> None:
     bucket = client.bucket(bucket_name)
 
     if not bucket.exists():
-        logger.info(f"Bucket {bucket_name} does not exist. Creating...")
+        logger.info("Bucket %s does not exist. Creating...", bucket_name)
         bucket.create(location="US")
 
     for dataset in DATASETS:
         url = f"{BASE_URL}/{dataset}"
         blob = bucket.blob(f"rag_ingest/{dataset}")
 
-        logger.info(f"Fetching {dataset}...")
+        logger.info("Fetching %s...", dataset)
         try:
-            with urllib.request.urlopen(url) as response:
+            # URL is built from the trusted BASE_URL constant (https only).
+            with urllib.request.urlopen(url) as response:  # noqa: S310
                 content = response.read()
                 blob.upload_from_string(content, content_type="text/csv")
-                logger.info(f"Successfully uploaded {dataset} to gs://{bucket_name}/rag_ingest/")
-        except Exception as e:
-            logger.error(f"Failed to fetch or upload {dataset}: {e}")
+                logger.info("Successfully uploaded %s to gs://%s/rag_ingest/", dataset, bucket_name)
+        except Exception:
+            logger.exception("Failed to fetch or upload %s", dataset)
 
 
 if __name__ == "__main__":

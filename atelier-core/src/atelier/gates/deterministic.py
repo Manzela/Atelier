@@ -49,6 +49,9 @@ _PERF_EAGER_IMG_PENALTY: Final[float] = 2.0
 #: Heuristic: score = 100 - sum(penalties), floor 40
 _PERF_FLOOR: Final[float] = 40.0
 
+#: Lighthouse heuristic PASS threshold
+_LIGHTHOUSE_PASS_THRESHOLD: Final[float] = 80.0
+
 #: Penalty per <button> or <a> without accessible text
 _A11Y_INACCESSIBLE_CONTROL_PENALTY: Final[float] = 8.0
 
@@ -63,6 +66,9 @@ _A11Y_MISSING_VIEWPORT_PENALTY: Final[float] = 10.0
 
 #: A11y floor — even malformed HTML gets this minimum
 _A11Y_FLOOR: Final[float] = 35.0
+
+#: A11y heuristic PASS threshold
+_A11Y_PASS_THRESHOLD: Final[float] = 70.0
 
 #: Visual diff — structural tag frequency cosine similarity baseline
 _VISUAL_DIFF_GOLDEN_TAGS: Final[tuple[str, ...]] = (
@@ -400,7 +406,7 @@ def check_lighthouse_stub(candidate: CandidateUI) -> GateOutcome:
         total_penalty += p
 
     score = max(_PERF_FLOOR, 100.0 - total_penalty)
-    decision = GateDecision.PASS if score >= 80.0 else GateDecision.REJECT
+    decision = GateDecision.PASS if score >= _LIGHTHOUSE_PASS_THRESHOLD else GateDecision.REJECT
     diagnostic = (
         "Lighthouse heuristic (no browser). "
         + ("; ".join(penalties) if penalties else "No performance penalties detected.")
@@ -475,7 +481,7 @@ def check_axe_stub(candidate: CandidateUI) -> GateOutcome:
         total_penalty += _A11Y_MISSING_VIEWPORT_PENALTY
 
     score = max(_A11Y_FLOOR, 100.0 - total_penalty)
-    decision = GateDecision.PASS if score >= 70.0 else GateDecision.REJECT
+    decision = GateDecision.PASS if score >= _A11Y_PASS_THRESHOLD else GateDecision.REJECT
     diagnostic = (
         "Accessibility heuristic (no DOM). "
         + ("; ".join(penalties) if penalties else "No accessibility violations detected.")

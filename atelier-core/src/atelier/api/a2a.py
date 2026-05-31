@@ -140,7 +140,7 @@ async def _handle_send_message(
             },
             id=request_id,
         )
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.exception("a2a.pipeline.error", extra={"task_id": task_id})
         return _error_response(
             _INTERNAL_ERROR,
@@ -233,7 +233,7 @@ async def a2a_rpc(request: JsonRpcRequest) -> JsonRpcResponse:
 
     try:
         return await handler(request.params, request.id)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.exception(
             "a2a.rpc.error",
             extra={

@@ -6,16 +6,22 @@ Analyzes gate failures and consensus scores to emit prompt mutations and fixes.
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 
 from google.adk.agents import LlmAgent
 from google.genai import types as genai_types
 from pydantic import BaseModel, ConfigDict, Field
 
-from atelier.durability.governor import MetacognitiveGovernor
-from atelier.models.data_contracts import ConsensusResult, GateOutcome
-from atelier.models.enums import MutationOp
+# MutationOp is a Pydantic model field (list[MutationOp]); Pydantic resolves it
+# at runtime even under `from __future__ import annotations`, so it must stay a
+# runtime import (TC001 is a false positive here).
+from atelier.models.enums import MutationOp  # noqa: TC001
 from atelier.models.model_registry import FIXER_MODEL
 from atelier.models.safety import default_model_armor_config
+
+if TYPE_CHECKING:
+    from atelier.durability.governor import MetacognitiveGovernor
+    from atelier.models.data_contracts import ConsensusResult, GateOutcome
 
 logger = logging.getLogger(__name__)
 

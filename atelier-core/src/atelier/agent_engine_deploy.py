@@ -27,10 +27,10 @@ logger = logging.getLogger(__name__)
 def deploy_agent_engine() -> None:
     """Deploy the Atelier PlannerAgent to Vertex AI Agent Engine."""
     try:
-        import vertexai
-        from vertexai.agent_engines import AdkApp, create
+        import vertexai  # noqa: PLC0415
+        from vertexai.agent_engines import AdkApp, create  # noqa: PLC0415
 
-        from atelier.orchestrator.planner import PlannerAgent
+        from atelier.orchestrator.planner import PlannerAgent  # noqa: PLC0415
 
         project_id = os.getenv("GOOGLE_CLOUD_PROJECT", "atelier-build-2026")
         location = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
@@ -62,14 +62,13 @@ def deploy_agent_engine() -> None:
             remote_app.resource_name,
         )
 
-    except ImportError as e:
-        logger.error(
+    except ImportError:
+        logger.exception(
             "Agent Engine deployment requires vertexai and google-adk. "
-            "Please ensure they are installed. Error: %s",
-            e,
+            "Please ensure they are installed."
         )
-    except Exception as e:
-        logger.error("Deployment failed: %s", e, exc_info=True)
+    except Exception:
+        logger.exception("Deployment failed")
 
 
 if __name__ == "__main__":

@@ -122,7 +122,7 @@ def _get_version() -> str:
     """Get the Atelier version string."""
     try:
         from atelier.__version__ import __version__  # noqa: PLC0415
-
-        return __version__
     except ImportError:
         return "unknown"
+    else:
+        return __version__
