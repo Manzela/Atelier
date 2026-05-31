@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict
 
 from atelier.intake.brief_spec import BriefSpec
 from atelier.models.enums import GateDecision
+from atelier.models.model_registry import resolve_model_id
 from atelier.models.safety import default_model_armor_config
 
 logger = logging.getLogger(__name__)
@@ -59,12 +60,12 @@ class BriefParserGate:
 class BriefParserAgent:
     """Probabilistic agent — extracts BriefSpec from validated brief text via Gemini 3 Flash."""
 
-    def __init__(self, model: str = "gemini-3-flash", project: str = "atelier-build-2026") -> None:
-        self.model = model
+    def __init__(self, model: str | None = None, project: str = "atelier-build-2026") -> None:
+        self.model = model or resolve_model_id()
         self.project = project
         self._llm = LlmAgent(
             name="brief_parser_llm",
-            model=model,
+            model=self.model,
             output_schema=BriefSpec,
             generate_content_config=genai_types.GenerateContentConfig(
                 model_armor_config=default_model_armor_config(),

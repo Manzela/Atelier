@@ -27,6 +27,7 @@ from typing import Any, Final
 
 import yaml
 
+from atelier.models.model_registry import resolve_model_id
 from atelier.utils.log_sanitizer import sanitize
 
 logger = logging.getLogger(__name__)
@@ -303,8 +304,9 @@ _DEFAULT_PROJECT: Final[str] = "atelier-build-2026"
 #: Vertex AI region.
 _DEFAULT_LOCATION: Final[str] = "us-central1"
 
-#: Model used for grounding queries (lightweight, fast).
-_GROUNDING_MODEL: Final[str] = "gemini-2.5-flash"
+#: Model used for grounding queries — the pinned served id (AT-024; env
+#: GEMINI_MODEL_ID or gemini-2.5-pro GA). Resolved once at import.
+_GROUNDING_MODEL: Final[str] = resolve_model_id()
 
 
 #: Module-level cached client (created once per process).
