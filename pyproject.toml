@@ -168,6 +168,16 @@ ignore_missing_imports = true
 disallow_any_unimported = false
 disable_error_code = ["import-untyped"]
 
+[[tool.mypy.overrides]]
+module = "atelier.gates.axe_core"
+# axe-playwright-python (0.1.7) ships no PEP-561 py.typed marker, so Axe() and
+# .run() resolve to Any in strict mode (AT-011). playwright itself IS typed.
+# ignore_missing_imports + disallow_any_unimported=false suppress the wrapper's
+# false positives without relaxing strict checks on the gate's own logic.
+ignore_missing_imports = true
+disallow_any_unimported = false
+disable_error_code = ["import-untyped"]
+
 # numpy is TYPE_CHECKING-gated in Protocol modules by design (ruff TC002).
 # When mypy resolves TYPE_CHECKING=True paths, NDArray types come from an
 # "unfollowed" perspective in strict mode. These overrides suppress the

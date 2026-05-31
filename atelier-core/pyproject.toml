@@ -76,6 +76,15 @@ dependencies = [
     "opentelemetry-api>=1.27,<2",
     "opentelemetry-sdk>=1.27,<2",
     "opentelemetry-exporter-gcp-trace>=1.7,<2",
+    # AT-011 real axe-core a11y oracle (PRD §12 E1). axe-playwright-python wraps
+    # the dequelabs axe-core engine over a Playwright-rendered DOM; the gate runs
+    # the SYNC API (Axe().run(page) -> .violations_count / .response). Python>=3.10,
+    # playwright>=1.25.0 per the upstream README (pamelafox/axe-playwright-python).
+    # The chromium BROWSER binary is installed separately (Dockerfile + preflight,
+    # `playwright install chromium`); this lock pins only the Python packages.
+    # Docs: https://pamelafox.github.io/axe-playwright-python/
+    "playwright>=1.49,<2",
+    "axe-playwright-python>=0.1.7,<0.2",
 ]
 
 [project.optional-dependencies]
@@ -114,4 +123,5 @@ markers = [
     "integration: integration tests requiring docker compose (~5min)",
     "slow: tests that take more than 5 seconds",
     "external: tests that hit external services (Vertex AI, Stitch MCP)",
+    "browser: tests requiring a launchable chromium (AT-011 real axe-core); skipped when absent",
 ]
