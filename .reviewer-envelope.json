@@ -6,7 +6,7 @@
   "eval_delta_vs_head1": null,
   "files_touched_sha": {
     "atelier-core/src/atelier/models/reviewer_envelope.py": "aa9fe0de7c60abfdce3823d4ac1f7c5107d3fbf988bc832545648addeff1c270",
-    "atelier-core/tests/unit/test_reviewer_envelope.py": "783a5b1a4e66a035c30c73e559140571060c41013ea95e21b333a93a9fdd6244",
-    "scripts/ci/verify_reviewer_envelope.py": "42440ca54c731c18961e766a6b0752770916cb440b76d5c31dd75ae9963c9a07"
+    "atelier-core/tests/unit/test_reviewer_envelope.py": "db4f8b232e59d7e70c8897600382898b15116bf50556b3c2d870e00fb3035f6d",
+    "scripts/ci/verify_reviewer_envelope.py": "43e9120c72183c6bc7063f1861d88173ab277012307996642e2a6198ac4f3f3b"
   }
 }
