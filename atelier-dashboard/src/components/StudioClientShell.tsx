@@ -17,7 +17,12 @@ import {
   ZoomOut,
   Maximize,
 } from 'lucide-react';
-import { runGenerationStream, type StreamCallbacks } from '@/lib/api';
+import {
+  runGenerationStream,
+  type StreamCallbacks,
+  type DoravScores,
+  type NielsenHeuristic,
+} from '@/lib/api';
 
 interface UserSession {
   uid: string;
@@ -65,6 +70,9 @@ export default function StudioClientShell({ id }: { id: string }) {
 
   const [status, setStatus] = useState<'idle' | 'generating' | 'converged' | 'failed'>('idle');
   const [logs, setLogs] = useState<{ id: number; time: string; level: string; msg: string }[]>([]);
+  const [convergedHtml, setConvergedHtml] = useState<string>('');
+  const [dorav, setDorav] = useState<DoravScores | null>(null);
+  const [nielsen, setNielsen] = useState<NielsenHeuristic[]>([]);
 
   const addLog = (level: string, msg: string) => {
     const time = new Date().toISOString().split('T')[1].slice(0, 8);
@@ -110,8 +118,11 @@ export default function StudioClientShell({ id }: { id: string }) {
       onScreenConverged: (data) => {
         addLog('SUCCESS', `Screen converged: ${data.screen}`);
       },
-      onComplete: () => {
+      onComplete: (data) => {
         addLog('SUCCESS', 'Generation complete. All screens converged.');
+        if (data.best_html) setConvergedHtml(data.best_html);
+        if (data.dorav) setDorav(data.dorav);
+        if (data.nielsen) setNielsen(data.nielsen);
         setStatus('converged');
       },
       onError: (err) => {
@@ -252,29 +263,17 @@ export default function StudioClientShell({ id }: { id: string }) {
                 <div className="w-full h-full flex items-center justify-center bg-gray-50">
                   <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
                 </div>
+              ) : convergedHtml ? (
+                <iframe
+                  sandbox="allow-scripts"
+                  srcDoc={convergedHtml}
+                  title="Converged design output"
+                  className="w-full h-full border-0"
+                />
               ) : (
-                <div className="w-full h-full p-8 overflow-y-auto">
-                  <div className="max-w-4xl mx-auto space-y-12">
-                    <header className="flex justify-between items-center py-6 border-b border-gray-200">
-                      <div className="text-2xl font-bold text-gray-900">Acme Corp</div>
-                      <nav className="flex gap-6 text-sm font-medium text-gray-500">
-                        <span>Products</span>
-                        <span>Pricing</span>
-                        <span>About</span>
-                      </nav>
-                    </header>
-                    <section className="text-center py-20">
-                      <h1 className="text-6xl font-bold tracking-tight text-gray-900 mb-6">
-                        Build faster, together.
-                      </h1>
-                      <p className="text-xl text-gray-500 mb-8 max-w-2xl mx-auto">
-                        The platform for rapid UI generation using multi-agent consensus protocols.
-                      </p>
-                      <button className="px-8 py-3 bg-indigo-600 text-white rounded-full font-medium shadow-lg hover:bg-indigo-700">
-                        Start for free
-                      </button>
-                    </section>
-                  </div>
+                <div className="w-full h-full flex flex-col items-center justify-center bg-gray-50 text-gray-400">
+                  <MousePointer2 size={32} className="mb-4 opacity-50" />
+                  <p>No output available</p>
                 </div>
               )}
             </m.div>
@@ -344,25 +343,75 @@ export default function StudioClientShell({ id }: { id: string }) {
                 <h4 className="text-[11px] uppercase tracking-wider font-semibold text-gray-500 mb-3">
                   D-O-R-A-V Scorecard
                 </h4>
-                <div className="space-y-3">
-                  <div className="bg-black/30 p-3 rounded border border-[var(--g-outline)] flex justify-between items-center">
-                    <span className="text-xs text-gray-400">Axe (A11y)</span>
-                    <span
-                      className={`text-xs font-mono font-bold ${status === 'converged' ? 'text-emerald-400' : 'text-gray-600'}`}
-                    >
-                      {status === 'converged' ? '94/100' : '--'}
-                    </span>
-                  </div>
-                  <div className="bg-black/30 p-3 rounded border border-[var(--g-outline)] flex justify-between items-center">
-                    <span className="text-xs text-gray-400">Visual Quality</span>
-                    <span
-                      className={`text-xs font-mono font-bold ${status === 'converged' ? 'text-emerald-400' : 'text-gray-600'}`}
-                    >
-                      {status === 'converged' ? '88/100' : '--'}
-                    </span>
-                  </div>
+                {/* Composite headline */}
+                <div className="bg-black/40 p-3 rounded border border-indigo-500/30 flex justify-between items-center mb-3">
+                  <span className="text-xs text-gray-300 font-semibold">Composite</span>
+                  <span
+                    className={`text-sm font-mono font-bold ${dorav?.composite != null ? 'text-indigo-300' : 'text-gray-600'}`}
+                  >
+                    {dorav?.composite != null ? Math.round(dorav.composite * 100) : '--'}
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  {(
+                    [
+                      { key: 'brand' as const, label: 'Brand' },
+                      { key: 'originality' as const, label: 'Originality' },
+                      { key: 'relevance' as const, label: 'Relevance' },
+                      { key: 'accessibility' as const, label: 'Accessibility' },
+                      { key: 'visual-clarity' as const, label: 'Visual Clarity' },
+                    ] as const
+                  ).map(({ key, label }) => {
+                    const val = dorav?.[key];
+                    return (
+                      <div
+                        key={key}
+                        className="bg-black/30 px-3 py-2 rounded border border-[var(--g-outline)] flex justify-between items-center"
+                      >
+                        <span className="text-xs text-gray-400">{label}</span>
+                        <span
+                          className={`text-xs font-mono font-bold ${val != null ? 'text-emerald-400' : 'text-gray-600'}`}
+                        >
+                          {val != null ? Math.round(val * 100) : '—'}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
+
+              {/* Nielsen Heuristics */}
+              {(status === 'converged' || nielsen.length > 0) && (
+                <div>
+                  <div className="h-px bg-[var(--g-outline)] my-4" />
+                  <h4 className="text-[11px] uppercase tracking-wider font-semibold text-gray-500 mb-3">
+                    Nielsen Heuristics
+                  </h4>
+                  {nielsen.length === 0 ? (
+                    <p className="text-xs text-gray-600 italic">No heuristic data</p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {nielsen.map((item) => (
+                        <div
+                          key={item.heuristic}
+                          className="flex items-center gap-2 px-2 py-1.5 rounded bg-black/20 border border-[var(--g-outline)]"
+                        >
+                          <span
+                            className={`shrink-0 w-2 h-2 rounded-full ${item.present ? 'bg-emerald-400' : 'bg-gray-600'}`}
+                            aria-label={item.present ? 'present' : 'absent'}
+                          />
+                          <span className="text-[10px] text-gray-400 flex-1 truncate capitalize">
+                            {item.heuristic.replace(/_/g, ' ')}
+                          </span>
+                          <span className="text-[10px] font-mono text-gray-500 shrink-0">
+                            {item.votes}/3
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </aside>
 
