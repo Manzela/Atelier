@@ -11,6 +11,10 @@ export default defineConfig({
     ['json', { outputFile: 'e2e-results.json' }],
   ],
 
+  expect: {
+    toHaveScreenshot: { maxDiffPixelRatio: 0.02 },
+  },
+
   use: {
     baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',

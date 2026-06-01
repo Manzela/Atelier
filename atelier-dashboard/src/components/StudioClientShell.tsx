@@ -16,6 +16,9 @@ import {
   ZoomIn,
   ZoomOut,
   Maximize,
+  Smartphone,
+  Tablet,
+  Monitor,
 } from 'lucide-react';
 import {
   runGenerationStream,
@@ -59,9 +62,12 @@ function useClientAuth() {
   return { user, initRef };
 }
 
+type DeviceWidth = 390 | 768 | 1280;
+
 export default function StudioClientShell({ id }: { id: string }) {
   const router = useRouter();
   const [scale, setScale] = useState(1);
+  const [deviceWidth, setDeviceWidth] = useState<DeviceWidth>(1280);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [temperature, setTemperature] = useState(0.4);
   const [topK, setTopK] = useState(40);
@@ -216,9 +222,34 @@ export default function StudioClientShell({ id }: { id: string }) {
           </aside>
 
           {/* Center Canvas */}
-          <main className="flex-1 relative flex items-center justify-center overflow-hidden">
+          <main className="flex-1 relative flex items-center justify-center overflow-auto">
             {/* Canvas Toolbar */}
             <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-[var(--g-surface)]/80 backdrop-blur-md p-1 rounded-lg border border-[var(--g-outline)] shadow-lg z-20">
+              <button
+                data-testid="device-390"
+                aria-label="Mobile 390px"
+                className={`p-1.5 rounded transition-colors ${deviceWidth === 390 ? 'bg-indigo-500/30 text-indigo-300' : 'hover:bg-[var(--g-surface-hover)] text-gray-400 hover:text-white'}`}
+                onClick={() => setDeviceWidth(390)}
+              >
+                <Smartphone size={16} />
+              </button>
+              <button
+                data-testid="device-768"
+                aria-label="Tablet 768px"
+                className={`p-1.5 rounded transition-colors ${deviceWidth === 768 ? 'bg-indigo-500/30 text-indigo-300' : 'hover:bg-[var(--g-surface-hover)] text-gray-400 hover:text-white'}`}
+                onClick={() => setDeviceWidth(768)}
+              >
+                <Tablet size={16} />
+              </button>
+              <button
+                data-testid="device-1280"
+                aria-label="Desktop 1280px"
+                className={`p-1.5 rounded transition-colors ${deviceWidth === 1280 ? 'bg-indigo-500/30 text-indigo-300' : 'hover:bg-[var(--g-surface-hover)] text-gray-400 hover:text-white'}`}
+                onClick={() => setDeviceWidth(1280)}
+              >
+                <Monitor size={16} />
+              </button>
+              <div className="w-px h-4 bg-[var(--g-outline)] mx-1" />
               <button
                 className="p-1.5 rounded hover:bg-[var(--g-surface-hover)] text-gray-400 hover:text-white transition-colors"
                 onClick={() => handleZoom(-0.1)}
@@ -248,11 +279,13 @@ export default function StudioClientShell({ id }: { id: string }) {
 
             {/* Draggable/Zoomable Canvas Area */}
             <m.div
+              data-testid="studio-canvas"
               drag
               dragMomentum={false}
               animate={{ scale }}
               transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
-              className="w-[1024px] h-[768px] bg-white rounded-lg shadow-2xl overflow-hidden border border-gray-200 cursor-grab active:cursor-grabbing origin-center"
+              style={{ width: deviceWidth }}
+              className="shrink-0 h-[768px] bg-white rounded-lg shadow-2xl overflow-hidden border border-gray-200 cursor-grab active:cursor-grabbing origin-center"
             >
               {status === 'idle' ? (
                 <div className="w-full h-full flex flex-col items-center justify-center bg-gray-50 text-gray-400">

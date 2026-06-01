@@ -243,11 +243,46 @@ jobs:
         working-directory: atelier-dashboard
         run: npm run build
 
+  # ─── Dashboard Playwright E2E ─────────────────────────────────────────
+  dashboard-e2e:
+    name: Dashboard E2E (Playwright)
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.dashboard == 'true' || needs.changes.outputs.ci_config == 'true'
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - name: Install dependencies (lockfile)
+        run: npm ci
+      - name: Install Playwright Chromium
+        working-directory: atelier-dashboard
+        run: npx playwright install --with-deps chromium
+      - name: Run Playwright tests
+        working-directory: atelier-dashboard
+        run: npx playwright test
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: atelier-dashboard/playwright-report
+          retention-days: 14
+      - name: Upload test results (includes Linux reference PNGs)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results
+          path: atelier-dashboard/test-results
+          retention-days: 14
+
   # ─── All-green gate (required by branch protection) ──────────────────
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest
-    needs: [precommit, python, docs-links, tokens, dashboard]
+    needs: [precommit, python, docs-links, tokens, dashboard, dashboard-e2e]
     if: always()
     steps:
       - name: Verify required jobs passed (or skipped intentionally)
@@ -256,11 +291,12 @@ jobs:
             echo "precommit failed: ${{ needs.precommit.result }}"
             exit 1
           fi
-          for j_name in "python" "docs-links" "tokens" "dashboard"; do
+          for j_name in "python" "docs-links" "tokens" "dashboard" "dashboard-e2e"; do
             r="${{ needs.python.result }}"
             [[ "$j_name" == "docs-links" ]] && r="${{ needs.docs-links.result }}"
             [[ "$j_name" == "tokens" ]] && r="${{ needs.tokens.result }}"
             [[ "$j_name" == "dashboard" ]] && r="${{ needs.dashboard.result }}"
+            [[ "$j_name" == "dashboard-e2e" ]] && r="${{ needs.dashboard-e2e.result }}"
             if [[ "$r" == "failure" || "$r" == "cancelled" ]]; then
               echo "$j_name failed: $r"
               exit 1
