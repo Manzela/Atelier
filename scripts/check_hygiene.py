@@ -45,6 +45,16 @@ DENYLIST: list[str] = [
 
 STYLE_GUIDE = "docs/STYLE.md"
 
+#: Files that are exempt from scanning because they legitimately discuss or implement
+#: the rules themselves (the gate, its tests, and the style guide).
+SCAN_EXEMPT: frozenset[str] = frozenset(
+    [
+        "scripts/check_hygiene.py",
+        "atelier-core/tests/unit/test_hygiene_gate.py",
+        "docs/STYLE.md",
+    ]
+)
+
 
 # ---------------------------------------------------------------------------
 # Core scan logic (importable for tests)
@@ -128,7 +138,7 @@ def _git_ls_files(root: Path) -> list[str]:
     files: list[str] = []
     for line in result.stdout.splitlines():
         stripped = line.strip()
-        if stripped.endswith((".md", ".py")):
+        if stripped.endswith((".md", ".py")) and stripped not in SCAN_EXEMPT:
             files.append(str(root / stripped))
     return files
 

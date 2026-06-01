@@ -164,11 +164,14 @@ class TestSubprocessGate:
 
     def test_clean_repo_exits_zero(self) -> None:
         """Running against the actual repo returns exit 0 (gate is clean)."""
+        # Run from repo root so relative paths in SCAN_EXEMPT match git ls-files output.
+        repo_root = _GATE_PATH.parent.parent
         result = subprocess.run(  # noqa: S603
             [sys.executable, str(_GATE_PATH)],
             capture_output=True,
             text=True,
             check=False,
+            cwd=str(repo_root),
         )
         assert result.returncode == 0, (
             f"Hygiene gate returned non-zero on the clean repo.\n"
