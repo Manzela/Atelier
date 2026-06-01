@@ -65,3 +65,9 @@ docs/site/** linguist-vendored=true
 *.ttf binary
 *.eot binary
 *.otf binary
+
+# Playwright visual-regression reference snapshots: store as normal binary git
+# blobs (NOT Git LFS), so CI checkout — which does not fetch LFS — gets the real
+# PNG bytes instead of a 130-byte LFS pointer (otherwise toHaveScreenshot fails
+# with "Could not decode expected image as PNG"). These references are tiny (~37KB).
+atelier-dashboard/e2e/**/*.png -filter -diff -merge binary
