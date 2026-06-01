@@ -10,9 +10,28 @@ This script is run by CI on every pull-request targeting ``main`` or a
 Exit codes (the public contract; nothing else exits with these values):
     0  Envelope present, verdict DONE, re-run agrees on all fields.
     1  Merge blocked (missing envelope / parse error / REJECTED verdict /
-       auto-REJECT because re-run disagrees / tampered SHA-256).
+       auto-REJECT because re-run disagrees / tampered SHA-256 /
+       DONE-must-pass violation).
     2  Non-convergence: 3rd consecutive REJECTED entry in the calibration
        log — surface to user for manual intervention.
+
+DONE-must-pass invariant (AT-102 fabrication-escape fix):
+    A DONE verdict passes the gate ONLY when ALL of the following hold:
+      1. Claimed pytest_exit == 0 (a DONE that declares failure is contradictory).
+      2. Claimed mypy_exit == 0.
+      3. The independent re-run of pytest returns 0 AND agrees with the claim.
+      4. The independent re-run of mypy returns 0 AND agrees with the claim.
+      5. When eval_delta_vs_head1 is non-null, the eval re-run returns 0.
+      6. files_touched_sha is non-empty (vacuous DONE with no listed files is rejected).
+      7. All listed SHA-256 values match the files currently on disk.
+
+    Note on under-declaration of changed files: this gate only verifies the
+    files explicitly listed in files_touched_sha. It does NOT cross-reference
+    against ``git diff HEAD~1`` to detect files changed but omitted from the
+    SHA map. The pytest/mypy independent re-runs serve as the backstop — broken
+    or untested code will fail the re-run regardless of which files are sha-listed.
+    Full git-diff cross-referencing is a documented follow-up deferred to avoid
+    CI shallow-checkout false-block risk.
 
 Usage (local):
     python scripts/ci/verify_reviewer_envelope.py
@@ -338,6 +357,80 @@ def _escalate_if_converging(
     return 1
 
 
+def _check_done_claimed_exits(envelope: dict[str, Any]) -> list[str]:
+    """Return a list of reasons why a DONE envelope's claimed exits are invalid.
+
+    DONE-must-pass invariant (AT-102 fabrication-escape fix): a DONE envelope
+    that honestly declares a failing exit code is self-contradictory.  This
+    check fires BEFORE any subprocess re-run so that claim==re-run agreement
+    on both-failing exits can no longer produce a false pass.
+
+    Also enforces that files_touched_sha is non-empty for DONE verdicts.
+    NOTE: under-declaration (files changed but absent from the map) is NOT
+    detected here — see module docstring for rationale and known limitation.
+    """
+    reasons: list[str] = []
+    pytest_exit: int = envelope["pytest_exit"]
+    if pytest_exit != 0:
+        reasons.append(
+            f"verdict=DONE but envelope declares a failing pytest_exit={pytest_exit} "
+            "— DONE requires passing checks."
+        )
+    mypy_exit: int = envelope["mypy_exit"]
+    if mypy_exit != 0:
+        reasons.append(
+            f"verdict=DONE but envelope declares a failing mypy_exit={mypy_exit} "
+            "— DONE requires passing checks."
+        )
+    files_touched: dict[str, str] = envelope["files_touched_sha"]
+    if not files_touched:
+        reasons.append(
+            "verdict=DONE requires at least one files_touched_sha entry — "
+            "an empty map provides no evidence of what was verified."
+        )
+    return reasons
+
+
+def _collect_rerun_mismatches(
+    repo_root: Path,
+    envelope: dict[str, Any],
+) -> list[str]:
+    """Run independent re-checks and return any disagreement reasons.
+
+    Precondition: _check_done_claimed_exits returned [] (claimed exits are 0
+    and files_touched_sha is non-empty).  Agreement is checked first; a
+    non-zero re-run that happens to agree with a non-zero claim is impossible
+    in normal flow after the precondition is satisfied, but the explicit 0
+    checks are retained for defense-in-depth.
+    """
+    mismatches: list[str] = []
+    claimed_pytest: int = envelope["pytest_exit"]
+    real_pytest = _rerun_pytest(repo_root)
+    if real_pytest != claimed_pytest:
+        mismatches.append(f"pytest_exit: claimed={claimed_pytest}, re-run={real_pytest}")
+    elif real_pytest != 0:
+        mismatches.append(f"pytest re-run returned {real_pytest} (must be 0 for DONE)")
+
+    claimed_mypy: int = envelope["mypy_exit"]
+    real_mypy = _rerun_mypy(repo_root)
+    if real_mypy != claimed_mypy:
+        mismatches.append(f"mypy_exit: claimed={claimed_mypy}, re-run={real_mypy}")
+    elif real_mypy != 0:
+        mismatches.append(f"mypy re-run returned {real_mypy} (must be 0 for DONE)")
+
+    claimed_eval: float | None = envelope.get("eval_delta_vs_head1")
+    if claimed_eval is not None:
+        real_eval = _rerun_eval(repo_root)
+        if real_eval != 0:
+            mismatches.append(
+                f"eval (make verify-eval): expected exit 0, re-run returned {real_eval}"
+            )
+
+    files_touched: dict[str, str] = envelope["files_touched_sha"]
+    _check_sha_mismatches(repo_root, files_touched, mismatches)
+    return mismatches
+
+
 # ---------------------------------------------------------------------------
 # Main gate logic
 # ---------------------------------------------------------------------------
@@ -378,40 +471,30 @@ def run_gate(repo_root: Path) -> int:
             calibration_path, "REJECTED", ["reviewer emitted REJECTED verdict"]
         )
 
-    # 4. verdict == "DONE" — independently re-run every named check
-    mismatches: list[str] = []
+    # 4. DONE-must-pass: claimed exits must be 0 and files_touched_sha must be
+    #    non-empty.  Check these BEFORE spawning expensive subprocess re-runs.
+    claimed_violations = _check_done_claimed_exits(envelope)
+    if claimed_violations:
+        for reason in claimed_violations:
+            log.error("auto-REJECT: %s", reason)
+        log.error(
+            "merge blocked: envelope fails DONE-must-pass invariant on %d check(s). "
+            "Reviewer flagged for calibration.",
+            len(claimed_violations),
+        )
+        return _escalate_if_converging(calibration_path, "auto-REJECTED", claimed_violations)
 
-    real_pytest = _rerun_pytest(repo_root)
-    claimed_pytest: int = envelope["pytest_exit"]
-    if real_pytest != claimed_pytest:
-        mismatches.append(f"pytest_exit: claimed={claimed_pytest}, re-run={real_pytest}")
-
-    real_mypy = _rerun_mypy(repo_root)
-    claimed_mypy: int = envelope["mypy_exit"]
-    if real_mypy != claimed_mypy:
-        mismatches.append(f"mypy_exit: claimed={claimed_mypy}, re-run={real_mypy}")
-
-    claimed_eval: float | None = envelope.get("eval_delta_vs_head1")
-    if claimed_eval is not None:
-        real_eval = _rerun_eval(repo_root)
-        if real_eval != 0:
-            mismatches.append(
-                f"eval (make verify-eval): expected exit 0, re-run returned {real_eval}"
-            )
-
-    files_touched: dict[str, str] = envelope["files_touched_sha"]
-    _check_sha_mismatches(repo_root, files_touched, mismatches)
-
-    # 5. Decide outcome
-    if mismatches:
-        for reason in mismatches:
+    # 5. Independent re-runs — agreement + explicit 0 check.
+    rerun_mismatches = _collect_rerun_mismatches(repo_root, envelope)
+    if rerun_mismatches:
+        for reason in rerun_mismatches:
             log.error("auto-REJECT: %s", reason)
         log.error(
             "merge blocked: envelope disagrees with independent re-run on %d field(s). "
             "Reviewer flagged for calibration.",
-            len(mismatches),
+            len(rerun_mismatches),
         )
-        return _escalate_if_converging(calibration_path, "auto-REJECTED", mismatches)
+        return _escalate_if_converging(calibration_path, "auto-REJECTED", rerun_mismatches)
 
     log.info("Reviewer envelope verified: DONE — all re-run checks agree with claimed values.")
     return 0

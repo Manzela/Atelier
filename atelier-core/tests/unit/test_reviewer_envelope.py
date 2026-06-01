@@ -75,6 +75,25 @@ _VALID_ENVELOPE: dict[str, Any] = {
     "files_touched_sha": {},
 }
 
+# Placeholder file content used to build a real files_touched_sha entry.
+_PLACEHOLDER_CONTENT = b"# placeholder\n"
+_PLACEHOLDER_SHA = _sha256(_PLACEHOLDER_CONTENT)
+
+
+def _setup_placeholder_file(repo_root: Path) -> dict[str, Any]:
+    """Create src/placeholder.py and return an envelope with a matching SHA entry.
+
+    Used by tests that need a non-empty files_touched_sha to satisfy the
+    DONE-must-pass invariant while still expecting exit 0.
+    """
+    src = repo_root / "src"
+    src.mkdir(parents=True, exist_ok=True)
+    (src / "placeholder.py").write_bytes(_PLACEHOLDER_CONTENT)
+    return {
+        **_VALID_ENVELOPE,
+        "files_touched_sha": {"src/placeholder.py": _PLACEHOLDER_SHA},
+    }
+
 
 # ===========================================================================
 # Section 1 — ReviewerEnvelope Pydantic model
@@ -283,7 +302,9 @@ class TestGateAntiFabrication:
 
     def test_eval_not_rerun_when_null(self, tmp_path: Path) -> None:
         """When eval_delta_vs_head1 is None, verify-eval is NOT re-run."""
-        _write_envelope(tmp_path, _VALID_ENVELOPE)  # eval_delta_vs_head1 = None
+        # Use a non-empty files_touched_sha so the DONE-must-pass invariant is satisfied.
+        envelope = _setup_placeholder_file(tmp_path)  # eval_delta_vs_head1 = None
+        _write_envelope(tmp_path, envelope)
 
         with (
             patch.object(_gate, "_rerun_pytest", return_value=0),
@@ -422,8 +443,10 @@ class TestGateRejectedAndStreak:
             json.dumps(pre_log), encoding="utf-8"
         )
 
-        # Now a successful DONE run — must NOT exit 2 because streak resets on DONE
-        _write_envelope(tmp_path, _VALID_ENVELOPE)
+        # Now a successful DONE run — must NOT exit 2 because streak resets on DONE.
+        # Use a non-empty files_touched_sha to satisfy the DONE-must-pass invariant.
+        envelope = _setup_placeholder_file(tmp_path)
+        _write_envelope(tmp_path, envelope)
 
         with (
             patch.object(_gate, "_rerun_pytest", return_value=0),
@@ -529,3 +552,101 @@ class TestCalibrationLogHelpers:
         bad.write_text("not json", encoding="utf-8")
         result = _gate._load_calibration_log(bad)
         assert result == []
+
+
+# ===========================================================================
+# Section 9 — DONE-must-pass invariant (AT-102 fabrication-escape fix)
+#
+# These tests close the specific escape identified in the adversarial review:
+#
+#   A DONE envelope honestly claiming pytest_exit=1 (or mypy_exit=1) would
+#   previously PASS the gate when the independent re-run also returned 1,
+#   because the only check was claim == re-run (agreement).  The gate is now
+#   required to also enforce that a DONE's claimed exits are actually 0.
+#
+# Each test MUST fail on the pre-fix code and pass after.
+# The third test covers the empty-files vacuity hole.
+# ===========================================================================
+
+
+class TestGateDoneMustPass:
+    def test_done_with_failing_claimed_pytest_exit_is_rejected(self, tmp_path: Path) -> None:
+        """DONE + pytest_exit=1 in envelope -> gate exit 1 (fabrication escape, now closed).
+
+        Pre-fix behaviour: if the independent re-run ALSO returned 1, the
+        agreement check passed and the gate returned 0.  Post-fix: the gate
+        must inspect the claimed value itself and reject immediately.
+
+        This test MUST fail on pre-fix code and pass after.
+        """
+        envelope = {
+            **_VALID_ENVELOPE,
+            "pytest_exit": 1,  # DONE honestly declaring failure — contradictory
+            "files_touched_sha": {"src/placeholder.py": _PLACEHOLDER_SHA},
+        }
+        (tmp_path / "src").mkdir(parents=True, exist_ok=True)
+        (tmp_path / "src" / "placeholder.py").write_bytes(_PLACEHOLDER_CONTENT)
+        _write_envelope(tmp_path, envelope)
+
+        # Mock re-runs to AGREE with the claimed value (both failing).
+        # Pre-fix: agreement -> exit 0 (the escape).
+        # Post-fix: claimed exit != 0 -> exit 1 before re-runs are even invoked.
+        with (
+            patch.object(_gate, "_rerun_pytest", return_value=1),
+            patch.object(_gate, "_rerun_mypy", return_value=0),
+        ):
+            code = _gate.run_gate(tmp_path)
+
+        assert code == 1, (
+            "Gate must reject DONE + pytest_exit=1 (claimed failure is contradictory). "
+            f"Actual exit code: {code}"
+        )
+
+    def test_done_with_failing_claimed_mypy_exit_is_rejected(self, tmp_path: Path) -> None:
+        """DONE + mypy_exit=1 in envelope -> gate exit 1.
+
+        Mirror of the pytest variant.  This test MUST fail on pre-fix code
+        and pass after.
+        """
+        envelope = {
+            **_VALID_ENVELOPE,
+            "mypy_exit": 1,  # DONE honestly declaring failure — contradictory
+            "files_touched_sha": {"src/placeholder.py": _PLACEHOLDER_SHA},
+        }
+        (tmp_path / "src").mkdir(parents=True, exist_ok=True)
+        (tmp_path / "src" / "placeholder.py").write_bytes(_PLACEHOLDER_CONTENT)
+        _write_envelope(tmp_path, envelope)
+
+        # Mock re-runs to AGREE with the claimed value (mypy also failing).
+        with (
+            patch.object(_gate, "_rerun_pytest", return_value=0),
+            patch.object(_gate, "_rerun_mypy", return_value=1),
+        ):
+            code = _gate.run_gate(tmp_path)
+
+        assert code == 1, (
+            "Gate must reject DONE + mypy_exit=1 (claimed failure is contradictory). "
+            f"Actual exit code: {code}"
+        )
+
+    def test_done_with_empty_files_touched_sha_is_rejected(self, tmp_path: Path) -> None:
+        """DONE + files_touched_sha={} -> gate exit 1 (vacuous DONE, now closed).
+
+        An empty map provides no evidence of what was verified.  A DONE verdict
+        must name at least one file.
+
+        This test MUST fail on pre-fix code and pass after.
+        """
+        # Use _VALID_ENVELOPE directly — it has files_touched_sha: {}
+        _write_envelope(tmp_path, _VALID_ENVELOPE)
+
+        with (
+            patch.object(_gate, "_rerun_pytest", return_value=0),
+            patch.object(_gate, "_rerun_mypy", return_value=0),
+        ):
+            code = _gate.run_gate(tmp_path)
+
+        assert code == 1, (
+            "Gate must reject DONE + empty files_touched_sha (vacuous DONE). "
+            f"Actual exit code: {code}"
+        )
