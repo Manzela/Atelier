@@ -9,6 +9,7 @@ from atelier.orchestrator.governor import (
     GovernorRateLimitExceeded,
     GovernorState,
     GovernorTokenCapExceeded,
+    GovernorUsageUnavailable,
     MetacognitiveGovernor,
 )
 
@@ -22,9 +23,11 @@ class TestGovernorClassification:
     @pytest.mark.parametrize(
         ("exc", "expected"),
         [
-            # AT-095: the token cap + rate limit are fail-loud security controls.
+            # AT-095: the token cap, rate limit, and fail-closed usage-unavailable
+            # are all fail-loud security/integrity controls.
             (GovernorTokenCapExceeded(uid="u1"), FailureMode.FAIL_LOUD),
             (GovernorRateLimitExceeded(uid="u1"), FailureMode.FAIL_LOUD),
+            (GovernorUsageUnavailable(uid="u1"), FailureMode.FAIL_LOUD),
             (ValueError("invalid"), FailureMode.FAIL_SOFT),
             (RuntimeError("context length exceeded"), FailureMode.FAIL_SOFT),
             (TimeoutError("timeout"), FailureMode.SELF_HEAL),

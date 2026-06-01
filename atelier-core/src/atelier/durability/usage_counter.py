@@ -42,7 +42,7 @@ from typing import Any, Final, Protocol
 
 from atelier.orchestrator.governor import (
     GovernorRateLimitExceeded,
-    GovernorTokenCapExceeded,
+    GovernorUsageUnavailable,
 )
 
 logger = logging.getLogger(__name__)
@@ -184,8 +184,10 @@ class UsageCounterStore:
                     rec.output_tokens,
                     rec.thinking_tokens,
                 )
-        # Firestore: fail closed on a hard read error (security cap). A missing
-        # document is a legitimate "new user" → zero, not an error.
+        # Firestore: fail CLOSED on a hard read error OR a corrupt (non-coercible)
+        # counter value — but as GovernorUsageUnavailable (a transient/retryable
+        # 503 deny), NEVER as a cap breach. A missing document is a legitimate
+        # "new user" -> zero, not an error.
         try:
             snap = self._doc_ref(uid).get()
         except Exception as exc:
@@ -193,22 +195,27 @@ class UsageCounterStore:
                 "atelier.usage.read_failed",
                 extra={"uid": uid, "error": type(exc).__name__},
             )
-            raise GovernorTokenCapExceeded(
-                uid=uid,
-                used_tokens=self._token_cap,
-                cap_tokens=self._token_cap,
-                which_cap="persistence_unavailable_fail_closed",
-            ) from exc
+            raise GovernorUsageUnavailable(uid=uid, reason="read_failed") from exc
         if not snap.exists:
             return UsageSnapshot(uid, 0, 0, 0, 0)
         data = snap.to_dict() or {}
-        return UsageSnapshot(
-            uid,
-            int(data.get("total_tokens", 0) or 0),
-            int(data.get("input_tokens", 0) or 0),
-            int(data.get("output_tokens", 0) or 0),
-            int(data.get("thinking_tokens", 0) or 0),
-        )
+        # Guard the parse: a non-int stored value (a server bug, a console edit, a
+        # pre-rules migrated doc) is a data-integrity fault -> fail CLOSED, never a
+        # raw 500 and never a silent coerce-to-zero (which would under-count).
+        try:
+            return UsageSnapshot(
+                uid,
+                int(data.get("total_tokens", 0) or 0),
+                int(data.get("input_tokens", 0) or 0),
+                int(data.get("output_tokens", 0) or 0),
+                int(data.get("thinking_tokens", 0) or 0),
+            )
+        except (ValueError, TypeError) as exc:
+            logger.error(  # noqa: TRY400
+                "atelier.usage.corrupt_counter",
+                extra={"uid": uid, "error": type(exc).__name__},
+            )
+            raise GovernorUsageUnavailable(uid=uid, reason="corrupt_counter") from exc
 
     def add(
         self,
@@ -254,16 +261,23 @@ class UsageCounterStore:
                 "atelier.usage.write_failed",
                 extra={"uid": uid, "delta": delta, "error": type(exc).__name__},
             )
-            raise GovernorTokenCapExceeded(
-                uid=uid,
-                used_tokens=self._token_cap,
-                cap_tokens=self._token_cap,
-                which_cap="persistence_unavailable_fail_closed",
-            ) from exc
-        return self.get_total(uid)
+            raise GovernorUsageUnavailable(uid=uid, reason="write_failed") from exc
+        # The increment COMMITTED above (the charge is persisted). A post-write
+        # read is only to return the fresh total; if it fails we must NOT
+        # manufacture a deny for an already-successful charge — return a
+        # best-effort value and log degraded. (The runner ignores this return and
+        # reads the authoritative cumulative from governor state.)
+        try:
+            return self.get_total(uid)
+        except GovernorUsageUnavailable:
+            logger.warning(
+                "atelier.usage.postwrite_read_degraded",
+                extra={"uid": uid, "delta": delta},
+            )
+            return delta
 
     def check_rate_limit(self, uid: str) -> None:
-        """Raise :class:`RateLimitExceededError` if ``uid`` is burning too fast.
+        """Raise :class:`GovernorRateLimitExceeded` if ``uid`` is burning too fast.
 
         Sliding-window over request timestamps. In-process only (single Cloud
         Run instance); AT-097 makes it global + adds the circuit-breaker.

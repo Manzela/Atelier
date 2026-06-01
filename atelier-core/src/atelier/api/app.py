@@ -33,8 +33,10 @@ from fastapi.responses import JSONResponse
 from atelier.__version__ import __version__
 from atelier.orchestrator.governor import (
     TOKEN_CAP_MESSAGE,
+    USAGE_UNAVAILABLE_MESSAGE,
     GovernorRateLimitExceeded,
     GovernorTokenCapExceeded,
+    GovernorUsageUnavailable,
 )
 from atelier.utils.log_sanitizer import sanitize
 
@@ -166,6 +168,37 @@ def create_app() -> FastAPI:
                 "detail": TOKEN_CAP_MESSAGE,
                 "user_action": "Contact administrator to continue.",
                 "docs_url": "https://atelier.autonomous-agent.dev/docs/limits",
+            },
+        )
+
+    # --- Global exception handler: GovernorUsageUnavailable → HTTP 503 ───────
+    # AT-095: the usage store could not be read/written (transient outage or a
+    # corrupt counter). We fail CLOSED (deny — a paid endpoint must not run
+    # without a working cap guard) but acknowledge HONESTLY: a transient,
+    # retryable fault, NOT a cap breach (PRD §21). RFC 9110 §15.6.4 — 503 +
+    # Retry-After is the correct status for a dependency-unavailable deny.
+    @application.exception_handler(GovernorUsageUnavailable)
+    async def usage_unavailable_handler(
+        request: Request,
+        exc: GovernorUsageUnavailable,
+    ) -> JSONResponse:
+        client_ip = exc.client_ip or (request.client.host if request.client else None)
+        await logger.aerror(
+            "atelier.usage_unavailable",
+            path=str(request.url.path),
+            uid=sanitize(str(exc.uid)),
+            client_ip=sanitize(str(client_ip)) if client_ip else None,
+            reason=exc.reason,
+        )
+        return JSONResponse(
+            status_code=503,
+            headers={"Retry-After": "30"},
+            content={
+                "error": "usage_unavailable",
+                "code": 503,
+                "title": "Service temporarily unavailable",
+                "detail": USAGE_UNAVAILABLE_MESSAGE,
+                "user_action": "Please retry shortly.",
             },
         )
 

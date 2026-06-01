@@ -15,7 +15,10 @@ from atelier.durability.usage_counter import (
     get_usage_store,
     reset_usage_store_singleton,
 )
-from atelier.orchestrator.governor import GovernorRateLimitExceeded
+from atelier.orchestrator.governor import (
+    GovernorRateLimitExceeded,
+    GovernorUsageUnavailable,
+)
 
 
 @pytest.fixture
@@ -121,3 +124,75 @@ def test_singleton_is_stable_and_resettable() -> None:
     reset_usage_store_singleton()
     s3 = get_usage_store()
     assert s3 is not s1
+
+
+# --- Fail-closed on persistence failure / corruption (Firestore backend) ------
+# A read/write error or a corrupt counter value must fail CLOSED as a distinct,
+# retryable GovernorUsageUnavailable (HTTP 503) — NOT a GovernorTokenCapExceeded
+# (which would dishonestly tell the user they hit their cap), and NOT a raw 500.
+
+
+class _RaisingDoc:
+    def get(self) -> object:
+        raise RuntimeError("firestore unavailable")
+
+    def set(self, *_a: object, **_k: object) -> None:
+        raise RuntimeError("firestore unavailable")
+
+
+class _WriteOkReadFailsDoc:
+    """set() commits, but the post-write get() fails — the add() best-effort path."""
+
+    def set(self, *_a: object, **_k: object) -> None:
+        return None
+
+    def get(self) -> object:
+        raise RuntimeError("firestore read blip after a committed write")
+
+
+class _CorruptDoc:
+    def get(self) -> object:
+        class _Snap:
+            exists = True
+
+            @staticmethod
+            def to_dict() -> dict[str, object]:
+                return {"total_tokens": "not-a-number"}  # poisoned / non-coercible
+
+        return _Snap()
+
+
+def _firestore_store_with(doc: object) -> UsageCounterStore:
+    s = UsageCounterStore(backend="firestore")
+    s._doc_ref = lambda _uid: doc  # type: ignore[method-assign]  # inject a fake doc ref
+    return s
+
+
+def test_read_failure_fails_closed_as_usage_unavailable() -> None:
+    s = _firestore_store_with(_RaisingDoc())
+    with pytest.raises(GovernorUsageUnavailable) as exc:
+        s.get_total("u")
+    assert exc.value.reason == "read_failed"
+
+
+def test_write_failure_fails_closed_as_usage_unavailable() -> None:
+    s = _firestore_store_with(_RaisingDoc())
+    with pytest.raises(GovernorUsageUnavailable) as exc:
+        s.add("u", input_tokens=10)
+    assert exc.value.reason == "write_failed"
+
+
+def test_corrupt_counter_value_fails_closed_not_500_or_zero() -> None:
+    s = _firestore_store_with(_CorruptDoc())
+    with pytest.raises(GovernorUsageUnavailable) as exc:
+        s.snapshot("u")
+    # Fail CLOSED as corruption — never a silent coerce-to-zero (which would
+    # under-count and weaken the cap) and never a raw ValueError/500.
+    assert exc.value.reason == "corrupt_counter"
+
+
+def test_postwrite_read_failure_does_not_deny_a_committed_charge() -> None:
+    # The increment COMMITTED; a post-write read blip must NOT raise (which would
+    # manufacture a deny for an already-successful charge). Returns best-effort.
+    s = _firestore_store_with(_WriteOkReadFailsDoc())
+    assert s.add("u", input_tokens=7) == 7  # best-effort = the delta, no raise

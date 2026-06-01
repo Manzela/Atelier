@@ -121,19 +121,21 @@ LlmAgent(
 )
 ```
 
-### Governor Budget Caps
+### Governor Usage Cap (token-only)
 
-The Governor enforces per-tenant cost limits. When budget is exhausted, the API returns a structured 402 response:
+Usage governance is **token-only** (AT-095, §13.2): there is **no USD/cost cap and no dollar meter**. The sole cap is a **per-user lifetime 5,000,000-token** hard cap — a cumulative per-Firebase-uid counter (`input + output + thinking`) persisted in Firestore and enforced server-side **pre-flight** (before any Vertex call). A breach is **fail-loud** (never self-healed) and the API returns a structured, branded 402:
 
 ```json
 {
-  "error": "budget_exhausted",
-  "detail": "Monthly budget cap reached",
-  "budget_consumed_usd": 49.99,
-  "budget_limit_usd": 50.0,
+  "error": "token_cap_exhausted",
+  "code": 402,
+  "title": "Account usage limit reached",
+  "detail": "You've reached this account's usage limit. Contact administrator to continue.",
   "docs_url": "https://atelier.autonomous-agent.dev/docs/limits"
 }
 ```
+
+When the usage store itself is unavailable (transient outage or a corrupt counter) the Governor fails **closed** but acknowledges honestly with a distinct, retryable **HTTP 503** (`usage_unavailable` + `Retry-After`) — never the permanent cap message. A per-window request-rate limit returns **429**.
 
 ---
 

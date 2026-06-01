@@ -160,11 +160,7 @@ def _offline() -> _PatchStack:
 
 
 def _tenant_ctx() -> TenantContext:
-    from decimal import Decimal
-
-    return TenantContext(
-        tenant_id="t1", user_id=_UID, project_id="p1", cost_budget_usd=Decimal("0")
-    )
+    return TenantContext(tenant_id="t1", user_id=_UID, project_id="p1")
 
 
 def _fresh_store(**kwargs: Any) -> UsageCounterStore:
@@ -298,6 +294,75 @@ async def test_graceful_stop_at_cap_renders_message_once() -> None:
 
 
 # --------------------------------------------------------------------------- #
+# (b) Multi-surface: cap crossed on a LATER surface still surfaces the message
+# --------------------------------------------------------------------------- #
+
+
+@pytest.mark.anyio
+async def test_multi_surface_cap_crossed_on_later_surface_surfaces_message() -> None:
+    # Regression for the audit finding: when surface 1 finishes UNDER the cap and
+    # surface 2 crosses it, the top-level payload must still surface the cap
+    # signal (it reads first_screen_res, so a naive impl would render the message
+    # ZERO times). Deterministic via a fixed 100-token/generation estimate.
+    store = _fresh_store()
+    store.add(_UID, input_tokens=TOKEN_CAP_DEFAULT - 250)  # ~2 surfaces' worth under
+
+    def _two_surface_plan() -> PlanStep:
+        return PlanStep(
+            should_run_wrai=False,
+            surfaces=["landing page", "pricing page"],
+            reasoning="two-surface test plan",
+        )
+
+    runner = AtelierRunner(session_service=InMemorySessionService(), usage_store=store)
+    cap_messages: list[str] = []
+
+    async def progress(event_type: str, payload: dict[str, Any]) -> None:
+        if payload.get("user_message") == TOKEN_CAP_MESSAGE:
+            cap_messages.append(event_type)
+
+    patches = _PatchStack(
+        [
+            patch(
+                "atelier.intake.brief_parser.BriefParserAgent.parse",
+                new=AsyncMock(return_value=_fake_brief()),
+            ),
+            patch(
+                "atelier.orchestrator.planner.PlannerAgent.plan",
+                new=AsyncMock(return_value=_two_surface_plan()),
+            ),
+            patch("atelier.orchestrator.runner.source_resolver_gate", return_value=True),
+            patch(
+                "atelier.orchestrator.runner.source_resolver_agent",
+                new=AsyncMock(return_value=_fake_project_ctx()),
+            ),
+            patch(
+                "atelier.orchestrator.runner.create_specialist_pipeline",
+                side_effect=_degraded_stitch,
+            ),
+            patch("atelier.orchestrator.runner.Runner", _FakeN3aRunner),
+            patch(
+                "atelier.nodes.fixer.FixerAgent.fix",
+                new=AsyncMock(side_effect=_offline_fixer_directive),
+            ),
+            # Fixed per-generation token cost so the crossing point is deterministic.
+            patch("atelier.orchestrator.runner._estimate_tokens", return_value=(0, 100, 0)),
+        ]
+    )
+    with patches:
+        result = await runner.run(_BRIEF, _tenant_ctx(), progress_callback=progress)
+
+    # The cap was hit on surface 2; the top-level payload MUST surface it...
+    assert result["exit_reason"] == "token_cap_exhausted"
+    assert result["user_message"] == TOKEN_CAP_MESSAGE
+    # ...rendered exactly once (the terminal complete event).
+    assert cap_messages == ["complete"]
+    # ...even though surface 1 (the first screen) stopped UNDER the cap.
+    assert result["screens"]["landing page"]["exit_reason"] != "token_cap_exhausted"
+    assert store.get_total(_UID) >= TOKEN_CAP_DEFAULT
+
+
+# --------------------------------------------------------------------------- #
 # (f) Rate limit blocks a rapid burn of runs
 # --------------------------------------------------------------------------- #
 
@@ -319,6 +384,17 @@ async def test_rate_limit_blocks_rapid_runs() -> None:
 # --------------------------------------------------------------------------- #
 # (g) Thinking tokens are captured on the judge response model
 # --------------------------------------------------------------------------- #
+
+
+@pytest.mark.anyio
+async def test_missing_user_id_fails_loud_not_shared_bucket() -> None:
+    # AT-095 hardening: a context with no uid must NOT silently collapse into a
+    # shared "anonymous" counter (cross-caller DoS). It fails loud instead.
+    store = _fresh_store()
+    runner = AtelierRunner(session_service=InMemorySessionService(), usage_store=store)
+    ctx = TenantContext(tenant_id="t1", user_id="", project_id="p1")
+    with _offline(), pytest.raises(ValueError, match="user_id is required"):
+        await runner.run(_BRIEF, ctx)
 
 
 def test_llm_judge_response_carries_thinking_tokens() -> None:

@@ -29,7 +29,6 @@ import logging
 import os
 import uuid
 from collections.abc import Callable
-from decimal import Decimal
 from typing import TYPE_CHECKING, Any, cast
 
 from google.adk.events.event import Event
@@ -149,6 +148,24 @@ def _estimate_tokens(prompt: str, candidates: list[Any]) -> tuple[int, int, int]
     input_tokens = max(1, len(prompt) // 4)
     output_tokens = sum(max(1, len(str(c)) // 4) for c in candidates) if candidates else 0
     return (input_tokens, output_tokens, 0)
+
+
+def _require_user_id(tenant_ctx: TenantContext) -> str:
+    """Return the non-empty Firebase uid for token-cap accounting, or fail loud.
+
+    AT-095: the cap and the rate limiter are keyed on the uid. A missing/empty
+    uid must NEVER silently collapse into a shared bucket (which would let
+    unrelated callers share one 5M counter — a cross-caller DoS). The public API
+    always supplies a verified uid (Depends(require_auth)); this guards the
+    programmatic / default-context paths.
+    """
+    uid = tenant_ctx.user_id
+    if not uid:
+        raise ValueError(
+            "AT-095: TenantContext.user_id is required for per-user token-cap accounting; "
+            "refusing to bucket usage into a shared anonymous counter."
+        )
+    return uid
 
 
 def _serialize_checkpoint(
@@ -416,8 +433,8 @@ class AtelierRunner:
         cumulative count from the persisted store so the cap spans runs.
 
         Idempotent — always reflects the current persisted total. A persistence
-        read failure raises :class:`GovernorTokenCapExceeded` (fail-closed) from
-        the store.
+        read failure (or a corrupt counter) raises :class:`GovernorUsageUnavailable`
+        (fail-closed, retryable 503) from the store — distinct from a real cap breach.
         """
         self._governor._state.user_id = user_id
         self._governor._state.token_cap = self._usage_store.token_cap
@@ -643,7 +660,6 @@ class AtelierRunner:
                 tenant_id="t1",
                 user_id="u1",
                 project_id="p1",
-                cost_budget_usd=Decimal("100.0"),
             )
 
         # AT-095 (§13.2 / G16): per-user lifetime token cap, enforced server-side
@@ -651,7 +667,7 @@ class AtelierRunner:
         # count from the persisted store (spans runs), rate-limit this request so the
         # cap cannot be burned in seconds (acceptance (f)), then fail-loud if already
         # at/over the cap (acceptance (c): no Vertex spend once at cap).
-        user_id = tenant_ctx.user_id or "anonymous"
+        user_id = _require_user_id(tenant_ctx)
         self._usage_store.check_rate_limit(user_id)
         self._seed_lifetime_counter(user_id)
         self._governor._check_token_budget()
@@ -662,7 +678,7 @@ class AtelierRunner:
         session_id = str(uuid.uuid4())
         session = await self._session_service.create_session(
             app_name=_APP_NAME,
-            user_id=tenant_ctx.user_id or "anonymous",
+            user_id=user_id,
             state={"brief_text": brief_text[:500]},  # Truncate for state storage
             session_id=session_id,
         )
@@ -860,12 +876,11 @@ class AtelierRunner:
                 tenant_id="t1",
                 user_id="u1",
                 project_id="p1",
-                cost_budget_usd=Decimal("100.0"),
             )
 
         session = await self._session_service.get_session(
             app_name=_APP_NAME,
-            user_id=tenant_ctx.user_id or "anonymous",
+            user_id=_require_user_id(tenant_ctx),
             session_id=session_id,
         )
         if session is None:
@@ -987,7 +1002,7 @@ class AtelierRunner:
         fixer = FixerAgent(self._governor)
 
         screens_results = {}
-        user_id = tenant_ctx.user_id or "anonymous"
+        user_id = _require_user_id(tenant_ctx)
 
         # AT-095: (re)seed the lifetime counter from the persisted store and
         # pre-flight the cap on every entry to the generation loop. This covers the
@@ -1326,13 +1341,31 @@ class AtelierRunner:
         first_screen_name = surfaces[0]
         first_screen_res = screens_results[first_screen_name]
 
+        # AT-095: the per-user token cap is the highest-precedence outcome and
+        # spans surfaces. If ANY surface hit the cap (e.g. surface 1 finished
+        # under the cap but surface 2 crossed it), surface the cap signal at the
+        # TOP level so the branded message renders exactly once (acceptance (b))
+        # instead of being masked by surface 1's non-cap exit_reason.
+        cap_hit_any_surface = any(
+            res["exit_reason"] == StopReason.TOKEN_CAP_EXHAUSTED.value
+            for res in screens_results.values()
+        )
+        top_exit_reason = (
+            StopReason.TOKEN_CAP_EXHAUSTED.value
+            if cap_hit_any_surface
+            else first_screen_res["exit_reason"]
+        )
+        top_user_message = (
+            TOKEN_CAP_MESSAGE if cap_hit_any_surface else first_screen_res["user_message"]
+        )
+
         response_payload = {
             "brief": brief,
             "project_context": project_ctx,
             "candidates": first_screen_res["candidates"],
             "best_candidate": first_screen_res["best_candidate"],
             "convergence_iteration": first_screen_res["convergence_iteration"],
-            "exit_reason": first_screen_res["exit_reason"],
+            "exit_reason": top_exit_reason,
             "converged": first_screen_res["converged"],
             "composite_score": first_screen_res["composite_score"],
             "candidates_evaluated": first_screen_res["candidates_evaluated"],
@@ -1341,7 +1374,7 @@ class AtelierRunner:
             "evaluations": first_screen_res["evaluations"],
             "stitch_degraded": first_screen_res["stitch_degraded"],
             "degradation_reason": first_screen_res["degradation_reason"],
-            "user_message": first_screen_res["user_message"],
+            "user_message": top_user_message,
             # AT-095: token-only usage governance — no USD. tokens_used is the
             # user's cumulative lifetime total (spans runs); the meter (AT-096)
             # rides this + the per-iteration token_delta events.

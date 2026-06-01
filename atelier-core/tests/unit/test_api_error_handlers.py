@@ -103,6 +103,37 @@ def test_token_cap_exceeded_handler_returns_402(client: TestClient) -> None:
     assert "client_ip" in breach
 
 
+def test_usage_unavailable_handler_returns_503_not_402(client: TestClient) -> None:
+    """A persistence/corruption fail-closed must surface as a transient, retryable
+    503 — NEVER the permanent 402 'you reached your cap / contact admin' message."""
+    from atelier.orchestrator.governor import (
+        TOKEN_CAP_MESSAGE,
+        USAGE_UNAVAILABLE_MESSAGE,
+        GovernorUsageUnavailable,
+    )
+    from fastapi import APIRouter
+
+    router = APIRouter()
+
+    @router.get("/test/usage-unavailable")
+    async def trigger_usage_unavailable() -> None:
+        raise GovernorUsageUnavailable(uid="u1", reason="read_failed")
+
+    app = client.app  # type: ignore[attr-defined]
+    app.include_router(router)
+
+    resp = client.get("/test/usage-unavailable")
+    assert resp.status_code == 503
+    assert resp.headers.get("Retry-After") == "30"
+    body = resp.json()
+    assert body["error"] == "usage_unavailable"
+    assert body["code"] == 503
+    assert body["detail"] == USAGE_UNAVAILABLE_MESSAGE
+    # Honesty: it must NOT tell the user they hit their cap.
+    assert body["detail"] != TOKEN_CAP_MESSAGE
+    assert "Contact administrator" not in body["detail"]
+
+
 def test_rate_limit_exceeded_handler_returns_429(client: TestClient) -> None:
     """GovernorRateLimitExceeded must be caught and returned as HTTP 429 + Retry-After."""
     from atelier.orchestrator.governor import GovernorRateLimitExceeded

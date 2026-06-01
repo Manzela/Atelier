@@ -143,8 +143,6 @@ async def _run_pipeline(
     design_system_source: str | None,  # noqa: ARG001 — reserved; passed to runner when source resolution is wired
 ) -> dict[str, Any]:
     """Execute the full Atelier pipeline and return the raw result dict."""
-    from decimal import Decimal  # noqa: PLC0415
-
     from atelier.models.data_contracts import TenantContext  # noqa: PLC0415
     from atelier.orchestrator.runner import AtelierRunner  # noqa: PLC0415
 
@@ -152,7 +150,6 @@ async def _run_pipeline(
         tenant_id=user.tenant_id,
         user_id=user.uid,
         project_id=_PROJECT,
-        cost_budget_usd=Decimal("0"),  # AT-095: deprecated descriptor, no longer enforced
     )
 
     # AT-095: no per-run budget — usage is governed by the per-user lifetime token cap.
@@ -514,13 +511,13 @@ async def generate_stream(  # noqa: C901, PLR0915 — SSE orchestrator: nested p
         await queue.put((event_type, payload))
 
     async def _run_pipeline_task() -> None:
-        from decimal import Decimal  # noqa: PLC0415
-
         from atelier.models.data_contracts import TenantContext  # noqa: PLC0415
         from atelier.orchestrator.governor import (  # noqa: PLC0415
             TOKEN_CAP_MESSAGE,
+            USAGE_UNAVAILABLE_MESSAGE,
             GovernorRateLimitExceeded,
             GovernorTokenCapExceeded,
+            GovernorUsageUnavailable,
         )
         from atelier.orchestrator.runner import AtelierRunner  # noqa: PLC0415
 
@@ -528,7 +525,6 @@ async def generate_stream(  # noqa: C901, PLR0915 — SSE orchestrator: nested p
             tenant_id=user.tenant_id,
             user_id=user.uid,
             project_id=_PROJECT,
-            cost_budget_usd=Decimal("0"),  # AT-095: deprecated descriptor, no longer enforced
         )
 
         # AT-095: no per-run budget — usage governed by the per-user lifetime token cap.
@@ -538,13 +534,32 @@ async def generate_stream(  # noqa: C901, PLR0915 — SSE orchestrator: nested p
                 request.brief, tenant_ctx, progress_callback=progress_callback
             )
             await _record_trajectory(result, user, result.get("session_id", "default-id"))
-        except GovernorTokenCapExceeded:
+        except GovernorUsageUnavailable as exc:
+            # AT-095: the usage store could not be read/written (transient outage or
+            # a corrupt counter). Fail-closed (deny) but acknowledge HONESTLY — this
+            # is a transient infra fault, NOT a cap breach: a distinct `unavailable`
+            # degraded event + a retryable message, never "you hit your limit".
+            logger.error(  # noqa: TRY400
+                "atelier.generate.stream.usage_unavailable",
+                extra={"uid": sanitize(user.uid), "reason": exc.reason},
+            )
+            await queue.put(
+                ("degraded", {"mode": "unavailable", "message": USAGE_UNAVAILABLE_MESSAGE})
+            )
+            await queue.put(("complete", {"user_message": USAGE_UNAVAILABLE_MESSAGE}))
+        except GovernorTokenCapExceeded as exc:
             # AT-095: an already-at-cap user hits the run-start pre-flight. Surface
             # the branded message as a clean `degraded` cap event (PRD §7A.6) — never
-            # a raw quota error. Logged at error level for the alertable breach.
+            # a raw quota error. Logged at error level with the alertable context
+            # (incl. which_cap) so a real breach is distinguishable in alerting.
             logger.error(  # noqa: TRY400
                 "atelier.generate.stream.token_cap_exceeded",
-                extra={"uid": sanitize(user.uid)},
+                extra={
+                    "uid": sanitize(user.uid),
+                    "which_cap": exc.which_cap,
+                    "used_tokens": exc.used_tokens,
+                    "cap_tokens": exc.cap_tokens,
+                },
             )
             await queue.put(("degraded", {"mode": "cap", "message": TOKEN_CAP_MESSAGE}))
             await queue.put(("complete", {"user_message": TOKEN_CAP_MESSAGE}))

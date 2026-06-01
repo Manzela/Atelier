@@ -15,7 +15,6 @@ Import Hierarchy:
 """
 
 from datetime import datetime
-from decimal import Decimal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -60,15 +59,16 @@ class TenantContext(BaseModel):
     """Per-request tenant context injected at the API boundary.
 
     Every agent invocation receives this as part of the session state.
-    Budget fields use ``Decimal`` for financial precision (PRD §7.2).
+
+    Usage governance is token-only (AT-095): there is no USD budget on the
+    context — the sole cap is the per-user lifetime token cap, enforced
+    server-side via :mod:`atelier.durability.usage_counter`.
 
     Attributes:
         tenant_id: Identity Platform tenant partition key.
         user_id: Authenticated user within the tenant.
         project_id: Project-scoped partition key.
         descriptor: PADI-inferred project descriptor (None until PIP completes).
-        cost_budget_usd: Remaining budget ceiling for this tenant.
-        cost_consumed_usd: Spend so far in this billing period.
         schema_version: Forward-compat version marker.
     """
 
@@ -78,11 +78,6 @@ class TenantContext(BaseModel):
     user_id: str
     project_id: str
     descriptor: AtelierDescriptor | None = None
-    cost_budget_usd: Decimal = Field(description="Remaining budget ceiling (USD)")
-    cost_consumed_usd: Decimal = Field(
-        default=Decimal("0.00"),
-        description="Spend so far in billing period (USD)",
-    )
     schema_version: int = 1
 
 

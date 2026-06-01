@@ -5,7 +5,6 @@ JSON roundtrip, enum correctness, and field validators for all 10 models.
 """
 
 from datetime import UTC, datetime
-from decimal import Decimal
 from uuid import uuid4
 
 import pytest
@@ -51,8 +50,6 @@ def _make_tenant_context(**overrides: object) -> TenantContext:
         "tenant_id": "tnt_test",
         "user_id": "usr_test",
         "project_id": "prj_test",
-        "cost_budget_usd": Decimal("100.00"),
-        "cost_consumed_usd": Decimal("5.50"),
     }
     defaults.update(overrides)
     return TenantContext(**defaults)  # type: ignore[arg-type]
@@ -113,7 +110,8 @@ def _make_judge_vote(**overrides: object) -> JudgeVote:
 
 @pytest.mark.unit
 class TestTenantContext:
-    """TenantContext uses Decimal for financial fields."""
+    """TenantContext is a frozen, extra-forbidden per-request identity carrier
+    (AT-095: token-only governance — no USD budget fields)."""
 
     def test_frozen(self) -> None:
         ctx = _make_tenant_context()
@@ -127,13 +125,6 @@ class TestTenantContext:
     def test_extra_forbidden(self) -> None:
         with pytest.raises(ValidationError, match="extra_forbidden"):
             _make_tenant_context(rogue_field="nope")  # type: ignore[arg-type]
-
-    def test_decimal_precision(self) -> None:
-        ctx = _make_tenant_context(
-            cost_budget_usd=Decimal("4999.99"),
-            cost_consumed_usd=Decimal("0.01"),
-        )
-        assert ctx.cost_budget_usd == Decimal("4999.99")
 
     def test_descriptor_optional(self) -> None:
         ctx = _make_tenant_context()
