@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit --strict",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "test:lighthouse": "lhci autorun",
+    "test:lighthouse": "npx -y @lhci/cli@0.15.1 autorun",
     "test:bundle": "ANALYZE=true next build",
     "test:all": "npm run typecheck && npm run lint && npm run test:e2e",
     "validate": "npm run typecheck && npm run lint && npm run build"
@@ -24,8 +24,8 @@
     "react-dom": "19.2.4"
   },
   "devDependencies": {
-    "@lhci/cli": "^0.15.1",
     "@next/bundle-analyzer": "^16.2.6",
+    "postcss": "^8.5.10",
     "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
