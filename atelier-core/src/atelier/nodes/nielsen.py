@@ -195,7 +195,10 @@ _HELP_WORD_RE: Final = re.compile(r"\b(help|faq|support|documentation|tutorial|k
 _DESTRUCTIVE_RE: Final = re.compile(
     r"\b(delete|remove|deactivate|erase|wipe|destroy|permanently)\b"
 )
-_CONSTANT_TOKEN_RE: Final = re.compile(r"\b[a-z]{2,}_[a-z0-9_]{2,}\b")
+# A machine/error identifier shown to users: snake/constant-case AND carrying a digit
+# (e.g. err_code_500, error_2a). Requiring a digit avoids flagging benign snake_case in
+# prose (api_key, my_config) on this single voter — corroboration still rests on ≥2/3.
+_CONSTANT_TOKEN_RE: Final = re.compile(r"\b[a-z]{2,}_[a-z0-9_]*\d[a-z0-9_]*\b")
 _FIELD_HINTS: Final = ("email", "e-mail", "phone", "url", "zip", "postal", "credit card")
 
 

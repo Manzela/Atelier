@@ -313,6 +313,25 @@ class TestDiscrimination:
             f"(need ≥{PRESENCE_VOTE_THRESHOLD}): {verdict.voters_fired}"
         )
 
+    def test_benign_snake_case_copy_does_not_flag_match_real_world(self) -> None:
+        """A doc page mentioning snake_case identifiers in prose is not an H2 violation.
+
+        The ``system_error_code`` voter must not fire on benign tokens like
+        ``api_key`` / ``my_config`` (no digit) — only a single corroborating signal
+        could, and the ≥2/3 rule keeps the heuristic ABSENT regardless.
+        """
+        page = _candidate(
+            _doc(
+                "<main><h1>Configure your integration</h1>"
+                "<p>Set the api_key and my_config values in your project settings to "
+                "connect the service. See the guide for details.</p></main>"
+            )
+        )
+        verdict = evaluate_nielsen(page).by_heuristic(NielsenHeuristic.MATCH_SYSTEM_AND_REAL_WORLD)
+        assert verdict.present is False, (
+            f"benign snake_case prose wrongly flagged H2 ({verdict.votes}/3: {verdict.voters_fired})"
+        )
+
     @pytest.mark.parametrize(
         ("heuristic", "candidate", "label"),
         [(h, c, lbl) for (h, c, lbl) in VIOLATION_FIXTURES],
