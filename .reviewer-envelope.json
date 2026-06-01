@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "verdict": "DONE",
+  "pytest_exit": 0,
+  "mypy_exit": 0,
+  "eval_delta_vs_head1": null,
+  "files_touched_sha": {
+    "atelier-core/src/atelier/models/reviewer_envelope.py": "aa9fe0de7c60abfdce3823d4ac1f7c5107d3fbf988bc832545648addeff1c270",
+    "atelier-core/tests/unit/test_reviewer_envelope.py": "783a5b1a4e66a035c30c73e559140571060c41013ea95e21b333a93a9fdd6244",
+    "scripts/ci/verify_reviewer_envelope.py": "42440ca54c731c18961e766a6b0752770916cb440b76d5c31dd75ae9963c9a07"
+  }
+}

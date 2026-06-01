@@ -83,6 +83,8 @@ repos:
             package\.json|
             atelier-core/tests/fixtures/.*|
             \.secrets\.baseline|
+            \.reviewer-envelope\.json|
+            \.reviewer-calibration-log\.json|
             audit/.*
           )$
 
