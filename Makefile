@@ -84,8 +84,10 @@ verify-tokens:
 	   echo "[verify:tokens] OK - 4 platform outputs produced"; \
 	 else echo "[verify:tokens] SKIP - style-dictionary not installed (run npm ci; covered by the CI tokens job)"; fi
 
-verify-eval:
-	@echo "[verify:eval] SKIP - offline eval composite-mean gate lands with AT-100 (eval set + baseline)"
+verify-eval: _deps
+	@echo "[verify:eval] deterministic offline eval gate (AT-100): real gates score GOOD HTML, REJECT garbage, regression-sensitive, zero live calls"
+	@cd "$(CORE)" && "$(PY)" -m pytest tests/eval/test_agent_evaluator.py -q -p no:cacheprovider
+	@echo "[verify:eval] OK"
 
 # ---- replay -----------------------------------------------------------------
 replay: _deps

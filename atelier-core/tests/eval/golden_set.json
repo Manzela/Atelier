@@ -1,7 +1,7 @@
 {
   "eval_set_id": "atelier-golden-set-v1",
   "name": "Atelier Golden Evaluation Set",
-  "description": "5 canonical design briefs with expected tool trajectories and quality rubrics. Covers SaaS dashboard, landing page, mobile onboarding, e-commerce PDP, and B2B admin settings.",
+  "description": "5 canonical design briefs with expected tool trajectories. Covers SaaS dashboard, landing page, mobile onboarding, e-commerce PDP, and B2B admin settings. Expected tool_uses use IntermediateData format (ADK 2.1.0). Offline gate asserts tool_trajectory_avg_score >= 0.70 (deterministic; no LLM judge required).",
   "eval_cases": [
     {
       "eval_id": "saas-dashboard-dark",
@@ -16,20 +16,24 @@
             ],
             "role": "user"
           },
-          "expected_tool_use": [
-            {
-              "tool_name": "stitch_generate_screen_from_text",
-              "tool_input": {
-                "projectId": "__any__",
-                "prompt": "__contains__:dashboard"
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "stitch_generate_screen_from_text",
+                "args": {
+                  "projectId": "proj-eval",
+                  "prompt": "dashboard"
+                }
               }
-            }
-          ],
-          "expected_intermediate_agent_responses": [],
-          "reference": "A responsive dark-theme dashboard with Revenue KPI card, Churn Rate KPI card, and a monthly trend line chart. Must include <header>, <main>, <section> HTML5 semantic elements and CSS custom properties for design tokens."
+            ]
+          }
         }
       ],
-      "session_input": { "state": {} }
+      "session_input": {
+        "appName": "atelier",
+        "userId": "eval-user",
+        "state": {}
+      }
     },
     {
       "eval_id": "landing-page-saas",
@@ -44,20 +48,24 @@
             ],
             "role": "user"
           },
-          "expected_tool_use": [
-            {
-              "tool_name": "stitch_generate_screen_from_text",
-              "tool_input": {
-                "projectId": "__any__",
-                "prompt": "__contains__:landing"
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "stitch_generate_screen_from_text",
+                "args": {
+                  "projectId": "proj-eval",
+                  "prompt": "landing"
+                }
               }
-            }
-          ],
-          "expected_intermediate_agent_responses": [],
-          "reference": "Landing page with hero section, 3 feature cards, and a prominent CTA. WCAG AA compliant. Semantic HTML with <header>, <main>, <footer>."
+            ]
+          }
         }
       ],
-      "session_input": { "state": {} }
+      "session_input": {
+        "appName": "atelier",
+        "userId": "eval-user",
+        "state": {}
+      }
     },
     {
       "eval_id": "mobile-onboarding",
@@ -72,20 +80,24 @@
             ],
             "role": "user"
           },
-          "expected_tool_use": [
-            {
-              "tool_name": "stitch_generate_screen_from_text",
-              "tool_input": {
-                "projectId": "__any__",
-                "prompt": "__contains__:onboarding"
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "stitch_generate_screen_from_text",
+                "args": {
+                  "projectId": "proj-eval",
+                  "prompt": "onboarding"
+                }
               }
-            }
-          ],
-          "expected_intermediate_agent_responses": [],
-          "reference": "3-screen mobile onboarding with progress indicator, form inputs with proper labels, and accessible submit buttons."
+            ]
+          }
         }
       ],
-      "session_input": { "state": {} }
+      "session_input": {
+        "appName": "atelier",
+        "userId": "eval-user",
+        "state": {}
+      }
     },
     {
       "eval_id": "e-commerce-product",
@@ -100,20 +112,24 @@
             ],
             "role": "user"
           },
-          "expected_tool_use": [
-            {
-              "tool_name": "stitch_generate_screen_from_text",
-              "tool_input": {
-                "projectId": "__any__",
-                "prompt": "__contains__:product"
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "stitch_generate_screen_from_text",
+                "args": {
+                  "projectId": "proj-eval",
+                  "prompt": "product"
+                }
               }
-            }
-          ],
-          "expected_intermediate_agent_responses": [],
-          "reference": "Product page with image gallery, price display, 5-star review section, and accessible add-to-cart CTA. Luxury aesthetic with proper typography hierarchy."
+            ]
+          }
         }
       ],
-      "session_input": { "state": {} }
+      "session_input": {
+        "appName": "atelier",
+        "userId": "eval-user",
+        "state": {}
+      }
     },
     {
       "eval_id": "admin-settings",
@@ -128,20 +144,24 @@
             ],
             "role": "user"
           },
-          "expected_tool_use": [
-            {
-              "tool_name": "stitch_generate_screen_from_text",
-              "tool_input": {
-                "projectId": "__any__",
-                "prompt": "__contains__:settings"
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "stitch_generate_screen_from_text",
+                "args": {
+                  "projectId": "proj-eval",
+                  "prompt": "settings"
+                }
               }
-            }
-          ],
-          "expected_intermediate_agent_responses": [],
-          "reference": "Settings panel with 4 tabbed sections: Billing, Team, API Keys, Notifications. Form elements must have associated labels. Clear section hierarchy."
+            ]
+          }
         }
       ],
-      "session_input": { "state": {} }
+      "session_input": {
+        "appName": "atelier",
+        "userId": "eval-user",
+        "state": {}
+      }
     }
   ]
 }
