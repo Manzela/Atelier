@@ -1,8 +1,16 @@
 'use client';
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { LazyMotion, domAnimation, m, AnimatePresence } from 'framer-motion';
+import {
+  LazyMotion,
+  domAnimation,
+  m,
+  AnimatePresence,
+  useMotionValue,
+  useSpring,
+  useTransform,
+} from 'framer-motion';
 import {
   ArrowLeft,
   Play,
@@ -31,6 +39,7 @@ import {
   type DoravScores,
   type NielsenHeuristic,
   type CapReachedData,
+  type IterationScoreData,
 } from '@/lib/api';
 
 interface UserSession {
@@ -70,6 +79,36 @@ function useClientAuth() {
 
 type DeviceWidth = 390 | 768 | 1280;
 
+// AT-093: D-O-R-A-V axis definitions (order matches PRD §12 E9)
+const DORAV_AXES = [
+  { key: 'brand' as const, label: 'Brand' },
+  { key: 'originality' as const, label: 'Originality' },
+  { key: 'relevance' as const, label: 'Relevance' },
+  { key: 'accessibility' as const, label: 'Accessibility' },
+  { key: 'visual-clarity' as const, label: 'Visual Clarity' },
+] as const;
+
+type DoravAxisKey = (typeof DORAV_AXES)[number]['key'];
+
+/**
+ * AT-093: Animated per-axis score bar using framer-motion spring.
+ * Avoids per-event React re-render storms by driving the display value via
+ * useMotionValue + useSpring + useTransform; the React state update only sets
+ * the motion value, not the displayed integer, so no extra render occurs.
+ */
+function AnimatedScoreValue({ value }: { value: number | undefined }) {
+  const mv = useMotionValue(value ?? 0);
+  const spring = useSpring(mv, { stiffness: 120, damping: 20 });
+  const display = useTransform(spring, (v) => (value != null ? String(Math.round(v * 100)) : '—'));
+
+  // Drive the motion value whenever the prop changes
+  React.useEffect(() => {
+    if (value != null) mv.set(value);
+  }, [value, mv]);
+
+  return <m.span>{display}</m.span>;
+}
+
 export default function StudioClientShell({ id }: { id: string }) {
   const router = useRouter();
   const [scale, setScale] = useState(1);
@@ -87,6 +126,16 @@ export default function StudioClientShell({ id }: { id: string }) {
   const [convergedHtml, setConvergedHtml] = useState<string>('');
   const [dorav, setDorav] = useState<DoravScores | null>(null);
   const [nielsen, setNielsen] = useState<NielsenHeuristic[]>([]);
+  // AT-093: per-iteration scorecard state — updated on each iteration_score SSE event
+  const [iterationScores, setIterationScores] = useState<IterationScoreData[]>([]);
+  const latestIterScore = iterationScores[iterationScores.length - 1] ?? null;
+  // Live D-O-R-A-V: prefer the latest iteration scores while generating; fall back to final
+  const liveDorav: DoravScores | null = useMemo(() => {
+    if (latestIterScore) return { ...latestIterScore.dorav, composite: latestIterScore.composite };
+    return dorav;
+  }, [latestIterScore, dorav]);
+  const currentIteration = latestIterScore?.iteration ?? null;
+  const failingAxis: string | null = latestIterScore?.failing_axis ?? null;
   const [degradationReason, setDegradationReason] = useState<string>('');
   const [capReachedDetail, setCapReachedDetail] = useState<string>('');
 
@@ -103,6 +152,7 @@ export default function StudioClientShell({ id }: { id: string }) {
     if (status === 'generating' || status === 'cap-reached' || !user) return;
     setStatus('generating');
     setLogs([]);
+    setIterationScores([]); // AT-093: reset per-iteration scorecard on each new run
     addLog('INFO', 'Initiating Vertex AI Convergence Loop...');
 
     const brief = new URLSearchParams(window.location.search).get('brief') || 'SaaS landing page';
@@ -158,6 +208,15 @@ export default function StudioClientShell({ id }: { id: string }) {
         setCapReachedDetail(detail);
         addLog('ERROR', `Token cap reached: ${detail}`);
         setStatus('cap-reached');
+      },
+      // AT-093: accumulate per-iteration scores so the scorecard animates each climb
+      onIterationScore: (data: IterationScoreData) => {
+        setIterationScores((prev) => [...prev, data]);
+        const comp = Math.round((data.composite ?? 0) * 100);
+        addLog(
+          'INFO',
+          `Iter ${data.iteration} D-O-R-A-V composite=${comp} failing=${data.failing_axis ?? 'none'}`
+        );
       },
     };
 
@@ -496,40 +555,62 @@ export default function StudioClientShell({ id }: { id: string }) {
 
               <div className="h-px bg-[var(--g-outline)] my-6"></div>
 
-              <div>
+              {/* AT-093: D-O-R-A-V Scorecard — animates per-iteration during generation */}
+              <div data-testid="dorav-scorecard" data-iteration={currentIteration ?? ''}>
                 <h4 className="text-[11px] uppercase tracking-wider font-semibold text-gray-500 mb-3">
                   D-O-R-A-V Scorecard
+                  {currentIteration != null && (
+                    <span className="ml-2 px-1.5 py-0.5 rounded text-[9px] bg-indigo-500/20 text-indigo-300 font-mono border border-indigo-500/30 align-middle">
+                      iter {currentIteration + 1}
+                    </span>
+                  )}
                 </h4>
                 {/* Composite headline */}
                 <div className="bg-black/40 p-3 rounded border border-indigo-500/30 flex justify-between items-center mb-3">
                   <span className="text-xs text-gray-300 font-semibold">Composite</span>
                   <span
-                    className={`text-sm font-mono font-bold ${dorav?.composite != null ? 'text-indigo-300' : 'text-gray-600'}`}
+                    className={`text-sm font-mono font-bold ${liveDorav?.composite != null ? 'text-indigo-300' : 'text-gray-600'}`}
                   >
-                    {dorav?.composite != null ? Math.round(dorav.composite * 100) : '--'}
+                    {liveDorav?.composite != null ? (
+                      <AnimatedScoreValue value={liveDorav.composite} />
+                    ) : (
+                      '--'
+                    )}
                   </span>
                 </div>
                 <div className="space-y-2">
-                  {(
-                    [
-                      { key: 'brand' as const, label: 'Brand' },
-                      { key: 'originality' as const, label: 'Originality' },
-                      { key: 'relevance' as const, label: 'Relevance' },
-                      { key: 'accessibility' as const, label: 'Accessibility' },
-                      { key: 'visual-clarity' as const, label: 'Visual Clarity' },
-                    ] as const
-                  ).map(({ key, label }) => {
-                    const val = dorav?.[key];
+                  {DORAV_AXES.map(({ key, label }) => {
+                    const val = liveDorav?.[key as DoravAxisKey];
+                    const isFailing = failingAxis === key;
                     return (
                       <div
                         key={key}
-                        className="bg-black/30 px-3 py-2 rounded border border-[var(--g-outline)] flex justify-between items-center"
+                        data-testid={`dorav-axis-${key}`}
+                        data-score={val != null ? String(Math.round(val * 100)) : ''}
+                        className={`px-3 py-2 rounded border flex justify-between items-center transition-colors ${
+                          isFailing
+                            ? 'failing-axis bg-amber-950/40 border-amber-500/60'
+                            : 'bg-black/30 border-[var(--g-outline)]'
+                        }`}
                       >
-                        <span className="text-xs text-gray-400">{label}</span>
                         <span
-                          className={`text-xs font-mono font-bold ${val != null ? 'text-emerald-400' : 'text-gray-600'}`}
+                          className={`text-xs ${isFailing ? 'text-amber-300 font-semibold' : 'text-gray-400'}`}
                         >
-                          {val != null ? Math.round(val * 100) : '—'}
+                          {label}
+                          {isFailing && (
+                            <span className="ml-1 text-[9px] text-amber-400 font-mono">↓ low</span>
+                          )}
+                        </span>
+                        <span
+                          className={`text-xs font-mono font-bold ${
+                            isFailing
+                              ? 'text-amber-400'
+                              : val != null
+                                ? 'text-emerald-400'
+                                : 'text-gray-600'
+                          }`}
+                        >
+                          {val != null ? <AnimatedScoreValue value={val} /> : '—'}
                         </span>
                       </div>
                     );

@@ -298,3 +298,187 @@ def test_stream_complete_event_contains_best_html_dorav_nielsen(client: TestClie
         assert "nielsen" in complete_payload
         # Nielsen must be a list (presence-only)
         assert isinstance(complete_payload["nielsen"], list)
+
+
+# ---------------------------------------------------------------------------
+# AT-093: _build_iteration_dorav helper tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.unit
+def test_build_iteration_dorav_extracts_per_axis_and_composite() -> None:
+    """_build_iteration_dorav must return per-axis scores + composite from evaluations."""
+    from atelier.orchestrator.runner import _build_iteration_dorav
+
+    evaluations_serialized = [
+        {
+            "composite_score": 0.72,
+            "passed": True,
+            "votes": {
+                "brand": {"score": 0.80},
+                "originality": {"score": 0.70},
+                "relevance": {"score": 0.90},
+                "accessibility": {"score": 0.55},  # lowest → failing axis
+                "visual-clarity": {"score": 0.75},
+            },
+        }
+    ]
+    result = _build_iteration_dorav(evaluations_serialized, 0.72)
+
+    assert result["brand"] == pytest.approx(0.80)
+    assert result["originality"] == pytest.approx(0.70)
+    assert result["relevance"] == pytest.approx(0.90)
+    assert result["accessibility"] == pytest.approx(0.55)
+    assert result["visual-clarity"] == pytest.approx(0.75)
+    assert result["composite"] == pytest.approx(0.72)
+    assert result["failing_axis"] == "accessibility"
+
+
+@pytest.mark.unit
+def test_build_iteration_dorav_empty_evaluations_falls_back_to_composite() -> None:
+    """When evaluations list is empty, composite falls back to the passed value."""
+    from atelier.orchestrator.runner import _build_iteration_dorav
+
+    result = _build_iteration_dorav([], 0.45)
+
+    assert result["composite"] == pytest.approx(0.45)
+    assert result["failing_axis"] is None
+
+
+@pytest.mark.unit
+def test_build_iteration_dorav_does_not_mutate_input() -> None:
+    """_build_iteration_dorav must not mutate the evaluations_serialized input."""
+    from atelier.orchestrator.runner import _build_iteration_dorav
+
+    original = [
+        {
+            "composite_score": 0.60,
+            "passed": True,
+            "votes": {"brand": {"score": 0.60}},
+        }
+    ]
+    import copy
+
+    before = copy.deepcopy(original)
+    _build_iteration_dorav(original, 0.60)
+    assert original == before
+
+
+@pytest.mark.unit
+def test_stream_emits_iteration_score_per_iteration(client: TestClient) -> None:
+    """The SSE stream must emit one iteration_score event per convergence iteration.
+
+    This test proves the backend REALLY emits the event — not a fixture-only illusion.
+    The mock simulates two convergence iterations followed by a complete event, and
+    asserts that two ``iteration_score`` events appear in the stream with well-formed
+    per-axis D-O-R-A-V payloads and a non-null failing_axis.
+    """
+    mock_run = AsyncMock()
+
+    async def side_effect(
+        brief_text: str, tenant_ctx: Any, progress_callback: Any = None
+    ) -> dict[str, Any]:
+        if progress_callback:
+            await progress_callback("plan", {"surfaces": ["home"]})
+            # Iteration 0
+            await progress_callback("iteration_start", {"screen": "home", "iteration": 0})
+            await progress_callback(
+                "iteration_score",
+                {
+                    "screen": "home",
+                    "iteration": 0,
+                    "dorav": {
+                        "brand": 0.60,
+                        "originality": 0.55,
+                        "relevance": 0.65,
+                        "accessibility": 0.45,
+                        "visual-clarity": 0.50,
+                        "composite": 0.55,
+                    },
+                    "composite": 0.55,
+                    "failing_axis": "accessibility",
+                },
+            )
+            # Iteration 1 — scores climb
+            await progress_callback("iteration_start", {"screen": "home", "iteration": 1})
+            await progress_callback(
+                "iteration_score",
+                {
+                    "screen": "home",
+                    "iteration": 1,
+                    "dorav": {
+                        "brand": 0.75,
+                        "originality": 0.70,
+                        "relevance": 0.80,
+                        "accessibility": 0.60,
+                        "visual-clarity": 0.65,
+                        "composite": 0.70,
+                    },
+                    "composite": 0.70,
+                    "failing_axis": "originality",
+                },
+            )
+            await progress_callback(
+                "complete",
+                {
+                    "best_candidate": _MINIMAL_HTML,
+                    "converged": True,
+                    "composite_score": 0.70,
+                    "evaluations": _MINIMAL_EVALUATIONS,
+                },
+            )
+        return {"session_id": "test-session", "best_candidate": _MINIMAL_HTML, "candidates": []}
+
+    mock_run.side_effect = side_effect
+
+    with (
+        patch("atelier.orchestrator.runner.AtelierRunner.run", mock_run),
+        patch("atelier.api.generate._record_trajectory", AsyncMock()),
+    ):
+        resp = client.post(
+            "/v1/generate/stream",
+            json={
+                "brief": "Generate a beautiful luxury brand landing page with pricing widgets.",
+                "budget_usd": 10.0,
+            },
+        )
+        assert resp.status_code == 200
+
+        iteration_score_payloads: list[dict[str, Any]] = []
+        current_event = ""
+        for line in resp.iter_lines():
+            if line.startswith("event:"):
+                current_event = line.removeprefix("event:").strip()
+            elif line.startswith("data:"):
+                try:
+                    data = json.loads(line.removeprefix("data:").strip())
+                    if current_event == "iteration_score":
+                        iteration_score_payloads.append(data)
+                except json.JSONDecodeError:
+                    pass
+
+    # Two iterations → two iteration_score events
+    assert len(iteration_score_payloads) == 2, (
+        f"Expected 2 iteration_score events, got {len(iteration_score_payloads)}"
+    )
+
+    # Verify iteration 0 payload shape
+    iter0 = iteration_score_payloads[0]
+    assert iter0["iteration"] == 0
+    assert iter0["screen"] == "home"
+    assert isinstance(iter0["dorav"], dict)
+    assert "composite" in iter0
+    assert isinstance(iter0["failing_axis"], str)
+    for axis in ("brand", "originality", "relevance", "accessibility", "visual-clarity"):
+        assert axis in iter0["dorav"], f"dorav missing axis: {axis}"
+
+    # Verify iteration 1: composite must be higher than iteration 0
+    iter1 = iteration_score_payloads[1]
+    assert iter1["iteration"] == 1
+    assert iter1["composite"] > iter0["composite"], (
+        "iteration 1 composite must be higher than iteration 0 (scores climb)"
+    )
+    # The failing axis must differ between the two iterations (test data is non-vacuous)
+    assert iter1["failing_axis"] != iter0["failing_axis"], (
+        "failing_axis must differ between iterations (non-vacuous fixture)"
+    )

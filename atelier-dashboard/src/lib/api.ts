@@ -77,6 +77,21 @@ export interface CapReachedData {
   detail?: string;
 }
 
+/**
+ * Per-iteration D-O-R-A-V scores emitted by the backend convergence loop (AT-093).
+ * Shape mirrors the ``dorav`` key in CompleteData plus ``failing_axis``.
+ */
+export interface IterationScoreData {
+  screen: string;
+  iteration: number;
+  /** Per-axis scores keyed by axis name (brand, originality, relevance, accessibility, visual-clarity). */
+  dorav: DoravScores;
+  /** Overall composite score for this iteration (0–1). */
+  composite: number;
+  /** Axis name with the lowest score — highlighted amber in the scorecard. */
+  failing_axis: string | null;
+}
+
 export interface StreamCallbacks {
   onPlan?: (data: PlanData) => void;
   onScreenStart?: (data: ScreenStartData) => void;
@@ -90,6 +105,8 @@ export interface StreamCallbacks {
   onError?: (error: string) => void;
   /** Fired when a `cap_reached` SSE event is received or the stream returns HTTP 429 */
   onCapReached?: (data: CapReachedData) => void;
+  /** AT-093: fired once per convergence iteration with that iteration's D-O-R-A-V scores */
+  onIterationScore?: (data: IterationScoreData) => void;
 }
 
 export const getApiUrl = () => {
@@ -219,6 +236,9 @@ function triggerCallback(event: string, data: Record<string, unknown>, callbacks
     }
     case 'cap_reached':
       callbacks.onCapReached?.(data as unknown as CapReachedData);
+      break;
+    case 'iteration_score':
+      callbacks.onIterationScore?.(data as unknown as IterationScoreData);
       break;
     default:
       console.log(`Unhandled SSE event: ${event}`, data);

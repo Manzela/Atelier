@@ -266,6 +266,46 @@ def _compose_generator_prompt(anchor: str, screen: str, directive: str) -> str:
     return f"{base}\n\n--- LATEST FIXER DIRECTIVE ---\n{directive}" if directive else base
 
 
+def _build_iteration_dorav(
+    evaluations_serialized: list[dict[str, Any]],
+    composite_score: float,
+) -> dict[str, Any]:
+    """Build a per-axis D-O-R-A-V payload for an in-progress iteration.
+
+    Mirrors the extraction logic in ``generate._enrich_complete_payload`` so that
+    the per-iteration ``iteration_score`` SSE event carries the same shape as the
+    final ``complete`` event's ``dorav`` field.  This is intentionally a module-level
+    helper so it can be unit-tested independently of the runner.
+
+    Args:
+        evaluations_serialized: The list of serialized evaluation dicts as built in
+            ``_run_surfaces_and_assemble`` — each entry has ``composite_score``,
+            ``passed``, and ``votes`` (a dict mapping axis name to ``{"score": float}``).
+        composite_score: The composite score for the current iteration's best candidate
+            (may be 0.0 when no candidate passed the gates).
+
+    Returns:
+        A dict with per-axis float scores keyed by axis name, a ``composite`` key, and a
+        ``failing_axis`` key containing the name of the axis with the lowest score (or
+        ``None`` when no per-axis data is available).
+    """
+    best_eval: dict[str, Any] = evaluations_serialized[0] if evaluations_serialized else {}
+    raw_votes: dict[str, Any] = best_eval.get("votes", {})
+    dorav: dict[str, float] = {
+        axis: float(v["score"]) if isinstance(v, dict) else float(v)
+        for axis, v in raw_votes.items()
+    }
+    dorav["composite"] = float(best_eval.get("composite_score", composite_score))
+
+    # Determine the failing axis (lowest per-axis score, excluding composite).
+    failing_axis: str | None = None
+    per_axis = {k: v for k, v in dorav.items() if k != "composite"}
+    if per_axis:
+        failing_axis = min(per_axis, key=lambda k: per_axis[k])
+
+    return {**dorav, "failing_axis": failing_axis}
+
+
 def _default_session_service() -> BaseSessionService:
     """Create the default session service.
 
@@ -1052,6 +1092,25 @@ class AtelierRunner:
                     await progress_callback(
                         "consensus_evaluation",
                         {"screen": screen, "evaluations": evaluations_serialized},
+                    )
+
+                    # AT-093: emit per-iteration D-O-R-A-V scores so the Studio
+                    # scorecard can animate convergence in real-time.  The payload
+                    # shape matches the ``dorav`` key in the final ``complete`` event
+                    # plus a ``failing_axis`` key for the amber highlight.
+                    iter_dorav = _build_iteration_dorav(
+                        evaluations_serialized,
+                        float(convergence_result.get("composite_score", 0.0)),
+                    )
+                    await progress_callback(
+                        "iteration_score",
+                        {
+                            "screen": screen,
+                            "iteration": iteration,
+                            "dorav": {k: v for k, v in iter_dorav.items() if k != "failing_axis"},
+                            "composite": iter_dorav.get("composite", 0.0),
+                            "failing_axis": iter_dorav.get("failing_axis"),
+                        },
                     )
 
                 # R1 stop-reason precedence: collapse the post-generation signals to
