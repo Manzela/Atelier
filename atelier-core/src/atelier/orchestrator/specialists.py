@@ -162,7 +162,12 @@ _SPECIALISTS: Final[tuple[_SpecialistSpec, ...]] = (
             "interaction and motion behavior: component states (hover / focus / active "
             "/ disabled), transitions and micro-interactions, and keyboard + ARIA "
             "behaviors. Every interactive element must have a defined focus-visible "
-            "state. Output a structured interaction spec."
+            "state. "
+            'Emit ONLY a JSON object: {"interactions":[{"element":"<selector/name>",'
+            '"trigger":"hover|focus|active|disabled|keyboard",'
+            '"effect":"<what changes>"},...]}. '
+            "Include at least one focus or keyboard interaction so every interactive "
+            "element has a focus-visible state."
         ),
         upstream_keys=("ui_design",),
     ),
