@@ -29,7 +29,8 @@ PY   := $(VENV)/bin/python
 UV   := $(shell command -v uv 2>/dev/null)
 
 .PHONY: help verify preflight replay \
-        _deps verify-types verify-tests verify-lint verify-dashboard verify-eval
+        _deps verify-types verify-tests verify-lint verify-dashboard verify-eval \
+        verify-token-roundtrip
 
 help:
 	@echo "Atelier make targets (PRD v2.2 AT-004):"
@@ -38,7 +39,7 @@ help:
 	@echo "  make replay    - deterministic replay of a recorded trajectory (AT-003)"
 
 # ---- verify -----------------------------------------------------------------
-verify: _deps verify-types verify-tests verify-lint verify-dashboard verify-tokens verify-eval
+verify: _deps verify-types verify-tests verify-lint verify-dashboard verify-tokens verify-token-roundtrip verify-eval
 	@echo "[verify] OK - all enabled checks passed"
 
 _deps:
@@ -83,6 +84,12 @@ verify-tokens:
 	   done; \
 	   echo "[verify:tokens] OK - 4 platform outputs produced"; \
 	 else echo "[verify:tokens] SKIP - style-dictionary not installed (run npm ci; covered by the CI tokens job)"; fi
+
+verify-token-roundtrip:
+	@if [ -d node_modules/style-dictionary ]; then \
+	   echo "[verify:token-roundtrip] AT-052 propagation proof (sentinel -> CSS/Tailwind/Swift/Kotlin)"; \
+	   node scripts/verify-token-roundtrip.mjs; \
+	 else echo "[verify:token-roundtrip] SKIP - style-dictionary not installed (run npm ci; covered by CI tokens job)"; fi
 
 verify-eval: _deps
 	@echo "[verify:eval] deterministic offline eval gate (AT-100): real gates score GOOD HTML, REJECT garbage, regression-sensitive, zero live calls"
