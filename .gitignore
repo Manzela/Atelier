@@ -246,3 +246,6 @@ docs/sprint/
 
 # Internal forensic audit notes — sprint-ops, never public
 audit/
+
+# Per-feature build/review scratch artifact (reviewer return contract); not product code.
+gaps.md
