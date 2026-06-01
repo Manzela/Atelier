@@ -30,7 +30,10 @@ permissions:
 
 env:
   PYTHON_VERSION: '3.11'
-  NODE_VERSION: '20.11.1'
+  # 22.13.0 (LTS): the Next 16 / React 19 dashboard toolchain (eslint-visitor-keys
+  # etc.) requires node ^20.19 || ^22.13 || >=24; 20.11.1 crashed eslint in the
+  # Dashboard job. Matches the locally-verified node-22 build.
+  NODE_VERSION: '22.13.0'
   FORCE_COLOR: '1'
   PYTHONUNBUFFERED: '1'
 
