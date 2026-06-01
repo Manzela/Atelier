@@ -23,26 +23,50 @@ PRD Reference: §6.3 (N1-N4), §21 (Failure Trichotomy)
 
 from __future__ import annotations
 
+import dataclasses
 import json
 import logging
 import os
 import uuid
 from collections.abc import Callable
 from decimal import Decimal
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
+from google.adk.events.event import Event
+from google.adk.events.event_actions import EventActions
 from google.adk.runners import Runner
 from google.genai import types as genai_types
 
 if TYPE_CHECKING:
     from google.adk.sessions import BaseSessionService
+    from google.adk.tools.tool_confirmation import ToolConfirmation
 
     from atelier.nodes.llm_judge import JudgeClient
 
 from atelier.gates.runner import run_gates
+from atelier.gates.signoff import (
+    AWAIT_SIGNOFF_TOOL,
+    CHECKPOINT_KEY,
+    SIGNOFF_STAGE_ID,
+    SIGNOFF_STATUS_KEY,
+    STATUS_APPROVED,
+    STATUS_AWAITING,
+    STATUS_COMPLETED,
+    await_signoff,
+    is_signoff_confirmed,
+)
 from atelier.intake.brief_parser import BriefParserAgent, BriefParserGate
-from atelier.intake.source_resolver import source_resolver_agent, source_resolver_gate
-from atelier.intake.web_research import WebResearchReport, research_brief
+from atelier.intake.brief_spec import BriefSpec
+from atelier.intake.source_resolver import (
+    ProjectContext,
+    source_resolver_agent,
+    source_resolver_gate,
+)
+from atelier.intake.web_research import (
+    WebResearchReport,
+    WebResearchResult,
+    research_brief,
+)
 from atelier.models.axis_weights import AxisWeights
 from atelier.models.data_contracts import CandidateUI, TenantContext
 from atelier.models.enums import GateAxis, GateDecision
@@ -51,6 +75,7 @@ from atelier.orchestrator.governor import (
     GovernorState,
     MetacognitiveGovernor,
 )
+from atelier.orchestrator.planner import PlanStep
 from atelier.orchestrator.specialists import create_specialist_pipeline
 from atelier.orchestrator.stop_reason import (
     StopReason,
@@ -84,6 +109,132 @@ CONVERGENCE_THRESHOLD: float = 0.70
 
 # ADK app name constant
 _APP_NAME: str = "atelier"
+
+# AT-031 stable stage ids for the per-stage accumulators (GovernorState). These are
+# NOT iteration-specific — the durability oracle asserts completed-stage counts are
+# unchanged (delta 0) across a halt/crash/resume cycle, so they must be stable.
+STAGE_N1_BRIEF_PARSE: str = "n1_brief_parse"
+STAGE_N2_SOURCE_RESOLVE: str = "n2_source_resolve"
+STAGE_N3A_SPECIALIST_PIPELINE: str = "n3a_specialist_pipeline"
+
+# Nominal token attribution per stage call. The accumulator's purpose is the
+# resume-delta oracle (pre-signoff stages frozen, post-signoff stages > 0), not a
+# precise token meter; ADK does not surface a deterministic offline token count for
+# the faked model surface, so a fixed per-call attribution keeps the delta check
+# meaningful and deterministic. Real token metering is tracked under AT-095.
+STAGE_TOKEN_ATTRIBUTION: int = 1
+
+
+def _serialize_checkpoint(
+    *,
+    brief: BriefSpec,
+    project_ctx: ProjectContext,
+    wrai_report: WebResearchReport,
+    plan: PlanStep,
+    surfaces: list[str],
+    session_id: str,
+    brief_text: str,
+    stage_call_counts: dict[str, int],
+    stage_token_counts: dict[str, int],
+) -> dict[str, Any]:
+    """Serialize the pre-signoff pipeline outputs into a JSON-safe checkpoint dict.
+
+    Stored under ``session.state[CHECKPOINT_KEY]`` so a fresh ``AtelierRunner`` sharing
+    the same session service can reconstruct N1/N2 outputs after a crash without
+    re-running them. ``BriefSpec``/``ProjectContext``/``PlanStep`` are Pydantic
+    (``model_dump(mode="json")``); ``WebResearchReport`` is a dataclass
+    (``dataclasses.asdict``).
+    """
+    return {
+        "brief": brief.model_dump(mode="json"),
+        "project_ctx": project_ctx.model_dump(mode="json"),
+        "wrai_report": dataclasses.asdict(wrai_report),
+        "plan": plan.model_dump(mode="json"),
+        "surfaces": list(surfaces),
+        "session_id": session_id,
+        "brief_text": brief_text,
+        "stage_call_counts": dict(stage_call_counts),
+        "stage_token_counts": dict(stage_token_counts),
+    }
+
+
+def _deserialize_checkpoint(
+    payload: dict[str, Any],
+) -> tuple[BriefSpec, ProjectContext, WebResearchReport, PlanStep, list[str], str, str]:
+    """Reconstruct the pre-signoff outputs from a serialized checkpoint.
+
+    Inverse of :func:`_serialize_checkpoint`. Reconstructs the dataclass
+    ``WebResearchReport`` (and its ``WebResearchResult`` items) and the Pydantic
+    models. Returns ``(brief, project_ctx, wrai_report, plan, surfaces, session_id,
+    brief_text)``. The stage accumulators are restored separately by the caller into
+    the governor state.
+    """
+    brief = BriefSpec.model_validate(payload["brief"])
+    project_ctx = ProjectContext.model_validate(payload["project_ctx"])
+    wrai_raw = payload["wrai_report"]
+    wrai_report = WebResearchReport(
+        results=[WebResearchResult(**item) for item in wrai_raw.get("results", [])],
+        denied_count=wrai_raw.get("denied_count", 0),
+        total_queries=wrai_raw.get("total_queries", 0),
+    )
+    plan = PlanStep.model_validate(payload["plan"])
+    surfaces = list(payload["surfaces"])
+    return (
+        brief,
+        project_ctx,
+        wrai_report,
+        plan,
+        surfaces,
+        str(payload["session_id"]),
+        str(payload["brief_text"]),
+    )
+
+
+#: Synthetic function_call_id for the production halt path. The native ADK runner
+#: assigns a real id when a tool call is dispatched (see the AT-031 integration test,
+#: which exercises the genuine LongRunningFunctionTool + Runner path); the production
+#: halt only needs request_confirmation to register a ToolConfirmation, which requires
+#: a non-empty function_call_id.
+_SIGNOFF_FUNCTION_CALL_ID: str = "atelier_signoff"
+
+
+class _SignoffToolContext:
+    """Minimal tool-context shim for the production sign-off halt.
+
+    ``await_signoff`` is generic over any context exposing ``function_call_id`` and a
+    ``request_confirmation(*, hint, payload)`` method. In the AT-031 integration test the
+    real ``ToolContext`` (built by the ADK ``Runner``) is used end-to-end, proving the
+    native ``adk_request_confirmation`` halt. In production ``run()`` does not spin up an
+    autonomous agent loop to fire the confirmation (that would issue model calls during
+    the halt window), so this shim records the confirmation request with the exact
+    semantics verified in ``google.adk.tools.tool_context.ToolContext.request_confirmation``
+    against google-adk==2.1.0: it writes a ``ToolConfirmation`` into
+    ``EventActions.requested_tool_confirmations[function_call_id]``.
+    """
+
+    def __init__(self, *, actions: EventActions) -> None:
+        self._event_actions = actions
+        self.function_call_id = _SIGNOFF_FUNCTION_CALL_ID
+
+    def request_confirmation(
+        self,
+        *,
+        hint: str | None = None,
+        payload: Any | None = None,
+    ) -> None:
+        """Register a confirmation request (mirrors ADK 2.1.0 ToolContext semantics).
+
+        Unlike the real ``ToolContext.request_confirmation`` — which raises ``ValueError``
+        when ``function_call_id`` is empty — this shim always supplies a non-empty
+        ``function_call_id`` (``_SIGNOFF_FUNCTION_CALL_ID``) by construction, so the genuine
+        empty-id guard is unreachable here. That native guard is exercised end-to-end by
+        oracle 1's real ``Runner`` + ``LongRunningFunctionTool`` path, not by this shim.
+        """
+        from google.adk.tools.tool_confirmation import ToolConfirmation  # noqa: PLC0415
+
+        self._event_actions.requested_tool_confirmations[self.function_call_id] = ToolConfirmation(
+            hint=hint, payload=payload
+        )
 
 
 def _compose_anchor(brief: Any, project_ctx: Any, wrai_report: Any) -> str:
@@ -334,6 +485,11 @@ class AtelierRunner:
             raise ValueError(f"Brief failed gate: {outcome.diagnostic}")
         n1_agent = BriefParserAgent()
         brief = await n1_agent.parse(brief_text)
+        # AT-031: record the N1 completed-stage call on a stable id. Captured into the
+        # sign-off checkpoint and restored on resume so N1 never re-runs (delta 0).
+        self._governor._state.record_stage_call(
+            STAGE_N1_BRIEF_PARSE, tokens=STAGE_TOKEN_ATTRIBUTION
+        )
 
         # N0: PlannerAgent — dynamic DAG routing based on brief analysis
         planner = PlannerAgent()
@@ -358,13 +514,19 @@ class AtelierRunner:
         if not source_resolver_gate(tenant_ctx, brief):
             raise ValueError("Source resolver gate failed (no descriptor or design source).")
         project_ctx = await source_resolver_agent(tenant_ctx, brief)
+        # AT-031: record the N2 completed-stage call (stable id; frozen across resume).
+        self._governor._state.record_stage_call(
+            STAGE_N2_SOURCE_RESOLVE, tokens=STAGE_TOKEN_ATTRIBUTION
+        )
         return brief, project_ctx, wrai_report, plan
 
-    async def run(  # noqa: C901, PLR0912, PLR0915 — core multi-surface convergence loop
+    async def run(
         self,
         brief_text: str,  # used for trajectory metadata
         tenant_ctx: TenantContext | None = None,
         progress_callback: Callable[[str, dict[str, Any]], Any] | None = None,
+        *,
+        require_signoff: bool = False,
     ) -> dict[str, Any]:
         """Run the pipeline from brief text to generated candidates.
 
@@ -373,11 +535,19 @@ class AtelierRunner:
             tenant_ctx: Tenant context for source resolution. Defaults to a
                 placeholder context for local development.
             progress_callback: Optional async callback to stream progress events.
+            require_signoff: AT-031 opt-in human-in-the-loop gate. When ``True``,
+                the pipeline locks the plan/scope (N0/N1/N2), persists an idempotent
+                ``AWAITING_SIGNOFF`` checkpoint into session state, fires the native
+                ``await_signoff`` confirmation request, and RETURNS a halt sentinel
+                *before* any screen generation (N3a). Resume via :meth:`resume` with
+                a confirmed ``ToolConfirmation``. Defaults to ``False`` (no gate; the
+                pre-AT-031 behaviour every existing caller relies on).
 
         Returns:
-            A dictionary containing the final brief, project context,
-            generated candidates, stitch degradation flag, web research,
-            and session metadata.
+            When not gated (or when the gate is already approved inline), the full
+            response payload (brief, project context, candidates, ...). When gated
+            and awaiting sign-off, a halt sentinel
+            ``{"status": "awaiting_signoff", "session_id": ..., "signoff": {...}}``.
 
         Raises:
             GovernorBudgetExceeded: When cumulative cost exceeds the budget cap.
@@ -408,15 +578,322 @@ class AtelierRunner:
             plan_data["surfaces"] = getattr(plan, "surfaces", ["landing page"])
             await progress_callback("plan", plan_data)
 
+        surfaces = getattr(plan, "surfaces", ["landing page"])
+        if not surfaces:
+            surfaces = ["landing page"]
+
+        # AT-031 (PRD §1 / §16 / R5): fail-closed human sign-off gate. After the plan
+        # and scope are locked and BEFORE the screen loop (N3a), halt for an explicit
+        # human approval. Opt-in (default False preserves the pre-AT-031 path). The
+        # halt is durable: an idempotent AWAITING_SIGNOFF checkpoint is persisted into
+        # session state so a crashed runner resumes from here with zero re-execution.
+        if require_signoff and session.state.get(SIGNOFF_STATUS_KEY) != STATUS_APPROVED:
+            return await self._halt_for_signoff(
+                session=session,
+                brief=brief,
+                project_ctx=project_ctx,
+                wrai_report=wrai_report,
+                plan=plan,
+                surfaces=surfaces,
+                brief_text=brief_text,
+                progress_callback=progress_callback,
+            )
+
+        return await self._run_surfaces_and_assemble(
+            brief=brief,
+            project_ctx=project_ctx,
+            wrai_report=wrai_report,
+            plan=plan,
+            surfaces=surfaces,
+            session_id=session.id,
+            tenant_ctx=tenant_ctx,
+            brief_text=brief_text,
+            progress_callback=progress_callback,
+        )
+
+    async def _halt_for_signoff(
+        self,
+        *,
+        session: Any,
+        brief: BriefSpec,
+        project_ctx: ProjectContext,
+        wrai_report: WebResearchReport,
+        plan: PlanStep,
+        surfaces: list[str],
+        brief_text: str,
+        progress_callback: Callable[[str, dict[str, Any]], Any] | None,
+    ) -> dict[str, Any]:
+        """Persist the AWAITING_SIGNOFF checkpoint, fire the native confirmation, halt.
+
+        Serializes the pre-signoff outputs (N1/N2 results, plan, surfaces, and the
+        per-stage accumulators) into ``session.state`` via a durable ADK ``state_delta``,
+        invokes the native ``await_signoff`` confirmation request to demonstrate a real
+        ``requested_tool_confirmations`` halt, emits a ``"signoff"`` progress event, and
+        returns the halt sentinel — stopping before N3a.
+        """
+        scope_summary = ", ".join(surfaces)
+        checkpoint = _serialize_checkpoint(
+            brief=brief,
+            project_ctx=project_ctx,
+            wrai_report=wrai_report,
+            plan=plan,
+            surfaces=surfaces,
+            session_id=session.id,
+            brief_text=brief_text,
+            stage_call_counts=self._governor._state.stage_call_counts,
+            stage_token_counts=self._governor._state.stage_token_counts,
+        )
+        await self._persist_signoff_state(
+            session=session,
+            status=STATUS_AWAITING,
+            checkpoint=checkpoint,
+        )
+
+        # Fire the native ADK confirmation request so a real
+        # requested_tool_confirmations / is_long_running halt is demonstrable. The
+        # confirmation is captured on a throwaway EventActions: production resume is
+        # driven by resume() supplying a confirmed ToolConfirmation, not by an
+        # autonomous agent loop here (which would issue model calls during the halt).
+        signoff_actions = EventActions()
+        ctx = _SignoffToolContext(actions=signoff_actions)
+        signoff_response = await_signoff(ctx, scope_summary=scope_summary)  # type: ignore[arg-type]
+        requested = signoff_actions.requested_tool_confirmations
+        signoff_event = {
+            "status": signoff_response["status"],
+            "stage": signoff_response["stage"],
+            "requested_tool_confirmations": list(requested.keys()),
+            # Source the long-running flag from the tool object itself (the native
+            # LongRunningFunctionTool) rather than hardcoding it, so the sentinel
+            # stays correct if the tool's nature ever changes.
+            "is_long_running": AWAIT_SIGNOFF_TOOL.is_long_running,
+            "hint": next(iter(requested.values())).hint if requested else None,
+        }
+
+        if progress_callback:
+            await progress_callback("signoff", signoff_event)
+
+        logger.info(
+            "AT-031: pipeline halted for human sign-off (session=%s, surfaces=%s)",
+            session.id,
+            surfaces,
+        )
+        return {
+            "status": "awaiting_signoff",
+            "session_id": session.id,
+            "signoff": signoff_event,
+        }
+
+    async def _persist_signoff_state(
+        self,
+        *,
+        session: Any,
+        status: str,
+        checkpoint: dict[str, Any] | None = None,
+    ) -> None:
+        """Durably persist the sign-off status (and optional checkpoint) into session state.
+
+        Uses an ADK ``append_event`` with a ``state_delta`` so a fresh ``AtelierRunner``
+        reading the same session service after a crash observes the persisted state. The
+        in-memory ``session.state`` mapping is also updated so the same-process idempotency
+        check (``session.state.get(SIGNOFF_STATUS_KEY)``) sees the write immediately.
+        """
+        state_delta: dict[str, Any] = {SIGNOFF_STATUS_KEY: status}
+        if checkpoint is not None:
+            state_delta[CHECKPOINT_KEY] = checkpoint
+        event = Event(author=_APP_NAME, actions=EventActions(state_delta=state_delta))
+        await self._session_service.append_event(session=session, event=event)
+        # append_event applies the delta to the passed session in ADK >=2.0; mirror it
+        # defensively so callers reading session.state in-process do not depend on that.
+        session.state.update(state_delta)
+
+    async def resume(
+        self,
+        session_id: str,
+        confirmation: ToolConfirmation,
+        tenant_ctx: TenantContext | None = None,
+        progress_callback: Callable[[str, dict[str, Any]], Any] | None = None,
+    ) -> dict[str, Any]:
+        """Resume a sign-off-halted run from its durable checkpoint (AT-031).
+
+        This is the crash-recovery path: a FRESH ``AtelierRunner`` constructed with the
+        same ``session_service`` can call ``resume`` to reload the ``AWAITING_SIGNOFF``
+        checkpoint, restore the per-stage accumulators (so completed N1/N2 stages are NOT
+        re-incremented), and — only when ``confirmation.confirmed is True`` — run the
+        screen loop + payload assembly using the checkpointed outputs (N1/N2 do not
+        re-run, so their ``stage_call_counts`` delta is 0).
+
+        ``resume()`` expects a FRESH runner: it treats the checkpoint's persisted
+        accumulators as authoritative and REPLACES the in-runner
+        ``stage_call_counts``/``stage_token_counts`` with them. Any prior in-runner
+        accumulator values (if ``resume`` were called on a non-fresh runner) are
+        intentionally discarded — the durable checkpoint is the single source of truth.
+
+        Terminal-state re-entry guard (PRD P4 "crash -> resume, no double-charge"): a
+        SECOND confirmed resume on a session whose ``signoff_status`` is already
+        ``APPROVED`` or ``COMPLETED`` (approval-webhook redelivery, a UI double-click, or
+        a crash AFTER the APPROVED write) must NOT re-run the surface loop — that would be
+        real duplicated model spend. Such a re-entry fails closed: it returns an
+        ``{"status": "already_resumed", ...}`` sentinel WITHOUT re-running surfaces. Note:
+
+          * Mid-N3a crash recovery — a crash DURING the surface loop, leaving the session
+            ``APPROVED`` but with surfaces only partially generated — is intentionally OUT
+            of AT-031 scope. The guard fails closed (no re-run, no double-charge) rather
+            than auto-resuming partial work; finer-grained mid-surface checkpointing is
+            future scope.
+          * The guard is NOT concurrency-safe against two genuinely simultaneous resumes:
+            the session service offers no compare-and-set, so two callers that both read
+            ``AWAITING_SIGNOFF`` before either writes ``APPROVED`` could both proceed.
+            Single-flight serialization of resumes is out of AT-031 scope.
+
+        Args:
+            session_id: The session id returned in the halt sentinel.
+            confirmation: The human's ``ToolConfirmation``. Fail-closed: only
+                ``confirmed is True`` advances; ``confirmed is False`` (or absent) leaves
+                the run ``AWAITING_SIGNOFF`` and returns the halt sentinel unchanged.
+            tenant_ctx: Tenant context. Defaults to the same placeholder as :meth:`run`.
+            progress_callback: Optional async progress callback.
+
+        Returns:
+            The full response payload on first approval; the halt sentinel on denial;
+            an ``{"status": "already_resumed", ...}`` sentinel on re-entry of an
+            already-APPROVED/COMPLETED session.
+
+        Raises:
+            ValueError: When no AWAITING_SIGNOFF checkpoint exists for ``session_id``.
+        """
+        if tenant_ctx is None:
+            tenant_ctx = TenantContext(
+                tenant_id="t1",
+                user_id="u1",
+                project_id="p1",
+                cost_budget_usd=Decimal("100.0"),
+            )
+
+        session = await self._session_service.get_session(
+            app_name=_APP_NAME,
+            user_id=tenant_ctx.user_id or "anonymous",
+            session_id=session_id,
+        )
+        if session is None:
+            raise ValueError(f"resume: no session found for session_id={session_id}")
+        raw_checkpoint = session.state.get(CHECKPOINT_KEY)
+        # Absent or non-dict checkpoint both mean "nothing to resume" — a domain
+        # precondition failure, not a caller type-contract violation.
+        checkpoint_present = isinstance(raw_checkpoint, dict)
+        if not checkpoint_present:
+            raise ValueError(f"resume: no AWAITING_SIGNOFF checkpoint for session_id={session_id}")
+        checkpoint = cast("dict[str, Any]", raw_checkpoint)
+
+        (
+            brief,
+            project_ctx,
+            wrai_report,
+            plan,
+            surfaces,
+            _ckpt_session_id,
+            brief_text,
+        ) = _deserialize_checkpoint(checkpoint)
+
+        # Restore the pre-signoff stage accumulators so completed stages are not
+        # re-incremented (idempotent resume — completed-stage delta 0). The checkpoint is
+        # authoritative for a FRESH runner; any prior in-runner accumulators are discarded.
+        self._governor._state.stage_call_counts = dict(checkpoint.get("stage_call_counts", {}))
+        self._governor._state.stage_token_counts = dict(checkpoint.get("stage_token_counts", {}))
+
+        # Terminal-state re-entry guard (PRD P4 — no double-charge). If the session is
+        # already APPROVED or COMPLETED, a second confirmed resume (webhook redelivery,
+        # double-click, or a crash after the APPROVED write) must NOT re-run the surface
+        # loop. Fail closed: return an idempotent sentinel without re-running surfaces /
+        # re-recording N3a calls. (See the method docstring for the mid-surface-crash and
+        # concurrency caveats — both intentionally out of AT-031 scope.)
+        current_status = session.state.get(SIGNOFF_STATUS_KEY)
+        if current_status in (STATUS_APPROVED, STATUS_COMPLETED):
+            logger.info(
+                "AT-031: resume re-entry on already-%s session %s — no surface re-run "
+                "(fail-closed, no double-charge)",
+                current_status,
+                session_id,
+            )
+            return {
+                "status": "already_resumed",
+                "session_id": session_id,
+                "signoff_status": current_status,
+            }
+
+        # Fail-closed negative arm: without an explicit confirmed sign-off, stay
+        # AWAITING_SIGNOFF and do not advance.
+        if not is_signoff_confirmed(confirmation):
+            await self._persist_signoff_state(session=session, status=STATUS_AWAITING)
+            logger.info(
+                "AT-031: resume denied (confirmation not confirmed); session %s stays %s",
+                session_id,
+                STATUS_AWAITING,
+            )
+            scope_summary = ", ".join(surfaces)
+            return {
+                "status": "awaiting_signoff",
+                "session_id": session_id,
+                "signoff": {
+                    "status": STATUS_AWAITING,
+                    "stage": SIGNOFF_STAGE_ID,
+                    "scope_summary": scope_summary,
+                },
+            }
+
+        # Mark APPROVED before running surfaces so a crash mid-surface leaves a terminal
+        # status the re-entry guard treats as "do not re-run" (fail-closed, no
+        # double-charge) — see the re-entry guard above and the docstring caveats.
+        await self._persist_signoff_state(session=session, status=STATUS_APPROVED)
+        if progress_callback:
+            await progress_callback(
+                "signoff_approved", {"session_id": session_id, "stage": SIGNOFF_STAGE_ID}
+            )
+        logger.info("AT-031: sign-off APPROVED for session %s; resuming N3a", session_id)
+
+        payload = await self._run_surfaces_and_assemble(
+            brief=brief,
+            project_ctx=project_ctx,
+            wrai_report=wrai_report,
+            plan=plan,
+            surfaces=surfaces,
+            session_id=session_id,
+            tenant_ctx=tenant_ctx,
+            brief_text=brief_text,
+            progress_callback=progress_callback,
+        )
+
+        # Record the terminal state once surfaces finish. A subsequent confirmed resume
+        # now hits the COMPLETED arm of the re-entry guard (no surface re-run).
+        await self._persist_signoff_state(session=session, status=STATUS_COMPLETED)
+        return payload
+
+    async def _run_surfaces_and_assemble(  # noqa: C901, PLR0912, PLR0915 — core multi-surface convergence loop
+        self,
+        *,
+        brief: BriefSpec,
+        project_ctx: ProjectContext,
+        wrai_report: WebResearchReport,
+        plan: PlanStep,
+        surfaces: list[str],
+        session_id: str,
+        tenant_ctx: TenantContext,
+        brief_text: str,
+        progress_callback: Callable[[str, dict[str, Any]], Any] | None,
+    ) -> dict[str, Any]:
+        """Run the per-surface convergence loop (N3a..N4) and assemble the payload.
+
+        Shared by :meth:`run` (non-signoff and approved-inline paths) and
+        :meth:`resume` (post-approval path). The N1/N2 outputs are passed in already
+        resolved; this helper never re-runs them, so their per-stage accumulators are
+        unchanged across a sign-off halt/resume.
+        """
         # Import fixer dynamically to avoid circular dependencies
         from atelier.nodes.fixer import FixerAgent  # noqa: PLC0415
 
         fixer = FixerAgent(self._governor)
 
         screens_results = {}
-        surfaces = getattr(plan, "surfaces", ["landing page"])
-        if not surfaces:
-            surfaces = ["landing page"]
+        user_id = tenant_ctx.user_id or "anonymous"
 
         for idx, screen in enumerate(surfaces):
             if progress_callback:
@@ -476,8 +953,8 @@ class AtelierRunner:
 
                     candidates: list[Any] = []
                     async for event in adk_runner.run_async(
-                        user_id=tenant_ctx.user_id or "anonymous",
-                        session_id=session.id,
+                        user_id=user_id,
+                        session_id=session_id,
                         new_message=genai_types.Content(
                             role="user",
                             parts=[genai_types.Part(text=prompt)],
@@ -514,6 +991,13 @@ class AtelierRunner:
                     exit_reason = StopReason.GOVERNOR_FAIL_SOFT
                     break
                 raw_candidates, stitch_degraded = governed_result
+                # AT-031: record the N3a post-signoff stage call on a stable id. This is
+                # the "post-signoff stages" side of the resume oracle — its token count
+                # must be > 0 after approval, while N1/N2 remain frozen at their
+                # checkpointed values.
+                self._governor._state.record_stage_call(
+                    STAGE_N3A_SPECIALIST_PIPELINE, tokens=STAGE_TOKEN_ATTRIBUTION
+                )
                 if stitch_degraded:
                     degradation_reason = "stitch_mcp_unavailable"
                     user_message = (
@@ -687,7 +1171,7 @@ class AtelierRunner:
             "budget_used_usd": self._governor._state.total_cost_usd,
             "budget_cap_usd": self._governor._state.budget_cap_usd,
             "web_research": wrai_report,
-            "session_id": session.id,
+            "session_id": session_id,
             "plan": plan.model_dump() if hasattr(plan, "model_dump") else {},
             "screens": screens_results,
         }
@@ -701,7 +1185,7 @@ class AtelierRunner:
             )
 
             dpo_pairs = extract_pairs_midflight(
-                session_id=session.id,
+                session_id=session_id,
                 tenant_id=tenant_ctx.tenant_id,
                 surface_id=str(uuid.uuid4()),
                 brief_text=brief_text,

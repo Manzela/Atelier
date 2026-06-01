@@ -57,10 +57,29 @@ class GovernorState:
     step_history: deque[str] = field(default_factory=lambda: deque(maxlen=MAX_LOOP_ITERATIONS))
     total_cost_usd: float = 0.0
     budget_cap_usd: float = 5000.0  # PRD §7.2
+    # AT-031 per-stage accumulators. Keyed by stable stage id (e.g. "n1_brief_parse",
+    # "n2_source_resolve", "n3a_specialist_pipeline"). These are the durability oracle
+    # for the sign-off resume path: completed-stage counts must show delta 0 across a
+    # halt/crash/resume cycle, and the post-signoff token delta must be > 0. They are
+    # independent of the USD budget logic (total_cost_usd/budget_cap_usd is AT-095's).
+    stage_call_counts: dict[str, int] = field(default_factory=dict)
+    stage_token_counts: dict[str, int] = field(default_factory=dict)
 
     def record_step(self, step_id: str) -> None:
         self.step_history.append(step_id)
         self.last_step_time = time.monotonic()
+
+    def record_stage_call(self, stage_id: str, tokens: int = 0) -> None:
+        """Increment the per-stage call count and token accumulator for ``stage_id``.
+
+        Args:
+            stage_id: Stable stage identifier (not iteration-specific), e.g.
+                ``"n1_brief_parse"``, ``"n2_source_resolve"``,
+                ``"n3a_specialist_pipeline"``.
+            tokens: Tokens attributed to this stage call (added to the running total).
+        """
+        self.stage_call_counts[stage_id] = self.stage_call_counts.get(stage_id, 0) + 1
+        self.stage_token_counts[stage_id] = self.stage_token_counts.get(stage_id, 0) + tokens
 
     def is_loop(self) -> bool:
         if len(self.step_history) < MAX_LOOP_ITERATIONS:

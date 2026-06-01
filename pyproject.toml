@@ -178,6 +178,14 @@ ignore_missing_imports = true
 disallow_any_unimported = false
 disable_error_code = ["import-untyped"]
 
+[[tool.mypy.overrides]]
+module = "atelier.gates.signoff"
+# google-adk (LongRunningFunctionTool, ToolContext, ToolConfirmation) ships no
+# inline stubs, so the ADK symbols resolve to Any under strict mode (AT-031).
+# disallow_any_unimported=false suppresses that single false positive while every
+# other strict check on the gate's own logic stays enabled (no ignore_errors).
+disallow_any_unimported = false
+
 # numpy is TYPE_CHECKING-gated in Protocol modules by design (ruff TC002).
 # When mypy resolves TYPE_CHECKING=True paths, NDArray types come from an
 # "unfollowed" perspective in strict mode. These overrides suppress the
