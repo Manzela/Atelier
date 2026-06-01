@@ -139,8 +139,16 @@ test('offline: rendered iframe body has non-transparent background', async ({
 test('iframe matches screenshot reference (Linux CI reference)', async ({
   authenticatedPage: page,
 }) => {
+  // Pin a viewport large enough that the full 1280x768 canvas (taller than the
+  // default 720px viewport) is visible — otherwise the iframe element screenshot
+  // races on scroll/clip and its captured size flips between runs (768 vs 720).
+  await page.setViewportSize({ width: 1440, height: 1000 });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await runWithFixture(page);
+
+  // Pin device-1280 explicitly so the iframe size is deterministic, then settle.
+  await page.click('[data-testid="device-1280"]');
+  await page.waitForTimeout(400);
 
   await expect(page.locator('iframe[title="Converged design output"]')).toHaveScreenshot(
     'converged-iframe.png',
