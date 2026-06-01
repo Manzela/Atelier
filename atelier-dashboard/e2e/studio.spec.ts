@@ -15,7 +15,9 @@ test.describe('Studio Workspace', () => {
 
   test('canvas shows idle state placeholder', async ({ authenticatedPage: page }) => {
     await page.goto('/studio/test-project-123');
-    await expect(page.getByText(/Click.*Run.*to generate/)).toBeVisible();
+    // AT-043: the empty state is a designed component (data-testid is the stable
+    // contract; copy may evolve). Was a brittle "/Click.*Run.*to generate/" match.
+    await expect(page.getByTestId('state-empty')).toBeVisible();
   });
 
   test('layers panel renders', async ({ authenticatedPage: page }) => {
