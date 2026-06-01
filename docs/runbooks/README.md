@@ -10,6 +10,7 @@ Operational procedures for running, recovering, and supporting Atelier in produc
 
 | Runbook                                      | When to use                                                      | Status             |
 | -------------------------------------------- | ---------------------------------------------------------------- | ------------------ |
+| [rollback.md](rollback.md)                   | Cert/DNS/deploy failure; roll back to last-known-good state      | Done               |
 | [recovery.md](recovery.md)                   | Stack is broken; panic was invoked; restore from snapshot        | Draft — Phase 1 D7 |
 | [on-call.md](on-call.md)                     | Alert routing, escalation matrix, common-incident playbook       | Draft — Phase 2 W2 |
 | [deployment.md](deployment.md)               | Deploy a new version to staging or prod                          | Draft — Phase 1 D7 |
