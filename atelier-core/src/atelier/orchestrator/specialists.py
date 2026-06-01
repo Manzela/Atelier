@@ -26,11 +26,12 @@ raises on a missing key); cross-agent hand-off uses ``output_key`` state writes;
 and Model Armor is attached via ``generate_content_config`` on every model call.
 
 .. note:: ``SequentialAgent`` carries an upstream deprecation hint pointing at a
-    ``Workflow`` API. As of the pinned ``google-adk==2.1.0`` that replacement
-    ships only as a **private** ``google.adk.workflow._*`` package (no stable
-    public export), so ``SequentialAgent`` remains the correct current primitive
-    and is what PRD §3.2 / AT-020 mandate. Per ADR-0001 (wrap-don't-fork) we pin
-    today's behavior and migrate to ``Workflow`` once it ships a public API.
+    ``Workflow`` API. In the pinned ``google-adk==2.1.0`` ``google.adk.Workflow``
+    **is** public, but it is a node-graph DSL (constructor takes ``edges`` /
+    ``graph`` / ``max_concurrency``, not ``sub_agents``) — migrating is a
+    non-trivial Node/Edge rewrite, not a version bump. So ``SequentialAgent``
+    remains the correct primitive for an ordered sub-agent container and is what
+    PRD §3.2 / AT-020 mandate. Per ADR-0001 (wrap-don't-fork) we defer the rewrite.
 """
 
 from __future__ import annotations
@@ -41,7 +42,7 @@ from typing import TYPE_CHECKING, Final
 
 from google.adk.agents.llm_agent import InstructionProvider, LlmAgent
 from google.adk.agents.sequential_agent import (
-    SequentialAgent,  # Deprecation(adk-3.0): migrate -> Workflow when public
+    SequentialAgent,  # Deprecated: Workflow (public node-graph DSL, not a sub_agents container) — rewrite deferred per ADR-0001
 )
 from google.genai import types as genai_types
 

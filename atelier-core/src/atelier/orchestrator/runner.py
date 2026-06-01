@@ -489,7 +489,7 @@ class AtelierRunner:
 
                 governed_result = await self._governor.run_with_governance(
                     _run_ensemble,
-                    step_id=f"n3a_generator_ensemble_{screen}_{iteration}",
+                    step_id=f"n3a_specialist_pipeline_{screen}_{iteration}",
                     cost_estimate_usd=N3A_COST_ESTIMATE_USD,
                 )
 
@@ -506,7 +506,7 @@ class AtelierRunner:
                     logger.warning(
                         "N3a governed run returned None (fail-soft); loop broken",
                         extra={
-                            "step_id": f"n3a_generator_ensemble_{screen}_{iteration}",
+                            "step_id": f"n3a_specialist_pipeline_{screen}_{iteration}",
                             "budget_used_usd": self._governor._state.total_cost_usd,
                             "budget_cap_usd": self._governor._state.budget_cap_usd,
                         },
