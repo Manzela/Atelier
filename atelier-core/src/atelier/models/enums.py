@@ -177,3 +177,24 @@ class UserSignal(StrEnum):
     ACCEPT = "accept"
     REJECT = "reject"
     NEUTRAL = "neutral"
+
+
+# ---------------------------------------------------------------------------
+# Interaction Spec Enums (AT-023 InteractionDesigner output contract)
+# ---------------------------------------------------------------------------
+
+
+class InteractionTrigger(StrEnum):
+    """Interaction trigger type for :class:`~atelier.models.interaction.DeclaredInteraction`.
+
+    Used by the ``InteractionDesigner`` DDLC specialist to enumerate the
+    component states it specifies.  At least one ``FOCUS`` or ``KEYBOARD``
+    entry is required in every valid :class:`~atelier.models.interaction.InteractionSpec`
+    (WCAG 2.4.7 / PRD R-accessibility).
+    """
+
+    HOVER = "hover"
+    FOCUS = "focus"
+    ACTIVE = "active"
+    DISABLED = "disabled"
+    KEYBOARD = "keyboard"
