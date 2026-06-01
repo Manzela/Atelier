@@ -1,0 +1,79 @@
+@import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Google+Sans+Text:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+:root {
+  /* Google Cloud / Stitch M3 Dark Theme Tokens */
+  --g-bg: #0f1013;
+  --g-surface: #1e1f22;
+  --g-surface-hover: #2d2f31;
+  --g-outline: #2c2d30;
+  --g-primary-blue: #1a73e8;
+  --g-primary-blue-hover: #1765cc;
+  --g-text: #e3e3e3;
+  --g-text-muted: #9aa0a6;
+  --g-success: #81c995;
+  --g-warning: #fdd663;
+  --g-error: #f28b82;
+  --g-info: #8ab4f8;
+
+  /* Native Browser UI Adaptation */
+  color-scheme: dark;
+  --color-scrollbar-track: var(--g-bg);
+  --color-scrollbar-thumb: var(--g-outline);
+}
+
+body {
+  background-color: var(--g-bg);
+  color: var(--g-text);
+  font-family: 'Google Sans Text', 'Google Sans', var(--font-roboto), sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  accent-color: var(--g-primary-blue);
+  scrollbar-color: var(--color-scrollbar-thumb) var(--color-scrollbar-track);
+}
+
+/* Legacy fallback for WebKit/Blink browsers */
+@supports not (scrollbar-color: auto) {
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-scrollbar-thumb);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--color-scrollbar-track);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--g-surface-hover);
+  }
+}
+
+/* Background Pattern: Fine Dot Grid */
+.stitch-grid-bg {
+  background-color: var(--g-bg);
+  background-image: radial-gradient(var(--g-outline) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+
+/* M3 Components */
+.g-card {
+  background-color: var(--g-surface);
+  border: 1px solid var(--g-outline);
+  border-radius: 8px;
+}
+
+.g-card:hover {
+  background-color: var(--g-surface-hover);
+}
+
+
+/* Typography Overrides */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Google Sans', var(--font-roboto), sans-serif;
+  font-weight: 500;
+}

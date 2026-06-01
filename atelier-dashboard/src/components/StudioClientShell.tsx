@@ -1,0 +1,430 @@
+'use client';
+
+import React, { useState, useRef, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { LazyMotion, domAnimation, m, AnimatePresence } from 'framer-motion';
+import {
+  ArrowLeft,
+  Play,
+  Layout,
+  Box,
+  Terminal,
+  ChevronUp,
+  ChevronDown,
+  SlidersHorizontal,
+  MousePointer2,
+  ZoomIn,
+  ZoomOut,
+  Maximize,
+} from 'lucide-react';
+import { runGenerationStream, type StreamCallbacks } from '@/lib/api';
+
+interface UserSession {
+  uid: string;
+  email: string;
+  displayName: string;
+  token: string;
+  tenant_id: string;
+}
+
+function useClientAuth() {
+  const router = useRouter();
+  const initialized = useRef(false);
+  const [user, setUser] = useState<UserSession | null>(null);
+
+  const initRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (initialized.current || !node) return;
+      initialized.current = true;
+      const userStr = localStorage.getItem('user');
+      if (!userStr) {
+        router.push('/login');
+        return;
+      }
+      try {
+        setUser(JSON.parse(userStr) as UserSession);
+      } catch {
+        localStorage.removeItem('user');
+        router.push('/login');
+      }
+    },
+    [router]
+  );
+
+  return { user, initRef };
+}
+
+export default function StudioClientShell({ id }: { id: string }) {
+  const router = useRouter();
+  const [scale, setScale] = useState(1);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [temperature, setTemperature] = useState(0.4);
+  const [topK, setTopK] = useState(40);
+  const [maxTokens, setMaxTokens] = useState(4096);
+  const { user, initRef } = useClientAuth();
+
+  const [status, setStatus] = useState<'idle' | 'generating' | 'converged' | 'failed'>('idle');
+  const [logs, setLogs] = useState<{ id: number; time: string; level: string; msg: string }[]>([]);
+
+  const addLog = (level: string, msg: string) => {
+    const time = new Date().toISOString().split('T')[1].slice(0, 8);
+    setLogs((prev) => [...prev, { id: Date.now(), time, level, msg }]);
+  };
+
+  const handleZoom = (delta: number) => {
+    setScale((s) => Math.max(0.2, Math.min(3, s + delta)));
+  };
+
+  const startGeneration = () => {
+    if (status === 'generating' || !user) return;
+    setStatus('generating');
+    setLogs([]);
+    addLog('INFO', 'Initiating Vertex AI Convergence Loop...');
+
+    const brief = new URLSearchParams(window.location.search).get('brief') || 'SaaS landing page';
+
+    const callbacks: StreamCallbacks = {
+      onPlan: (data) => {
+        addLog('INFO', `Plan received: ${data.surfaces?.join(', ') || 'N/A'}`);
+      },
+      onScreenStart: (data) => {
+        addLog('INFO', `Generating screen: ${data.screen}`);
+      },
+      onIterationStart: (data) => {
+        addLog('INFO', `Iteration #${data.iteration} started`);
+      },
+      onCandidates: () => {
+        addLog('INFO', 'Candidate HTML received');
+      },
+      onGatesEvaluation: (data) => {
+        const level = data.passed ? 'SUCCESS' : 'WARN';
+        addLog(level, `Gates: axe=${data.axe_score}, visual=${data.visual_score}`);
+      },
+      onConsensusEvaluation: (data) => {
+        const level = data.passed ? 'SUCCESS' : 'WARN';
+        addLog(level, `Consensus: [${data.votes?.join(', ')}]`);
+      },
+      onFixerDirective: (data) => {
+        addLog('WARN', `Fixer: ${data.directive}`);
+      },
+      onScreenConverged: (data) => {
+        addLog('SUCCESS', `Screen converged: ${data.screen}`);
+      },
+      onComplete: () => {
+        addLog('SUCCESS', 'Generation complete. All screens converged.');
+        setStatus('converged');
+      },
+      onError: (err) => {
+        addLog('ERROR', `Pipeline error: ${err}`);
+        setStatus('failed');
+      },
+    };
+
+    runGenerationStream(brief, 50, user.token, callbacks);
+  };
+
+  if (!user) return <div ref={initRef} />;
+
+  return (
+    <LazyMotion features={domAnimation}>
+      <div className="h-screen w-screen bg-[var(--g-bg)] text-[var(--g-text)] overflow-hidden flex flex-col font-sans stitch-grid-bg">
+        {/* Top Navbar */}
+        <header className="h-14 flex items-center justify-between px-4 border-b border-[var(--g-outline)] bg-[var(--g-surface)]/80 backdrop-blur-md z-40">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.push('/')}
+              className="p-1.5 hover:bg-[var(--g-surface-hover)] rounded-md transition-colors"
+              aria-label="Back to dashboard"
+            >
+              <ArrowLeft size={18} className="text-[var(--g-text-muted)]" />
+            </button>
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-[13px] text-white tracking-wide">{id}</span>
+              <span className="px-1.5 py-0.5 rounded text-[10px] bg-indigo-500/20 text-indigo-300 font-mono border border-indigo-500/30">
+                v1.0
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1 bg-black/40 p-1 rounded-md border border-[var(--g-outline)]">
+            <button className="px-3 py-1 rounded text-xs font-medium bg-[var(--g-outline)] text-white shadow-sm">
+              Home
+            </button>
+            <button className="px-3 py-1 rounded text-xs font-medium text-gray-400 hover:text-white transition-colors">
+              Auth
+            </button>
+            <button className="px-3 py-1 rounded text-xs font-medium text-gray-400 hover:text-white transition-colors">
+              Dashboard
+            </button>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="px-3 py-1.5 text-xs text-gray-400 border border-[var(--g-outline)] rounded-md bg-black/20 flex items-center gap-2">
+              Model: <span className="text-white font-medium">Gemini 1.5 Pro</span>
+            </div>
+            <button
+              onClick={startGeneration}
+              disabled={status === 'generating'}
+              className="flex items-center gap-1.5 bg-[var(--g-primary-blue)] hover:bg-[var(--g-primary-blue-hover)] disabled:opacity-50 text-white px-4 py-1.5 rounded-md text-xs font-medium transition-colors shadow-sm"
+            >
+              {status === 'generating' ? (
+                <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <Play size={14} className="ml-0.5 fill-current" />
+              )}
+              {status === 'generating' ? 'Generating...' : 'Run'}
+            </button>
+          </div>
+        </header>
+
+        <div className="flex-1 flex overflow-hidden relative">
+          {/* Left Block Drawer */}
+          <aside className="w-56 border-r border-[var(--g-outline)] bg-[var(--g-surface)]/50 backdrop-blur-md flex flex-col z-10">
+            <div className="p-3 border-b border-[var(--g-outline)] flex items-center gap-2">
+              <Layout size={14} className="text-gray-400" />
+              <span className="text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                Layers
+              </span>
+            </div>
+            <div className="flex-1 overflow-y-auto p-2 space-y-1">
+              {['Hero Section', 'Feature Grid', 'Testimonials', 'Pricing Table', 'Footer'].map(
+                (layer, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-[var(--g-surface-hover)] text-xs text-gray-400 cursor-pointer group transition-colors"
+                  >
+                    <Box
+                      size={14}
+                      className="text-gray-500 group-hover:text-indigo-400 transition-colors"
+                    />
+                    <span className="truncate">{layer}</span>
+                  </div>
+                )
+              )}
+            </div>
+          </aside>
+
+          {/* Center Canvas */}
+          <main className="flex-1 relative flex items-center justify-center overflow-hidden">
+            {/* Canvas Toolbar */}
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-[var(--g-surface)]/80 backdrop-blur-md p-1 rounded-lg border border-[var(--g-outline)] shadow-lg z-20">
+              <button
+                className="p-1.5 rounded hover:bg-[var(--g-surface-hover)] text-gray-400 hover:text-white transition-colors"
+                onClick={() => handleZoom(-0.1)}
+                aria-label="Zoom out"
+              >
+                <ZoomOut size={16} />
+              </button>
+              <span className="text-xs font-mono w-12 text-center text-gray-300">
+                {Math.round(scale * 100)}%
+              </span>
+              <button
+                className="p-1.5 rounded hover:bg-[var(--g-surface-hover)] text-gray-400 hover:text-white transition-colors"
+                onClick={() => handleZoom(0.1)}
+                aria-label="Zoom in"
+              >
+                <ZoomIn size={16} />
+              </button>
+              <div className="w-px h-4 bg-[var(--g-outline)] mx-1" />
+              <button
+                className="p-1.5 rounded hover:bg-[var(--g-surface-hover)] text-gray-400 hover:text-white transition-colors"
+                onClick={() => setScale(1)}
+                aria-label="Reset zoom"
+              >
+                <Maximize size={16} />
+              </button>
+            </div>
+
+            {/* Draggable/Zoomable Canvas Area */}
+            <m.div
+              drag
+              dragMomentum={false}
+              animate={{ scale }}
+              transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
+              className="w-[1024px] h-[768px] bg-white rounded-lg shadow-2xl overflow-hidden border border-gray-200 cursor-grab active:cursor-grabbing origin-center"
+            >
+              {status === 'idle' ? (
+                <div className="w-full h-full flex flex-col items-center justify-center bg-gray-50 text-gray-400">
+                  <MousePointer2 size={32} className="mb-4 opacity-50" />
+                  <p>{'Click \u201CRun\u201D to generate layout structure'}</p>
+                </div>
+              ) : status === 'generating' ? (
+                <div className="w-full h-full flex items-center justify-center bg-gray-50">
+                  <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+                </div>
+              ) : (
+                <div className="w-full h-full p-8 overflow-y-auto">
+                  <div className="max-w-4xl mx-auto space-y-12">
+                    <header className="flex justify-between items-center py-6 border-b border-gray-200">
+                      <div className="text-2xl font-bold text-gray-900">Acme Corp</div>
+                      <nav className="flex gap-6 text-sm font-medium text-gray-500">
+                        <span>Products</span>
+                        <span>Pricing</span>
+                        <span>About</span>
+                      </nav>
+                    </header>
+                    <section className="text-center py-20">
+                      <h1 className="text-6xl font-bold tracking-tight text-gray-900 mb-6">
+                        Build faster, together.
+                      </h1>
+                      <p className="text-xl text-gray-500 mb-8 max-w-2xl mx-auto">
+                        The platform for rapid UI generation using multi-agent consensus protocols.
+                      </p>
+                      <button className="px-8 py-3 bg-indigo-600 text-white rounded-full font-medium shadow-lg hover:bg-indigo-700">
+                        Start for free
+                      </button>
+                    </section>
+                  </div>
+                </div>
+              )}
+            </m.div>
+          </main>
+
+          {/* Right Vertex AI Config Panel */}
+          <aside className="w-72 border-l border-[var(--g-outline)] bg-[var(--g-surface)]/50 backdrop-blur-md flex flex-col z-10">
+            <div className="p-4 border-b border-[var(--g-outline)] flex items-center gap-2">
+              <SlidersHorizontal size={16} className="text-indigo-400" />
+              <span className="text-sm font-semibold text-white">Vertex AI Settings</span>
+            </div>
+
+            <div className="p-5 space-y-6 flex-1 overflow-y-auto">
+              <div className="space-y-4">
+                <div>
+                  <div className="flex justify-between text-xs mb-1.5">
+                    <span className="text-gray-400">Temperature</span>
+                    <span className="text-white font-mono">{temperature.toFixed(2)}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    value={temperature}
+                    onChange={(e) => setTemperature(parseFloat(e.target.value))}
+                    className="w-full accent-indigo-500"
+                    aria-label="Temperature"
+                  />
+                </div>
+                <div>
+                  <div className="flex justify-between text-xs mb-1.5">
+                    <span className="text-gray-400">Top-K</span>
+                    <span className="text-white font-mono">{topK}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="1"
+                    max="40"
+                    value={topK}
+                    onChange={(e) => setTopK(parseInt(e.target.value))}
+                    className="w-full accent-indigo-500"
+                    aria-label="Top-K"
+                  />
+                </div>
+                <div>
+                  <div className="flex justify-between text-xs mb-1.5">
+                    <span className="text-gray-400">Max Tokens</span>
+                    <span className="text-white font-mono">{maxTokens}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="1024"
+                    max="8192"
+                    step="512"
+                    value={maxTokens}
+                    onChange={(e) => setMaxTokens(parseInt(e.target.value))}
+                    className="w-full accent-indigo-500"
+                    aria-label="Max Tokens"
+                  />
+                </div>
+              </div>
+
+              <div className="h-px bg-[var(--g-outline)] my-6"></div>
+
+              <div>
+                <h4 className="text-[11px] uppercase tracking-wider font-semibold text-gray-500 mb-3">
+                  D-O-R-A-V Scorecard
+                </h4>
+                <div className="space-y-3">
+                  <div className="bg-black/30 p-3 rounded border border-[var(--g-outline)] flex justify-between items-center">
+                    <span className="text-xs text-gray-400">Axe (A11y)</span>
+                    <span
+                      className={`text-xs font-mono font-bold ${status === 'converged' ? 'text-emerald-400' : 'text-gray-600'}`}
+                    >
+                      {status === 'converged' ? '94/100' : '--'}
+                    </span>
+                  </div>
+                  <div className="bg-black/30 p-3 rounded border border-[var(--g-outline)] flex justify-between items-center">
+                    <span className="text-xs text-gray-400">Visual Quality</span>
+                    <span
+                      className={`text-xs font-mono font-bold ${status === 'converged' ? 'text-emerald-400' : 'text-gray-600'}`}
+                    >
+                      {status === 'converged' ? '88/100' : '--'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          {/* Bottom Drawer: Cloud Log Explorer */}
+          <AnimatePresence>
+            {isDrawerOpen && (
+              <m.div
+                initial={{ y: '100%' }}
+                animate={{ y: 0 }}
+                exit={{ y: '100%' }}
+                transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
+                className="absolute bottom-0 left-56 right-72 h-64 bg-[#1e1f22] border-t border-[var(--g-outline)] shadow-2xl flex flex-col z-30"
+              >
+                <div className="h-10 bg-[#2d2f31] flex items-center justify-between px-4 border-b border-[var(--g-outline)]">
+                  <div className="flex items-center gap-2 text-xs text-gray-300 font-medium">
+                    <Terminal size={14} className="text-blue-400" />
+                    Cloud Log Explorer
+                  </div>
+                  <button
+                    onClick={() => setIsDrawerOpen(false)}
+                    className="p-1 hover:bg-black/20 rounded text-gray-400 hover:text-white transition-colors"
+                    aria-label="Close log drawer"
+                  >
+                    <ChevronDown size={16} />
+                  </button>
+                </div>
+                <div className="flex-1 p-4 overflow-y-auto font-mono text-[11px] space-y-1.5 bg-[#0f1013]">
+                  {logs.length === 0 ? (
+                    <p className="text-gray-600 italic">
+                      No logs available. Start a generation run.
+                    </p>
+                  ) : (
+                    logs.map((log) => (
+                      <div key={log.id} className="flex gap-3">
+                        <span className="text-gray-500 shrink-0">{log.time}</span>
+                        <span
+                          className={`shrink-0 w-12 ${log.level === 'SUCCESS' ? 'text-emerald-400' : log.level === 'ERROR' ? 'text-red-400' : log.level === 'WARN' ? 'text-amber-400' : 'text-blue-400'}`}
+                        >
+                          {log.level}
+                        </span>
+                        <span className="text-gray-300">{log.msg}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </m.div>
+            )}
+          </AnimatePresence>
+
+          {/* Drawer Toggle Handle */}
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20">
+            {!isDrawerOpen && (
+              <button
+                onClick={() => setIsDrawerOpen(true)}
+                className="bg-[var(--g-surface)] border border-[var(--g-outline)] shadow-lg rounded-full px-4 py-1.5 flex items-center gap-2 text-xs font-medium text-gray-400 hover:text-white transition-colors"
+              >
+                <Terminal size={14} /> View Logs <ChevronUp size={14} className="ml-1" />
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </LazyMotion>
+  );
+}
