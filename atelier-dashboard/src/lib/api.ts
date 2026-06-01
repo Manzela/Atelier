@@ -78,6 +78,18 @@ export interface CapReachedData {
 }
 
 /**
+ * AT-096: Per-generation token usage delta emitted by the backend (AT-095).
+ * ``cumulative_user_tokens`` is the authoritative per-user running total
+ * (spans runs — the backend seeds it from the persisted store).
+ */
+export interface TokenDeltaData {
+  input: number;
+  output: number;
+  thinking: number;
+  cumulative_user_tokens: number;
+}
+
+/**
  * Per-iteration D-O-R-A-V scores emitted by the backend convergence loop (AT-093).
  * Shape mirrors the ``dorav`` key in CompleteData plus ``failing_axis``.
  */
@@ -107,6 +119,8 @@ export interface StreamCallbacks {
   onCapReached?: (data: CapReachedData) => void;
   /** AT-093: fired once per convergence iteration with that iteration's D-O-R-A-V scores */
   onIterationScore?: (data: IterationScoreData) => void;
+  /** AT-096: fired on each token_delta SSE event with cumulative per-user token counts */
+  onTokenDelta?: (data: TokenDeltaData) => void;
 }
 
 export const getApiUrl = () => {
@@ -115,7 +129,6 @@ export const getApiUrl = () => {
 
 export async function runGenerationStream(
   brief: string,
-  budgetUsd: number,
   token: string | null,
   callbacks: StreamCallbacks
 ): Promise<void> {
@@ -132,7 +145,7 @@ export async function runGenerationStream(
     const response = await fetch(url, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ brief, budget_usd: budgetUsd }),
+      body: JSON.stringify({ brief }),
     });
 
     if (!response.ok) {
@@ -239,6 +252,9 @@ function triggerCallback(event: string, data: Record<string, unknown>, callbacks
       break;
     case 'iteration_score':
       callbacks.onIterationScore?.(data as unknown as IterationScoreData);
+      break;
+    case 'token_delta':
+      callbacks.onTokenDelta?.(data as unknown as TokenDeltaData);
       break;
     default:
       console.log(`Unhandled SSE event: ${event}`, data);

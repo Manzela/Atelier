@@ -41,6 +41,7 @@ import {
   type NielsenHeuristic,
   type CapReachedData,
   type IterationScoreData,
+  type TokenDeltaData,
 } from '@/lib/api';
 
 interface UserSession {
@@ -90,6 +91,9 @@ const DORAV_AXES = [
 ] as const;
 
 type DoravAxisKey = (typeof DORAV_AXES)[number]['key'];
+
+/** AT-096: Per-user lifetime token cap (5 million tokens). */
+const TOKEN_CAP = 5_000_000;
 
 /**
  * AT-093: Animated per-axis score bar using framer-motion spring.
@@ -244,6 +248,10 @@ export default function StudioClientShell({ id }: { id: string }) {
   const [capReachedDetail, setCapReachedDetail] = useState<string>('');
   // AT-090: competitor-contrast beat — shown on convergence, dismissible
   const [competitorBeatVisible, setCompetitorBeatVisible] = useState(true);
+  // AT-096: live token meter — cumulative per-user counter (NOT reset on new run)
+  const [tokenUsage, setTokenUsage] = useState<TokenDeltaData | null>(null);
+  // AT-096: soft-warn dismissal — once dismissed, stays dismissed for the session
+  const [softWarnDismissed, setSoftWarnDismissed] = useState(false);
 
   const addLog = (level: string, msg: string) => {
     const time = new Date().toISOString().split('T')[1].slice(0, 8);
@@ -325,9 +333,15 @@ export default function StudioClientShell({ id }: { id: string }) {
           `Iter ${data.iteration} D-O-R-A-V composite=${comp} failing=${data.failing_axis ?? 'none'}`
         );
       },
+      // AT-096: update cumulative token usage; do NOT reset between runs (acceptance 1)
+      onTokenDelta: (data: TokenDeltaData) => {
+        setTokenUsage(data);
+        const delta = data.input + data.output + data.thinking;
+        addLog('INFO', `Tokens: +${delta} (Σ ${data.cumulative_user_tokens}/${TOKEN_CAP})`);
+      },
     };
 
-    runGenerationStream(brief, 50, user.token, callbacks);
+    runGenerationStream(brief, user.token, callbacks);
   };
 
   if (!user) return <div ref={initRef} />;
@@ -724,6 +738,102 @@ export default function StudioClientShell({ id }: { id: string }) {
                   })}
                 </div>
               </div>
+
+              {/* AT-096: Live Token Meter */}
+              <div className="h-px bg-[var(--g-outline)] my-4" />
+              {(() => {
+                const cumulative = tokenUsage?.cumulative_user_tokens ?? 0;
+                const pct = Math.min(100, (cumulative / TOKEN_CAP) * 100);
+                const remaining = TOKEN_CAP - cumulative;
+                const barColor =
+                  pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-amber-500' : 'bg-emerald-500';
+                return (
+                  <>
+                    {/* Soft warning banner — dismissible, non-blocking, shown once */}
+                    {tokenUsage &&
+                      tokenUsage.cumulative_user_tokens >= 0.9 * TOKEN_CAP &&
+                      !softWarnDismissed && (
+                        <div
+                          data-testid="token-soft-warning"
+                          className="flex items-center justify-between gap-2 mb-3 px-3 py-2 rounded border border-amber-500/60 bg-amber-950/40 text-[11px] text-amber-300"
+                          role="status"
+                          aria-live="polite"
+                        >
+                          <span>
+                            You&apos;re approaching this account&apos;s usage limit (90%).
+                          </span>
+                          <button
+                            onClick={() => setSoftWarnDismissed(true)}
+                            className="shrink-0 p-0.5 rounded hover:bg-white/10 text-amber-400 hover:text-white transition-colors"
+                            aria-label="Dismiss token warning"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      )}
+                    <div
+                      data-testid="token-meter"
+                      data-cumulative={cumulative}
+                      data-cap={TOKEN_CAP}
+                    >
+                      <h4 className="text-[11px] uppercase tracking-wider font-semibold text-gray-500 mb-2">
+                        Token Usage
+                      </h4>
+                      {/* Hero: remaining headroom */}
+                      <div className="bg-black/40 p-3 rounded border border-[var(--g-outline)] mb-2">
+                        <div className="flex justify-between items-baseline mb-1.5">
+                          <span className="text-[10px] text-gray-400">Used</span>
+                          <span className="text-xs font-mono text-white">
+                            {cumulative.toLocaleString()} / {TOKEN_CAP.toLocaleString()}
+                          </span>
+                        </div>
+                        {/* Progress bar */}
+                        <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden mb-1.5">
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${barColor}`}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                        <div className="flex justify-between items-baseline">
+                          <span className="text-[10px] text-gray-500">Remaining</span>
+                          <span
+                            className={`text-xs font-mono font-bold ${pct >= 90 ? 'text-red-400' : pct >= 70 ? 'text-amber-400' : 'text-emerald-400'}`}
+                          >
+                            {remaining.toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+                      {/* Per-type breakdown */}
+                      <div className="space-y-1">
+                        {[
+                          { testid: 'token-meter-input', label: 'Input', val: tokenUsage?.input },
+                          {
+                            testid: 'token-meter-output',
+                            label: 'Output',
+                            val: tokenUsage?.output,
+                          },
+                          {
+                            testid: 'token-meter-thinking',
+                            label: 'Thinking',
+                            val: tokenUsage?.thinking,
+                          },
+                        ].map(({ testid, label, val }) => (
+                          <div
+                            key={testid}
+                            data-testid={testid}
+                            className="flex justify-between items-center px-2 py-1 rounded bg-black/20 border border-[var(--g-outline)]"
+                          >
+                            <span className="text-[10px] text-gray-500">{label}</span>
+                            <span className="text-[10px] font-mono text-gray-300">
+                              {val != null ? val.toLocaleString() : '—'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
 
               {/* Nielsen Heuristics */}
               {(status === 'converged' || nielsen.length > 0) && (
