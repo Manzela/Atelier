@@ -8,13 +8,13 @@ Operational procedures for running, recovering, and supporting Atelier in produc
 
 ## Index
 
-| Runbook                                      | When to use                                                      | Status        |
-| -------------------------------------------- | ---------------------------------------------------------------- | ------------- |
-| [recovery.md](recovery.md)                   | Stack is broken; panic was invoked; restore from snapshot        | 📝 Phase 1 D7 |
-| [on-call.md](on-call.md)                     | Alert routing, escalation matrix, common-incident playbook       | 📝 Phase 2 W2 |
-| [deployment.md](deployment.md)               | Deploy a new version to staging or prod                          | 📝 Phase 1 D7 |
-| [incident-response.md](incident-response.md) | A user or panel reports a security or major operational issue    | 📝 Phase 2 W3 |
-| [customer-support.md](customer-support.md)   | A user reports a problem via in-product, email, or GitHub Issues | 📝 Phase 3    |
+| Runbook                                      | When to use                                                      | Status             |
+| -------------------------------------------- | ---------------------------------------------------------------- | ------------------ |
+| [recovery.md](recovery.md)                   | Stack is broken; panic was invoked; restore from snapshot        | Draft — Phase 1 D7 |
+| [on-call.md](on-call.md)                     | Alert routing, escalation matrix, common-incident playbook       | Draft — Phase 2 W2 |
+| [deployment.md](deployment.md)               | Deploy a new version to staging or prod                          | Draft — Phase 1 D7 |
+| [incident-response.md](incident-response.md) | A user or panel reports a security or major operational issue    | Draft — Phase 2 W3 |
+| [customer-support.md](customer-support.md)   | A user reports a problem via in-product, email, or GitHub Issues | Draft — Phase 3    |
 
 ## Conventions
 

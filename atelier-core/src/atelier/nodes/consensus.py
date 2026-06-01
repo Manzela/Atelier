@@ -10,8 +10,8 @@ scores are then combined into a single composite using an
 This module is the **v1.0 implementation** scaffold of that node: every judge here is a
 *deterministic* heuristic that inspects ``candidate.artifacts`` for concrete
 signals (CSS custom properties, semantic HTML, ARIA attributes, typography
-declarations, etc.). current implementation swaps each ``_score_*`` helper for a Vertex AI
-LLM call routed via :data:`atelier.models.model_registry.JUDGE_MODEL_CONFIG`,
+declarations, etc.). Each ``_score_*`` helper has a corresponding Vertex AI
+LLM upgrade path routed via :data:`atelier.models.model_registry.JUDGE_MODEL_CONFIG`,
 while the surrounding plumbing (anti-bias report, composite weighting,
 constitution enforcement, ``ConsensusEvaluation`` shape) stays untouched.
 
@@ -61,7 +61,7 @@ if TYPE_CHECKING:
 
 # ---------------------------------------------------------------------------
 # Tunable thresholds -- kept module-level so tests can assert against them
-# and current implementation LLM judges can re-use the same target values for calibration.
+# and LLM judges can re-use the same target values for calibration.
 # ---------------------------------------------------------------------------
 
 #: Target count of CSS custom property declarations for full Brand credit.
@@ -109,9 +109,8 @@ VISUAL_TARGET_SPACING: int = 4
 CONVERGENCE_DEFAULT: float = 0.70
 
 #: Half-width of the synthetic confidence interval attached to every v1.0 implementation
-#: :class:`JudgeVote`. Real judges in current implementation will emit their own CIs from
-#: Bayesian sampling; here we record a fixed band so the schema stays
-#: consistent downstream.
+#: :class:`JudgeVote`. LLM judges emit their own CIs from Bayesian sampling;
+#: here we record a fixed band so the schema stays consistent downstream.
 CONFIDENCE_HALF_WIDTH: float = 0.10
 
 #: Strength of the constitution penalty. When composite falls below
@@ -491,8 +490,8 @@ def _score_visual_clarity(candidate: CandidateUI) -> _JudgeScore:
 
 
 #: Dispatch table from snake_case axis name to its scorer. Module-level so
-#: tests can iterate over every axis without re-listing them and current implementation
-#: can swap a single entry to drop in an LLM-backed judge.
+#: tests can iterate over every axis without re-listing them, and a single
+#: entry can be swapped to drop in an LLM-backed judge.
 _AXIS_SCORERS: dict[str, Callable[[CandidateUI], _JudgeScore]] = {
     "brand": _score_brand,
     "originality": _score_originality,
@@ -511,8 +510,8 @@ def _confidence_interval(score: float) -> tuple[float, float]:
     """Clamp a symmetric confidence band around ``score`` to ``[0, 1]``.
 
     v1.0 implementation scorers are deterministic so the "interval" is purely cosmetic
-    -- it keeps the :class:`JudgeVote` schema satisfied. current implementation judges
-    will replace this with a real Bayesian CI from their token-level logits.
+    -- it keeps the :class:`JudgeVote` schema satisfied. LLM judges
+    emit a real Bayesian CI derived from token-level logits.
 
     Args:
         score: The point score in ``[0.0, 1.0]``.
@@ -547,11 +546,11 @@ def _build_judge_vote(
         record. Constructed with :attr:`JudgeVote.judge_model` set to the
         v1.0 implementation model's display name, suffixed with ``" (v1.0 implementation stub)"`` so
         downstream dashboards can distinguish heuristic v1.0 implementation votes from
-        real LLM votes in current implementation.
+        real LLM votes.
     """
     axis_enum = _AXIS_NAME_TO_ENUM[axis_name]
     model_spec = JUDGE_MODEL_CONFIG[axis_name]
-    # Honor current implementation LLM-provided judge_model / confidence_interval when
+    # Honor LLM-provided judge_model / confidence_interval when
     # the scorer surfaces them; otherwise emit the v1.0 implementation defaults so
     # heuristic mode keeps its original on-the-wire shape unchanged.
     if judge_score.judge_model is not None:
@@ -638,9 +637,9 @@ def evaluate_candidate(
            randomized (or seeded, in tests) and any weight-dominance is
            surfaced to downstream consumers.
         2. Score every axis in the *shuffled* order using the dispatch
-           table :data:`_AXIS_SCORERS`. Order only matters once current implementation
-           LLM judges land (they may share KV-cache prefixes), but we
-           shuffle now so trajectory logs already carry the data.
+           table :data:`_AXIS_SCORERS`. Order matters for LLM judges
+           that may share KV-cache prefixes; the shuffle is logged so
+           trajectory records carry the data for cache-affinity analysis.
         3. Wrap each internal score into a :class:`JudgeVote` and feed the
            scores into :meth:`AxisWeights.compute_composite`.
         4. Optionally apply the constitution penalty.

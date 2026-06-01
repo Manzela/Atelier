@@ -149,7 +149,7 @@ class VertexSemanticMemoryBackend:
         Replaces the hardcoded similarity=1.0 stub with real TF-IDF cosine
         similarity (stdlib-only — no sklearn dependency). Different documents
         score differently against the same query; min_similarity filtering
-        is now functional. current implementation replaces with Vertex AI embedding search.
+        is now functional. Vertex AI embedding search provides higher recall when configured.
 
         Args:
             scope: Memory scope key for isolation.

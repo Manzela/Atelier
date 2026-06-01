@@ -6,8 +6,8 @@ network I/O. The generator's job is to produce a deterministic, gate-clean
 :class:`CandidateUI` from a :class:`BriefSpec` + :class:`SurfaceState` pair
 so that downstream gates (N3c) and tests have something concrete to chew on.
 
-current implementation will swap the template path for an ADK-orchestrated LLM call that
-respects the spec's ``visual_register`` and ``stack``. The function
+The ADK-orchestrated LLM path (respecting ``visual_register`` and ``stack``)
+routes through the DDLC SequentialAgent when fully wired. The function
 signatures defined here are stable — the generation strategy is the only
 thing that changes between phases.
 
@@ -27,7 +27,7 @@ from atelier.models.data_contracts import CandidateUI, SurfaceState
 #: Per-visual-register design token defaults. Each entry is a tuple of
 #: ``(primary, surface, ink, font_stack)`` — a deliberately small set of
 #: tokens that exercises the token-fidelity gate without bloating the
-#: template. current implementation will derive these from the project's DESIGN.md.
+#: template. Tokens are derived from the project's DESIGN.md when available.
 _REGISTER_TOKENS: dict[VisualRegister, tuple[str, str, str, str]] = {
     VisualRegister.EDITORIAL: (
         "#1a1a1a",

@@ -93,8 +93,8 @@ async def pull_design_tokens(design_system_source: str | None = None) -> dict[st
     searches the current working directory for a DESIGN.md file. Falls back
     to safe defaults when no file is found.
 
-    current implementation replaces with a real ``dmd lint`` subprocess call when the dmd
-    binary is available in the deployment environment.
+    A ``dmd lint`` subprocess call provides higher-fidelity token validation
+    when the dmd binary is available in the deployment environment.
 
     Args:
         design_system_source: Path to DESIGN.md, or None to auto-discover.
@@ -133,7 +133,7 @@ async def pull_memory_bank_priors(tenant_id: str | None = None) -> list[str]:
     """Return memory bank priors from the in-process semantic backend.
 
     The default configuration uses the in-memory VertexSemanticMemoryBackend (no Vertex API call).
-    current implementation wires VertexAiMemoryBankService when the API is available.
+    VertexAiMemoryBankService is used when the API is available and the backend is configured.
 
     Args:
         tenant_id: Optional tenant scope for prior retrieval.

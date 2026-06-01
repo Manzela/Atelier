@@ -240,7 +240,7 @@ def generate_research_queries(brief_text: str, *, count: int = DEFAULT_QUERY_COU
     """
     count = min(count, MAX_QUERY_COUNT)
 
-    # Extract key terms from the brief (simple heuristic — current implementation will use LLM)
+    # Extract key terms from the brief (simple heuristic; LLM-based extraction available when ADK wired)
     words = brief_text.lower().split()
     # Filter out stop words and short words
     stop_words = {

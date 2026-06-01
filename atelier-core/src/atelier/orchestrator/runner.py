@@ -1,6 +1,6 @@
-"""Atelier Pipeline Runner — current implementation (N1 → N2 → N3a → N3c → N3d + Governor + SessionBackend).
+"""Atelier Pipeline Runner — N1 → N2 → N3a → N3c → N3d + Governor + SessionBackend.
 
-Full 8-node DAG (current implementation):
+Full 8-node DAG:
     N1  BriefParserGate + BriefParserAgent
     N14 WRAI — web research augmented intake (parallel)
     N2  SourceResolverGate + SourceResolverAgent
@@ -69,7 +69,7 @@ BUDGET_CAP_USD: float = 5000.0
 # Estimated cost per N3a run (DDLC SequentialAgent — 6 specialists, AT-020)
 N3A_COST_ESTIMATE_USD: float = 0.15
 
-# N3c gate axes — all 6 run in current implementation
+# N3c gate axes — all 6 run
 _N3C_GATE_AXES: list[GateAxis] = [
     GateAxis.SEMANTIC_HTML,
     GateAxis.LIGHTHOUSE_PERF,
@@ -138,7 +138,7 @@ def _default_session_service() -> BaseSessionService:
 
 
 class AtelierRunner:
-    """current implementation Pipeline Runner with Governor + injectable SessionBackend.
+    """Pipeline Runner with Governor + injectable SessionBackend.
 
     Chains N1 (Brief Parser) -> N2 (Source Resolver) -> N3a (DDLC Specialist Pipeline).
     All LLM calls are governed by the budget cap and failure trichotomy.
@@ -314,7 +314,7 @@ class AtelierRunner:
 
     async def _run_n1_n2(
         self,
-        brief_text: str,  # current implementation: used for trajectory metadata
+        brief_text: str,  # used for trajectory metadata
         tenant_ctx: TenantContext,
     ) -> tuple[Any, Any, WebResearchReport, Any]:
         """Execute N1 (Brief Parser), N0 (Planner), WRAI (conditional), and N2 (Source Resolver).
@@ -362,7 +362,7 @@ class AtelierRunner:
 
     async def run(  # noqa: C901, PLR0912, PLR0915 — core multi-surface convergence loop
         self,
-        brief_text: str,  # current implementation: used for trajectory metadata
+        brief_text: str,  # used for trajectory metadata
         tenant_ctx: TenantContext | None = None,
         progress_callback: Callable[[str, dict[str, Any]], Any] | None = None,
     ) -> dict[str, Any]:

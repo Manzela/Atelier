@@ -142,7 +142,7 @@ def main() -> int:
             logger.error("  - %s", orphan)
         return 1
 
-    logger.info("✅ Zero orphaned Atelier resources in %s", SRC_PROJECT)
+    logger.info("PASS: Zero orphaned Atelier resources in %s", SRC_PROJECT)
     return 0
 
 
