@@ -194,8 +194,8 @@ function CompetitorContrastBeat({ onDismiss }: { onDismiss: () => void }) {
             converge-or-halt discipline (live); Model Armor + IAP auth (deploy wave)
           </li>
           <li>
-            <span className="text-white font-medium">observable</span> — Kanban, per-iteration
-            scorecard (oracle-score deltas, AT-093), byte-equal replay
+            <span className="text-white font-medium">observable</span> — per-iteration scorecard
+            (oracle-score deltas, AT-093), byte-equal replay (live); Kanban board (deploy wave)
           </li>
           <li>
             <span className="text-white font-medium">Google-native</span> — Vertex AI + Gemini +
