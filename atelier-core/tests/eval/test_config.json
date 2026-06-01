@@ -1,4 +1,19 @@
 {
+  "_comment": "Eval config for the Atelier golden set (AT-100). Metrics split by gate tier. See PRD v2.2 §12 cadence table.",
+  "_offline_gate": {
+    "description": "test_agent_evaluator.py asserts only tool_trajectory_avg_score offline (deterministic, no LLM judge, no pandas/rouge-score required).",
+    "criteria": {
+      "tool_trajectory_avg_score": 0.7
+    }
+  },
+  "_live_gate": {
+    "description": "Nightly / pre-release CI evaluates LLM-based metrics via AgentEvaluator.evaluate_eval_set() with google-adk[eval] installed.",
+    "criteria": {
+      "tool_trajectory_avg_score": 0.7,
+      "rubric_based_final_response_quality_v1": 0.65,
+      "multi_turn_trajectory_quality_v1": 0.65
+    }
+  },
   "criteria": {
     "tool_trajectory_avg_score": 0.7,
     "rubric_based_final_response_quality_v1": 0.65,
