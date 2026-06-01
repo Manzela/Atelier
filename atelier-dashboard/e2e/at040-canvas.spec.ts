@@ -64,8 +64,15 @@ async function runWithFixture(page: import('@playwright/test').Page): Promise<vo
   // Click the Run button (aria-label not set → match visible text)
   await page.getByRole('button', { name: /^Run$/i }).click();
 
-  // Wait until the converged iframe appears
+  // Wait until the converged iframe appears AND its srcdoc content has painted.
+  // Playwright's screenshot stability detection does not see into the sandboxed
+  // (opaque-origin) iframe, so we must explicitly wait for its content — otherwise
+  // a screenshot can capture an unpainted frame and flake across runs.
   await page.waitForSelector('iframe[title="Converged design output"]', { timeout: 15_000 });
+  await page
+    .frameLocator('iframe[title="Converged design output"]')
+    .locator('.hero')
+    .waitFor({ state: 'visible', timeout: 10_000 });
 }
 
 // ── Test 1: srcDoc byte-equality ─────────────────────────────────────────────
@@ -123,17 +130,20 @@ test('offline: rendered iframe body has non-transparent background', async ({
   await page.context().setOffline(false);
 });
 
-// ── Test 4: screenshot regression (Linux reference generated in CI) ───────────
-// This test is EXPECTED TO FAIL locally with "missing snapshot" — the reference
-// PNG is generated on Linux in CI (artifact: atelier-dashboard/test-results/)
-// and committed as e2e/__snapshots__/at040-canvas.spec.ts-snapshots/converged-canvas-linux.png
-test('canvas matches screenshot reference (Linux CI reference)', async ({
+// ── Test 4: iframe screenshot regression (Linux reference generated in CI) ────
+// Screenshots the IFRAME (the converged design — deterministic static HTML), not
+// the framer-motion canvas wrapper (whose scale-spring/shadow flake). The reference
+// PNG is generated on Linux in CI and committed at
+// e2e/at040-canvas.spec.ts-snapshots/converged-iframe-chromium-linux.png.
+// EXPECTED TO FAIL locally with "missing snapshot" (Linux-only reference).
+test('iframe matches screenshot reference (Linux CI reference)', async ({
   authenticatedPage: page,
 }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await runWithFixture(page);
 
-  await expect(page.locator('[data-testid="studio-canvas"]')).toHaveScreenshot(
-    'converged-canvas.png',
-    { maxDiffPixelRatio: 0.02 }
+  await expect(page.locator('iframe[title="Converged design output"]')).toHaveScreenshot(
+    'converged-iframe.png',
+    { animations: 'disabled', maxDiffPixelRatio: 0.02 }
   );
 });
