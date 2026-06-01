@@ -112,15 +112,19 @@ after(async () => {
 });
 
 describe('per-user token-cap counter isolation (/users/{uid}/usage)', () => {
-  it('owner CAN read its own counter', async () => {
+  it('owner CAN read its own counter (the AT-096 meter)', async () => {
     const db = authedAs(UID_A, TENANT_A);
     await assertSucceeds(getDoc(doc(db, `users/${UID_A}/usage/token-cap`)));
   });
 
-  it('owner CAN write its own counter', async () => {
+  // AT-095 cap integrity: the counter is server-WRITE-only. The owning user
+  // must NOT be able to write it — a client write would let them reset their
+  // own cap to 0 out-of-band and burn tokens without limit. The server writes
+  // it via the firebase-admin Admin SDK, which bypasses these rules.
+  it('owner CANNOT write its own counter (server-write-only)', async () => {
     const db = authedAs(UID_A, TENANT_A);
-    await assertSucceeds(
-      setDoc(doc(db, `users/${UID_A}/usage/token-cap`), { used: 11 })
+    await assertFails(
+      setDoc(doc(db, `users/${UID_A}/usage/token-cap`), { total_tokens: 0 })
     );
   });
 

@@ -69,19 +69,30 @@ service cloud.firestore {
       return isSignedIn() && tenantOf() == tenantId;
     }
 
-    // ---- Per-user token-cap counter (owner-only) ----------------------
+    // ---- Per-user token-cap counter (owner-READ, server-WRITE-only) ----
     // /users/{uid}/usage/{counterId}
     match /users/{uid} {
       // The user profile root doc itself is owner-only.
       allow read, write: if isUser(uid);
 
+      // AT-095 cap integrity (CRITICAL): the per-user token-cap counter is the
+      // sole public-endpoint abuse control on our paid Vertex key. The OWNING
+      // user must NOT be able to write it — otherwise they could `setDoc` their
+      // own counter back to 0 (or negative) out-of-band via the client SDK,
+      // bypassing the server entirely, and burn tokens without limit. The
+      // counter is written ONLY by the server (firebase-admin Admin SDK, which
+      // bypasses these rules); the client gets READ only (the AT-096 meter).
       match /usage/{counterId} {
-        allow read, write: if isUser(uid);
+        allow read: if isUser(uid);
+        allow write: if false;
       }
 
-      // Any other per-user subcollection inherits owner-only access.
+      // Any other per-user subcollection: owner-READ, server-WRITE-only (same
+      // trust boundary — no client writes to per-user state). A subcollection
+      // that legitimately needs client writes must add its own explicit match.
       match /{document=**} {
-        allow read, write: if isUser(uid);
+        allow read: if isUser(uid);
+        allow write: if false;
       }
     }
 

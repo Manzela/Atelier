@@ -79,7 +79,11 @@ def test_token_cap_exceeded_handler_returns_402(client: TestClient) -> None:
     app = client.app  # type: ignore[attr-defined]
     app.include_router(router)
 
-    resp = client.get("/test/token-cap-exceeded")
+    import structlog
+
+    # AT-095 acceptance (d): the breach is logged fail-loud with uid/session/IP.
+    with structlog.testing.capture_logs() as logs:
+        resp = client.get("/test/token-cap-exceeded")
     assert resp.status_code == 402
     body = resp.json()
     assert body["error"] == "token_cap_exhausted"
@@ -89,6 +93,14 @@ def test_token_cap_exceeded_handler_returns_402(client: TestClient) -> None:
     assert "Contact administrator" in body["detail"]
     assert "user_action" in body
     assert "autonomous-agent.dev" in body["docs_url"]
+
+    # (d) the alertable breach log carries uid + session + (sanitized) IP at error level.
+    breach = next((e for e in logs if e.get("event") == "atelier.token_cap_exceeded"), None)
+    assert breach is not None, "the token-cap breach must be logged"
+    assert breach["log_level"] == "error"
+    assert breach["uid"] == "u1"
+    assert breach["session_id"] == "s1"
+    assert "client_ip" in breach
 
 
 def test_rate_limit_exceeded_handler_returns_429(client: TestClient) -> None:

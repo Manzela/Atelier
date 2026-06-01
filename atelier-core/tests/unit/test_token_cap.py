@@ -290,8 +290,10 @@ async def test_graceful_stop_at_cap_renders_message_once() -> None:
 
     # Graceful stop — not a raise; the loop finishes the in-flight unit then halts.
     assert result["exit_reason"] == "token_cap_exhausted"
-    # (b) the single branded, non-error message.
+    # (b) the single branded, non-error message, rendered EXACTLY ONCE (the
+    # terminal `complete` event) — never a duplicate banner or a raw quota error.
     assert result["user_message"] == TOKEN_CAP_MESSAGE
+    assert cap_messages == ["complete"]
     assert store.get_total(_UID) >= TOKEN_CAP_DEFAULT
 
 
@@ -325,3 +327,23 @@ def test_llm_judge_response_carries_thinking_tokens() -> None:
         text="{}", model_id="m", input_tokens=10, output_tokens=20, thinking_tokens=7
     )
     assert resp.thinking_tokens == 7
+
+
+def test_runner_usage_extraction_counts_thinking_tokens() -> None:
+    # G15 at the runner layer: _usage_from_event must read thoughts_token_count
+    # from a real Vertex-shaped event (the offline fake yields none, so the
+    # estimate path always sets thinking=0 — this exercises the live path).
+    from types import SimpleNamespace
+
+    from atelier.orchestrator.runner import _usage_from_event
+
+    event = SimpleNamespace(
+        usage_metadata=SimpleNamespace(
+            prompt_token_count=100,
+            candidates_token_count=200,
+            thoughts_token_count=50,
+        )
+    )
+    assert _usage_from_event(event) == (100, 200, 50)
+    # No usage_metadata → (0, 0, 0) so the caller falls back to the estimate.
+    assert _usage_from_event(SimpleNamespace()) == (0, 0, 0)
