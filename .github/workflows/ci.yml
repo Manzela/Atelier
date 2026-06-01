@@ -70,6 +70,7 @@ jobs:
               - '*.md'
             tokens:
               - 'design-tokens/**'
+              - 'scripts/**'
               - 'package.json'
               - 'package-lock.json'
               - 'lighthouserc.json'
@@ -231,6 +232,8 @@ jobs:
             test -s "$f" || { echo "missing/empty output: $f"; exit 1; }
           done
           echo "All four Style Dictionary outputs present and non-empty."
+      - name: AT-052 token round-trip proof (sentinel propagation to all 4 surfaces)
+        run: node scripts/verify-token-roundtrip.mjs
 
   # ─── Dashboard (Next.js Studio) typecheck + lint + build ─────────────
   dashboard:
