@@ -1,12 +1,18 @@
 # AT-095 — gaps.md (per-user lifetime 5M-token hard cap)
 
-## Status: implementation complete, all verify lanes green
+## Status: implementation complete, all verify lanes green, adversarial review DONE
 
 - mypy --strict: clean (93 src files).
-- verify-tests: 928 passed, 7 skipped (full offline lane incl. AT-003 determinism, AT-020/021).
+- verify-tests: 929 passed, 7 skipped (full offline lane incl. AT-003 determinism, AT-020/021).
 - verify-eval: 8 passed (AT-100 deterministic gate, zero live calls).
+- firestore-rules emulator: 19/19 pass (incl. the inverted owner-CANNOT-write counter case).
 - ruff check + format: clean on all changed files.
 - New oracles: `tests/unit/test_usage_counter.py` (store), `tests/unit/test_token_cap.py` (runner-level, the 7 acceptance criteria a–g).
+
+## Adversarial review (3-lens) → resolved DONE
+
+- **SECURITY lens initially REJECTED** a CRITICAL bypass: AT-084's Firestore rule granted the OWNING user write to `/users/{uid}/usage/{counterId}` (the explicit match AND the `{document=**}` catch-all). A signed-in user could `setDoc` their own counter to `{total_tokens:0}` out-of-band via the client SDK and burn tokens without limit. **Fixed** (`956627f`): the counter is now server-WRITE-only (client read-only for the AT-096 meter; the Admin SDK bypasses rules); the emulator test was inverted to assert owner CANNOT write. Focused security re-review → DONE (bypass closed, no new hole, no regression to tenant isolation / deny-floor).
+- Correctness + anti-slop lenses: DONE. Strengtheners applied: assert the cap message renders exactly once (b); assert the 402 breach logs uid/session/IP at error level (d); exercise `runner._usage_from_event` with non-zero thinking tokens (g); repoint `fixer.py`'s governor annotation to the orchestrator governor.
 
 ## What shipped (PRD §13.2 / G14 / G15 / G16 / R1 / R5)
 
