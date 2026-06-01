@@ -20,8 +20,9 @@ The QA stage of the DDLC pipeline. Two complementary layers:
    *narrative* layer. Four critics (Accessibility, Nielsen-heuristic, Visual-QA
    [advisory], Brand/Coherence) run concurrently, each writing a unique
    ``output_key``, producing qualitative critiques that feed the Fixer. Visual-QA
-   is **advisory** (never gates, R6). Nielsen votes **presence only** (the ten
-   heuristics land in AT-022); severity is never auto-acted
+   is **advisory** (never gates, R6). Nielsen votes **presence only** — the ten
+   heuristics are scored by the deterministic ≥2/3 presence oracle in
+   :mod:`atelier.nodes.nielsen` (AT-022); severity is never auto-acted
    (``<no_llm_severity_authority>``). ``ParallelAgent`` is deprecated in favour of
    ``google.adk.Workflow`` — which **is** public in the pinned ``google-adk==2.1.0``
    but is a node-graph DSL (constructor takes ``edges`` / ``graph`` /
@@ -48,6 +49,7 @@ from atelier.models.enums import GateAxis, GateDecision
 from atelier.models.model_registry import resolve_model_id
 from atelier.models.safety import default_model_armor_config
 from atelier.nodes.consensus import CONVERGENCE_DEFAULT, ConsensusEvaluation, evaluate_candidate
+from atelier.nodes.nielsen import NielsenReport, evaluate_nielsen
 
 if TYPE_CHECKING:
     from uuid import UUID
@@ -93,6 +95,11 @@ class PanelVerdict:
         gate_failures: Names of the gate axes that REJECTed (empty if none).
         contrast_passed: Whether the standalone WCAG contrast oracle passed.
         consensus: The full per-axis D-O-R-A-V evaluation (for provenance/trace).
+        nielsen: The Nielsen-10 usability presence report (AT-022). **Advisory
+            only** — it never affects ``passed``/``panel_composite``; Nielsen votes
+            PRESENCE, severity is a human gate (R6, ``<no_llm_severity_authority>``).
+            Carried here so the §3.9 "D-O-R-A-V + Nielsen" scorecard and the Fixer
+            can read it. ``None`` only for verdicts constructed without the oracle.
     """
 
     candidate_id: UUID
@@ -103,6 +110,7 @@ class PanelVerdict:
     gate_failures: tuple[str, ...]
     contrast_passed: bool
     consensus: ConsensusEvaluation
+    nielsen: NielsenReport | None = None
 
 
 def synthesize_panel(
@@ -158,6 +166,12 @@ def synthesize_panel(
     panel_composite = raw_composite if floor_passed else round(min(raw_composite, GATE_FAIL_CAP), 4)
     passed = floor_passed and raw_composite >= threshold
 
+    # Nielsen-10 usability presence (AT-022) — ADVISORY: computed for the scorecard
+    # and the Fixer, but deliberately NOT folded into `passed`/`panel_composite`.
+    # Nielsen votes PRESENCE; severity is a human gate (R6) — a usability finding
+    # never auto-blocks convergence.
+    nielsen = evaluate_nielsen(candidate)
+
     return PanelVerdict(
         candidate_id=candidate.candidate_id,
         panel_composite=panel_composite,
@@ -167,6 +181,7 @@ def synthesize_panel(
         gate_failures=gate_failures,
         contrast_passed=contrast_passed,
         consensus=consensus,
+        nielsen=nielsen,
     )
 
 
@@ -221,11 +236,17 @@ _CRITICS: Final[tuple[_CriticSpec, ...]] = (
         output_key="critique_nielsen",
         description="Flags Nielsen usability-heuristic violations as PRESENCE only (severity is a human gate).",
         role=(
-            "You are the Nielsen usability-heuristic critic. For each of Nielsen's "
-            "ten heuristics, report only whether a violation is PRESENT or ABSENT in "
-            "this design, with a one-line locator. Vote presence only — never assign "
-            "or act on severity; severity is a human decision. (The full ten-heuristic "
-            "presence vote is completed in AT-022.)"
+            "You are the Nielsen usability-heuristic critic. For each of Nielsen's ten "
+            "heuristics — (1) visibility of system status, (2) match between the system "
+            "and the real world, (3) user control and freedom, (4) consistency and "
+            "standards, (5) error prevention, (6) recognition rather than recall, "
+            "(7) flexibility and efficiency of use, (8) aesthetic and minimalist design, "
+            "(9) help users recognise, diagnose and recover from errors, and (10) help "
+            "and documentation — report only whether a violation is PRESENT or ABSENT in "
+            "this design, with a one-line locator. The deterministic ≥2/3 presence oracle "
+            "(atelier.nodes.nielsen) is the authority of record; corroborate it in prose. "
+            "Vote presence only — never assign or act on severity; severity is a human "
+            "decision (the Fixer and a human weigh your findings)."
         ),
     ),
     _CriticSpec(
