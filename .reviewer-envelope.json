@@ -5,22 +5,9 @@
   "mypy_exit": 0,
   "eval_delta_vs_head1": null,
   "files_touched_sha": {
-    "atelier-core/src/atelier/api/app.py": "603ad3a33ecd6e516257782e4408099668a3f44cf0d62b335ba9f72e8d5897d2",
-    "atelier-core/src/atelier/api/generate.py": "0da3866d25824d4b29549b3b312e20a057d8cadfcf37035fd3e324453da34bad",
-    "atelier-core/src/atelier/cli.py": "d0f975f271a7a4246bd606dcc4202e1951a05ed67be69f1d0924850a0ce1bb76",
-    "atelier-core/src/atelier/durability/__init__.py": "896c36b85fe28c4d6b5846df87bc180eb6a00bf12a3ed5853b41cb4cc7b69358",
-    "atelier-core/src/atelier/durability/usage_counter.py": "db6c58193c2714d70b95025de19250c4c2fd6685032c8a826ba3b9ae45025085",
-    "atelier-core/src/atelier/models/data_contracts.py": "f332ff2b6e0f015e0a2f802756d6c9eedbfbd605abf3df3c42da2135676df3c9",
-    "atelier-core/src/atelier/orchestrator/governor.py": "2701e69ba6ebc2bcde745113685a38e40a647d58aad78c240ada8f9716fc99f1",
-    "atelier-core/src/atelier/orchestrator/runner.py": "105e019acb2486cd9248516c5c12e455ba09e62ba66eb84ba83bc29e58c05cb9",
-    "atelier-core/src/atelier/orchestrator/stop_reason.py": "15500d4c2c6545ae2592590631877eeeda8b5150f18661bba87f530fe169ece3",
-    "atelier-core/tests/unit/test_api_error_handlers.py": "f2d21ab3cfaa2e61cf8e3168b8eee568e3ae0e2212ce0ce16980812c9000d562",
-    "atelier-core/tests/unit/test_data_contracts.py": "5247117caab6bc9fd7adcde327e3563403c6f08f49603eda39ecab52b4d03088",
-    "atelier-core/tests/unit/test_governor.py": "8731751adfef4828da72ff0218b613a5ac20e996b0c4601f536c68d1d1a15e59",
-    "atelier-core/tests/unit/test_stop_reason.py": "b8775e5b2c3cb93b8756bab7b3ab2f9e22dc836a15447f98206bbc5e1eb1deea",
-    "atelier-core/tests/unit/test_token_cap.py": "1cb8e6d59263044b663b299a9863d7ae3c6ea853f0c8d3ca9c9ba5944e73f270",
-    "atelier-core/tests/unit/test_usage_counter.py": "8b2fd163421ac0383bccf3359710b8419f4545d5a4949657f50bcb919385a2d5",
-    "docs/architecture/govern-pillar.md": "5b67f5f20c2c3a85d32f380fa3dd488861dd3f5e694a7d0be1d15ef29c42ac7e",
-    "gaps.md": "f216ec566ea010b7da61453679cc836a42824729c46e86140356e8efcd409caa"
+    ".gitignore": "4fdfce429bb312290a36626ba96e02ca96cd6d0de799c09fb6edfef603b52e08",
+    "atelier-dashboard/e2e/at096-token-meter.spec.ts": "6f46ce27832e376bf9f12d40ecd2313be013b5cfc336a5ef0c0d5420c9aaadd9",
+    "atelier-dashboard/src/components/StudioClientShell.tsx": "f2e9b20556b978fb6d3edf309cb4e1ce27d23b270006f14a55417cc16e8564c2",
+    "atelier-dashboard/src/lib/api.ts": "676ac571e8eea49099b4352762a1bf25377c41eba4a949403d2ec7a283e5367f"
   }
 }
