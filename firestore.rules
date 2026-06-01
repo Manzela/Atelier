@@ -1,0 +1,121 @@
+rules_version = '2';
+
+// Atelier Firestore security rules — AT-084 (PRD v2.2 §12 E8).
+//
+// SECURITY-SENSITIVE: these rules are the structural barrier that prevents
+// cross-tenant data leaks. They are deny-by-default; every collection is
+// reachable only through an explicit path-based match that pins the request
+// to the owning user (Firebase uid) or the owning tenant (derived via the
+// `atelier_tenant` custom claim, with a uid fallback for B2C — see tenantOf()
+// below). There is NO collection-group fallthrough and NO wildcard allow.
+//
+// Identity model (mirrors atelier-core/src/atelier/auth/firebase.py EXACTLY):
+//   - request.auth.uid                  -> Firebase UID -> TenantContext.user_id
+//   - tenant identity is derived the same way the Python layer derives it in
+//     `_user_from_token`: `decoded.get("atelier_tenant") or uid`. That is, the
+//     tenant key is the `atelier_tenant` custom claim when it is present AND
+//     non-empty, otherwise it FALLS BACK to the Firebase uid (B2C default).
+//     There is NO `tenant_id` claim — the rules derive tenant identity via the
+//     `tenantOf()` helper below so a B2C user with no `atelier_tenant` claim can
+//     still reach their own /tenants/{uid}/... subtree, matching firebase.py.
+//
+// Collection layout (kept consistent with the emulator isolation test and
+// the dashboard onSnapshot reads):
+//
+//   /users/{uid}/usage/{counterId}
+//       Per-user token-cap counter (AT-095 writes it; dashboard reads it).
+//       Owner-only: a doc is readable/writable ONLY by the Firebase user
+//       whose uid is in the path.
+//
+//   /tenants/{tenantId}/projects/{projectId}/board/{boardId}
+//   /tenants/{tenantId}/projects/{projectId}/tasks/{taskId}
+//       Board + tasks (AT-041; dashboard reads via onSnapshot). Tenant-
+//       isolated: readable/writable ONLY when the caller's derived tenant
+//       (tenantOf(): atelier_tenant claim, or uid fallback) equals the
+//       {tenantId} in the path. project_id is structural (a sub-path) so a
+//       tenant cannot reach another tenant's projects.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- Reusable predicates ------------------------------------------
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // True when the signed-in caller owns the uid in the path.
+    function isUser(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // Tenant identity of the signed-in caller. Mirrors firebase.py's
+    // `decoded.get("atelier_tenant") or uid`: the `atelier_tenant` custom claim
+    // when present and non-empty, otherwise the Firebase uid (B2C fallback).
+    // NOTE: the `'atelier_tenant' in request.auth.token` guard is REQUIRED —
+    // reading a map key that is absent raises an error in the rules engine
+    // (it does not coerce to null), which would deny a legitimate B2C caller.
+    function tenantOf() {
+      return ('atelier_tenant' in request.auth.token)
+        && request.auth.token.atelier_tenant != null
+        && request.auth.token.atelier_tenant != ''
+        ? request.auth.token.atelier_tenant
+        : request.auth.uid;
+    }
+
+    // True when the signed-in caller's derived tenant matches the path.
+    // A B2C caller (no atelier_tenant claim) matches ONLY /tenants/{theirUid};
+    // a B2B caller matches ONLY /tenants/{their atelier_tenant claim}.
+    function isTenantMember(tenantId) {
+      return isSignedIn() && tenantOf() == tenantId;
+    }
+
+    // ---- Per-user token-cap counter (owner-only) ----------------------
+    // /users/{uid}/usage/{counterId}
+    match /users/{uid} {
+      // The user profile root doc itself is owner-only.
+      allow read, write: if isUser(uid);
+
+      match /usage/{counterId} {
+        allow read, write: if isUser(uid);
+      }
+
+      // Any other per-user subcollection inherits owner-only access.
+      match /{document=**} {
+        allow read, write: if isUser(uid);
+      }
+    }
+
+    // ---- Board + tasks (tenant-isolated) ------------------------------
+    // /tenants/{tenantId}/projects/{projectId}/{board|tasks}/{docId}
+    match /tenants/{tenantId} {
+      // The tenant root doc is tenant-member-only.
+      allow read, write: if isTenantMember(tenantId);
+
+      match /projects/{projectId} {
+        allow read, write: if isTenantMember(tenantId);
+
+        match /board/{boardId} {
+          allow read, write: if isTenantMember(tenantId);
+        }
+
+        match /tasks/{taskId} {
+          allow read, write: if isTenantMember(tenantId);
+        }
+      }
+
+      // Any other tenant-scoped subcollection inherits tenant-member access.
+      match /{document=**} {
+        allow read, write: if isTenantMember(tenantId);
+      }
+    }
+
+    // ---- Deny-by-default floor ----------------------------------------
+    // Any path not matched above is denied for all access. This is the
+    // last rule so it only applies to documents the explicit matches above
+    // never reached (Firestore grants access if ANY matching allow is true,
+    // so this floor cannot loosen the scoped rules — it only closes gaps).
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

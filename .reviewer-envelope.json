@@ -5,8 +5,13 @@
   "mypy_exit": 0,
   "eval_delta_vs_head1": null,
   "files_touched_sha": {
-    "atelier-core/src/atelier/models/reviewer_envelope.py": "aa9fe0de7c60abfdce3823d4ac1f7c5107d3fbf988bc832545648addeff1c270",
-    "atelier-core/tests/unit/test_reviewer_envelope.py": "db4f8b232e59d7e70c8897600382898b15116bf50556b3c2d870e00fb3035f6d",
-    "scripts/ci/verify_reviewer_envelope.py": "43e9120c72183c6bc7063f1861d88173ab277012307996642e2a6198ac4f3f3b"
+    "firestore.rules": "f5f5d162a0aec175f21db3faf78f42256e9f09c55793071b2be4b76b248c145b",
+    "firestore.indexes.json": "ecd6f87b8c4c73b25b8b06174ded71b7170e7c960fbc7160568e2631c9ce2bf6",
+    "firebase.json": "c3fbd941c1a6e56eb3c08c5a67e02c912d90329946bf0b81a2b78b2497907dd6",
+    "firestore-tests/firestore-rules.test.mjs": "7ea0afd337c7fa53831581aef177efa027d6cf3ab1c61243d599814de638bdcd",
+    ".github/workflows/ci.yml": "d633c765be1585f740e866296a8f04b6a950ee40a605208f7171e1497919b2a6",
+    "atelier-dashboard/package.json": "2bc25a75dae0572dfbece1a0d2344f373958cc74e50a8f12057e74278dbc79a3",
+    "package.json": "47b190bde6d7dd1e63301cf42cc5e545f4f7ce59d02c213cc4e7ef3050210a22",
+    "package-lock.json": "98170a125e073433abbb92d28f9c0c36fe54d8cc55846cd0af9b627e64ed3e2a"
   }
 }
