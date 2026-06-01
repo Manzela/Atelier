@@ -238,6 +238,9 @@ class LLMJudgeResponse:
         input_tokens: Prompt token count if the client surfaced it; 0
             otherwise. Used for cost ledger accounting.
         output_tokens: Completion token count if surfaced; 0 otherwise.
+        thinking_tokens: Reasoning/"thoughts" token count (Vertex
+            ``usage_metadata.thoughts_token_count``) if surfaced; 0 otherwise.
+            Counted toward the per-user lifetime cap (AT-095, G15).
         avg_logprob: Mean per-token log probability of the response if the
             model surfaced it. ``None`` when unavailable. Used by
             :func:`compute_bayesian_ci` to narrow the confidence interval
@@ -248,6 +251,7 @@ class LLMJudgeResponse:
     model_id: str
     input_tokens: int = 0
     output_tokens: int = 0
+    thinking_tokens: int = 0
     avg_logprob: float | None = None
 
 
@@ -889,10 +893,12 @@ class VertexAIJudgeClient:
 
         input_tokens = 0
         output_tokens = 0
+        thinking_tokens = 0
         usage = getattr(response, "usage_metadata", None)
         if usage is not None:
             input_tokens = int(getattr(usage, "prompt_token_count", 0) or 0)
             output_tokens = int(getattr(usage, "candidates_token_count", 0) or 0)
+            thinking_tokens = int(getattr(usage, "thoughts_token_count", 0) or 0)
 
         avg_logprob: float | None = None
         candidates = getattr(response, "candidates", None) or []
@@ -906,5 +912,6 @@ class VertexAIJudgeClient:
             model_id=model_id,
             input_tokens=input_tokens,
             output_tokens=output_tokens,
+            thinking_tokens=thinking_tokens,
             avg_logprob=avg_logprob,
         )

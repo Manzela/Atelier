@@ -181,13 +181,13 @@ def cmd_generate(args: argparse.Namespace) -> int:
             tenant_id=args.tenant_id,
             user_id=args.user_id,
             project_id=args.project_id,
-            cost_budget_usd=Decimal(str(args.budget)),
+            cost_budget_usd=Decimal("0"),  # AT-095: deprecated descriptor, not enforced
         )
         return await runner.run(args.brief, tenant_ctx)
 
     print(f"\nAtelier — Generating design for brief: {args.brief[:80]}")
     print(f"  Tenant: {args.tenant_id} / User: {args.user_id}")
-    print(f"  Budget cap: ${args.budget:.2f}")
+    print("  Usage cap: per-user lifetime 5,000,000-token cap (AT-095)")
     print(f"{'─' * 60}")
 
     try:
@@ -278,7 +278,8 @@ def _build_parser() -> argparse.ArgumentParser:
     p_gen.add_argument("--tenant-id", default="cli-user", metavar="ID")
     p_gen.add_argument("--user-id", default="cli-user", metavar="ID")
     p_gen.add_argument("--project-id", default="cli-project", metavar="ID")
-    p_gen.add_argument("--budget", type=float, default=10.0, metavar="USD")
+    # AT-095: the --budget USD flag is removed; usage is governed by the per-user
+    # lifetime 5M-token cap (server-side), not a per-run dollar budget.
     p_gen.add_argument("--json", action="store_true", help="Also emit JSON summary")
 
     return parser

@@ -56,7 +56,12 @@ dependencies = [
     "google-adk>=2.1.0,<3",
     # "agent-dag-pipeline>=3.0.0,<4",
     "google-cloud-aiplatform>=1.71,<2",
-    # "google-cloud-firestore>=2.18,<3",
+    # AT-095: per-user lifetime token-cap counter persisted in Firestore
+    # (atelier.durability.usage_counter). Already resolved transitively via
+    # firebase-admin (lock pins 2.27.0); pinned directly here so the
+    # token-cap store does not depend on a transitive-graph accident
+    # (slopsquatting mitigation, <lockfile_only_installs>). No lock regen needed.
+    "google-cloud-firestore>=2.18,<3",
     "google-cloud-bigquery>=3.25,<4",
     # Direct pin (was transitive via google-adk → google-cloud-aiplatform).
     # Used by atelier.optimize.generator_tuner for GCS-staged DPO JSONL upload

@@ -1,12 +1,12 @@
 """MetacognitiveGovernor — MAPE-K autonomous failure management.
 
 Per PRD §21 Failure Trichotomy:
-    FAIL_LOUD: security breach, budget cap, data corruption → alert + halt
+    FAIL_LOUD: security breach, token-cap breach, data corruption → alert + halt
     FAIL_SOFT: tool errors, stall, infinite loop → degrade + log + acknowledge
     SELF_HEAL: 429/503 transient → retry with bounded exponential backoff
 
 MAPE-K mapping:
-    Monitor  → _monitor_heartbeat(), _check_budget(), _check_step_budget()
+    Monitor  → _monitor_heartbeat(), _check_token_budget()
     Analyze  → _classify_failure()
     Plan     → should_self_heal(), should_fail_soft(), should_fail_loud()
     Execute  → execute_self_heal() (backoff), execute_fail_soft() (log + degrade)
@@ -16,6 +16,15 @@ Hard caps (from architectural invariants):
     MAX_SELF_HEAL_RETRIES = 3   # per operation
     MAX_LOOP_ITERATIONS = 10    # detect infinite loops
     STALL_TIMEOUT_SECONDS = 300 # 5 minutes without progress → fail-soft
+
+Usage governance (AT-095, PRD §13.2 / G14 / G16):
+    The legacy per-RUN USD budget cap (``budget_cap_usd`` / ``_check_budget`` /
+    ``GovernorBudgetExceeded``) is **removed, not extended** — it reset every
+    ``run()`` and was therefore bypassable, a token-burn abuse hole on a public
+    paid endpoint. The sole V1 cap is the **per-user lifetime token cap**: the
+    governor pre-flight rejects (fail-loud) once the user's cumulative token
+    count reaches ``token_cap``; the cumulative count is persisted across runs
+    by :mod:`atelier.durability.usage_counter`.
 """
 
 from __future__ import annotations
@@ -39,15 +48,69 @@ MAX_LOOP_ITERATIONS: Final[int] = 10
 STALL_TIMEOUT_SECONDS: Final[float] = 300.0
 BACKOFF_BASE_SECONDS: Final[float] = 1.0
 BACKOFF_MAX_SECONDS: Final[float] = 32.0
-MAX_STEP_COST_USD: Final[float] = 0.50
+
+#: The single fixed V1 usage cap: per-Firebase-uid lifetime token total.
+TOKEN_CAP_DEFAULT: Final[int] = 5_000_000
+
+#: The one branded, non-error message shown when a user reaches the cap (PRD
+#: §13.2). Used identically by the graceful in-run stop and the 402 response so
+#: the user sees it exactly once and never a raw quota error.
+TOKEN_CAP_MESSAGE: Final[str] = (
+    "You've reached this account's usage limit. Contact administrator to continue."  # noqa: S105
+)
 
 
-class GovernorBudgetExceeded(Exception):  # noqa: N818  # name matches domain terminology
-    """Raised when the cumulative budget cap is exceeded."""
+class GovernorTokenCapExceeded(Exception):  # noqa: N818 — domain terminology
+    """Raised when a user's cumulative lifetime token count reaches the cap.
+
+    Fail-loud (PRD R5/§13): a cap is a security control, **never** self-healed.
+    Carries the structured context the alertable breach log requires
+    (uid / session / client IP / which cap).
+    """
+
+    def __init__(
+        self,
+        *,
+        uid: str | None = None,
+        used_tokens: int = 0,
+        cap_tokens: int = TOKEN_CAP_DEFAULT,
+        session_id: str | None = None,
+        client_ip: str | None = None,
+        which_cap: str = "per_user_lifetime",
+    ) -> None:
+        self.uid = uid
+        self.used_tokens = used_tokens
+        self.cap_tokens = cap_tokens
+        self.session_id = session_id
+        self.client_ip = client_ip
+        self.which_cap = which_cap
+        super().__init__(
+            f"Token cap reached ({which_cap}): {used_tokens} >= {cap_tokens} for uid={uid}"
+        )
 
 
-class GovernorStepBudgetExceeded(Exception):  # noqa: N818  # name matches domain terminology
-    """Raised when a single step exceeds the cost limit."""
+class GovernorRateLimitExceeded(Exception):  # noqa: N818 — domain terminology
+    """Raised when one uid issues too many requests inside the rate window.
+
+    Guards against burning the lifetime cap in seconds (AT-095 acceptance (f);
+    made global + tunable in AT-097). Fail-loud reject of the offending request.
+    """
+
+    def __init__(
+        self,
+        *,
+        uid: str | None = None,
+        max_requests: int = 0,
+        window_seconds: float = 0.0,
+        client_ip: str | None = None,
+    ) -> None:
+        self.uid = uid
+        self.max_requests = max_requests
+        self.window_seconds = window_seconds
+        self.client_ip = client_ip
+        super().__init__(
+            f"Rate limit exceeded for uid={uid}: > {max_requests} requests in {window_seconds:.0f}s"
+        )
 
 
 @dataclass
@@ -55,13 +118,16 @@ class GovernorState:
     retry_count: int = 0
     last_step_time: float = field(default_factory=time.monotonic)
     step_history: deque[str] = field(default_factory=lambda: deque(maxlen=MAX_LOOP_ITERATIONS))
-    total_cost_usd: float = 0.0
-    budget_cap_usd: float = 5000.0  # PRD §7.2
+    # AT-095 per-user lifetime token cap. ``user_id`` identifies whose cap this
+    # is; ``cumulative_user_tokens`` is seeded at run start from the persisted
+    # Firestore counter (so it spans runs) and grows as tokens are consumed.
+    user_id: str | None = None
+    cumulative_user_tokens: int = 0
+    token_cap: int = TOKEN_CAP_DEFAULT
     # AT-031 per-stage accumulators. Keyed by stable stage id (e.g. "n1_brief_parse",
     # "n2_source_resolve", "n3a_specialist_pipeline"). These are the durability oracle
     # for the sign-off resume path: completed-stage counts must show delta 0 across a
-    # halt/crash/resume cycle, and the post-signoff token delta must be > 0. They are
-    # independent of the USD budget logic (total_cost_usd/budget_cap_usd is AT-095's).
+    # halt/crash/resume cycle, and the post-signoff token delta must be > 0.
     stage_call_counts: dict[str, int] = field(default_factory=dict)
     stage_token_counts: dict[str, int] = field(default_factory=dict)
 
@@ -81,6 +147,24 @@ class GovernorState:
         self.stage_call_counts[stage_id] = self.stage_call_counts.get(stage_id, 0) + 1
         self.stage_token_counts[stage_id] = self.stage_token_counts.get(stage_id, 0) + tokens
 
+    def add_user_tokens(
+        self,
+        *,
+        input_tokens: int = 0,
+        output_tokens: int = 0,
+        thinking_tokens: int = 0,
+    ) -> int:
+        """Add a token delta (input + output + thinking) to the lifetime total.
+
+        Returns the new cumulative total. Negative deltas are rejected — the
+        counter only grows (defends against a tampered delta lowering usage
+        below the cap).
+        """
+        if input_tokens < 0 or output_tokens < 0 or thinking_tokens < 0:
+            raise ValueError("token deltas must be non-negative")
+        self.cumulative_user_tokens += input_tokens + output_tokens + thinking_tokens
+        return self.cumulative_user_tokens
+
     def is_loop(self) -> bool:
         if len(self.step_history) < MAX_LOOP_ITERATIONS:
             return False
@@ -91,8 +175,9 @@ class GovernorState:
     def is_stalled(self) -> bool:
         return (time.monotonic() - self.last_step_time) > STALL_TIMEOUT_SECONDS
 
-    def is_over_budget(self) -> bool:
-        return self.total_cost_usd > self.budget_cap_usd
+    def is_over_token_cap(self) -> bool:
+        """True once the user's cumulative lifetime tokens reach the cap."""
+        return self.cumulative_user_tokens >= self.token_cap
 
 
 T = TypeVar("T")
@@ -106,7 +191,7 @@ class MetacognitiveGovernor:
 
     def _classify_failure(self, exc: BaseException) -> FailureMode:
         """Classify exception into trichotomy. Never returns None."""
-        if isinstance(exc, GovernorBudgetExceeded | GovernorStepBudgetExceeded):
+        if isinstance(exc, GovernorTokenCapExceeded | GovernorRateLimitExceeded):
             return FailureMode.FAIL_LOUD
 
         # We classify timeouts and specific http errors as SELF_HEAL
@@ -136,11 +221,13 @@ class MetacognitiveGovernor:
         self,
         operation: Callable[[], Awaitable[T]],
         step_id: str,
-        cost_estimate_usd: float = 0.0,
     ) -> T | None:
-        """Execute operation under MAPE-K governance. Retries on SELF_HEAL."""
-        self._check_budget(cost_estimate_usd)
-        self._check_step_budget(cost_estimate_usd)
+        """Execute operation under MAPE-K governance. Retries on SELF_HEAL.
+
+        Pre-flight: fail-loud if the user's lifetime token cap is already
+        reached (no Vertex call is made once at cap — AT-095 acceptance (c)).
+        """
+        self._check_token_budget()
 
         if self._state.is_stalled():
             logger.warning("FAIL_SOFT: Pipeline stalled for step_id=%s", step_id)
@@ -150,8 +237,6 @@ class MetacognitiveGovernor:
         if self._state.is_loop():
             logger.warning("FAIL_SOFT: Infinite loop detected for step_id=%s", step_id)
             return None
-
-        self._state.total_cost_usd += cost_estimate_usd
 
         # Reset retry count for a new operation
         self._state.retry_count = 0
@@ -186,17 +271,11 @@ class MetacognitiveGovernor:
                     logger.warning("FAIL_SOFT: Degraded execution due to error: %s", e)
                     return None
 
-    def _check_budget(self, cost_usd: float) -> None:
-        """Raises GovernorBudgetExceeded (FAIL_LOUD) if over budget."""
-        if self._state.total_cost_usd + cost_usd > self._state.budget_cap_usd:
-            raise GovernorBudgetExceeded(
-                f"Budget exceeded. Cap: {self._state.budget_cap_usd}, "
-                f"Current: {self._state.total_cost_usd}, Requested: {cost_usd}"
-            )
-
-    def _check_step_budget(self, step_cost: float) -> None:
-        """Raises GovernorStepBudgetExceeded if single step exceeds $0.50."""
-        if step_cost > MAX_STEP_COST_USD:
-            raise GovernorStepBudgetExceeded(
-                f"Step cost {step_cost} exceeds ${MAX_STEP_COST_USD} limit"
+    def _check_token_budget(self) -> None:
+        """Raises GovernorTokenCapExceeded (FAIL_LOUD) if at/over the lifetime cap."""
+        if self._state.is_over_token_cap():
+            raise GovernorTokenCapExceeded(
+                uid=self._state.user_id,
+                used_tokens=self._state.cumulative_user_tokens,
+                cap_tokens=self._state.token_cap,
             )
