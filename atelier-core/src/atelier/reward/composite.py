@@ -159,7 +159,7 @@ class CompositeRewardEngine(Protocol):
 
         MUST be sub-5ms p99 — this is called inside the EvoDesign trajectory
         ingest pipeline on every candidate pair, often thousands per session.
-        The current implementation is O(|axes|) with no I/O.
+        This method is O(|axes|) with no I/O.
         """
         ...
 

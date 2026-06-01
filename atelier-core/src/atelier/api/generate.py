@@ -142,7 +142,7 @@ async def _run_pipeline(
     brief: str,
     user: FirebaseUser,
     budget_usd: float,
-    design_system_source: str | None,  # noqa: ARG001 — current implementation: will be passed to runner
+    design_system_source: str | None,  # noqa: ARG001 — reserved; passed to runner when source resolution is wired
 ) -> dict[str, Any]:
     """Execute the full Atelier pipeline and return the raw result dict."""
     from decimal import Decimal  # noqa: PLC0415

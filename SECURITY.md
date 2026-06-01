@@ -4,11 +4,11 @@
 
 Atelier follows semantic versioning. Security fixes are backported to:
 
-| Version                   | Supported                                  |
-| ------------------------- | ------------------------------------------ |
-| `v1.x.y` (current stable) | ✅                                         |
-| `v0.x.y` (alpha / beta)   | ⚠️ Best-effort prior to the v1.0.0 release |
-| `< v0.1.0`                | ❌                                         |
+| Version                   | Supported                               |
+| ------------------------- | --------------------------------------- |
+| `v1.x.y` (current stable) | Yes                                     |
+| `v0.x.y` (alpha / beta)   | Best-effort prior to the v1.0.0 release |
+| `< v0.1.0`                | No                                      |
 
 ## Reporting a vulnerability
 
@@ -70,18 +70,18 @@ For background on Atelier's defense-in-depth approach, see:
 
 These are reasonable to test against the public production environment with your own tenant — please do not test against other tenants:
 
-- ✅ Sign-up + sign-in flow (Identity Platform)
-- ✅ API rate limits per your tenant
-- ✅ Output scrubber on your own session output
-- ✅ Multi-tenant isolation via your tenant's data only
-- ✅ Cost cap enforcement at your tenant's budget
+- Sign-up + sign-in flow (Identity Platform)
+- API rate limits per your tenant
+- Output scrubber on your own session output
+- Multi-tenant isolation via your tenant's data only
+- Cost cap enforcement at your tenant's budget
 
 These require explicit written permission (request via the channels above):
 
-- ❌ Penetration testing against shared infrastructure
-- ❌ Load testing beyond your tenant's rate limit
-- ❌ Testing IAM Conditions cross-tenant boundaries
-- ❌ Testing Model Armor bypass attempts (we have automated detection; spurious attempts may trigger account suspension)
+- Penetration testing against shared infrastructure — not permitted without prior approval
+- Load testing beyond your tenant's rate limit — not permitted without prior approval
+- Testing IAM Conditions cross-tenant boundaries — not permitted without prior approval
+- Testing Model Armor bypass attempts — not permitted (we have automated detection; spurious attempts may trigger account suspension)
 
 ## PGP key
 

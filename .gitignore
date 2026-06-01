@@ -243,3 +243,6 @@ uv.lock
 # Internal sprint documents — rehearsal scripts, action items, etc.
 docs/sprint/
 **/docs/sprint/
+
+# Internal forensic audit notes — sprint-ops, never public
+audit/

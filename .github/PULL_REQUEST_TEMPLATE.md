@@ -51,7 +51,7 @@
 
 ## Acceptance criteria
 
-<!-- Specific, falsifiable. Each box must be ✅ before merge. -->
+<!-- Specific, falsifiable. Each box must be checked before merge. -->
 
 - [ ] Tests added / updated
 - [ ] Pre-commit passes (`pre-commit run --all-files`)

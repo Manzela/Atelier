@@ -204,8 +204,8 @@ class EpsilonGreedyBandit:
         *,
         decision: RouteDecision,
         achieved_score: float,
-        actual_cost_usd: float,  # noqa: ARG002 — Protocol signature; reserved for BQ cost tracking (current implementation+)
-        actual_latency_ms: int,  # noqa: ARG002 — Protocol signature; reserved for latency-aware arm updates (current implementation+)
+        actual_cost_usd: float,  # noqa: ARG002 — Protocol signature; reserved for BQ cost tracking
+        actual_latency_ms: int,  # noqa: ARG002 — Protocol signature; reserved for latency-aware arm updates
     ) -> None:
         """Update arm posterior with the observed score.
 

@@ -18,8 +18,9 @@ Three gates ship with real logic in v1.0 implementation:
     * :func:`check_token_fidelity` — DTCG token fidelity (zero-tolerance: any
       off-token color literal → REJECT) + custom-property use ratio
 
-Three gates ship as scored stubs (real implementations require a browser
-sandbox, which current implementation will provide via Playwright):
+Three gates operate as heuristic browser-free proxies (a browser sandbox
+is required for full fidelity; see :func:`check_lighthouse_stub`,
+:func:`check_axe_stub`, and :func:`check_visual_diff_stub` for details):
     * :func:`check_lighthouse_stub` — performance/a11y proxy
     * :func:`check_axe_stub` — accessibility scanner proxy
     * :func:`check_visual_diff_stub` — pixel-diff proxy
@@ -529,8 +530,8 @@ def check_lighthouse_stub(candidate: CandidateUI) -> GateOutcome:
 
     Estimates a performance score from static HTML/CSS analysis without
     a browser sandbox. Penalises patterns that commonly lower real Lighthouse
-    scores: inline scripts, render-blocking CSS, eager image loading. current implementation
-    replaces this with a real ``@lighthouse-ci`` invocation.
+    scores: inline scripts, render-blocking CSS, eager image loading.
+    A ``@lighthouse-ci`` integration is required for full score accuracy.
 
     Scoring formula (per-candidate, so scores vary):
         score = 100 - Σ(penalties), clamped to [_PERF_FLOOR, 100]
@@ -600,8 +601,9 @@ def check_axe_stub(candidate: CandidateUI) -> GateOutcome:
 
     Penalises common accessibility violations detectable from raw HTML:
     interactive controls without accessible text, images without alt, inputs
-    without labels, missing viewport meta. current implementation wires real axe-core against
-    a rendered DOM.
+    without labels, missing viewport meta.
+    The axe-core gate runs against a Playwright-rendered DOM when full browser
+    execution is available (see :mod:`atelier.gates.axe_core`).
 
     Args:
         candidate: CandidateUI whose ``index.html`` is analysed.
@@ -690,7 +692,8 @@ def check_visual_diff_stub(candidate: CandidateUI) -> GateOutcome:
     "golden" reference tag distribution via cosine similarity on a tag-
     frequency vector. Candidates that generate unusual or empty DOM
     structures score low; candidates that use standard HTML5 structure
-    score high. current implementation replaces this with pixel-level visual diff.
+    score high. Pixel-level visual diff requires a rendered browser
+    context (see :mod:`atelier.gates.axe_core`).
 
     Args:
         candidate: CandidateUI whose ``index.html`` is analysed.

@@ -73,8 +73,8 @@ class AntiBiasReport:
     Attributes:
         evaluation_order: The order in which judges were invoked for this
             candidate. A tuple of axis-name strings drawn from
-            :data:`DEFAULT_AXIS_ORDER`. Order matters because some current implementation
-            judges may share KV-cache prefixes -- the order is logged so
+            :data:`DEFAULT_AXIS_ORDER`. Order matters because LLM judges
+            may share KV-cache prefixes -- the order is logged so
             cache-affinity regressions are debuggable.
         dominant_axis: The axis whose normalized weight exceeds
             :data:`DOMINANCE_THRESHOLD`, or ``None`` if the weights are

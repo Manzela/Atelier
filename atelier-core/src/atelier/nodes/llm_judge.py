@@ -1,8 +1,8 @@
-"""current implementation LLM judge module for the N3d ConsensusAgent.
+"""LLM judge module for the N3d ConsensusAgent.
 
 v1.0 implementation (:mod:`atelier.nodes.consensus`) ships deterministic heuristics for
-every D-O-R-A-V axis. current implementation swaps each ``_score_*`` heuristic for a Vertex
-AI LLM call routed via :data:`atelier.models.model_registry.JUDGE_MODEL_CONFIG`
+every D-O-R-A-V axis. This module provides Vertex AI LLM-backed alternatives
+for each ``_score_*`` heuristic, routed via :data:`atelier.models.model_registry.JUDGE_MODEL_CONFIG`
 while keeping the surrounding plumbing (anti-bias report, composite weighting,
 constitution penalty, :class:`ConsensusEvaluation` shape) untouched.
 

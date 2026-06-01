@@ -131,7 +131,7 @@ EDGE_CASE_BRIEFS: list[SimulationBrief] = [
     SimulationBrief(
         id="edge-004",
         category="edge_case",
-        text="Design a page with 🎨 emoji 🚀 branding and ❤️ hearts",
+        text="Design a page with \U0001f3a8 emoji \U0001f680 branding and \u2764\ufe0f hearts",
         expected_outcome="pass",
         description="Unicode emoji in brief — tests character handling",
         tags=["unicode", "emoji"],
