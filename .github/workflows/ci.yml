@@ -45,6 +45,7 @@ jobs:
       ci_config: ${{ steps.filter.outputs.ci_config }}
       docs_only: ${{ steps.filter.outputs.docs_only }}
       tokens: ${{ steps.filter.outputs.tokens }}
+      dashboard: ${{ steps.filter.outputs.dashboard }}
     steps:
       - uses: actions/checkout@v6
       - uses: dorny/paths-filter@v4
@@ -69,6 +70,10 @@ jobs:
               - 'package.json'
               - 'package-lock.json'
               - 'lighthouserc.json'
+            dashboard:
+              - 'atelier-dashboard/**'
+              - 'package.json'
+              - 'package-lock.json'
 
   # ─── Pre-commit (always runs; cheap; catches most issues) ────────────
   precommit:
@@ -211,11 +216,35 @@ jobs:
           done
           echo "All four Style Dictionary outputs present and non-empty."
 
+  # ─── Dashboard (Next.js Studio) typecheck + lint + build ─────────────
+  dashboard:
+    name: Dashboard (Next.js Studio)
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.dashboard == 'true' || needs.changes.outputs.ci_config == 'true'
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - name: Install dependencies (lockfile)
+        run: npm ci
+      - name: Typecheck (tsc --noEmit --strict)
+        working-directory: atelier-dashboard
+        run: npm run typecheck
+      - name: Lint (eslint)
+        working-directory: atelier-dashboard
+        run: npm run lint
+      - name: Build (next build)
+        working-directory: atelier-dashboard
+        run: npm run build
+
   # ─── All-green gate (required by branch protection) ──────────────────
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest
-    needs: [precommit, python, docs-links, tokens]
+    needs: [precommit, python, docs-links, tokens, dashboard]
     if: always()
     steps:
       - name: Verify required jobs passed (or skipped intentionally)
@@ -224,10 +253,11 @@ jobs:
             echo "precommit failed: ${{ needs.precommit.result }}"
             exit 1
           fi
-          for j_name in "python" "docs-links" "tokens"; do
+          for j_name in "python" "docs-links" "tokens" "dashboard"; do
             r="${{ needs.python.result }}"
             [[ "$j_name" == "docs-links" ]] && r="${{ needs.docs-links.result }}"
             [[ "$j_name" == "tokens" ]] && r="${{ needs.tokens.result }}"
+            [[ "$j_name" == "dashboard" ]] && r="${{ needs.dashboard.result }}"
             if [[ "$r" == "failure" || "$r" == "cancelled" ]]; then
               echo "$j_name failed: $r"
               exit 1
