@@ -32,6 +32,7 @@ import {
   XCircle,
   ZapOff,
   RotateCcw,
+  X,
 } from 'lucide-react';
 import {
   runGenerationStream,
@@ -109,6 +110,109 @@ function AnimatedScoreValue({ value }: { value: number | undefined }) {
   return <m.span>{display}</m.span>;
 }
 
+// AT-090: Competitor-contrast beat — rendered on convergence, dismissible.
+// Product COPY only; no runtime Claude integration. ADR-0020/§13.5 guardrail honored.
+function CompetitorContrastBeat({ onDismiss }: { onDismiss: () => void }) {
+  return (
+    <m.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 8 }}
+      transition={{ type: 'spring', bounce: 0, duration: 0.35 }}
+      data-testid="competitor-contrast-beat"
+      className="rounded border border-indigo-500/30 bg-black/40 p-4 text-[11px] leading-relaxed"
+    >
+      <div className="flex items-start justify-between gap-2 mb-3">
+        <h4 className="text-[11px] uppercase tracking-wider font-semibold text-indigo-300">
+          Why Atelier?
+        </h4>
+        <button
+          data-testid="competitor-contrast-dismiss"
+          onClick={onDismiss}
+          className="shrink-0 p-0.5 rounded hover:bg-white/10 text-gray-500 hover:text-white transition-colors"
+          aria-label="Dismiss competitor contrast"
+        >
+          <X size={12} />
+        </button>
+      </div>
+
+      {/* vs Stitch / v0 / Lovable */}
+      <div className="mb-3">
+        <p className="text-gray-400 font-semibold mb-1">vs Stitch / v0 / Lovable</p>
+        <ul className="space-y-1 text-gray-400">
+          <li>
+            <span className="text-white font-medium">reject+halt on skeleton</span> — deterministic
+            structure gate rejects empty/skeleton output before any LLM token burns
+          </li>
+          <li>
+            <span className="text-white font-medium">anchored tokens</span> — zero-tolerance token
+            gate; design-system values propagate across every surface, not suggested and drifted
+          </li>
+          <li>
+            <span className="text-white font-medium">edit-not-regenerate</span> — one-edit -&gt;
+            N-surface token propagation (AT-052); byte-stable replay
+          </li>
+          <li>
+            <span className="text-white font-medium">legible token meter</span> — token-based
+            governance with fail-closed gates; live per-user cap in deploy wave; invisible burn is
+            the top usage complaint
+          </li>
+          <li>
+            <span className="text-white font-medium">proactive standards + scope-lock</span> —
+            checks applied before generation, not after
+          </li>
+        </ul>
+      </div>
+
+      {/* vs Claude Design */}
+      <div className="mb-3">
+        <p className="text-gray-400 font-semibold mb-1">
+          vs Claude Design (Anthropic Labs, research preview)
+        </p>
+        <p className="text-gray-500 mb-1.5 italic text-[10px]">
+          Claude Design out-polishes Atelier on raw visual fidelity, interactive-refinement feel,
+          output breadth, and real adoption. It is a flagship WYSIWYG editor. Atelier does a
+          different job.
+        </p>
+        <ul className="space-y-1 text-gray-400">
+          <li>
+            <span className="text-white font-medium">autonomous and long-running</span> — unattended
+            convergence vs synchronous human-collaborative editing
+          </li>
+          <li>
+            <span className="text-white font-medium">multi-specialist DAG + critique panel</span> —
+            6-role DDLC specialist pipeline, Fixer loop, 5-axis D-O-R-A-V judge vs single-model pass
+          </li>
+          <li>
+            <span className="text-white font-medium">
+              ENFORCES brand (zero-tolerance token gate)
+            </span>{' '}
+            — applied and verified vs built and suggested
+          </li>
+          <li>
+            <span className="text-white font-medium">governed</span> — fail-closed gates,
+            converge-or-halt discipline (live); Model Armor + IAP auth (deploy wave)
+          </li>
+          <li>
+            <span className="text-white font-medium">observable</span> — per-iteration scorecard
+            (oracle-score deltas, AT-093), byte-equal replay (live); Kanban board (deploy wave)
+          </li>
+          <li>
+            <span className="text-white font-medium">Google-native</span> — Vertex AI + Gemini +
+            BigQuery + Cloud Run + Firebase
+          </li>
+        </ul>
+      </div>
+
+      {/* Proof-points */}
+      <div className="pt-2 border-t border-[var(--g-outline)] text-[10px] text-gray-500">
+        B1 proof-points: skeleton reject+halt / one-edit -&gt; N-surface (AT-052) / converging
+        oracle-score deltas (AT-093) / byte-stable replay
+      </div>
+    </m.div>
+  );
+}
+
 export default function StudioClientShell({ id }: { id: string }) {
   const router = useRouter();
   const [scale, setScale] = useState(1);
@@ -138,6 +242,8 @@ export default function StudioClientShell({ id }: { id: string }) {
   const failingAxis: string | null = latestIterScore?.failing_axis ?? null;
   const [degradationReason, setDegradationReason] = useState<string>('');
   const [capReachedDetail, setCapReachedDetail] = useState<string>('');
+  // AT-090: competitor-contrast beat — shown on convergence, dismissible
+  const [competitorBeatVisible, setCompetitorBeatVisible] = useState(true);
 
   const addLog = (level: string, msg: string) => {
     const time = new Date().toISOString().split('T')[1].slice(0, 8);
@@ -153,6 +259,7 @@ export default function StudioClientShell({ id }: { id: string }) {
     setStatus('generating');
     setLogs([]);
     setIterationScores([]); // AT-093: reset per-iteration scorecard on each new run
+    setCompetitorBeatVisible(true); // AT-090: show beat again on each new run
     addLog('INFO', 'Initiating Vertex AI Convergence Loop...');
 
     const brief = new URLSearchParams(window.location.search).get('brief') || 'SaaS landing page';
@@ -650,6 +757,16 @@ export default function StudioClientShell({ id }: { id: string }) {
                   )}
                 </div>
               )}
+
+              {/* AT-090: Competitor-contrast beat */}
+              <AnimatePresence>
+                {status === 'converged' && competitorBeatVisible && (
+                  <div>
+                    <div className="h-px bg-[var(--g-outline)] my-4" />
+                    <CompetitorContrastBeat onDismiss={() => setCompetitorBeatVisible(false)} />
+                  </div>
+                )}
+              </AnimatePresence>
             </div>
           </aside>
 

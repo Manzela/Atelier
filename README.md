@@ -48,7 +48,7 @@ graph TB
         N1["N1: Brief Parser"]
         N14["N14: WRAI"]
         N2["N2: Source Resolver"]
-        N3A["N3a: Generator Ensemble<br/>K=3 via Stitch MCP"]
+        N3A["N3a: DDLC Specialist Pipeline<br/>6 roles via Stitch MCP"]
         N3C["N3c: Deterministic Gates<br/>6 axes"]
         N3D["N3d: Consensus Judge<br/>D-O-R-A-V"]
         N4["N4: Best Pick<br/>κ=0.70"]
@@ -71,13 +71,46 @@ graph TB
 
 ---
 
+## Why Atelier?
+
+The #1 complaint across design-generation tools is not raw capability — it is legibility, control, and trust. Users cannot tell why an output was accepted, cannot see what tokens burned, cannot edit without regenerating from scratch, and get designs that drift off their brand. Invisible token burn is the top usage complaint across Stitch, v0, and Lovable.
+
+### Comparison
+
+| Capability                | Stitch / v0 / Lovable                  | Claude Design (Anthropic Labs, research preview)                                  | Atelier                                                                                                                             |
+| ------------------------- | -------------------------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Execution model           | Synchronous, one-shot generation       | Synchronous, human-collaborative single-model editor                              | Autonomous and long-running; unattended convergence                                                                                 |
+| Architecture              | Single LLM pass                        | Single model with design-system authoring + export                                | Multi-specialist 8-node DAG; 6-role DDLC specialist pipeline + Fixer convergence loop                                               |
+| Garbage / skeleton output | No structural floor; returns skeletons | No explicit skeleton gate                                                         | Deterministic structure gate: reject+halt on skeleton — REJECTED before the LLM judge sees it                                       |
+| Design-system fidelity    | Tokens suggested, often drifted        | Builds and APPLIES a design system; custom knobs                                  | Zero-tolerance token gate: anchored tokens propagated and verified across every surface                                             |
+| Editing model             | Regenerate-not-edit                    | Interactive WYSIWYG refinement; high visual fidelity                              | One-edit -> N-surface token propagation (AT-052); byte-stable replay                                                                |
+| Token / credit visibility | Opaque                                 | Session-scoped, not user-legible                                                  | Legible per-user token meter; token-based governance model with fail-closed gates (deploy wave: live per-user 5M-token cap + meter) |
+| Proactive standards       | Prompt-literal                         | Proactive; reads codebase; exports HTML/Canva/PPTX; handoff bundle to Claude Code | Scope-lock + proactive standards check before generation starts                                                                     |
+| Multi-judge consensus     | None                                   | None                                                                              | 5-axis D-O-R-A-V judge panel with axis-weighted composite; oracle-score deltas visible per iteration                                |
+| Observability             | None                                   | None                                                                              | Per-iteration scorecard + byte-equal replay (live); Kanban board (deploy wave)                                                      |
+| Governance                | None                                   | None                                                                              | Fail-closed gates, converge-or-halt discipline, human sign-off (live in this repo); Model Armor + IAP auth (deploy wave)            |
+| Cloud-native              | Vendor-neutral                         | Anthropic / Claude                                                                | Google-native: Vertex AI + Gemini + BigQuery + Cloud Run + Firebase                                                                 |
+
+Governance items marked "(deploy wave)" are designed, ADR-tracked, and implemented in the GCP operator layer; the fail-closed gates, converge-or-halt loop, and human sign-off discipline are live in this repo today and verifiable by cloning.
+
+**Honest read on Claude Design:** Claude Design out-polishes Atelier on raw visual fidelity, interactive-refinement feel, output breadth, and real adoption — it is a flagship-vision-model WYSIWYG editor. Atelier does a different job: autonomous, governed, multi-surface design-system generation. Atelier does not attempt to clone or out-polish Claude Design. The beat is autonomy + governance + a verifiable system.
+
+### Measurable B1 proof-points (reproducible in this repo)
+
+- **Skeleton reject+halt**: the deterministic structure gate rejects empty/skeleton HTML before the consensus judge runs. No LLM token is burned on garbage input.
+- **One-edit -> N-surface token propagation** (AT-052): editing a single design token propagates byte-stably across all surfaces; the Studio iframe renders the sentinel color verbatim from `srcDoc`.
+- **Converging oracle-score deltas** (AT-093): per-iteration D-O-R-A-V scorecard shows numerical advance from iteration 1 to iteration 2 with a documented failing axis at each step.
+- **Byte-stable replay**: the same brief produces the same converged HTML byte-for-byte across runs.
+
+---
+
 ## What Atelier Does
 
 Existing tools (Stitch, v0, Lovable, Subframe) stop at generation. Atelier runs every output through deterministic quality gates and multi-judge consensus before declaring convergence:
 
-1. **Generates K=3 candidates** — parallel ensemble via ADK `ParallelAgent` + Stitch MCP
+1. **Runs the 6-role DDLC specialist pipeline** — UX Researcher, IA/User-Flows, Wireframer, UI Designer, Interaction Designer, Token Generator via ADK `SequentialAgent` + Stitch MCP; ensemble_k tunes candidate count
 2. **Filters with 6 deterministic gates** — semantic HTML, CSS validity, token fidelity, Lighthouse heuristics, axe a11y, visual-diff (no LLM involved)
-3. **Scores survivors across 5 axes** — Design, Originality, Relevance, Accessibility, Visual Clarity via Bayesian-weighted consensus
+3. **Scores survivors across 5 axes** — Design, Originality, Relevance, Accessibility, Visual Clarity via axis-weighted composite (AxisWeights-driven)
 4. **Declares convergence at κ=0.70** — or returns non-converged result with per-axis diagnostics
 5. **Learns from every interaction** — DPO pair extraction from accepted/rejected trajectories → Vertex AI PREFERENCE_TUNING → κ-gated adapter promotion
 
@@ -109,7 +142,7 @@ adk web --eval-set atelier-core/tests/eval/golden_set.json
 
 Atelier is built on Google ADK 2.0 across five integration surfaces:
 
-- **Agent orchestration**: `LlmAgent` for brief parsing, source resolution, and consensus evaluation. The generator ensemble uses `ParallelAgent` to fan out K=3 candidates simultaneously.
+- **Agent orchestration**: `LlmAgent` for brief parsing, source resolution, and consensus evaluation. The N3a generation node is a `SequentialAgent` of 6 DDLC role specialists (UX research, IA, wireframe, UI design, interaction, tokens) per AT-020, followed by a Fixer convergence loop.
 - **Session persistence**: `BigQuerySessionBackend` implements ADK's `BaseSessionService` protocol, enabling cross-device session resumption through BQ-backed state storage.
 - **Evaluation framework**: 5 golden evaluation scenarios in ADK `EvalSet` format (`tests/eval/golden_set.json`) with `tool_trajectory_avg_score`, `rubric_based_final_response_quality_v1`, and `multi_turn_trajectory_quality_v1` criteria.
 - **MCP integration**: Stitch MCP tools (`generate_screen_from_text`, `generate_variants`, `apply_design_system`) registered via `MCPToolset` — every pipeline agent can invoke Stitch by name.

@@ -43,6 +43,7 @@ next-env.d.ts
 # playwright
 /test-results/
 /playwright-report/
+e2e-results.json
 # Exclude platform-specific snapshots written locally (darwin/win32); only Linux refs are committed
 e2e/**/*-darwin.png
 e2e/**/*-win32.png
