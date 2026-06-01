@@ -386,6 +386,99 @@ async def generate(
     return response
 
 
+def _enrich_complete_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    """Enrich the SSE ``complete`` event payload for Studio frontend consumption.
+
+    Adds three keys that the canvas/scorecard UI requires:
+
+    * ``best_html`` — the converged ``index.html`` string (empty string if none).
+    * ``dorav``     — flat per-axis D-O-R-A-V scores + composite for the best
+                      candidate (extracted from the serialized evaluations list).
+    * ``nielsen``   — presence-only Nielsen-10 report; a list of
+                      ``{heuristic, present, votes}`` dicts (no severity per R6).
+
+    This function is **pure** at the API boundary: it reads the runner result
+    dict and calls the deterministic ``evaluate_nielsen`` oracle — no LLM calls,
+    no I/O, no side effects.
+
+    Args:
+        payload: The raw ``response_payload`` dict emitted by the runner's
+            ``complete`` progress event.
+
+    Returns:
+        A shallow copy of ``payload`` augmented with the three new keys.
+        The original dict is never mutated.
+    """
+    from uuid import uuid4 as _uuid4  # noqa: PLC0415
+
+    from atelier.models.data_contracts import CandidateUI  # noqa: PLC0415
+    from atelier.nodes.nielsen import evaluate_nielsen  # noqa: PLC0415
+
+    enriched: dict[str, Any] = dict(payload)
+
+    # ------------------------------------------------------------------
+    # best_html: the converged candidate HTML (runner stores it as a
+    # plain string under "best_candidate").
+    # ------------------------------------------------------------------
+    best_candidate_raw = payload.get("best_candidate")
+    best_html: str = best_candidate_raw if isinstance(best_candidate_raw, str) else ""
+    enriched["best_html"] = best_html
+
+    # ------------------------------------------------------------------
+    # dorav: per-axis scores from the first (best) evaluation entry.
+    # runner.py serializes each evaluation as a dict with a "votes" key
+    # mapping axis names to sub-dicts containing a "score" float.
+    # The first entry in the sorted-descending evaluations list is the
+    # best candidate's evaluation.
+    # ------------------------------------------------------------------
+    evaluations: list[Any] = payload.get("evaluations", [])
+    best_eval: dict[str, Any] = evaluations[0] if evaluations else {}
+    raw_votes: dict[str, Any] = best_eval.get("votes", {})
+    dorav: dict[str, float] = {
+        axis: float(v["score"]) if isinstance(v, dict) else float(v)
+        for axis, v in raw_votes.items()
+    }
+    dorav["composite"] = float(
+        best_eval.get("composite_score", payload.get("composite_score", 0.0))
+    )
+    enriched["dorav"] = dorav
+
+    # ------------------------------------------------------------------
+    # nielsen: presence-only Nielsen-10 report (advisory, never gates
+    # convergence). Computed fresh at the API boundary from best_html.
+    # Gracefully degrades to an empty list when there is no best HTML.
+    # ------------------------------------------------------------------
+    nielsen_list: list[dict[str, Any]] = []
+    if best_html.strip():
+        try:
+            candidate_for_nielsen = CandidateUI(
+                candidate_id=_uuid4(),
+                surface_id=_uuid4(),
+                iteration=0,
+                artifacts={"index.html": best_html},
+            )
+            report = evaluate_nielsen(candidate_for_nielsen)
+            nielsen_list = [
+                {
+                    "heuristic": v.heuristic.value,
+                    "present": v.present,
+                    "votes": v.votes,
+                }
+                for v in report.verdicts
+            ]
+        except Exception:  # noqa: BLE001
+            # Fail-soft: Nielsen is advisory and must never break the SSE stream.
+            # Log + fall through to empty list so the frontend gets a valid (empty)
+            # nielsen field rather than a missing key or a 500.
+            logger.warning(
+                "atelier.generate.stream.nielsen_eval_failed (fail-soft)",
+                exc_info=True,
+            )
+    enriched["nielsen"] = nielsen_list
+
+    return enriched
+
+
 @router.post(
     "/stream",
     summary="Generate UI candidates as a real-time event stream",
@@ -418,6 +511,8 @@ async def generate_stream(  # noqa: C901 — SSE orchestrator with nested pipeli
     queue: asyncio.Queue[tuple[str, Any]] = asyncio.Queue()
 
     async def progress_callback(event_type: str, payload: dict[str, Any]) -> None:
+        if event_type == "complete":
+            payload = _enrich_complete_payload(payload)
         await queue.put((event_type, payload))
 
     async def _run_pipeline_task() -> None:

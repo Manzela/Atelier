@@ -44,8 +44,28 @@ export interface ScreenConvergedData {
   html: string;
 }
 
+export interface DoravScores {
+  brand?: number;
+  originality?: number;
+  relevance?: number;
+  accessibility?: number;
+  'visual-clarity'?: number;
+  composite?: number;
+}
+
+export interface NielsenHeuristic {
+  heuristic: string;
+  present: boolean;
+  votes: number;
+}
+
 export interface CompleteData {
   status: string;
+  best_html?: string;
+  converged?: boolean;
+  composite_score?: number;
+  dorav?: DoravScores;
+  nielsen?: NielsenHeuristic[];
 }
 
 export interface StreamCallbacks {
