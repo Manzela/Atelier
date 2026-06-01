@@ -1,40 +1,56 @@
-# AT-095 — gaps.md (per-user lifetime 5M-token hard cap)
+# AT-095 hardening + USD dead-code sweep — gaps.md
 
-## Status: implementation complete, all verify lanes green, adversarial review DONE
+## Status: complete, all gates green, adversarial review DONE (both lenses)
 
-- mypy --strict: clean (93 src files).
-- verify-tests: 929 passed, 7 skipped (full offline lane incl. AT-003 determinism, AT-020/021).
-- verify-eval: 8 passed (AT-100 deterministic gate, zero live calls).
-- firestore-rules emulator: 19/19 pass (incl. the inverted owner-CANNOT-write counter case).
-- ruff check + format: clean on all changed files.
-- New oracles: `tests/unit/test_usage_counter.py` (store), `tests/unit/test_token_cap.py` (runner-level, the 7 acceptance criteria a–g).
+Post-merge verification-gate audit (4-lens) + the operator's zero-dead-code
+mandate. Every fix-now finding addressed; every removal proven safe.
 
-## Adversarial review (3-lens) → resolved DONE
+- mypy --strict: clean (92 src files; was 93 — `durability/governor.py` deleted).
+- verify-tests: 934 passed, 7 skipped (full offline lane).
+- verify-eval: 8 passed (AT-100). firestore-rules emulator: 19/19.
+- ruff check + format: clean.
 
-- **SECURITY lens initially REJECTED** a CRITICAL bypass: AT-084's Firestore rule granted the OWNING user write to `/users/{uid}/usage/{counterId}` (the explicit match AND the `{document=**}` catch-all). A signed-in user could `setDoc` their own counter to `{total_tokens:0}` out-of-band via the client SDK and burn tokens without limit. **Fixed** (`956627f`): the counter is now server-WRITE-only (client read-only for the AT-096 meter; the Admin SDK bypasses rules); the emulator test was inverted to assert owner CANNOT write. Focused security re-review → DONE (bypass closed, no new hole, no regression to tenant isolation / deny-floor).
-- Correctness + anti-slop lenses: DONE. Strengtheners applied: assert the cap message renders exactly once (b); assert the 402 breach logs uid/session/IP at error level (d); exercise `runner._usage_from_event` with non-zero thinking tokens (g); repoint `fixer.py`'s governor annotation to the orchestrator governor.
+## Fixed (audit fix-now findings)
 
-## What shipped (PRD §13.2 / G14 / G15 / G16 / R1 / R5)
+1. **[SEC] Honest fail-closed.** A transient Firestore outage / corrupt counter
+   now raises `GovernorUsageUnavailable` → **HTTP 503 + Retry-After** + a
+   retryable message, never the dishonest 402 "you reached your cap" (PRD §21).
+2. **[SEC] Guarded parse.** A non-int counter value fails closed as
+   `corrupt_counter` — never a raw 500, never a silent coerce-to-zero.
+   `add()` no longer denies an already-committed charge on a post-write read blip.
+3. **[CORRECTNESS] Multi-surface cap.** If the cap is crossed on a later surface,
+   the top-level payload now surfaces the branded message exactly once.
+4. **[OBSERVABILITY] SSE `which_cap` logging** — a Firestore outage is now
+   alert-distinguishable from a real per-user cap breach.
+5. **[HARDENING] Fail-loud on missing uid** — no silent shared "anonymous" bucket.
 
-- `atelier/durability/usage_counter.py` — `UsageCounterStore`: cumulative per-uid counter at Firestore `users/{uid}/usage/lifetime` (atomic `Increment`), in-memory backend for the hermetic/dev lane (process-wide, so cross-run durability + byte-stable meter hold), per-window request-rate limiter. Fail-closed on a hard persistence error.
-- `orchestrator/governor.py` — **removed** the USD cap (`_check_budget`, `is_over_budget`, `budget_cap_usd`, `total_cost_usd`, `_check_step_budget`, `MAX_STEP_COST_USD`, `GovernorBudgetExceeded`, `GovernorStepBudgetExceeded`); **added** `GovernorTokenCapExceeded` / `GovernorRateLimitExceeded`, `GovernorState.{user_id,cumulative_user_tokens,token_cap}`, `add_user_tokens`, `is_over_token_cap`, `_check_token_budget` (pre-flight, fail-loud), `TOKEN_CAP_MESSAGE`.
-- `orchestrator/runner.py` — seed counter from store at run-start + before the screen loop (covers resume); pre-flight reject when already at cap (no Vertex call); count real N3a tokens (ADK `event.usage_metadata`, incl. `thoughts_token_count`) or a deterministic offline estimate; write-through persist; emit `token_delta` SSE event; graceful in-run cap stop → `TOKEN_CAP_EXHAUSTED` + branded message; payload now `tokens_used`/`token_cap` (no USD).
-- `nodes/llm_judge.py` — capture `thoughts_token_count` into `LLMJudgeResponse.thinking_tokens` (G15).
-- `api/app.py` — `GovernorTokenCapExceeded` → 402 branded message + alertable breach log (uid/session/IP, sanitized); `GovernorRateLimitExceeded` → 429 + Retry-After.
-- `api/generate.py` — removed `budget_usd` request field + USD plumbing; `GenerateResponse` now carries `tokens_used`/`token_cap`; SSE path emits a clean `degraded` cap event instead of a raw error.
-- `cli.py` — removed the `--budget` USD flag.
-- `pyproject.toml` (both) — declared `google-cloud-firestore` direct dep (already lock-pinned 2.27.0 transitively); added the `atelier.durability.usage_counter` mypy override (firebase-admin has no py.typed, mirrors `atelier.auth.*`).
+## Dead-code sweep (operator mandate: zero orphan/dead code)
 
-## Known gaps / deliberate scope boundaries (follow-ups, not blockers)
+- Deleted `atelier/durability/governor.py` (the legacy USD governor — fully
+  unreferenced; verified zero live refs across src/tests/scripts/fixtures/docs).
+- Removed `TenantContext.cost_budget_usd` / `cost_consumed_usd` (unread, non-enforced).
+- Removed `StopReason.BUDGET_EXHAUSTED` (dead USD alias).
+- Removed now-unused `Decimal` imports; refreshed `docs/architecture/govern-pillar.md`
+  Governor section from the retired USD model to the token-only cap.
 
-1. **N3d judge tokens are not yet added to the lifetime counter.** The counter currently counts N3a generation tokens (the dominant cost) + the deterministic offline estimate. `llm_judge` now _captures_ `thinking_tokens`, but the judge (N3d) deltas are not threaded into `cumulative_user_tokens`. Acceptance (a–g) are satisfied without it (the cap fires on N3a + seeding). Threading judge tokens is a clean follow-up — low risk, additive. The cap therefore slightly _under_-counts real usage (conservative for the user, not a security hole — it never _over_-counts).
-2. **`TenantContext.cost_budget_usd` retained as a deprecated, non-enforced descriptor** (kept to avoid a ~9-file/2-fixture churn). No code reads it for enforcement. Full removal is a mechanical follow-up.
-3. **`durability/governor.py` (the legacy, NOT-in-live-path governor) still has its own USD `_check_budget`.** The live governor is `orchestrator/governor.py` (G14's named target), which is fully migrated. The legacy module is only referenced by `fixer.py` for a `record_step` type annotation; out of AT-095 scope.
-4. **Rate limit + fail-closed policy are in-process / first-cut.** The per-window limiter is single-instance (one Cloud Run instance); the global circuit-breaker, distributed limiter, and bounded-retry-before-fail-closed are **AT-097** (explicitly the next feature; thresholds operator-open per §22 D-cap-numbers).
-5. **`atelier_tenant` claim minting** (AT-084 deploy contract) is unrelated to AT-095's per-uid cap (the cap keys on `uid`, always present). Claim minting remains an AT-083 deploy-wave item.
+## Correctly deferred to AT-097 (auditors unanimous — conservative, no security exposure)
 
-## Review focus suggested
+1. **N3d judge-token threading into the lifetime counter.** The counter currently
+   counts N3a generation tokens (the dominant, always-present cost) + a
+   deterministic offline estimate. Judge (N3d) tokens are captured at the
+   `llm_judge` layer (`thinking_tokens`) but not threaded into
+   `cumulative_user_tokens` (consensus.py returns no per-judge token totals to
+   the runner). Direction of error is SAFE: the cap UNDER-counts real usage (fires
+   slightly late) — it never over-counts (never wrongly locks out a paying user)
+   and never fails open. When AT-097 lands, route `LLMJudgeResponse.{input,output,
+thinking}_tokens` back through `evaluate_candidate` so the runner can
+   `add_user_tokens` for N3d.
+2. **Distributed rate-limiter + global circuit-breaker + concurrent-overshoot bound.**
+   The per-window limiter is in-process (single Cloud Run instance); concurrent
+   runs for one uid can overshoot the cap by a bounded ~one generation each.
+   Thresholds are operator-open (§22 D-cap-numbers). This is the core of AT-097.
 
-- The fail-closed-on-Firestore-error choice (security-over-availability for a paid public endpoint) — is it the right trichotomy call? (Documented; consistent with the rest of the system being Firestore-backed.)
-- The double `_seed_lifetime_counter` (run-start + loop-start) is idempotent because N1/N2 don't accrue user tokens; confirm no double-count.
-- The graceful-stop vs. hard-raise split (in-run crossing = graceful `TOKEN_CAP_EXHAUSTED`; already-at-cap entry = fail-loud raise → 402).
+## Cross-component contract (unchanged, AT-083 deploy)
+
+- The cap keys on the Firebase `uid` (always present), independent of the
+  `atelier_tenant` claim minting (an AT-083 deploy-wave item).

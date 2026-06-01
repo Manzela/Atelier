@@ -100,8 +100,7 @@ def test_duplicate_detection_by_fingerprint() -> None:
 
 
 @pytest.mark.unit
-def test_budget_exhausted_is_deprecated_alias_not_in_precedence() -> None:
-    """The retired USD reason exists for back-compat but never resolves as live."""
-    assert StopReason.BUDGET_EXHAUSTED.value == "budget_exhausted"
-    # It is not one of the resolvable signals -> the precedence machine never emits it.
-    assert StopReason.BUDGET_EXHAUSTED not in set(_REASON_TO_FIELD)
+def test_no_usd_budget_stop_reason_exists() -> None:
+    """AT-095 removed the USD path entirely — there is NO budget_exhausted reason."""
+    assert not hasattr(StopReason, "BUDGET_EXHAUSTED")
+    assert "budget_exhausted" not in {r.value for r in StopReason}

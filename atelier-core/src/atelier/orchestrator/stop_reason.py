@@ -10,8 +10,8 @@ the loop always reports the single highest-precedence reason:
 
 ``token_cap_exhausted`` is fail-LOUD and always wins (a cap is security, never
 transient -- PRD R1/R5/§13). The legacy per-run USD ``budget_exhausted`` reason
-is retired by AT-095; it is kept only as a deprecated alias so any remaining
-reference resolves to ``token_cap_exhausted`` rather than silently breaking.
+was removed entirely by AT-095 (token-only governance) — there is no USD stop
+reason.
 """
 
 from __future__ import annotations
@@ -36,13 +36,9 @@ class StopReason(StrEnum):
     NO_IMPROVEMENT = "no_improvement"
     DUPLICATE = "duplicate"
     GOVERNOR_FAIL_SOFT = "governor_fail_soft"
-    #: Deprecated: the per-run USD cap is removed by AT-095. Retained as an alias
-    #: target only; new code never sets this -- use TOKEN_CAP_EXHAUSTED.
-    BUDGET_EXHAUSTED = "budget_exhausted"
 
 
-#: Highest precedence first. The deprecated BUDGET_EXHAUSTED is intentionally
-#: absent -- it is never a live outcome; it maps to TOKEN_CAP_EXHAUSTED.
+#: Highest precedence first.
 _PRECEDENCE: tuple[StopReason, ...] = (
     StopReason.TOKEN_CAP_EXHAUSTED,
     StopReason.CONVERGED,

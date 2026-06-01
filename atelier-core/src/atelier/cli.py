@@ -170,8 +170,6 @@ def cmd_evaluate(args: argparse.Namespace) -> int:
 
 def cmd_generate(args: argparse.Namespace) -> int:
     """Run the full design pipeline from a brief text."""
-    from decimal import Decimal
-
     from atelier.models.data_contracts import TenantContext
     from atelier.orchestrator.runner import AtelierRunner
 
@@ -181,7 +179,6 @@ def cmd_generate(args: argparse.Namespace) -> int:
             tenant_id=args.tenant_id,
             user_id=args.user_id,
             project_id=args.project_id,
-            cost_budget_usd=Decimal("0"),  # AT-095: deprecated descriptor, not enforced
         )
         return await runner.run(args.brief, tenant_ctx)
 

@@ -59,6 +59,16 @@ TOKEN_CAP_MESSAGE: Final[str] = (
     "You've reached this account's usage limit. Contact administrator to continue."  # noqa: S105
 )
 
+#: Shown when the usage store cannot be read/written (transient outage or a
+#: corrupt counter). The cap is fail-CLOSED (we deny rather than serve without a
+#: working guard on a paid endpoint), but the acknowledgement is HONEST: this is
+#: a transient, retryable infra fault — NOT a cap breach (PRD §21 trichotomy:
+#: "agent always acknowledges degradation"). Distinct message + HTTP 503.
+USAGE_UNAVAILABLE_MESSAGE: Final[str] = (
+    "We couldn't verify your usage right now and stopped to be safe. "
+    "This is temporary — please retry shortly."
+)
+
 
 class GovernorTokenCapExceeded(Exception):  # noqa: N818 — domain terminology
     """Raised when a user's cumulative lifetime token count reaches the cap.
@@ -87,6 +97,30 @@ class GovernorTokenCapExceeded(Exception):  # noqa: N818 — domain terminology
         super().__init__(
             f"Token cap reached ({which_cap}): {used_tokens} >= {cap_tokens} for uid={uid}"
         )
+
+
+class GovernorUsageUnavailable(Exception):  # noqa: N818 — domain terminology
+    """Raised when the usage store cannot be read/written (fail-closed deny).
+
+    Distinct from :class:`GovernorTokenCapExceeded`: this is a TRANSIENT infra
+    fault (Firestore unavailable) or a data-integrity fault (a non-coercible
+    counter value) — retryable, surfaced as HTTP 503 + a retry message, NEVER
+    the permanent "you reached your limit / contact admin" cap message. We still
+    DENY generation (a paid endpoint must not run without a working cap guard),
+    but we acknowledge the degradation honestly (PRD §21).
+    """
+
+    def __init__(
+        self,
+        *,
+        uid: str | None = None,
+        reason: str = "usage_store_unavailable",
+        client_ip: str | None = None,
+    ) -> None:
+        self.uid = uid
+        self.reason = reason
+        self.client_ip = client_ip
+        super().__init__(f"Usage store unavailable ({reason}) for uid={uid}; failing closed.")
 
 
 class GovernorRateLimitExceeded(Exception):  # noqa: N818 — domain terminology
@@ -191,7 +225,10 @@ class MetacognitiveGovernor:
 
     def _classify_failure(self, exc: BaseException) -> FailureMode:
         """Classify exception into trichotomy. Never returns None."""
-        if isinstance(exc, GovernorTokenCapExceeded | GovernorRateLimitExceeded):
+        if isinstance(
+            exc,
+            GovernorTokenCapExceeded | GovernorRateLimitExceeded | GovernorUsageUnavailable,
+        ):
             return FailureMode.FAIL_LOUD
 
         # We classify timeouts and specific http errors as SELF_HEAL
