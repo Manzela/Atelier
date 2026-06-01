@@ -66,6 +66,15 @@ export interface CompleteData {
   composite_score?: number;
   dorav?: DoravScores;
   nielsen?: NielsenHeuristic[];
+  /** Set to true when the pipeline converged but quality fell below threshold */
+  degraded?: boolean;
+  /** Human-readable reason for degradation — forwarded to the DegradedState component */
+  degradation_reason?: string;
+}
+
+export interface CapReachedData {
+  /** Optional detail from the server (e.g. remaining tokens) */
+  detail?: string;
 }
 
 export interface StreamCallbacks {
@@ -79,6 +88,8 @@ export interface StreamCallbacks {
   onScreenConverged?: (data: ScreenConvergedData) => void;
   onComplete?: (data: CompleteData) => void;
   onError?: (error: string) => void;
+  /** Fired when a `cap_reached` SSE event is received or the stream returns HTTP 429 */
+  onCapReached?: (data: CapReachedData) => void;
 }
 
 export const getApiUrl = () => {
@@ -108,6 +119,17 @@ export async function runGenerationStream(
     });
 
     if (!response.ok) {
+      if (response.status === 429) {
+        let detail = '';
+        try {
+          const body = await response.json();
+          detail = typeof body.detail === 'string' ? body.detail : JSON.stringify(body);
+        } catch {
+          detail = await response.text();
+        }
+        callbacks.onCapReached?.({ detail: detail || 'Token cap reached.' });
+        return;
+      }
       let errorDetail = '';
       try {
         const errorJson = await response.json();
@@ -195,6 +217,9 @@ function triggerCallback(event: string, data: Record<string, unknown>, callbacks
       );
       break;
     }
+    case 'cap_reached':
+      callbacks.onCapReached?.(data as unknown as CapReachedData);
+      break;
     default:
       console.log(`Unhandled SSE event: ${event}`, data);
   }

@@ -19,12 +19,18 @@ import {
   Smartphone,
   Tablet,
   Monitor,
+  Loader2,
+  AlertTriangle,
+  XCircle,
+  ZapOff,
+  RotateCcw,
 } from 'lucide-react';
 import {
   runGenerationStream,
   type StreamCallbacks,
   type DoravScores,
   type NielsenHeuristic,
+  type CapReachedData,
 } from '@/lib/api';
 
 interface UserSession {
@@ -74,11 +80,15 @@ export default function StudioClientShell({ id }: { id: string }) {
   const [maxTokens, setMaxTokens] = useState(4096);
   const { user, initRef } = useClientAuth();
 
-  const [status, setStatus] = useState<'idle' | 'generating' | 'converged' | 'failed'>('idle');
+  const [status, setStatus] = useState<
+    'idle' | 'generating' | 'converged' | 'degraded' | 'error' | 'cap-reached'
+  >('idle');
   const [logs, setLogs] = useState<{ id: number; time: string; level: string; msg: string }[]>([]);
   const [convergedHtml, setConvergedHtml] = useState<string>('');
   const [dorav, setDorav] = useState<DoravScores | null>(null);
   const [nielsen, setNielsen] = useState<NielsenHeuristic[]>([]);
+  const [degradationReason, setDegradationReason] = useState<string>('');
+  const [capReachedDetail, setCapReachedDetail] = useState<string>('');
 
   const addLog = (level: string, msg: string) => {
     const time = new Date().toISOString().split('T')[1].slice(0, 8);
@@ -90,7 +100,7 @@ export default function StudioClientShell({ id }: { id: string }) {
   };
 
   const startGeneration = () => {
-    if (status === 'generating' || !user) return;
+    if (status === 'generating' || status === 'cap-reached' || !user) return;
     setStatus('generating');
     setLogs([]);
     addLog('INFO', 'Initiating Vertex AI Convergence Loop...');
@@ -125,15 +135,29 @@ export default function StudioClientShell({ id }: { id: string }) {
         addLog('SUCCESS', `Screen converged: ${data.screen}`);
       },
       onComplete: (data) => {
-        addLog('SUCCESS', 'Generation complete. All screens converged.');
         if (data.best_html) setConvergedHtml(data.best_html);
         if (data.dorav) setDorav(data.dorav);
         if (data.nielsen) setNielsen(data.nielsen);
-        setStatus('converged');
+        if (data.degraded) {
+          const reason =
+            data.degradation_reason || 'Output quality fell below the convergence threshold.';
+          setDegradationReason(reason);
+          addLog('WARN', `Generation degraded: ${reason}`);
+          setStatus('degraded');
+        } else {
+          addLog('SUCCESS', 'Generation complete. All screens converged.');
+          setStatus('converged');
+        }
       },
       onError: (err) => {
         addLog('ERROR', `Pipeline error: ${err}`);
-        setStatus('failed');
+        setStatus('error');
+      },
+      onCapReached: (data: CapReachedData) => {
+        const detail = data.detail || 'Token cap reached. Please wait before running again.';
+        setCapReachedDetail(detail);
+        addLog('ERROR', `Token cap reached: ${detail}`);
+        setStatus('cap-reached');
       },
     };
 
@@ -181,7 +205,7 @@ export default function StudioClientShell({ id }: { id: string }) {
             </div>
             <button
               onClick={startGeneration}
-              disabled={status === 'generating'}
+              disabled={status === 'generating' || status === 'cap-reached'}
               className="flex items-center gap-1.5 bg-[var(--g-primary-blue)] hover:bg-[var(--g-primary-blue-hover)] disabled:opacity-50 text-white px-4 py-1.5 rounded-md text-xs font-medium transition-colors shadow-sm"
             >
               {status === 'generating' ? (
@@ -287,26 +311,126 @@ export default function StudioClientShell({ id }: { id: string }) {
               style={{ width: deviceWidth }}
               className="shrink-0 h-[768px] bg-white rounded-lg shadow-2xl overflow-hidden border border-gray-200 cursor-grab active:cursor-grabbing origin-center"
             >
-              {status === 'idle' ? (
-                <div className="w-full h-full flex flex-col items-center justify-center bg-gray-50 text-gray-400">
-                  <MousePointer2 size={32} className="mb-4 opacity-50" />
-                  <p>{'Click \u201CRun\u201D to generate layout structure'}</p>
+              {/* \u2500\u2500 Empty (idle) state \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */}
+              {status === 'idle' && (
+                <div
+                  data-testid="state-empty"
+                  className="w-full h-full flex flex-col items-center justify-center bg-gray-50 gap-4 px-8"
+                >
+                  <MousePointer2 size={40} className="text-indigo-300" aria-hidden="true" />
+                  <h2 className="text-lg font-semibold text-gray-700 text-center">
+                    Ready to generate
+                  </h2>
+                  <p className="text-sm text-gray-600 text-center max-w-xs">
+                    Configure your brief in the URL and click{' '}
+                    <strong className="text-gray-800">Run</strong> to start the Vertex AI
+                    Convergence Loop.
+                  </p>
                 </div>
-              ) : status === 'generating' ? (
-                <div className="w-full h-full flex items-center justify-center bg-gray-50">
-                  <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+              )}
+
+              {/* \u2500\u2500 Loading (generating) state \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */}
+              {status === 'generating' && (
+                <div
+                  data-testid="state-loading"
+                  role="status"
+                  aria-live="polite"
+                  aria-label="Generating design \u2014 please wait"
+                  className="w-full h-full flex flex-col items-center justify-center bg-gray-50 gap-4"
+                >
+                  <Loader2 size={40} className="text-indigo-500 animate-spin" aria-hidden="true" />
+                  <h2 className="text-lg font-semibold text-gray-700">Generating\u2026</h2>
+                  <p className="text-sm text-gray-600">
+                    Vertex AI Convergence Loop is running. This may take a moment.
+                  </p>
                 </div>
-              ) : convergedHtml ? (
+              )}
+
+              {/* \u2500\u2500 Converged state \u2014 render iframe \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */}
+              {status === 'converged' && convergedHtml && (
                 <iframe
                   sandbox="allow-scripts"
                   srcDoc={convergedHtml}
                   title="Converged design output"
                   className="w-full h-full border-0"
                 />
-              ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center bg-gray-50 text-gray-400">
-                  <MousePointer2 size={32} className="mb-4 opacity-50" />
-                  <p>No output available</p>
+              )}
+
+              {/* \u2500\u2500 Degraded state \u2014 show output + degradation banner \u2500\u2500\u2500 */}
+              {status === 'degraded' && (
+                <div data-testid="state-degraded" className="w-full h-full relative">
+                  {/* Still render the best available output behind the banner */}
+                  {convergedHtml && (
+                    <iframe
+                      sandbox="allow-scripts"
+                      srcDoc={convergedHtml}
+                      title="Degraded design output"
+                      className="w-full h-full border-0"
+                    />
+                  )}
+                  {/* Degradation acknowledgment overlay (PRD: agent always acknowledges degradation) */}
+                  <div
+                    role="status"
+                    aria-live="polite"
+                    className="absolute top-0 left-0 right-0 flex items-start gap-3 bg-amber-50 border-b-2 border-amber-400 px-4 py-3"
+                  >
+                    <AlertTriangle
+                      size={20}
+                      className="text-amber-600 mt-0.5 shrink-0"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <h2 className="text-sm font-semibold text-amber-800">
+                        Result is degraded \u2014 showing the best available output
+                      </h2>
+                      {degradationReason && (
+                        <p className="text-xs text-amber-700 mt-0.5">{degradationReason}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* \u2500\u2500 Error state \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */}
+              {status === 'error' && (
+                <div
+                  data-testid="state-error"
+                  role="alert"
+                  className="w-full h-full flex flex-col items-center justify-center bg-gray-50 gap-4 px-8"
+                >
+                  <XCircle size={40} className="text-red-400" aria-hidden="true" />
+                  <h2 className="text-lg font-semibold text-red-700">Pipeline error</h2>
+                  <p className="text-sm text-gray-500 text-center max-w-xs">
+                    The generation pipeline encountered an error. Check the log below for details,
+                    then try again.
+                  </p>
+                  <button
+                    onClick={startGeneration}
+                    className="mt-2 flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                  >
+                    <RotateCcw size={14} aria-hidden="true" />
+                    Retry generation
+                  </button>
+                </div>
+              )}
+
+              {/* \u2500\u2500 Cap-reached state \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */}
+              {status === 'cap-reached' && (
+                <div
+                  data-testid="state-cap-reached"
+                  role="alert"
+                  className="w-full h-full flex flex-col items-center justify-center bg-gray-50 gap-4 px-8"
+                >
+                  <ZapOff size={40} className="text-orange-400" aria-hidden="true" />
+                  <h2 className="text-lg font-semibold text-orange-700">Token cap reached</h2>
+                  <p className="text-sm text-gray-600 text-center max-w-xs">
+                    {capReachedDetail ||
+                      "You've reached your token cap for this session. Please wait before running another generation."}
+                  </p>
+                  <p className="text-xs text-gray-600 text-center max-w-xs">
+                    Token limits reset periodically. Contact your administrator if you need a higher
+                    limit.
+                  </p>
                 </div>
               )}
             </m.div>
