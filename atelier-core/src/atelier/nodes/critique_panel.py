@@ -22,8 +22,11 @@ The QA stage of the DDLC pipeline. Two complementary layers:
    ``output_key``, producing qualitative critiques that feed the Fixer. Visual-QA
    is **advisory** (never gates, R6). Nielsen votes **presence only** (the ten
    heuristics land in AT-022); severity is never auto-acted
-   (``<no_llm_severity_authority>``). Per ADR-0001 we pin ``ParallelAgent`` on the
-   current ``google-adk==2.1.0`` and migrate to ``Workflow`` once it ships public.
+   (``<no_llm_severity_authority>``). ``ParallelAgent`` is deprecated in favour of
+   ``google.adk.Workflow`` — which **is** public in the pinned ``google-adk==2.1.0``
+   but is a node-graph DSL (constructor takes ``edges`` / ``graph`` /
+   ``max_concurrency``, not ``sub_agents``). Migrating is a non-trivial Node/Edge
+   rewrite, not a version bump, so we keep ``ParallelAgent`` and defer per ADR-0001.
 
 PRD Reference: §3.2 (QA panel), §12 AT-021, §7 (convergence). ADR-0001.
 """
@@ -35,7 +38,7 @@ from typing import TYPE_CHECKING, Final
 
 from google.adk.agents.llm_agent import InstructionProvider, LlmAgent
 from google.adk.agents.parallel_agent import (
-    ParallelAgent,  # Deprecation(adk-3.0): migrate -> Workflow when public
+    ParallelAgent,  # Deprecated: Workflow (public node-graph DSL, not a sub_agents container) — rewrite deferred per ADR-0001
 )
 from google.genai import types as genai_types
 

@@ -293,7 +293,13 @@ class TestDiscrimination:
         )
 
     # --- Gate-floor load-bearing sub-test (G2 anti-inverted-gate proof) ---
-
+    # Only the *adversarial* known-bads (token-drift, low-contrast) belong here:
+    # they score raw_composite >= 0.70, so a judges-only synthesizer would WRONGLY
+    # pass them and the gate-floor is the decisive layer. The skeleton fixture is
+    # deliberately NOT parametrized — its raw_composite (~0.13) is well below 0.70,
+    # so judges also reject it and the gate-floor is not what makes the difference
+    # (it is covered by test_known_bad_is_rejected, the full {skeleton, low-contrast,
+    # token-drift} discrimination set required by PRD §12 AT-021 #3).
     @pytest.mark.parametrize(
         ("candidate", "label"),
         [
