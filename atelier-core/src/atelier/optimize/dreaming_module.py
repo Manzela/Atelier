@@ -221,7 +221,7 @@ def write_pairs_to_bq(
         return 0
 
     try:
-        from google.cloud import bigquery  # noqa: PLC0415
+        from google.cloud import bigquery  # noqa: PLC0415  # type: ignore[attr-defined]
 
         client = bq_client or bigquery.Client(project=_PROJECT)
 

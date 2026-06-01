@@ -31,6 +31,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 
 from atelier.auth.firebase import FirebaseUser, require_auth
+from atelier.orchestrator.governor import TOKEN_CAP_DEFAULT
 from atelier.utils.log_sanitizer import sanitize
 
 if TYPE_CHECKING:
@@ -68,12 +69,8 @@ class GenerateRequest(BaseModel):
         default=None,
         description="Path to DESIGN.md or 'infer'. If omitted, tokens are auto-parsed.",
     )
-    budget_usd: float = Field(
-        default=10.0,
-        ge=0.1,
-        le=5000.0,
-        description="Per-request generation budget in USD. Default $10.",
-    )
+    # AT-095: the per-request USD budget knob is removed. Usage is governed solely
+    # by the per-user lifetime 5M-token cap (server-side); there is no dollar budget.
 
 
 class GateOutcomeSummary(BaseModel):
@@ -122,8 +119,10 @@ class GenerateResponse(BaseModel):
     degradation_reason: str | None = None
     user_message: str | None = None
 
-    # Cost
-    cost_usd: float
+    # Usage (AT-095: token-only — no dollars). ``tokens_used`` is the user's
+    # cumulative lifetime total (input + output + thinking), the meter's source.
+    tokens_used: int = 0
+    token_cap: int = TOKEN_CAP_DEFAULT
 
     # Candidate details (all candidates, not just the best)
     candidates: list[CandidateSummary] = []
@@ -141,7 +140,6 @@ class GenerateResponse(BaseModel):
 async def _run_pipeline(
     brief: str,
     user: FirebaseUser,
-    budget_usd: float,
     design_system_source: str | None,  # noqa: ARG001 — reserved; passed to runner when source resolution is wired
 ) -> dict[str, Any]:
     """Execute the full Atelier pipeline and return the raw result dict."""
@@ -154,11 +152,11 @@ async def _run_pipeline(
         tenant_id=user.tenant_id,
         user_id=user.uid,
         project_id=_PROJECT,
-        cost_budget_usd=Decimal(str(budget_usd)),
-        # descriptor left None; design_system_source is passed via brief parsing (BriefSpec.design_system_source)
+        cost_budget_usd=Decimal("0"),  # AT-095: deprecated descriptor, no longer enforced
     )
 
-    runner = AtelierRunner(budget_cap_usd=budget_usd)
+    # AT-095: no per-run budget — usage is governed by the per-user lifetime token cap.
+    runner = AtelierRunner()
     return await runner.run(brief, tenant_ctx)
 
 
@@ -214,12 +212,12 @@ async def _record_trajectory(
                 ended_at=now,
                 outcome=outcome,
                 composite_score=candidate_score,
-                total_cost_usd=result.get("budget_used_usd", 0.0) / max(len(candidates), 1),
+                total_cost_usd=0.0,  # AT-095: USD telemetry retired; usage is token-based
             )
             records.append(record)
 
         if records:
-            from google.cloud import bigquery as _bq  # noqa: PLC0415
+            from google.cloud import bigquery as _bq  # noqa: PLC0415  # type: ignore[attr-defined]
 
             bq_client = _bq.Client(project=_PROJECT)
             recorder = TrajectoryRecorder(bq_client)  # type: ignore[arg-type]  # BQ Client satisfies BigQueryClient Protocol at runtime
@@ -283,7 +281,8 @@ def _build_response(
         stitch_degraded=result.get("stitch_degraded", False),
         degradation_reason=result.get("degradation_reason"),
         user_message=result.get("user_message"),
-        cost_usd=result.get("budget_used_usd", 0.0),
+        tokens_used=int(result.get("tokens_used", 0)),
+        token_cap=int(result.get("token_cap", TOKEN_CAP_DEFAULT)),
         candidates=candidate_summaries,
         started_at=started_at,
         completed_at=datetime.now(tz=UTC).isoformat(),
@@ -323,7 +322,8 @@ async def generate(
         D-O-R-A-V composite score, gate results, and session_id for replay.
 
     Raises:
-        HTTPException(402): When the user's generation budget cap is exceeded.
+        GovernorTokenCapExceeded(→402): When the user's lifetime token cap is reached.
+        GovernorRateLimitExceeded(→429): When the request-rate limit is exceeded.
         HTTPException(401): When the caller is unauthenticated.
     """
     run_id = str(uuid4())
@@ -336,7 +336,6 @@ async def generate(
             "tenant_id": sanitize(user.tenant_id),
             "user_id": sanitize(user.uid),
             "brief_length": sanitize(str(len(request.brief))),
-            "budget_usd": sanitize(str(request.budget_usd)),
         },
     )
 
@@ -363,7 +362,6 @@ async def generate(
     result = await _run_pipeline(
         brief=request.brief,
         user=user,
-        budget_usd=request.budget_usd,
         design_system_source=request.design_system_source,
     )
 
@@ -379,7 +377,7 @@ async def generate(
             "converged": response.converged,
             "composite_score": response.composite_score,
             "candidates_generated": response.candidates_generated,
-            "cost_usd": response.cost_usd,
+            "tokens_used": response.tokens_used,
         },
     )
 
@@ -484,7 +482,7 @@ def _enrich_complete_payload(payload: dict[str, Any]) -> dict[str, Any]:
     summary="Generate UI candidates as a real-time event stream",
     description="Streams the pipeline progress events (plan, screen_start, candidates, evaluations, fixer, complete) in EventSource format.",
 )
-async def generate_stream(  # noqa: C901 — SSE orchestrator with nested pipeline + generator tasks
+async def generate_stream(  # noqa: C901, PLR0915 — SSE orchestrator: nested pipeline + cap/rate-limit handling
     request: GenerateRequest,
     user: Annotated[FirebaseUser, Depends(require_auth)],
 ) -> StreamingResponse:
@@ -519,21 +517,50 @@ async def generate_stream(  # noqa: C901 — SSE orchestrator with nested pipeli
         from decimal import Decimal  # noqa: PLC0415
 
         from atelier.models.data_contracts import TenantContext  # noqa: PLC0415
+        from atelier.orchestrator.governor import (  # noqa: PLC0415
+            TOKEN_CAP_MESSAGE,
+            GovernorRateLimitExceeded,
+            GovernorTokenCapExceeded,
+        )
         from atelier.orchestrator.runner import AtelierRunner  # noqa: PLC0415
 
         tenant_ctx = TenantContext(
             tenant_id=user.tenant_id,
             user_id=user.uid,
             project_id=_PROJECT,
-            cost_budget_usd=Decimal(str(request.budget_usd)),
+            cost_budget_usd=Decimal("0"),  # AT-095: deprecated descriptor, no longer enforced
         )
 
-        runner = AtelierRunner(budget_cap_usd=request.budget_usd)
+        # AT-095: no per-run budget — usage governed by the per-user lifetime token cap.
+        runner = AtelierRunner()
         try:
             result = await runner.run(
                 request.brief, tenant_ctx, progress_callback=progress_callback
             )
             await _record_trajectory(result, user, result.get("session_id", "default-id"))
+        except GovernorTokenCapExceeded:
+            # AT-095: an already-at-cap user hits the run-start pre-flight. Surface
+            # the branded message as a clean `degraded` cap event (PRD §7A.6) — never
+            # a raw quota error. Logged at error level for the alertable breach.
+            logger.error(  # noqa: TRY400
+                "atelier.generate.stream.token_cap_exceeded",
+                extra={"uid": sanitize(user.uid)},
+            )
+            await queue.put(("degraded", {"mode": "cap", "message": TOKEN_CAP_MESSAGE}))
+            await queue.put(("complete", {"user_message": TOKEN_CAP_MESSAGE}))
+        except GovernorRateLimitExceeded:
+            logger.warning(
+                "atelier.generate.stream.rate_limited", extra={"uid": sanitize(user.uid)}
+            )
+            await queue.put(
+                (
+                    "error",
+                    {
+                        "detail": "Too many requests. Please wait a moment and try again.",
+                        "code": 429,
+                    },
+                )
+            )
         except Exception as e:
             logger.exception("Error in streaming generation pipeline task")
             await queue.put(("error", {"detail": str(e)}))

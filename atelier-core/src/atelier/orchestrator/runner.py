@@ -10,7 +10,7 @@ Full 8-node DAG:
     N4  Final scoring and convergence decision
 
 All LLM steps execute under MetacognitiveGovernor governance:
-    - Fail-loud at $5K MAX cap (GovernorBudgetExceeded)
+    - Fail-loud at the per-user lifetime 5M-token cap (GovernorTokenCapExceeded, AT-095)
     - Self-heal on 429/503 transients (3 retries, exponential backoff)
     - Fail-soft on tool degradation (log + degrade, do not crash)
 
@@ -43,6 +43,7 @@ if TYPE_CHECKING:
 
     from atelier.nodes.llm_judge import JudgeClient
 
+from atelier.durability.usage_counter import UsageCounterStore, get_usage_store
 from atelier.gates.runner import run_gates
 from atelier.gates.signoff import (
     AWAIT_SIGNOFF_TOOL,
@@ -72,6 +73,7 @@ from atelier.models.data_contracts import CandidateUI, TenantContext
 from atelier.models.enums import GateAxis, GateDecision
 from atelier.nodes.consensus import evaluate_candidate
 from atelier.orchestrator.governor import (
+    TOKEN_CAP_MESSAGE,
     GovernorState,
     MetacognitiveGovernor,
 )
@@ -87,12 +89,6 @@ from atelier.orchestrator.stop_reason import (
 )
 
 logger = logging.getLogger(__name__)
-
-# Hard $5K MAX cap per PRD §7.2
-BUDGET_CAP_USD: float = 5000.0
-
-# Estimated cost per N3a run (DDLC SequentialAgent — 6 specialists, AT-020)
-N3A_COST_ESTIMATE_USD: float = 0.15
 
 # N3c gate axes — all 6 run
 _N3C_GATE_AXES: list[GateAxis] = [
@@ -121,8 +117,38 @@ STAGE_N3A_SPECIALIST_PIPELINE: str = "n3a_specialist_pipeline"
 # resume-delta oracle (pre-signoff stages frozen, post-signoff stages > 0), not a
 # precise token meter; ADK does not surface a deterministic offline token count for
 # the faked model surface, so a fixed per-call attribution keeps the delta check
-# meaningful and deterministic. Real token metering is tracked under AT-095.
+# meaningful and deterministic. This is the AT-031 durability oracle, independent
+# of the AT-095 user-lifetime token cap below.
 STAGE_TOKEN_ATTRIBUTION: int = 1
+
+
+def _usage_from_event(event: Any) -> tuple[int, int, int]:
+    """Extract (input, output, thinking) tokens from one ADK event's usage_metadata.
+
+    Returns ``(0, 0, 0)`` when the event carries no usage (e.g. the faked offline
+    model surface) — the caller estimates deterministically in that case.
+    """
+    usage = getattr(event, "usage_metadata", None)
+    if usage is None:
+        return (0, 0, 0)
+    return (
+        int(getattr(usage, "prompt_token_count", 0) or 0),
+        int(getattr(usage, "candidates_token_count", 0) or 0),
+        int(getattr(usage, "thoughts_token_count", 0) or 0),
+    )
+
+
+def _estimate_tokens(prompt: str, candidates: list[Any]) -> tuple[int, int, int]:
+    """Deterministic offline token estimate (~4 chars/token) for the AT-095 counter.
+
+    Used only when the model surface surfaces no ``usage_metadata`` (the hermetic
+    ``make verify`` / ``make replay`` lane). Deterministic for identical inputs so
+    the token meter is byte-stable (PRD §13.3). Thinking tokens are 0 offline —
+    real ``thoughts_token_count`` is counted whenever Vertex surfaces it.
+    """
+    input_tokens = max(1, len(prompt) // 4)
+    output_tokens = sum(max(1, len(str(c)) // 4) for c in candidates) if candidates else 0
+    return (input_tokens, output_tokens, 0)
 
 
 def _serialize_checkpoint(
@@ -341,15 +367,14 @@ class AtelierRunner:
     def __init__(
         self,
         *,
-        budget_cap_usd: float = BUDGET_CAP_USD,
         session_service: BaseSessionService | None = None,
         judge_client: JudgeClient | None = None,
+        usage_store: UsageCounterStore | None = None,
         max_iterations: int = 3,
     ) -> None:
         """Initialize the runner with a governor, session service, and optional judge client.
 
         Args:
-            budget_cap_usd: Maximum cumulative cost in USD. Defaults to $5K.
             session_service: Injectable session service. Defaults to
                 BigQuerySessionBackend (with InMemorySessionService fallback).
             judge_client: Injectable LLM judge client. When ``None`` and
@@ -357,9 +382,14 @@ class AtelierRunner:
                 auto-constructs a :class:`VertexAIJudgeClient` using
                 ``ATELIER_GCP_PROJECT`` (default ``"atelier-build-2026"``).
                 Pass an explicit client in tests to avoid network I/O.
+            usage_store: Injectable per-user lifetime token-cap store (AT-095).
+                Defaults to the process-wide singleton (Firestore in production,
+                in-memory in the hermetic / dev lane). Pass an explicit
+                in-memory store in tests.
         """
-        state = GovernorState(budget_cap_usd=budget_cap_usd)
+        state = GovernorState()
         self._governor = MetacognitiveGovernor(state=state)
+        self._usage_store = usage_store or get_usage_store()
         self._session_service = session_service or _default_session_service()
 
         # Auto-wire production Vertex client when a non-heuristic mode is
@@ -380,6 +410,18 @@ class AtelierRunner:
         else:
             self._judge_client = None
         self._max_iterations = max_iterations
+
+    def _seed_lifetime_counter(self, user_id: str) -> None:
+        """AT-095: bind the governor's token-cap state to ``user_id`` and seed the
+        cumulative count from the persisted store so the cap spans runs.
+
+        Idempotent — always reflects the current persisted total. A persistence
+        read failure raises :class:`GovernorTokenCapExceeded` (fail-closed) from
+        the store.
+        """
+        self._governor._state.user_id = user_id
+        self._governor._state.token_cap = self._usage_store.token_cap
+        self._governor._state.cumulative_user_tokens = self._usage_store.get_total(user_id)
 
     def _run_n3c_n3d_n4(
         self,
@@ -590,8 +632,10 @@ class AtelierRunner:
             ``{"status": "awaiting_signoff", "session_id": ..., "signoff": {...}}``.
 
         Raises:
-            GovernorBudgetExceeded: When cumulative cost exceeds the budget cap.
-                This is a fail-loud condition per PRD section 21.
+            GovernorTokenCapExceeded: When the user's cumulative lifetime token
+                count is at/over the 5M cap (AT-095). Fail-loud per PRD §21/§13.
+            GovernorRateLimitExceeded: When the user exceeds the request-rate
+                limit (AT-095/097). Fail-loud reject of the offending request.
             ValueError: When brief fails the deterministic gate.
         """
         if tenant_ctx is None:
@@ -601,6 +645,16 @@ class AtelierRunner:
                 project_id="p1",
                 cost_budget_usd=Decimal("100.0"),
             )
+
+        # AT-095 (§13.2 / G16): per-user lifetime token cap, enforced server-side
+        # PRE-FLIGHT — before any Vertex call (N1/N2 included). Seed the cumulative
+        # count from the persisted store (spans runs), rate-limit this request so the
+        # cap cannot be burned in seconds (acceptance (f)), then fail-loud if already
+        # at/over the cap (acceptance (c): no Vertex spend once at cap).
+        user_id = tenant_ctx.user_id or "anonymous"
+        self._usage_store.check_rate_limit(user_id)
+        self._seed_lifetime_counter(user_id)
+        self._governor._check_token_budget()
 
         brief, project_ctx, wrai_report, plan = await self._run_n1_n2(brief_text, tenant_ctx)
 
@@ -935,6 +989,13 @@ class AtelierRunner:
         screens_results = {}
         user_id = tenant_ctx.user_id or "anonymous"
 
+        # AT-095: (re)seed the lifetime counter from the persisted store and
+        # pre-flight the cap on every entry to the generation loop. This covers the
+        # resume() path (which calls this helper directly) as well as run(): a resume
+        # that would start past the cap is rejected before any screen renders.
+        self._seed_lifetime_counter(user_id)
+        self._governor._check_token_budget()
+
         for idx, screen in enumerate(surfaces):
             if progress_callback:
                 await progress_callback("screen_start", {"screen": screen, "index": idx})
@@ -966,11 +1027,21 @@ class AtelierRunner:
                         "iteration_start", {"screen": screen, "iteration": iteration}
                     )
 
-                if self._governor._state.is_over_budget():
-                    logger.warning("Convergence loop halted: budget exceeded.")
-                    # Deprecated legacy USD path (retired by AT-095); kept as an
-                    # alias until the per-user token cap replaces the USD governor.
-                    exit_reason = StopReason.BUDGET_EXHAUSTED
+                if self._governor._state.is_over_token_cap():
+                    # AT-095 graceful in-flight stop: the previous iteration's
+                    # completed unit pushed cumulative usage to the cap. Stop cleanly
+                    # BEFORE starting another (expensive) generation — finish-the-unit,
+                    # then a single branded message (never a raw quota error or hang).
+                    logger.warning(
+                        "Convergence loop graceful stop: per-user token cap reached.",
+                        extra={
+                            "user_id": user_id,
+                            "cumulative_user_tokens": self._governor._state.cumulative_user_tokens,
+                            "token_cap": self._governor._state.token_cap,
+                        },
+                    )
+                    exit_reason = StopReason.TOKEN_CAP_EXHAUSTED
+                    user_message = TOKEN_CAP_MESSAGE
                     break
 
                 if self._governor._state.is_loop():
@@ -982,8 +1053,13 @@ class AtelierRunner:
                 # directive (clear accumulated rejected-variant history).
                 generator_prompt = _compose_generator_prompt(anchor, screen, latest_directive)
 
-                # N3a: DDLC Specialist Pipeline (SequentialAgent, AT-020) — governed
-                async def _run_ensemble(prompt: str = generator_prompt) -> tuple[list[Any], bool]:
+                # N3a: DDLC Specialist Pipeline (SequentialAgent, AT-020) — governed.
+                # Also tallies (input, output, thinking) tokens from each ADK event's
+                # usage_metadata for the AT-095 lifetime counter; falls back to a
+                # deterministic estimate when the offline model surface reports none.
+                async def _run_ensemble(
+                    prompt: str = generator_prompt,
+                ) -> tuple[list[Any], bool, tuple[int, int, int]]:
                     pipeline, stitch_degradation = create_specialist_pipeline()
                     adk_runner = Runner(
                         agent=pipeline,
@@ -992,6 +1068,7 @@ class AtelierRunner:
                     )
 
                     candidates: list[Any] = []
+                    usage_in = usage_out = usage_think = 0
                     async for event in adk_runner.run_async(
                         user_id=user_id,
                         session_id=session_id,
@@ -1001,13 +1078,23 @@ class AtelierRunner:
                         ),
                     ):
                         candidates.extend(_extract_text_from_event(event))
+                        ein, eout, ethink = _usage_from_event(event)
+                        usage_in += ein
+                        usage_out += eout
+                        usage_think += ethink
 
-                    return candidates, stitch_degradation.is_degraded
+                    if usage_in + usage_out + usage_think == 0:
+                        usage_in, usage_out, usage_think = _estimate_tokens(prompt, candidates)
+
+                    return (
+                        candidates,
+                        stitch_degradation.is_degraded,
+                        (usage_in, usage_out, usage_think),
+                    )
 
                 governed_result = await self._governor.run_with_governance(
                     _run_ensemble,
                     step_id=f"n3a_specialist_pipeline_{screen}_{iteration}",
-                    cost_estimate_usd=N3A_COST_ESTIMATE_USD,
                 )
 
                 if governed_result is None:
@@ -1024,17 +1111,40 @@ class AtelierRunner:
                         "N3a governed run returned None (fail-soft); loop broken",
                         extra={
                             "step_id": f"n3a_specialist_pipeline_{screen}_{iteration}",
-                            "budget_used_usd": self._governor._state.total_cost_usd,
-                            "budget_cap_usd": self._governor._state.budget_cap_usd,
+                            "cumulative_user_tokens": self._governor._state.cumulative_user_tokens,
+                            "token_cap": self._governor._state.token_cap,
                         },
                     )
                     exit_reason = StopReason.GOVERNOR_FAIL_SOFT
                     break
-                raw_candidates, stitch_degraded = governed_result
+                raw_candidates, stitch_degraded, token_usage = governed_result
+                # AT-095: attribute this N3a generation's tokens to the user's lifetime
+                # counter, persist them (atomic, spans runs), and emit a token_delta so
+                # the Studio meter ticks live (§13.3). input + output + thinking.
+                tok_in, tok_out, tok_think = token_usage
+                self._governor._state.add_user_tokens(
+                    input_tokens=tok_in, output_tokens=tok_out, thinking_tokens=tok_think
+                )
+                self._usage_store.add(
+                    user_id,
+                    input_tokens=tok_in,
+                    output_tokens=tok_out,
+                    thinking_tokens=tok_think,
+                )
+                if progress_callback:
+                    await progress_callback(
+                        "token_delta",
+                        {
+                            "input": tok_in,
+                            "output": tok_out,
+                            "thinking": tok_think,
+                            "cumulative_user_tokens": self._governor._state.cumulative_user_tokens,
+                        },
+                    )
                 # AT-031: record the N3a post-signoff stage call on a stable id. This is
                 # the "post-signoff stages" side of the resume oracle — its token count
                 # must be > 0 after approval, while N1/N2 remain frozen at their
-                # checkpointed values.
+                # checkpointed values. Independent of the AT-095 lifetime counter above.
                 self._governor._state.record_stage_call(
                     STAGE_N3A_SPECIALIST_PIPELINE, tokens=STAGE_TOKEN_ATTRIBUTION
                 )
@@ -1114,12 +1224,13 @@ class AtelierRunner:
                     )
 
                 # R1 stop-reason precedence: collapse the post-generation signals to
-                # the single highest-precedence reason (converged > max_iterations >
-                # no_improvement > duplicate). token_cap_exhausted / governor signals
-                # are handled at their own halt points above.
+                # the single highest-precedence reason. token_cap_exhausted always
+                # wins (fail-loud security cap) — checked here too so a cap crossed
+                # DURING this iteration stops cleanly without one more generation.
                 best_score = float(convergence_result.get("composite_score", 0.0))
                 fresh_candidate = best_candidate if isinstance(best_candidate, str) else ""
                 signals = StopSignals(
+                    token_cap_exhausted=self._governor._state.is_over_token_cap(),
                     converged=bool(convergence_result.get("converged")),
                     max_iterations_reached=iteration == self._max_iterations - 1,
                     no_improvement=is_no_improvement(previous_best_score, best_score),
@@ -1136,6 +1247,10 @@ class AtelierRunner:
                         best_score,
                     )
                     exit_reason = resolved
+                    if resolved is StopReason.TOKEN_CAP_EXHAUSTED:
+                        # The single branded cap message (acceptance (b)); never a raw
+                        # quota error. Shown once via the response/complete payload.
+                        user_message = TOKEN_CAP_MESSAGE
                     break
 
                 # Not stopping this iteration: record anchors for the next round
@@ -1227,8 +1342,11 @@ class AtelierRunner:
             "stitch_degraded": first_screen_res["stitch_degraded"],
             "degradation_reason": first_screen_res["degradation_reason"],
             "user_message": first_screen_res["user_message"],
-            "budget_used_usd": self._governor._state.total_cost_usd,
-            "budget_cap_usd": self._governor._state.budget_cap_usd,
+            # AT-095: token-only usage governance — no USD. tokens_used is the
+            # user's cumulative lifetime total (spans runs); the meter (AT-096)
+            # rides this + the per-iteration token_delta events.
+            "tokens_used": self._governor._state.cumulative_user_tokens,
+            "token_cap": self._governor._state.token_cap,
             "web_research": wrai_report,
             "session_id": session_id,
             "plan": plan.model_dump() if hasattr(plan, "model_dump") else {},
@@ -1269,9 +1387,9 @@ class AtelierRunner:
         return response_payload
 
     @property
-    def total_cost_usd(self) -> float:
-        """Current cumulative cost tracked by the governor."""
-        return self._governor._state.total_cost_usd
+    def tokens_used(self) -> int:
+        """User's cumulative lifetime token count tracked by the governor (AT-095)."""
+        return self._governor._state.cumulative_user_tokens
 
     @property
     def session_service(self) -> BaseSessionService:

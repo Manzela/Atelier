@@ -20,8 +20,10 @@ from atelier.models.model_registry import FIXER_MODEL
 from atelier.models.safety import default_model_armor_config
 
 if TYPE_CHECKING:
-    from atelier.durability.governor import MetacognitiveGovernor
+    # The live governor passed by the runner is atelier.orchestrator.governor
+    # (the token-cap governor, AT-095); annotate against it for type honesty.
     from atelier.models.data_contracts import ConsensusResult, GateOutcome
+    from atelier.orchestrator.governor import MetacognitiveGovernor
 
 logger = logging.getLogger(__name__)
 

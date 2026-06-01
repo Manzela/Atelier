@@ -169,6 +169,16 @@ disallow_any_unimported = false
 disable_error_code = ["import-untyped"]
 
 [[tool.mypy.overrides]]
+module = "atelier.durability.usage_counter"
+# firebase-admin (7.4.0) ships no PEP-561 py.typed marker; the firestore client
+# and google.cloud.firestore.Increment resolve to Any in strict mode (AT-095).
+# Mirrors the atelier.auth.* override — suppress the import-untyped false positive
+# on the token-cap store without relaxing strict checks on its own logic.
+ignore_missing_imports = true
+disallow_any_unimported = false
+disable_error_code = ["import-untyped"]
+
+[[tool.mypy.overrides]]
 module = "atelier.gates.axe_core"
 # axe-playwright-python (0.1.7) ships no PEP-561 py.typed marker, so Axe() and
 # .run() resolve to Any in strict mode (AT-011). playwright itself IS typed.

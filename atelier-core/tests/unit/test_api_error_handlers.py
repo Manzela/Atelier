@@ -1,7 +1,7 @@
 """Unit tests for API-level error handlers and account endpoints (app.py).
 
-Covers: GovernorBudgetExceeded → HTTP 402, /health, /auth/signin,
-        /v1/account/usage (auth required).
+Covers: GovernorTokenCapExceeded → HTTP 402 (AT-095), GovernorRateLimitExceeded
+        → HTTP 429, /health, /auth/signin.
 """
 
 from __future__ import annotations
@@ -56,36 +56,73 @@ def test_health_is_unauthenticated(client: TestClient) -> None:
 
 
 # ---------------------------------------------------------------------------
-# GovernorBudgetExceeded → HTTP 402
+# GovernorTokenCapExceeded → HTTP 402 (AT-095)
 # ---------------------------------------------------------------------------
 
 
-def test_budget_exceeded_handler_returns_402(client: TestClient) -> None:
-    """GovernorBudgetExceeded exception must be caught and returned as HTTP 402."""
-    from atelier.orchestrator.governor import GovernorBudgetExceeded
-
-    # Mount a test route that raises GovernorBudgetExceeded
+def test_token_cap_exceeded_handler_returns_402(client: TestClient) -> None:
+    """GovernorTokenCapExceeded must be caught and returned as the branded HTTP 402."""
+    from atelier.orchestrator.governor import (
+        TOKEN_CAP_MESSAGE,
+        GovernorTokenCapExceeded,
+    )
     from fastapi import APIRouter
 
     router = APIRouter()
 
-    @router.get("/test/budget-exceeded")
-    async def trigger_budget_exceeded() -> None:
-        raise GovernorBudgetExceeded("Test: cap exceeded")
+    @router.get("/test/token-cap-exceeded")
+    async def trigger_token_cap_exceeded() -> None:
+        raise GovernorTokenCapExceeded(
+            uid="u1", used_tokens=5_000_000, cap_tokens=5_000_000, session_id="s1"
+        )
 
     app = client.app  # type: ignore[attr-defined]
     app.include_router(router)
 
-    resp = client.get("/test/budget-exceeded")
+    import structlog
+
+    # AT-095 acceptance (d): the breach is logged fail-loud with uid/session/IP.
+    with structlog.testing.capture_logs() as logs:
+        resp = client.get("/test/token-cap-exceeded")
     assert resp.status_code == 402
     body = resp.json()
-    assert body["error"] == "budget_cap_exceeded"
+    assert body["error"] == "token_cap_exhausted"
     assert body["code"] == 402
-    assert "title" in body
-    assert "detail" in body
+    # The single branded, non-error message (acceptance (b)).
+    assert body["detail"] == TOKEN_CAP_MESSAGE
+    assert "Contact administrator" in body["detail"]
     assert "user_action" in body
-    assert "docs_url" in body
     assert "autonomous-agent.dev" in body["docs_url"]
+
+    # (d) the alertable breach log carries uid + session + (sanitized) IP at error level.
+    breach = next((e for e in logs if e.get("event") == "atelier.token_cap_exceeded"), None)
+    assert breach is not None, "the token-cap breach must be logged"
+    assert breach["log_level"] == "error"
+    assert breach["uid"] == "u1"
+    assert breach["session_id"] == "s1"
+    assert "client_ip" in breach
+
+
+def test_rate_limit_exceeded_handler_returns_429(client: TestClient) -> None:
+    """GovernorRateLimitExceeded must be caught and returned as HTTP 429 + Retry-After."""
+    from atelier.orchestrator.governor import GovernorRateLimitExceeded
+    from fastapi import APIRouter
+
+    router = APIRouter()
+
+    @router.get("/test/rate-limited")
+    async def trigger_rate_limited() -> None:
+        raise GovernorRateLimitExceeded(uid="u1", max_requests=30, window_seconds=60)
+
+    app = client.app  # type: ignore[attr-defined]
+    app.include_router(router)
+
+    resp = client.get("/test/rate-limited")
+    assert resp.status_code == 429
+    assert resp.headers.get("Retry-After") == "60"
+    body = resp.json()
+    assert body["error"] == "rate_limited"
+    assert body["code"] == 429
 
 
 # ---------------------------------------------------------------------------

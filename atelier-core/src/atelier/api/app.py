@@ -2,9 +2,9 @@
 
 Design Principles:
     - ``GET /health`` — unauthenticated readiness/liveness probe
-    - ``GET /v1/account/usage`` — authenticated budget + session usage summary
     - Structured logging (structlog) for Cloud Logging
-    - GovernorBudgetExceeded -> HTTP 402 with user-readable body (Explainable AI)
+    - GovernorTokenCapExceeded -> HTTP 402 with the branded usage-limit body (AT-095)
+    - GovernorRateLimitExceeded -> HTTP 429 (AT-095/097 quota-DoS guard)
     - CORS restrictive — dashboard origin only
     - All error responses follow the ``ErrorResponse`` schema for UI consumption
 
@@ -31,7 +31,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from atelier.__version__ import __version__
-from atelier.orchestrator.governor import GovernorBudgetExceeded
+from atelier.orchestrator.governor import (
+    TOKEN_CAP_MESSAGE,
+    GovernorRateLimitExceeded,
+    GovernorTokenCapExceeded,
+)
+from atelier.utils.log_sanitizer import sanitize
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Callable
@@ -131,35 +136,68 @@ def create_app() -> FastAPI:
         response.headers["X-Process-Time"] = f"{elapsed:.4f}"
         return response
 
-    # --- Global exception handler: GovernorBudgetExceeded → HTTP 402 ─────────
-    # Surfaces budget-cap exhaustion as a structured, user-readable response
-    # rather than a raw 500. Implements Explainable AI + Self-Serve SaaS principle:
-    # the user is told exactly what happened, how much budget was consumed, and
-    # what action they can take — without needing to read logs.
-    @application.exception_handler(GovernorBudgetExceeded)
-    async def budget_exceeded_handler(
+    # --- Global exception handler: GovernorTokenCapExceeded → HTTP 402 ────────
+    # AT-095 (§13.2): the per-user lifetime 5M-token cap is a FAIL-LOUD security
+    # control on a public, paid endpoint. The breach is logged at error level with
+    # the alertable context (uid / session / client IP / which cap) AND surfaced to
+    # the user as the single branded message — never a raw quota error or 500.
+    @application.exception_handler(GovernorTokenCapExceeded)
+    async def token_cap_exceeded_handler(
         request: Request,
-        exc: GovernorBudgetExceeded,
+        exc: GovernorTokenCapExceeded,
     ) -> JSONResponse:
-        await logger.awarning(
-            "atelier.budget_exceeded",
+        client_ip = exc.client_ip or (request.client.host if request.client else None)
+        await logger.aerror(
+            "atelier.token_cap_exceeded",
             path=str(request.url.path),
-            detail=str(exc),
+            uid=sanitize(str(exc.uid)),
+            session_id=sanitize(str(exc.session_id)) if exc.session_id else None,
+            client_ip=sanitize(str(client_ip)) if client_ip else None,
+            which_cap=exc.which_cap,
+            used_tokens=exc.used_tokens,
+            cap_tokens=exc.cap_tokens,
         )
         return JSONResponse(
             status_code=402,
             content={
-                "error": "budget_cap_exceeded",
+                "error": "token_cap_exhausted",
                 "code": 402,
-                "title": "Generation budget cap reached",
-                "detail": (
-                    "This request would exceed your account's generation budget cap "
-                    "of $5,000. No charge was applied for this request. To continue, "
-                    "review your usage in the account dashboard and contact support "
-                    "to raise your cap."
-                ),
-                "user_action": "Review usage at /v1/account/usage or contact support.",
+                "title": "Account usage limit reached",
+                "detail": TOKEN_CAP_MESSAGE,
+                "user_action": "Contact administrator to continue.",
                 "docs_url": "https://atelier.autonomous-agent.dev/docs/limits",
+            },
+        )
+
+    # --- Global exception handler: GovernorRateLimitExceeded → HTTP 429 ───────
+    # AT-095/097: guards against burning the lifetime cap in seconds. The client
+    # may retry after the window; the rejection is logged for abuse monitoring.
+    @application.exception_handler(GovernorRateLimitExceeded)
+    async def rate_limit_exceeded_handler(
+        request: Request,
+        exc: GovernorRateLimitExceeded,
+    ) -> JSONResponse:
+        client_ip = exc.client_ip or (request.client.host if request.client else None)
+        await logger.awarning(
+            "atelier.rate_limit_exceeded",
+            path=str(request.url.path),
+            uid=sanitize(str(exc.uid)),
+            client_ip=sanitize(str(client_ip)) if client_ip else None,
+            max_requests=exc.max_requests,
+            window_seconds=exc.window_seconds,
+        )
+        return JSONResponse(
+            status_code=429,
+            headers={"Retry-After": str(int(exc.window_seconds))},
+            content={
+                "error": "rate_limited",
+                "code": 429,
+                "title": "Too many requests",
+                "detail": (
+                    "Too many generation requests in a short window. "
+                    "Please wait a moment and try again."
+                ),
+                "user_action": "Retry after a short pause.",
             },
         )
 

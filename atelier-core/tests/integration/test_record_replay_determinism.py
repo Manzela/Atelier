@@ -53,12 +53,20 @@ _BRIEF_TEXT = (
 
 async def _run_golden_offline() -> dict[str, Any]:
     """Run N1 -> N2 -> N3a fully offline (mocked surfaces, heuristic judges)."""
+    from atelier.durability.usage_counter import UsageCounterStore
+
     mock_session_service = MagicMock()
     mock_session = MagicMock()
     mock_session.id = "test-session-id"
     mock_session_service.create_session = AsyncMock(return_value=mock_session)
 
-    runner = AtelierRunner(session_service=mock_session_service)
+    # AT-095: each golden run must start from a clean per-user token counter so the
+    # canonical trajectory is byte-identical. (Cross-run PERSISTENCE — the production
+    # behaviour — is asserted separately in test_token_cap.py; here we want determinism
+    # from a fixed starting state, so reset the in-memory store before each run.)
+    usage_store = UsageCounterStore(backend="memory")
+    usage_store.reset()
+    runner = AtelierRunner(session_service=mock_session_service, usage_store=usage_store)
 
     with (
         patch.object(BriefParserAgent, "_call_llm", new_callable=AsyncMock) as mock_n1,

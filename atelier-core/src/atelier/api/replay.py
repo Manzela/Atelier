@@ -235,7 +235,7 @@ async def _load_session_replay(
         SessionReplayPayload or None if not found / BQ unavailable.
     """
     try:
-        from google.cloud import bigquery  # noqa: PLC0415
+        from google.cloud import bigquery  # noqa: PLC0415  # type: ignore[attr-defined]
     except ImportError:
         logger.warning("BigQuery SDK not installed; replay unavailable")
         return None

@@ -4,10 +4,11 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from atelier.orchestrator.governor import (
     STALL_TIMEOUT_SECONDS,
+    TOKEN_CAP_DEFAULT,
     FailureMode,
-    GovernorBudgetExceeded,
+    GovernorRateLimitExceeded,
     GovernorState,
-    GovernorStepBudgetExceeded,
+    GovernorTokenCapExceeded,
     MetacognitiveGovernor,
 )
 
@@ -21,8 +22,9 @@ class TestGovernorClassification:
     @pytest.mark.parametrize(
         ("exc", "expected"),
         [
-            (GovernorBudgetExceeded("b"), FailureMode.FAIL_LOUD),
-            (GovernorStepBudgetExceeded("s"), FailureMode.FAIL_LOUD),
+            # AT-095: the token cap + rate limit are fail-loud security controls.
+            (GovernorTokenCapExceeded(uid="u1"), FailureMode.FAIL_LOUD),
+            (GovernorRateLimitExceeded(uid="u1"), FailureMode.FAIL_LOUD),
             (ValueError("invalid"), FailureMode.FAIL_SOFT),
             (RuntimeError("context length exceeded"), FailureMode.FAIL_SOFT),
             (TimeoutError("timeout"), FailureMode.SELF_HEAL),
@@ -48,8 +50,8 @@ class TestGovernorExecution:
         op.assert_awaited_once()
 
     async def test_fail_loud_raises_immediately(self, governor: MetacognitiveGovernor) -> None:
-        op = AsyncMock(side_effect=GovernorBudgetExceeded("over budget"))
-        with pytest.raises(GovernorBudgetExceeded):
+        op = AsyncMock(side_effect=GovernorTokenCapExceeded(uid="u1"))
+        with pytest.raises(GovernorTokenCapExceeded):
             await governor.run_with_governance(op, "step1")
         op.assert_awaited_once()
 
@@ -84,30 +86,38 @@ class TestGovernorExecution:
         # Backoff: 1.0s, 2.0s, 4.0s
         assert mock_sleep.call_args_list[2][0][0] == 4.0
 
-    async def test_budget_exceeded_immediately_raises(
+    async def test_token_cap_preflight_raises_before_operation(
         self, governor: MetacognitiveGovernor
     ) -> None:
+        # AT-095 acceptance (c): once at/over the cap, the governance pre-flight
+        # raises BEFORE the operation runs — no Vertex call is made.
+        governor._state.user_id = "u1"
+        governor._state.cumulative_user_tokens = TOKEN_CAP_DEFAULT
         op = AsyncMock()
-        with pytest.raises(GovernorBudgetExceeded):
-            await governor.run_with_governance(op, "step1", cost_estimate_usd=5001.0)
+        with pytest.raises(GovernorTokenCapExceeded):
+            await governor.run_with_governance(op, "step1")
         op.assert_not_called()
 
-    async def test_step_budget_exceeded(self, governor: MetacognitiveGovernor) -> None:
-        op = AsyncMock()
-        # Step cost 0.60 > 0.50
-        with pytest.raises(GovernorStepBudgetExceeded):
-            await governor.run_with_governance(op, "step1", cost_estimate_usd=0.60)
-        op.assert_not_called()
-
-    async def test_cumulative_cost_tracking(self, governor: MetacognitiveGovernor) -> None:
+    async def test_under_cap_runs_normally(self, governor: MetacognitiveGovernor) -> None:
+        governor._state.user_id = "u1"
+        governor._state.cumulative_user_tokens = TOKEN_CAP_DEFAULT - 1
         op = AsyncMock(return_value="ok")
-        await governor.run_with_governance(op, "step1", cost_estimate_usd=0.2)
-        await governor.run_with_governance(op, "step2", cost_estimate_usd=0.2)
-        assert governor._state.total_cost_usd == 0.4
+        assert await governor.run_with_governance(op, "step1") == "ok"
+        op.assert_awaited_once()
 
-        governor._state.total_cost_usd = 4999.9
-        with pytest.raises(GovernorBudgetExceeded):
-            await governor.run_with_governance(op, "step3", cost_estimate_usd=0.2)
+    async def test_add_user_tokens_accumulates_input_output_thinking(
+        self, governor: MetacognitiveGovernor
+    ) -> None:
+        # AT-095 acceptance (g): thinking tokens count toward the lifetime total.
+        total = governor._state.add_user_tokens(
+            input_tokens=10, output_tokens=20, thinking_tokens=5
+        )
+        assert total == 35
+        assert governor._state.cumulative_user_tokens == 35
+
+    async def test_add_user_tokens_rejects_negative(self, governor: MetacognitiveGovernor) -> None:
+        with pytest.raises(ValueError, match="non-negative"):
+            governor._state.add_user_tokens(input_tokens=-1)
 
 
 class TestGovernorState:
@@ -133,12 +143,16 @@ class TestGovernorState:
         state.last_step_time = time.monotonic() - STALL_TIMEOUT_SECONDS - 1.0
         assert state.is_stalled()
 
-    def test_is_over_budget(self) -> None:
+    def test_is_over_token_cap(self) -> None:
         state = GovernorState()
-        assert not state.is_over_budget()
+        assert not state.is_over_token_cap()
 
-        state.total_cost_usd = 5001.0
-        assert state.is_over_budget()
+        state.cumulative_user_tokens = TOKEN_CAP_DEFAULT - 1
+        assert not state.is_over_token_cap()
+
+        # The cap fires AT the limit (>=), not only strictly above it.
+        state.cumulative_user_tokens = TOKEN_CAP_DEFAULT
+        assert state.is_over_token_cap()
 
 
 @pytest.mark.anyio
