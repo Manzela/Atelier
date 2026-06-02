@@ -137,6 +137,11 @@ resource "google_cloud_run_v2_service" "api" {
   template {
     service_account = google_service_account.api.email
 
+    # A full DAG generation runs well past Cloud Run's 300s default request
+    # timeout (ensemble generation + D-O-R-A-V judging + convergence loop), so
+    # synchronous /v1/generate would be severed mid-run without this.
+    timeout = "${var.api_request_timeout_seconds}s"
+
     scaling {
       min_instance_count = var.api_min_instances
       max_instance_count = var.api_max_instances

@@ -53,15 +53,21 @@ variable "api_max_instances" {
 }
 
 variable "api_memory" {
-  description = "Memory limit per API instance"
+  description = "Memory limit per API instance. The API bakes in chromium and runs the axe-core a11y gate (N3c) in-process; below ~2Gi chromium OOMs and every candidate fails the gate. 4Gi leaves headroom for ADK + concurrent generations."
   type        = string
-  default     = "1Gi"
+  default     = "4Gi"
 }
 
 variable "api_cpu" {
-  description = "CPU limit per API instance"
+  description = "CPU limit per API instance. Cloud Run requires >=2 vCPU for >4Gi memory; 2 also speeds chromium rendering during the a11y gate."
   type        = string
-  default     = "1"
+  default     = "2"
+}
+
+variable "api_request_timeout_seconds" {
+  description = "Cloud Run request timeout. A full DAG generation (N1->N3a ensemble + D-O-R-A-V judging + convergence iterations) exceeds the 300s default; set to the 3600s maximum so synchronous /v1/generate calls are not severed mid-run."
+  type        = number
+  default     = 3600
 }
 
 variable "agent_engine_id" {
