@@ -9,6 +9,10 @@ from pydantic import BaseModel, ConfigDict
 
 from atelier.intake.brief_spec import BriefSpec
 from atelier.models.enums import GateDecision
+from atelier.models.model_armor_callbacks import (
+    model_armor_after_callback,
+    model_armor_before_callback,
+)
 from atelier.models.model_registry import resolve_model_id
 from atelier.models.safety import default_model_armor_config
 
@@ -65,6 +69,8 @@ class BriefParserAgent:
         self.project = project
         self._llm = LlmAgent(
             name="brief_parser_llm",
+            before_model_callback=model_armor_before_callback,
+            after_model_callback=model_armor_after_callback,
             model=self.model,
             output_schema=BriefSpec,
             generate_content_config=genai_types.GenerateContentConfig(
