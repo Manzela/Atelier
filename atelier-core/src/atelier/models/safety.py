@@ -26,18 +26,25 @@ import os
 from google.genai import types
 
 
-def default_model_armor_config() -> types.ModelArmorConfig:
-    """Return the canonical ModelArmorConfig for every LlmAgent.
+def default_model_armor_config() -> types.ModelArmorConfig | None:
+    """Return the managed ModelArmorConfig, or None when it is not enabled.
 
-    Uses centralized Model Armor templates instead of static thresholds.
-    Template names can be overridden via ATELIER_MODEL_ARMOR_TEMPLATE env var.
+    Managed Model Armor is opt-in. It requires a template provisioned in the
+    project (AT-081 operator step) AND the runtime service account to hold
+    ``modelarmor.templates.useToSanitizeUserPrompt``. Referencing a template that
+    does not exist makes Vertex reject every request with 403 PERMISSION_DENIED,
+    which would disable all generation — so it is off unless explicitly enabled.
 
-    Operator step (AT-081): the referenced template must be provisioned once per
-    project in the configured location via the Model Armor API / gcloud. Until it
-    exists, Vertex applies no server-side Model Armor filtering, and the
-    before_model_callback in ``atelier.models.model_armor_callbacks`` is the
-    deterministic first-line injection guard (defense in depth).
+    Enable it by setting ``ATELIER_MODEL_ARMOR_ENABLED=true`` (and provisioning
+    the template) in production. When disabled, the ``before_model_callback`` in
+    ``atelier.models.model_armor_callbacks`` remains the always-on, deterministic
+    first-line injection guard (defense in depth).
+
+    Template names can be overridden via the ``ATELIER_MODEL_ARMOR_TEMPLATE`` env.
     """
+    if os.getenv("ATELIER_MODEL_ARMOR_ENABLED", "").lower() not in ("1", "true", "yes"):
+        return None
+
     project = os.getenv("GOOGLE_CLOUD_PROJECT", "atelier-build-2026")
     location = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
     template_id = os.getenv("ATELIER_MODEL_ARMOR_TEMPLATE", "atelier-default")
