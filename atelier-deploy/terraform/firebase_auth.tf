@@ -17,6 +17,12 @@
 # PRD Reference: §13.1 (Firebase Google SSO gating), AT-083 acceptance.
 # ADR Reference: 0006 (Google-native stack).
 
+# IMPORTANT: google_identity_platform_config is a project singleton that already
+# exists once Identity Platform is initialized, so the first apply must import it
+# or it fails "already exists":
+#   terraform import google_identity_platform_config.auth <project_id>
+# For staging (no terraform state), deploy/configure-auth-domains.sh sets the same
+# authorized domains via the Identity Toolkit REST API without an apply.
 resource "google_identity_platform_config" "auth" {
   project = var.project_id
 
