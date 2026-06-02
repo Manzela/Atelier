@@ -5,9 +5,18 @@
   "mypy_exit": 0,
   "eval_delta_vs_head1": null,
   "files_touched_sha": {
-    ".gitignore": "4fdfce429bb312290a36626ba96e02ca96cd6d0de799c09fb6edfef603b52e08",
-    "atelier-dashboard/e2e/at096-token-meter.spec.ts": "6f46ce27832e376bf9f12d40ecd2313be013b5cfc336a5ef0c0d5420c9aaadd9",
-    "atelier-dashboard/src/components/StudioClientShell.tsx": "f2e9b20556b978fb6d3edf309cb4e1ce27d23b270006f14a55417cc16e8564c2",
-    "atelier-dashboard/src/lib/api.ts": "676ac571e8eea49099b4352762a1bf25377c41eba4a949403d2ec7a283e5367f"
+    "atelier-core/src/atelier/api/app.py": "4d69db5c4df4896a1bc7bddad2e87c6e757355cf47fed42e7098f7c96cfc5f27",
+    "atelier-core/src/atelier/api/generate.py": "0ef87863064a6823fbed6d0c3b02ab72cf6848b7c5bf96ee0a73bce4033591d8",
+    "atelier-core/src/atelier/durability/usage_counter.py": "1b4dac94b00426489d50e9b19e4dafac766fbbfeb82518cefb5ee07b3fdbcbf9",
+    "atelier-core/src/atelier/nodes/_types.py": "9b9af92a840244eb51934de9b465a3c8eeed924b9c24e54c48284ad0e649dffa",
+    "atelier-core/src/atelier/nodes/consensus.py": "b0ddc0680464d14911dd120f8beb90273dd235f0017ff8aa1b54696bc769dfa0",
+    "atelier-core/src/atelier/nodes/llm_judge.py": "c3064e21d40305d2ec052234b8aef137af75c30eb0be432f653900c64b9a3ddb",
+    "atelier-core/src/atelier/orchestrator/governor.py": "ba21bd648989f864ab2174d0a06fcae82d7a484b750001187f97fc9f5fc5d9d7",
+    "atelier-core/src/atelier/orchestrator/runner.py": "4b60a5af82f2c7dba54726d5183de625605c88138d09981503c3128f768a931e",
+    "atelier-core/tests/unit/test_api_error_handlers.py": "2f0f20e62fc89fe80ee7cb1ed060564b49da3684cd90f9aa21956244804bcb5f",
+    "atelier-core/tests/unit/test_at097_judge_tokens.py": "623ac88436ed6c52b83980337e1311159a79b0db1ca03bf7ba5bd36c158cfca3",
+    "atelier-core/tests/unit/test_governor.py": "434e51fb48c4e49b974d51106faa98ddffdffdfe956e5f68d912fd253c0a02a2",
+    "atelier-core/tests/unit/test_token_cap.py": "b781dd8c215146e8bae34132ba2a140cc773561830892837afd7d273162429c8",
+    "atelier-core/tests/unit/test_usage_counter.py": "ab57d35af60f41d04c4fd246f5ce721e2803e827d429b13c3204e2cfff1570d0"
   }
 }
