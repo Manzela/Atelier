@@ -33,6 +33,7 @@ import {
   ZapOff,
   RotateCcw,
   X,
+  Palette,
 } from 'lucide-react';
 import {
   runGenerationStream,
@@ -43,6 +44,20 @@ import {
   type IterationScoreData,
   type TokenDeltaData,
 } from '@/lib/api';
+import {
+  DEFAULT_DESIGN_SYSTEM,
+  flattenDesignSystem,
+  computeEffectiveSystem,
+  composeSrcDoc,
+  deriveControls,
+  hexToHsl,
+  hslToHex,
+  formatTokenValue,
+  type DesignSystem,
+  type TokenValue,
+  type FlatToken,
+  type GeneratedControl,
+} from '@/lib/design-system';
 
 interface UserSession {
   uid: string;
@@ -150,7 +165,8 @@ function CompetitorContrastBeat({ onDismiss }: { onDismiss: () => void }) {
           </li>
           <li>
             <span className="text-white font-medium">anchored tokens</span> — zero-tolerance token
-            gate; design-system values propagate across every surface, not suggested and drifted
+            gate; a design-system value edit propagates to every token-bound surface, not suggested
+            and drifted
           </li>
           <li>
             <span className="text-white font-medium">edit-not-regenerate</span> — one-edit -&gt;
@@ -217,6 +233,187 @@ function CompetitorContrastBeat({ onDismiss }: { onDismiss: () => void }) {
   );
 }
 
+// AT-044: Design-system panel — one editable row per design-system token, plus
+// the design-specific controls Atelier synthesizes for *this* system (PRD §12
+// E4 / §25). Editing a token re-flows every surface that consumes it: the panel
+// recomposes the iframe srcDoc with a live :root block (see composeSrcDoc).
+function tokenSlug(path: string): string {
+  return path.split('.').join('-');
+}
+
+function DesignSystemTokenRow({
+  token,
+  onEdit,
+}: {
+  token: FlatToken;
+  onEdit: (path: string, value: TokenValue) => void;
+}) {
+  const slug = tokenSlug(token.path);
+  const isColor = token.type === 'color' && typeof token.value === 'string';
+  const display = formatTokenValue(token.value);
+  return (
+    <div
+      data-testid={`ds-token-row-${slug}`}
+      className="flex items-center gap-2 px-2 py-1.5 rounded bg-black/20 border border-[var(--g-outline)]"
+    >
+      {isColor && (
+        <span
+          data-testid={`ds-token-swatch-${slug}`}
+          className="shrink-0 w-4 h-4 rounded border border-white/20"
+          style={{ backgroundColor: String(token.value) }}
+          aria-hidden="true"
+        />
+      )}
+      <span className="text-[10px] font-mono text-gray-400 flex-1 truncate" title={token.path}>
+        {token.path}
+      </span>
+      {isColor ? (
+        <input
+          data-testid={`ds-token-input-${slug}`}
+          type="color"
+          value={String(token.value)}
+          onChange={(e) => onEdit(token.path, e.target.value)}
+          className="shrink-0 w-7 h-6 rounded cursor-pointer bg-transparent border border-[var(--g-outline)] p-0"
+          aria-label={`Edit ${token.path}`}
+        />
+      ) : (
+        <input
+          data-testid={`ds-token-input-${slug}`}
+          type="text"
+          value={display}
+          onChange={(e) => onEdit(token.path, e.target.value)}
+          className="shrink-0 w-24 text-[10px] font-mono text-gray-200 bg-black/30 border border-[var(--g-outline)] rounded px-1.5 py-0.5"
+          aria-label={`Edit ${token.path}`}
+        />
+      )}
+    </div>
+  );
+}
+
+function GeneratedControlRow({
+  control,
+  rows,
+  scale,
+  onEditToken,
+  onScale,
+}: {
+  control: GeneratedControl;
+  rows: FlatToken[];
+  scale: number;
+  onEditToken: (path: string, value: TokenValue) => void;
+  onScale: (group: string, factor: number) => void;
+}) {
+  if (control.kind === 'hue') {
+    const current = rows.find((t) => t.path === control.tokenPath);
+    const hex = typeof current?.value === 'string' ? current.value : '#000000';
+    const hsl = hexToHsl(hex);
+    const hue = hsl?.h ?? 0;
+    return (
+      <div
+        data-testid={`ds-generated-control-${control.id}`}
+        data-token={control.tokenPath}
+        className="px-3 py-2 rounded bg-black/30 border border-indigo-500/30"
+      >
+        <div className="flex justify-between items-center mb-1.5">
+          <span className="text-[11px] text-indigo-200 font-medium">{control.label}</span>
+          <span className="text-[10px] font-mono text-gray-400">{Math.round(hue)}&deg;</span>
+        </div>
+        <input
+          data-testid={`ds-generated-input-${control.id}`}
+          type="range"
+          min="0"
+          max="360"
+          step="1"
+          value={hue}
+          onChange={(e) => {
+            const base = hsl ?? { s: 0.7, l: 0.5 };
+            onEditToken(control.tokenPath, hslToHex(parseInt(e.target.value, 10), base.s, base.l));
+          }}
+          className="w-full accent-indigo-500"
+          aria-label={`${control.label} — bound to ${control.tokenPath}`}
+        />
+      </div>
+    );
+  }
+  // kind === 'scale'
+  return (
+    <div
+      data-testid={`ds-generated-control-${control.id}`}
+      data-token={control.tokenPath}
+      className="px-3 py-2 rounded bg-black/30 border border-indigo-500/30"
+    >
+      <div className="flex justify-between items-center mb-1.5">
+        <span className="text-[11px] text-indigo-200 font-medium">{control.label}</span>
+        <span className="text-[10px] font-mono text-gray-400">{scale.toFixed(2)}&times;</span>
+      </div>
+      <input
+        data-testid={`ds-generated-input-${control.id}`}
+        type="range"
+        min="0.5"
+        max="2"
+        step="0.05"
+        value={scale}
+        onChange={(e) => onScale(control.group, parseFloat(e.target.value))}
+        className="w-full accent-indigo-500"
+        aria-label={`${control.label} — bound to ${control.tokenPath}`}
+      />
+    </div>
+  );
+}
+
+function DesignSystemPanel({
+  rows,
+  controls,
+  scales,
+  onEditToken,
+  onScale,
+}: {
+  rows: FlatToken[];
+  controls: GeneratedControl[];
+  scales: Record<string, number>;
+  onEditToken: (path: string, value: TokenValue) => void;
+  onScale: (group: string, factor: number) => void;
+}) {
+  return (
+    <div data-testid="ds-panel">
+      <div className="h-px bg-[var(--g-outline)] my-4" />
+      <h4 className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider font-semibold text-gray-500 mb-3">
+        <Palette size={12} className="text-indigo-400" />
+        Design System
+        <span
+          data-testid="ds-panel-count"
+          className="ml-auto px-1.5 py-0.5 rounded text-[9px] bg-indigo-500/20 text-indigo-300 font-mono border border-indigo-500/30"
+        >
+          {rows.length} tokens
+        </span>
+      </h4>
+
+      {/* Agent-generated, design-specific controls (the "custom sliders" pattern) */}
+      {controls.length > 0 && (
+        <div data-testid="ds-generated-controls" className="space-y-2 mb-3">
+          {controls.map((c) => (
+            <GeneratedControlRow
+              key={c.id}
+              control={c}
+              rows={rows}
+              scale={c.kind === 'scale' ? (scales[c.group] ?? 1) : 1}
+              onEditToken={onEditToken}
+              onScale={onScale}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* One row per token — editing a value propagates to every surface that consumes it */}
+      <div className="space-y-1 max-h-72 overflow-y-auto pr-1">
+        {rows.map((token) => (
+          <DesignSystemTokenRow key={token.path} token={token} onEdit={onEditToken} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function StudioClientShell({ id }: { id: string }) {
   const router = useRouter();
   const [scale, setScale] = useState(1);
@@ -252,6 +449,45 @@ export default function StudioClientShell({ id }: { id: string }) {
   const [tokenUsage, setTokenUsage] = useState<TokenDeltaData | null>(null);
   // AT-096: soft-warn dismissal — once dismissed, stays dismissed for the session
   const [softWarnDismissed, setSoftWarnDismissed] = useState(false);
+  // AT-044: the active design system (from the converged design, else the default),
+  // plus the panel's live edits. The effective system layers edits + per-group
+  // scales over the base, and feeds both the panel rows and the iframe srcDoc.
+  const [baseDesignSystem, setBaseDesignSystem] = useState<DesignSystem | null>(null);
+  const [tokenEdits, setTokenEdits] = useState<Record<string, TokenValue>>({});
+  const [groupScales, setGroupScales] = useState<Record<string, number>>({});
+  const effectiveDesignSystem = useMemo(
+    () =>
+      baseDesignSystem ? computeEffectiveSystem(baseDesignSystem, tokenEdits, groupScales) : null,
+    [baseDesignSystem, tokenEdits, groupScales]
+  );
+  const designSystemRows = useMemo(
+    () => (effectiveDesignSystem ? flattenDesignSystem(effectiveDesignSystem) : []),
+    [effectiveDesignSystem]
+  );
+  // Controls are derived from the system's *structure* (stable across edits).
+  const generatedControls = useMemo(
+    () => (baseDesignSystem ? deriveControls(baseDesignSystem) : []),
+    [baseDesignSystem]
+  );
+  // Whether the user has overridden the converged design system via the panel.
+  const hasDesignSystemOverrides =
+    Object.keys(tokenEdits).length > 0 || Object.values(groupScales).some((f) => f !== 1);
+  // The converged output renders byte-exact by default (AT-040 invariant); once
+  // a token is edited, the iframe surface consumes the live tokens as :root vars
+  // (appended last so they win the cascade), so the edit re-flows the surface.
+  const effectiveSrcDoc = useMemo(
+    () =>
+      hasDesignSystemOverrides
+        ? composeSrcDoc(convergedHtml, effectiveDesignSystem)
+        : convergedHtml,
+    [hasDesignSystemOverrides, convergedHtml, effectiveDesignSystem]
+  );
+  const handleEditToken = useCallback((path: string, value: TokenValue) => {
+    setTokenEdits((prev) => ({ ...prev, [path]: value }));
+  }, []);
+  const handleScaleGroup = useCallback((group: string, factor: number) => {
+    setGroupScales((prev) => ({ ...prev, [group]: factor }));
+  }, []);
 
   const addLog = (level: string, msg: string) => {
     const time = new Date().toISOString().split('T')[1].slice(0, 8);
@@ -268,6 +504,10 @@ export default function StudioClientShell({ id }: { id: string }) {
     setLogs([]);
     setIterationScores([]); // AT-093: reset per-iteration scorecard on each new run
     setCompetitorBeatVisible(true); // AT-090: show beat again on each new run
+    // AT-044: reset the design-system panel for the new run
+    setBaseDesignSystem(null);
+    setTokenEdits({});
+    setGroupScales({});
     addLog('INFO', 'Initiating Vertex AI Convergence Loop...');
 
     const brief = new URLSearchParams(window.location.search).get('brief') || 'SaaS landing page';
@@ -303,6 +543,8 @@ export default function StudioClientShell({ id }: { id: string }) {
         if (data.best_html) setConvergedHtml(data.best_html);
         if (data.dorav) setDorav(data.dorav);
         if (data.nielsen) setNielsen(data.nielsen);
+        // AT-044: the design's own system if it carries one, else the default.
+        setBaseDesignSystem(data.tokens ?? DEFAULT_DESIGN_SYSTEM);
         if (data.degraded) {
           const reason =
             data.degradation_reason || 'Output quality fell below the convergence threshold.';
@@ -530,7 +772,7 @@ export default function StudioClientShell({ id }: { id: string }) {
               {status === 'converged' && convergedHtml && (
                 <iframe
                   sandbox="allow-scripts"
-                  srcDoc={convergedHtml}
+                  srcDoc={effectiveSrcDoc}
                   title="Converged design output"
                   className="w-full h-full border-0"
                 />
@@ -543,7 +785,7 @@ export default function StudioClientShell({ id }: { id: string }) {
                   {convergedHtml && (
                     <iframe
                       sandbox="allow-scripts"
-                      srcDoc={convergedHtml}
+                      srcDoc={effectiveSrcDoc}
                       title="Degraded design output"
                       className="w-full h-full border-0"
                     />
@@ -866,6 +1108,17 @@ export default function StudioClientShell({ id }: { id: string }) {
                     </div>
                   )}
                 </div>
+              )}
+
+              {/* AT-044: Design-system panel + agent-generated controls */}
+              {convergedHtml && effectiveDesignSystem && (
+                <DesignSystemPanel
+                  rows={designSystemRows}
+                  controls={generatedControls}
+                  scales={groupScales}
+                  onEditToken={handleEditToken}
+                  onScale={handleScaleGroup}
+                />
               )}
 
               {/* AT-090: Competitor-contrast beat */}
