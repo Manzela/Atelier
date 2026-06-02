@@ -1,3 +1,5 @@
+import type { DesignSystem } from './design-system';
+
 export interface PlanData {
   surfaces: string[];
 }
@@ -70,6 +72,13 @@ export interface CompleteData {
   degraded?: boolean;
   /** Human-readable reason for degradation — forwarded to the DegradedState component */
   degradation_reason?: string;
+  /**
+   * AT-044: the converged design's DTCG design system (one entry per token).
+   * Drives the Studio design-system panel; when absent the panel falls back to
+   * the default system (DEFAULT_DESIGN_SYSTEM). Wired end-to-end by AT-053
+   * (per-tenant memory) — forward-compatible here.
+   */
+  tokens?: DesignSystem;
 }
 
 export interface CapReachedData {
