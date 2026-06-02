@@ -100,6 +100,23 @@ variable "auth_domain" {
   default     = "auth.atelier.autonomous-agent.dev"
 }
 
+variable "custom_domain" {
+  description = "Custom domain for the Atelier dashboard, authorized for Firebase SSO OAuth redirects (AT-083). Must match the domain served by the ALB (dns.tf / alb.tf)."
+  type        = string
+  default     = "atelier.autonomous-agent.dev"
+
+  validation {
+    condition     = can(regex("^[a-z0-9][a-z0-9.-]+[a-z0-9]$", var.custom_domain))
+    error_message = "custom_domain must be a valid domain name (lowercase, no protocol prefix)."
+  }
+}
+
+variable "additional_authorized_domains" {
+  description = "Extra domains authorized for Firebase Auth OAuth redirects beyond the defaults + custom_domain (e.g. a Cloud Run *.run.app staging dashboard host). Because google_identity_platform_config replaces the whole list, staging domains must be declared here to survive an apply."
+  type        = list(string)
+  default     = []
+}
+
 # --- Networking ---
 
 variable "enable_vpc" {

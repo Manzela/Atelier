@@ -44,15 +44,14 @@ WORKDIR /app
 ENV NODE_ENV=production \
     PORT=8080 \
     NEXT_TELEMETRY_DISABLED=1
-RUN groupadd --gid 1000 nodeapp \
-    && useradd --uid 1000 --gid nodeapp --create-home nodeapp
 
+# The node base image ships a non-root `node` user (uid/gid 1000); reuse it.
 # The standalone bundle mirrors the workspace tree (outputFileTracingRoot is the
 # workspace root), so the server entry is atelier-dashboard/server.js.
-COPY --from=build --chown=nodeapp:nodeapp /app/atelier-dashboard/.next/standalone ./
-COPY --from=build --chown=nodeapp:nodeapp /app/atelier-dashboard/.next/static ./atelier-dashboard/.next/static
-COPY --from=build --chown=nodeapp:nodeapp /app/atelier-dashboard/public ./atelier-dashboard/public
+COPY --from=build --chown=node:node /app/atelier-dashboard/.next/standalone ./
+COPY --from=build --chown=node:node /app/atelier-dashboard/.next/static ./atelier-dashboard/.next/static
+COPY --from=build --chown=node:node /app/atelier-dashboard/public ./atelier-dashboard/public
 
-USER nodeapp
+USER node
 EXPOSE 8080
 CMD ["node", "atelier-dashboard/server.js"]

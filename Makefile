@@ -28,7 +28,8 @@ VENV := $(ROOT)/.venv
 PY   := $(VENV)/bin/python
 UV   := $(shell command -v uv 2>/dev/null)
 
-.PHONY: help verify preflight replay deploy-agent-engine production-readiness submission-check \
+.PHONY: help verify preflight replay deploy-agent-engine configure-auth-domains \
+        production-readiness submission-check \
         _deps verify-types verify-tests verify-lint verify-dashboard verify-eval \
         verify-token-roundtrip
 
@@ -38,6 +39,7 @@ help:
 	@echo "  make preflight - named-reason GCP / deploy-readiness probes"
 	@echo "  make replay    - deterministic replay of a recorded trajectory (AT-003)"
 	@echo "  make deploy-agent-engine - deploy planner to Vertex Agent Engine (AT-082, operator-gated)"
+	@echo "  make configure-auth-domains - add custom domain to Firebase Auth authorized domains (AT-083)"
 	@echo "  make production-readiness - live section-16 walkthrough x3 (AT-110, operator-gated)"
 	@echo "  make submission-check - DevPost submission package audit (AT-111)"
 
@@ -114,6 +116,10 @@ preflight:
 deploy-agent-engine: preflight
 	@echo "[deploy] Vertex AI Agent Engine (AT-082) - operator-gated, requires GCP creds"
 	@bash deploy/agent_engine.sh
+
+configure-auth-domains:
+	@echo "[deploy] Firebase Auth authorized domains (AT-083) - adds custom domain for Google SSO"
+	@bash deploy/configure-auth-domains.sh
 
 # ---- production readiness + submission (E11) --------------------------------
 production-readiness: _deps
