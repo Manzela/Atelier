@@ -9,24 +9,24 @@
 
 locals {
   required_apis = [
-    "run.googleapis.com",                    # Cloud Run
-    "artifactregistry.googleapis.com",       # Artifact Registry
-    "aiplatform.googleapis.com",             # Vertex AI
-    "bigquery.googleapis.com",               # BigQuery
-    "bigquerystorage.googleapis.com",        # BigQuery Storage API
-    "cloudkms.googleapis.com",               # KMS
-    "secretmanager.googleapis.com",          # Secret Manager
-    "cloudtrace.googleapis.com",             # Cloud Trace
-    "logging.googleapis.com",               # Cloud Logging
-    "monitoring.googleapis.com",             # Cloud Monitoring
-    "identitytoolkit.googleapis.com",        # Identity Platform
-    "compute.googleapis.com",               # Compute (for VPC)
-    "vpcaccess.googleapis.com",              # Serverless VPC Access
-    "servicenetworking.googleapis.com",      # Service Networking
-    "cloudbuild.googleapis.com",             # Cloud Build
-    "containerregistry.googleapis.com",      # Container Registry (legacy)
-    "iam.googleapis.com",                    # IAM
-    "cloudresourcemanager.googleapis.com",   # Resource Manager
+    "run.googleapis.com",                  # Cloud Run
+    "artifactregistry.googleapis.com",     # Artifact Registry
+    "aiplatform.googleapis.com",           # Vertex AI
+    "bigquery.googleapis.com",             # BigQuery
+    "bigquerystorage.googleapis.com",      # BigQuery Storage API
+    "cloudkms.googleapis.com",             # KMS
+    "secretmanager.googleapis.com",        # Secret Manager
+    "cloudtrace.googleapis.com",           # Cloud Trace
+    "logging.googleapis.com",              # Cloud Logging
+    "monitoring.googleapis.com",           # Cloud Monitoring
+    "identitytoolkit.googleapis.com",      # Identity Platform
+    "compute.googleapis.com",              # Compute (for VPC)
+    "vpcaccess.googleapis.com",            # Serverless VPC Access
+    "servicenetworking.googleapis.com",    # Service Networking
+    "cloudbuild.googleapis.com",           # Cloud Build
+    "containerregistry.googleapis.com",    # Container Registry (legacy)
+    "iam.googleapis.com",                  # IAM
+    "cloudresourcemanager.googleapis.com", # Resource Manager
   ]
 }
 
@@ -189,6 +189,32 @@ resource "google_cloud_run_v2_service" "api" {
       env {
         name  = "ATELIER_DASHBOARD_ORIGIN"
         value = "https://atelier.autonomous-agent.dev,https://atelier-build-2026.web.app"
+      }
+
+      # AT-080: select the managed Vertex session + memory backend in production.
+      # backend_factory reads SESSION_BACKEND and the GOOGLE_CLOUD_* names; without
+      # SESSION_BACKEND=vertex the runner would default to an ephemeral in-memory
+      # store and lose session state across instances.
+      env {
+        name  = "SESSION_BACKEND"
+        value = "vertex"
+      }
+
+      env {
+        name  = "GOOGLE_CLOUD_PROJECT"
+        value = var.project_id
+      }
+
+      env {
+        name  = "GOOGLE_CLOUD_LOCATION"
+        value = var.region
+      }
+
+      # The Vertex session/memory services bind to the Agent Engine deployed by
+      # AT-082; the operator sets this after `make deploy-agent-engine`.
+      env {
+        name  = "AGENT_ENGINE_ID"
+        value = var.agent_engine_id
       }
 
       startup_probe {

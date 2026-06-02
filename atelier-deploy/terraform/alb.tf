@@ -47,6 +47,25 @@ resource "google_compute_region_network_endpoint_group" "api" {
 }
 
 # ---------------------------------------------------------------------------
+# Cloud Run invoker — allow the load balancer to reach the service
+# ---------------------------------------------------------------------------
+
+# The external ALB (serverless NEG) reaches Cloud Run as an unauthenticated
+# caller, so the service grants run.invoker to allUsers. This is safe under the
+# PRD section 13.1 model: the FastAPI Firebase middleware enforces Google SSO on
+# the /v1/* routes, Cloud Armor rate-limits the edge, and the public routes
+# (/, /health, /openapi.json, the agent card) are intentionally unauthenticated.
+# Mutually exclusive with IAP: when enable_iap=true this binding is removed and
+# iap.tf grants run.invoker to the IAP service agent instead.
+resource "google_cloud_run_v2_service_iam_member" "lb_public" {
+  count    = var.enable_iap ? 0 : 1
+  name     = google_cloud_run_v2_service.api.name
+  location = var.region
+  role     = "roles/run.invoker"
+  member   = "allUsers"
+}
+
+# ---------------------------------------------------------------------------
 # Cloud Armor security policy (adaptive DDoS + per-IP rate limit)
 # ---------------------------------------------------------------------------
 

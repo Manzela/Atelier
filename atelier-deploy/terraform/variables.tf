@@ -64,6 +64,12 @@ variable "api_cpu" {
   default     = "1"
 }
 
+variable "agent_engine_id" {
+  description = "Vertex Agent Engine id the session/memory services bind to (AT-080/082). Set by the operator after `make deploy-agent-engine`; empty until then."
+  type        = string
+  default     = ""
+}
+
 # --- BigQuery ---
 
 variable "bq_dataset_location" {
@@ -107,7 +113,7 @@ variable "enable_vpc" {
 variable "armor_rate_limit_count" {
   description = "Cloud Armor per-IP request count allowed within the rate-limit interval"
   type        = number
-  default     = 120
+  default     = 60
 }
 
 variable "armor_rate_limit_interval_sec" {
@@ -129,6 +135,12 @@ variable "labels" {
 }
 
 # --- IAP ---
+
+variable "enable_iap" {
+  description = "Front Cloud Run with Identity-Aware Proxy instead of the default ALB + Firebase SSO model (PRD 13.1). When false, the ALB grants run.invoker to allUsers and the app enforces Firebase SSO. When true, IAP gates ingress and the allUsers binding is removed."
+  type        = bool
+  default     = false
+}
 
 variable "iap_support_email" {
   description = "Support email for IAP OAuth consent screen"
