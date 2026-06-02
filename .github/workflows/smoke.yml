@@ -1,0 +1,32 @@
+# Live smoke probe / synthetic monitor for the deployed Atelier stack (AT-083).
+#
+# Operator-triggered: run after a deploy to gate the live endpoints, or on a
+# schedule as a synthetic monitor once the stack is live. It does not run on
+# pull requests or pushes, so it never blocks normal CI before the stack exists.
+#
+# The scheduled trigger is intentionally left commented until the production
+# stack is live (AT-083 apply), so the monitor does not report failures against
+# a URL that does not yet resolve.
+name: Smoke probe
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: Base URL to probe
+        required: false
+        default: https://atelier.autonomous-agent.dev
+  # schedule:
+  #   - cron: '17 */6 * * *'  # every 6 hours; enable once the stack is live
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: Live endpoint smoke probe
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Probe live endpoints
+        run: bash scripts/ci/smoke_probe.sh "${{ github.event.inputs.base_url || 'https://atelier.autonomous-agent.dev' }}"

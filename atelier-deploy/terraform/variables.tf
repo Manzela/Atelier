@@ -102,6 +102,20 @@ variable "enable_vpc" {
   default     = false
 }
 
+# --- Cloud Armor (AT-083 edge rate limiting) ---
+
+variable "armor_rate_limit_count" {
+  description = "Cloud Armor per-IP request count allowed within the rate-limit interval"
+  type        = number
+  default     = 120
+}
+
+variable "armor_rate_limit_interval_sec" {
+  description = "Cloud Armor per-IP rate-limit interval in seconds"
+  type        = number
+  default     = 60
+}
+
 # --- Labels ---
 
 variable "labels" {
