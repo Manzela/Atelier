@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import {
   LazyMotion,
   domAnimation,
@@ -43,6 +44,7 @@ import {
   type CapReachedData,
   type IterationScoreData,
   type TokenDeltaData,
+  type A2uiMessage,
 } from '@/lib/api';
 import {
   DEFAULT_DESIGN_SYSTEM,
@@ -58,6 +60,19 @@ import {
   type FlatToken,
   type GeneratedControl,
 } from '@/lib/design-system';
+
+// ADR-0011 / P0.4: the Governed A2UI design-system panel. Client-only (the
+// renderer auto-injects styles via document.adoptedStyleSheets), so it is
+// dynamically imported with `ssr: false` to keep it out of the server bundle.
+const A2uiDesignSystemPanel = dynamic(() => import('./a2ui/A2uiDesignSystemPanel'), { ssr: false });
+
+/**
+ * ADR-0011 / P0.4: feature flag for rendering the agent-emitted A2UI surface in
+ * place of the hand-built design-system panel. Default OFF — the hand-built
+ * panel stays the default AND the fail-soft fallback. Read at module scope
+ * because `NEXT_PUBLIC_*` env vars are statically inlined at build time.
+ */
+const A2UI_RENDER_ENABLED = process.env.NEXT_PUBLIC_A2UI_RENDER === '1';
 
 interface UserSession {
   uid: string;
@@ -455,6 +470,15 @@ export default function StudioClientShell({ id }: { id: string }) {
   const [baseDesignSystem, setBaseDesignSystem] = useState<DesignSystem | null>(null);
   const [tokenEdits, setTokenEdits] = useState<Record<string, TokenValue>>({});
   const [groupScales, setGroupScales] = useState<Record<string, number>>({});
+  // ADR-0011 / P0.4: the agent-emitted A2UI design-system surface (raw message
+  // list from the SSE `complete` event), plus a fail-soft latch. When the flag
+  // is ON and a payload is present we render the A2UI panel; if its renderer
+  // throws, `a2uiRenderFailed` latches and we fall back to the hand-built panel.
+  const [a2uiPayload, setA2uiPayload] = useState<A2uiMessage[] | null>(null);
+  const [a2uiRenderFailed, setA2uiRenderFailed] = useState(false);
+  // Render the A2UI panel only when: flag ON, a payload arrived, and it has not
+  // already failed. Otherwise the hand-built panel is the default + fallback.
+  const useA2uiPanel = A2UI_RENDER_ENABLED && a2uiPayload !== null && !a2uiRenderFailed;
   const effectiveDesignSystem = useMemo(
     () =>
       baseDesignSystem ? computeEffectiveSystem(baseDesignSystem, tokenEdits, groupScales) : null,
@@ -494,6 +518,14 @@ export default function StudioClientShell({ id }: { id: string }) {
     setLogs((prev) => [...prev, { id: Date.now(), time, level, msg }]);
   };
 
+  // ADR-0011 / P0.4: fail-soft latch for the A2UI panel. On a renderer failure
+  // we acknowledge degradation (log) and flip to the hand-built panel — the
+  // agent always acknowledges degradation; never a silent blank.
+  const handleA2uiRenderError = (error: Error) => {
+    setA2uiRenderFailed(true);
+    addLog('WARN', `A2UI panel degraded — using hand-built panel: ${error.message}`);
+  };
+
   const handleZoom = (delta: number) => {
     setScale((s) => Math.max(0.2, Math.min(3, s + delta)));
   };
@@ -508,6 +540,9 @@ export default function StudioClientShell({ id }: { id: string }) {
     setBaseDesignSystem(null);
     setTokenEdits({});
     setGroupScales({});
+    // ADR-0011 / P0.4: reset the A2UI surface + fail-soft latch for the new run
+    setA2uiPayload(null);
+    setA2uiRenderFailed(false);
     addLog('INFO', 'Initiating Vertex AI Convergence Loop...');
 
     const brief = new URLSearchParams(window.location.search).get('brief') || 'SaaS landing page';
@@ -545,6 +580,14 @@ export default function StudioClientShell({ id }: { id: string }) {
         if (data.nielsen) setNielsen(data.nielsen);
         // AT-044: the design's own system if it carries one, else the default.
         setBaseDesignSystem(data.tokens ?? DEFAULT_DESIGN_SYSTEM);
+        // ADR-0011 / P0.4: capture the Governed A2UI surface if the backend
+        // emitted one. Only consumed when NEXT_PUBLIC_A2UI_RENDER === '1';
+        // otherwise it is inert and the hand-built panel renders.
+        setA2uiPayload(
+          Array.isArray(data.a2ui_payload) && data.a2ui_payload.length > 0
+            ? data.a2ui_payload
+            : null
+        );
         if (data.degraded) {
           const reason =
             data.degradation_reason || 'Output quality fell below the convergence threshold.';
@@ -1110,15 +1153,43 @@ export default function StudioClientShell({ id }: { id: string }) {
                 </div>
               )}
 
-              {/* AT-044: Design-system panel + agent-generated controls */}
+              {/* AT-044 / ADR-0011: design-system panel. When the A2UI flag is ON
+                  and the agent emitted a surface, render it via @a2ui/react;
+                  otherwise (and on any A2UI render failure) the hand-built panel
+                  is the default + fail-soft fallback. */}
               {convergedHtml && effectiveDesignSystem && (
-                <DesignSystemPanel
-                  rows={designSystemRows}
-                  controls={generatedControls}
-                  scales={groupScales}
-                  onEditToken={handleEditToken}
-                  onScale={handleScaleGroup}
-                />
+                <>
+                  {useA2uiPanel && a2uiPayload ? (
+                    <div data-testid="studio-a2ui-section">
+                      <div className="h-px bg-[var(--g-outline)] my-4" />
+                      {/* Provenance only — the A2UI surface is self-describing
+                          (it renders its own "Design System" title + token rows),
+                          so the chrome adds just the Governed-A2UI badge. Design-
+                          system colored (--g-info); indigo is off-system per
+                          DESIGN_SYSTEM.md and must not be (re)introduced here. */}
+                      <div className="mb-2 flex justify-end">
+                        <span
+                          className="rounded border border-[var(--g-info)]/30 bg-[var(--g-info)]/15 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-[var(--g-info)]"
+                          title="Rendered from the agent-emitted A2UI surface (Governed A2UI)"
+                        >
+                          A2UI
+                        </span>
+                      </div>
+                      <A2uiDesignSystemPanel
+                        messages={a2uiPayload}
+                        onRenderError={handleA2uiRenderError}
+                      />
+                    </div>
+                  ) : (
+                    <DesignSystemPanel
+                      rows={designSystemRows}
+                      controls={generatedControls}
+                      scales={groupScales}
+                      onEditToken={handleEditToken}
+                      onScale={handleScaleGroup}
+                    />
+                  )}
+                </>
               )}
 
               {/* AT-090: Competitor-contrast beat */}

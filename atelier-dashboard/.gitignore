@@ -49,3 +49,4 @@ e2e/**/*-darwin.png
 e2e/**/*-win32.png
 # Explicitly allow Linux snapshot references generated in CI
 !e2e/**/*-linux.png
+e2e/__artifacts__/

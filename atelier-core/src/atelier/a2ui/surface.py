@@ -184,14 +184,21 @@ def _build_components() -> list[dict[str, Any]]:
             "id": _ROW_PATH_TEXT_ID,
             "component": "Text",
             "variant": "body",
-            # Relative DataBinding — resolved against each /tokens item.
-            "text": {"path": "/path"},
+            # RELATIVE DataBinding — resolved against each /tokens/<i> item scope.
+            # MUST be slash-less: the renderer's DataContext.resolvePath treats a
+            # leading-slash path as ABSOLUTE-from-root (verified in
+            # @a2ui/web_core .../rendering/data-context.js: `if
+            # (path.startsWith('/')) return path`), which would resolve "/path"
+            # to the data-model root (undefined) and render an empty row. A
+            # slash-less "path" is joined onto the item basePath → /tokens/<i>/path.
+            "text": {"path": "path"},
         },
         {
             "id": _ROW_VALUE_TEXT_ID,
             "component": "Text",
             "variant": "caption",
-            "text": {"path": "/value"},
+            # RELATIVE binding (see note above): "value" → /tokens/<i>/value.
+            "text": {"path": "value"},
         },
     ]
 
