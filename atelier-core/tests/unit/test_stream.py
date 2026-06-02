@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import AsyncMock, patch
+from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
@@ -225,6 +227,102 @@ def test_enrich_complete_payload_dorav_fallback_on_empty_evaluations() -> None:
     assert dorav["composite"] == pytest.approx(0.55)
     # No axes (no evaluations), but composite must be present
     assert "composite" in dorav
+
+
+@pytest.mark.unit
+def test_enrich_complete_payload_adds_a2ui_payload_from_project_context() -> None:
+    """complete payload must carry a non-None A2UI surface built from design tokens.
+
+    P0.4 (ADR-0024): the design-system panel is emitted as an A2UI v0.10/v0.9-wire
+    surface threaded onto the ``complete`` event alongside ``best_html``.
+    """
+    from atelier.api.generate import _enrich_complete_payload
+    from atelier.intake.brief_spec import (
+        BriefSpec,
+        ComplianceLevel,
+        ConvergenceBar,
+        StackChoice,
+        VisualRegister,
+    )
+    from atelier.intake.source_resolver import ProjectContext
+
+    project_ctx = ProjectContext(
+        brief=BriefSpec(
+            spec_id=uuid4(),
+            tenant_id="tnt",
+            project_id="prj",
+            intent="Make booking easier with a clear hero and pricing widgets.",
+            visual_register=VisualRegister.EDITORIAL,
+            stack=StackChoice.VANILLA_HTML,
+            compliance_level=ComplianceLevel.WCAG_AA,
+            convergence_bar=ConvergenceBar.SHIP_IT,
+            approved_at=datetime.now(UTC),
+            approved_by_user_id="usr",
+        ),
+        design_tokens={"primary_color": "#1a73e8", "font": "Inter", "_source": "DESIGN.md"},
+    )
+
+    payload: dict[str, Any] = {
+        "best_candidate": _MINIMAL_HTML,
+        "converged": True,
+        "composite_score": 0.75,
+        "evaluations": _MINIMAL_EVALUATIONS,
+        "project_context": project_ctx,
+    }
+    result = _enrich_complete_payload(payload)
+
+    assert "a2ui_payload" in result
+    a2ui = result["a2ui_payload"]
+    assert a2ui is not None
+    # The surface is an ordered A2UI message list (createSurface → updateComponents …).
+    assert isinstance(a2ui, list)
+    assert "createSurface" in a2ui[0]
+    assert a2ui[0]["version"] == "v0.9"
+    # The token rows reached the data model (meta keys excluded → 2 rows).
+    rows = a2ui[2]["updateDataModel"]["value"]["tokens"]
+    assert {row["path"] for row in rows} == {"primary_color", "font"}
+
+
+@pytest.mark.unit
+def test_enrich_complete_payload_a2ui_handles_serialized_project_context() -> None:
+    """a2ui_payload must build even when project_context is a serialized dict.
+
+    The runner stores ``project_ctx`` as a Pydantic object, but a re-serialized
+    (``model_dump``) dict must also yield a surface — the extractor reads either.
+    """
+    from atelier.api.generate import _enrich_complete_payload
+
+    payload: dict[str, Any] = {
+        "best_candidate": _MINIMAL_HTML,
+        "converged": True,
+        "composite_score": 0.75,
+        "evaluations": _MINIMAL_EVALUATIONS,
+        "project_context": {"design_tokens": {"color_ink": "#0a0a0a"}},
+    }
+    result = _enrich_complete_payload(payload)
+
+    a2ui = result["a2ui_payload"]
+    assert a2ui is not None
+    rows = a2ui[2]["updateDataModel"]["value"]["tokens"]
+    assert {row["path"] for row in rows} == {"color_ink"}
+
+
+@pytest.mark.unit
+def test_enrich_complete_payload_a2ui_present_without_tokens() -> None:
+    """Even with no project_context, a valid (empty-row) A2UI surface is emitted."""
+    from atelier.api.generate import _enrich_complete_payload
+
+    payload: dict[str, Any] = {
+        "best_candidate": _MINIMAL_HTML,
+        "converged": True,
+        "composite_score": 0.75,
+        "evaluations": _MINIMAL_EVALUATIONS,
+    }
+    result = _enrich_complete_payload(payload)
+
+    a2ui = result["a2ui_payload"]
+    assert a2ui is not None
+    assert a2ui[2]["updateDataModel"]["value"]["tokens"] == []
 
 
 @pytest.mark.unit

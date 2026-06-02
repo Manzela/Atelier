@@ -55,6 +55,42 @@ export interface DoravScores {
   composite?: number;
 }
 
+/**
+ * ADR-0024 / P0.4: a single A2UI v0.9-wire server-to-client message. The backend
+ * (``atelier-core/src/atelier/a2ui/surface.py``) emits the raw ordered list of
+ * the three kinds below on the SSE ``complete`` event (``a2ui_payload``):
+ *
+ *   1. ``createSurface``    — opens the surface against the basic catalog.
+ *   2. ``updateComponents`` — the declarative component tree (one ``id == "root"``).
+ *   3. ``updateDataModel``  — the token rows the tree binds against.
+ *
+ * Loose by design: this mirrors (and is assignable to) the renderer's strict
+ * ``A2uiMessage`` union from ``@a2ui/web_core/v0_9`` without forcing this shared
+ * lib to take a direct dependency on the renderer's internal package (that
+ * boundary lives only in ``components/a2ui/A2uiDesignSystemPanel.tsx``). Every
+ * message carries ``version: "v0.9"`` (see ``A2UI_WIRE_VERSION`` server-side).
+ */
+export type A2uiMessage =
+  | {
+      version: 'v0.9';
+      createSurface: { surfaceId: string; catalogId: string; [k: string]: unknown };
+    }
+  | {
+      version: 'v0.9';
+      updateComponents: {
+        surfaceId: string;
+        components: Array<{ component: string; id?: string; [k: string]: unknown }>;
+      };
+    }
+  | {
+      version: 'v0.9';
+      updateDataModel: { surfaceId: string; path?: string; value?: unknown };
+    }
+  | {
+      version: 'v0.9';
+      deleteSurface: { surfaceId: string };
+    };
+
 export interface NielsenHeuristic {
   heuristic: string;
   present: boolean;
@@ -79,6 +115,32 @@ export interface CompleteData {
    * (per-tenant memory) — forward-compatible here.
    */
   tokens?: DesignSystem;
+  /**
+   * ADR-0024 / P0.4: the Governed A2UI design-system surface — the raw ordered
+   * server-to-client message list emitted by the backend alongside ``best_html``.
+   * Drives the agent-emitted A2UI rendering of the Studio design-system panel
+   * (``A2uiDesignSystemPanel``) behind the ``NEXT_PUBLIC_A2UI_RENDER`` flag. The
+   * design deliverable stays ``best_html`` — A2UI is chrome only, never the output.
+   * Absent on legacy/degraded paths; the hand-built panel is the fail-soft fallback.
+   */
+  a2ui_payload?: A2uiMessage[];
+  /**
+   * ADR-0024 / P0.4 (G2): governance events from the fail-closed A2UI gate. When
+   * the gate REJECTS the surface, the backend sets ``a2ui_payload`` to ``[]``
+   * (frontend fail-soft → hand-built panel) and attaches the rejection event(s)
+   * here. Shape mirrors the gate's ``governance_messages``: an A2UI custom event
+   * (``name: "atelier/governance.rejected"``) carrying the surface id and the
+   * per-error validation detail. Consumed for provenance/telemetry; the panel
+   * still falls back via the empty payload. Absent when the surface passed.
+   */
+  a2ui_governance?: {
+    version: 'v0.9';
+    custom: {
+      surfaceId: string;
+      name: string;
+      payload: Record<string, unknown>;
+    };
+  }[];
 }
 
 export interface CapReachedData {

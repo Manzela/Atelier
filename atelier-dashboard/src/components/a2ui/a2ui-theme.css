@@ -1,0 +1,111 @@
+/**
+ * ADR-0024 / P0.4 — Material-3 dark "Stitch" theme for the Governed A2UI surface.
+ *
+ * The @a2ui/react basic catalog is driven ENTIRELY by `--a2ui-*` CSS custom
+ * properties (verified against the installed `@a2ui/react@0.10.0` —
+ * `v0_9/index.css` for Text/Button/TextField visuals, and inline `style={...}`
+ * for Card/Column/Row/List/Divider layout). The renderer auto-injects its own
+ * component styles via `document.adoptedStyleSheets` (`useBasicCatalogStyles`),
+ * so we DO NOT restyle hashed module classes — we only map our Studio design
+ * tokens (`--g-*`, see `src/app/globals.css`) onto the `--a2ui-*` layer here.
+ *
+ * Scoped to `.a2ui-host` so it never leaks into the rest of the dashboard. The
+ * goal: the agent-emitted A2UI panel is visually indistinguishable in quality
+ * from the hand-built AT-044 panel — Google Sans typography, the `--g-surface`
+ * / `--g-outline` / `--g-text` palette, 8px radius, the spacing rhythm.
+ */
+.a2ui-host {
+  /* ---- Palette (M3 dark Stitch) ---------------------------------------- */
+  --a2ui-color-surface: var(--g-surface);
+  --a2ui-color-on-surface: var(--g-text);
+  --a2ui-color-on-background: var(--g-text);
+  --a2ui-color-primary: var(--g-info);
+  --a2ui-color-primary-hover: var(--g-primary-blue-hover);
+  --a2ui-color-on-primary: #0b0d10;
+  --a2ui-color-on-secondary: var(--g-text);
+  --a2ui-color-secondary-hover: var(--g-surface-hover);
+  --a2ui-color-border: var(--g-outline);
+  --a2ui-color-border-hover: var(--g-surface-hover);
+  --a2ui-color-input: rgba(0, 0, 0, 0.3);
+  --a2ui-color-on-input: var(--g-text);
+
+  /* Text component (the dominant surface): body + caption colours map to the
+     Studio text + muted-text tokens, matching the hand-built rows exactly. */
+  --a2ui-text-color-text: var(--g-text);
+  --a2ui-text-caption-color: var(--g-text-muted);
+  --a2ui-text-a-color: var(--g-info);
+
+  /* ---- Shape & border -------------------------------------------------- */
+  --a2ui-border-radius: 8px;
+  --a2ui-border-width: 1px;
+  --a2ui-border: 1px solid var(--g-outline);
+
+  /* ---- Spacing rhythm (matches the hand-built panel's px-2/py-1.5 feel) - */
+  --a2ui-spacing-xs: 0.25rem;
+  --a2ui-spacing-s: 0.375rem;
+  --a2ui-spacing-m: 0.5rem;
+  --a2ui-spacing-l: 0.75rem;
+
+  /* ---- Typography (Google Sans, M3 type scale, compact panel sizing) ---- */
+  --a2ui-font-family-title: 'Google Sans', var(--font-roboto), sans-serif;
+  --a2ui-font-size-2xl: 1.25rem;
+  --a2ui-font-size-xl: 1rem;
+  --a2ui-font-size-l: 0.9375rem;
+  --a2ui-font-size-m: 0.8125rem;
+  --a2ui-font-size-s: 0.6875rem;
+  --a2ui-font-size-xs: 0.625rem;
+  --a2ui-line-height-headings: 1.2;
+  --a2ui-line-height-body: 1.5;
+  --a2ui-label-font-weight: 600;
+
+  /* ---- Component-level overrides for panel parity ---------------------- */
+  /* Card = the panel frame: flat (no shadow), 1px outline, surface fill. */
+  --a2ui-card-background: var(--g-surface);
+  --a2ui-card-border: 1px solid var(--g-outline);
+  --a2ui-card-border-radius: 8px;
+  --a2ui-card-box-shadow: none;
+  --a2ui-card-margin: 0;
+  --a2ui-card-padding: 0.75rem;
+  /* Tighten the row/column/list rhythm to the hand-built panel's density. */
+  --a2ui-column-gap: 0.375rem;
+  --a2ui-row-gap: 0.5rem;
+  --a2ui-list-gap: 0.25rem;
+  --a2ui-list-padding: 0;
+  --a2ui-divider-spacing: 0.5rem;
+
+  /* Inherit Google Sans Text on the host so leaf Text nodes match the panel. */
+  font-family: 'Google Sans Text', 'Google Sans', var(--font-roboto), sans-serif;
+  color: var(--g-text);
+}
+
+/* ---- WCAG AA contrast guard (G3 a11y — MEASURED, do NOT "fix") ------------
+   The Governed A2UI panel's text/surface pairs were measured against the WCAG
+   2.x relative-luminance formula and BOTH clear the AA 4.5:1 normal-text floor
+   on the panel surface `--g-surface` (#1e1f22):
+
+     • token NAMES  — `--g-text` (#e3e3e3) on #1e1f22  = 12.84:1
+     • token VALUES — `--g-text-muted` (#9aa0a6) on #1e1f22 = 6.24:1
+       (rendered at `--a2ui-font-size-xs` = 0.625rem ≈ 10px → the 4.5:1 normal
+        threshold applies, not the 3:1 large-text one; 6.24:1 clears it.)
+
+   INVARIANT: never darken `--g-text-muted` below the 4.5:1 floor on #1e1f22,
+   and never render token-value text dimmer/smaller than this. There is NO color
+   change to make here — the guard is enforced empirically by the `color-contrast`
+   axe rule in `e2e/a2ui-render.spec.ts` (scoped to the panel), which catches any
+   future token drift. If extra headroom is ever wanted, scope a value-only
+   override to `.a2ui-host` (e.g. #c4c7c5 = 9.67:1) — do NOT touch the global
+   `--g-text-muted` token shared by the hand-built panel. */
+
+/* Token VALUE rows: the Atelier catalog's caption-variant Text renders a
+   semantic `<small>` whose inner `*…*` markdown yields `<em>` (the value renders
+   as `<small><em>…</em></small>`). DESIGN_SYSTEM.md wants token values / numerals
+   in MONOSPACE + upright (mirroring the hand-built panel), so target the caption
+   `<em>` directly. Our governed surface only ever emphasizes token values, so
+   `.a2ui-host em` is safe. (Keep this rule in lockstep with the catalog's Text
+   caption → `<small><em>` rendering — see `atelierCatalog.ts`.) */
+.a2ui-host em {
+  font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace !important;
+  font-style: normal !important;
+  font-size: var(--a2ui-font-size-xs);
+  color: var(--g-text-muted);
+}

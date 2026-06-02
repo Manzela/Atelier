@@ -16,12 +16,15 @@
     "validate": "npm run typecheck && npm run lint && npm run build"
   },
   "dependencies": {
+    "@a2ui/markdown-it": "0.0.4",
+    "@a2ui/react": "0.10.0",
     "firebase": "^12.13.0",
     "framer-motion": "^12.40.0",
     "lucide-react": "^1.17.0",
     "next": "16.2.6",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.10.1",

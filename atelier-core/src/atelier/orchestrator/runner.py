@@ -1024,6 +1024,19 @@ class AtelierRunner:
         self._usage_store.check_circuit_breaker()
         self._governor._check_token_budget()
 
+        # Governed A2UI (ADR-0024) — G6 single-source convergence: the AT-044
+        # design-system panel surface is built + gated EXACTLY ONCE per run, at the
+        # canonical emit boundary (api/generate.py:_enrich_complete_payload), from
+        # the run's resolved project_context.design_tokens. That enrichment runs
+        # LAST in the SSE pipeline and OVERWRITES a2ui_payload, so it governs the
+        # surface the frontend actually RENDERS (the frontend consumes a2ui_payload
+        # only off the enriched `complete` event; `screen_converged` does not read
+        # it). A second surface build here would be a redundant write — discarded by
+        # the API rebuild on the rendered path and never consumed on the SSE path —
+        # built from a token source that could drift from the canonical one. It is
+        # intentionally NOT built here; a2ui_payload / a2ui_governance are threaded
+        # solely from the canonical enrich site.
+
         for idx, screen in enumerate(surfaces):
             if progress_callback:
                 await progress_callback("screen_start", {"screen": screen, "index": idx})
@@ -1362,6 +1375,10 @@ class AtelierRunner:
                         "screen": screen,
                         "best_candidate": best_candidate,
                         "converged": convergence_result.get("converged", False),
+                        # Governed A2UI chrome (ADR-0024) is NOT threaded here: the
+                        # frontend reads a2ui_payload only off the enriched
+                        # `complete` event (G6 single-source convergence). The
+                        # canonical build+gate is api/generate.py:_enrich_complete_payload.
                     },
                 )
 
@@ -1429,6 +1446,14 @@ class AtelierRunner:
             "session_id": session_id,
             "plan": plan.model_dump() if hasattr(plan, "model_dump") else {},
             "screens": screens_results,
+            # Governed A2UI chrome (ADR-0024) — G6 single-source convergence: the
+            # design-system panel surface is built, gated, and threaded EXACTLY
+            # ONCE, at the canonical emit boundary
+            # (api/generate.py:_enrich_complete_payload), which derives it from
+            # project_context.design_tokens and OVERWRITES a2ui_payload on the
+            # `complete` event LAST. That is the surface the frontend renders. It
+            # is intentionally NOT set here, so there is no second token source to
+            # drift from the canonical one.
         }
 
         # Mid-flight DPO pair extraction — Dreaming Module (fail-soft).

@@ -6,8 +6,8 @@ to fetch READMEs, search code, and retrieve file contents from
 reference repositories during the PIP intake phase.
 
 Uses ``httpx`` (already in deps) for HTTP. Does NOT use ``PyGithub``
-or ``gidgethub`` — per ``<lockfile_only_installs>``, no new deps
-without ADR + lockfile regen + Snyk scan.
+or ``gidgethub``: new dependencies require an ADR, a lockfile
+regeneration, and a Snyk scan, so this layer stays dependency-free.
 
 Auth: ``GITHUB_TOKEN`` env var or constructor ``token`` param.
 

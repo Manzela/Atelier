@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import {
   LazyMotion,
   domAnimation,
@@ -43,6 +44,7 @@ import {
   type CapReachedData,
   type IterationScoreData,
   type TokenDeltaData,
+  type A2uiMessage,
 } from '@/lib/api';
 import {
   DEFAULT_DESIGN_SYSTEM,
@@ -58,6 +60,19 @@ import {
   type FlatToken,
   type GeneratedControl,
 } from '@/lib/design-system';
+
+// ADR-0024 / P0.4: the Governed A2UI design-system panel. Client-only (the
+// renderer auto-injects styles via document.adoptedStyleSheets), so it is
+// dynamically imported with `ssr: false` to keep it out of the server bundle.
+const A2uiDesignSystemPanel = dynamic(() => import('./a2ui/A2uiDesignSystemPanel'), { ssr: false });
+
+/**
+ * ADR-0024 / P0.4: feature flag for rendering the agent-emitted A2UI surface in
+ * place of the hand-built design-system panel. Default OFF — the hand-built
+ * panel stays the default AND the fail-soft fallback. Read at module scope
+ * because `NEXT_PUBLIC_*` env vars are statically inlined at build time.
+ */
+const A2UI_RENDER_ENABLED = process.env.NEXT_PUBLIC_A2UI_RENDER === '1';
 
 interface UserSession {
   uid: string;
@@ -139,10 +154,10 @@ function CompetitorContrastBeat({ onDismiss }: { onDismiss: () => void }) {
       exit={{ opacity: 0, y: 8 }}
       transition={{ type: 'spring', bounce: 0, duration: 0.35 }}
       data-testid="competitor-contrast-beat"
-      className="rounded border border-indigo-500/30 bg-black/40 p-4 text-[11px] leading-relaxed"
+      className="rounded border border-[var(--g-info)]/30 bg-black/40 p-4 text-[11px] leading-relaxed"
     >
       <div className="flex items-start justify-between gap-2 mb-3">
-        <h4 className="text-[11px] uppercase tracking-wider font-semibold text-indigo-300">
+        <h4 className="text-[11px] uppercase tracking-wider font-semibold text-[var(--g-info)]">
           Why Atelier?
         </h4>
         <button
@@ -312,10 +327,10 @@ function GeneratedControlRow({
       <div
         data-testid={`ds-generated-control-${control.id}`}
         data-token={control.tokenPath}
-        className="px-3 py-2 rounded bg-black/30 border border-indigo-500/30"
+        className="px-3 py-2 rounded bg-black/30 border border-[var(--g-info)]/30"
       >
         <div className="flex justify-between items-center mb-1.5">
-          <span className="text-[11px] text-indigo-200 font-medium">{control.label}</span>
+          <span className="text-[11px] text-[var(--g-info)] font-medium">{control.label}</span>
           <span className="text-[10px] font-mono text-gray-400">{Math.round(hue)}&deg;</span>
         </div>
         <input
@@ -329,7 +344,7 @@ function GeneratedControlRow({
             const base = hsl ?? { s: 0.7, l: 0.5 };
             onEditToken(control.tokenPath, hslToHex(parseInt(e.target.value, 10), base.s, base.l));
           }}
-          className="w-full accent-indigo-500"
+          className="w-full accent-[var(--g-primary-blue)]"
           aria-label={`${control.label} — bound to ${control.tokenPath}`}
         />
       </div>
@@ -340,10 +355,10 @@ function GeneratedControlRow({
     <div
       data-testid={`ds-generated-control-${control.id}`}
       data-token={control.tokenPath}
-      className="px-3 py-2 rounded bg-black/30 border border-indigo-500/30"
+      className="px-3 py-2 rounded bg-black/30 border border-[var(--g-info)]/30"
     >
       <div className="flex justify-between items-center mb-1.5">
-        <span className="text-[11px] text-indigo-200 font-medium">{control.label}</span>
+        <span className="text-[11px] text-[var(--g-info)] font-medium">{control.label}</span>
         <span className="text-[10px] font-mono text-gray-400">{scale.toFixed(2)}&times;</span>
       </div>
       <input
@@ -354,7 +369,7 @@ function GeneratedControlRow({
         step="0.05"
         value={scale}
         onChange={(e) => onScale(control.group, parseFloat(e.target.value))}
-        className="w-full accent-indigo-500"
+        className="w-full accent-[var(--g-primary-blue)]"
         aria-label={`${control.label} — bound to ${control.tokenPath}`}
       />
     </div>
@@ -378,11 +393,11 @@ function DesignSystemPanel({
     <div data-testid="ds-panel">
       <div className="h-px bg-[var(--g-outline)] my-4" />
       <h4 className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider font-semibold text-gray-500 mb-3">
-        <Palette size={12} className="text-indigo-400" />
+        <Palette size={12} className="text-[var(--g-info)]" />
         Design System
         <span
           data-testid="ds-panel-count"
-          className="ml-auto px-1.5 py-0.5 rounded text-[9px] bg-indigo-500/20 text-indigo-300 font-mono border border-indigo-500/30"
+          className="ml-auto px-1.5 py-0.5 rounded text-[9px] bg-[var(--g-info)]/20 text-[var(--g-info)] font-mono border border-[var(--g-info)]/30"
         >
           {rows.length} tokens
         </span>
@@ -455,6 +470,21 @@ export default function StudioClientShell({ id }: { id: string }) {
   const [baseDesignSystem, setBaseDesignSystem] = useState<DesignSystem | null>(null);
   const [tokenEdits, setTokenEdits] = useState<Record<string, TokenValue>>({});
   const [groupScales, setGroupScales] = useState<Record<string, number>>({});
+  // ADR-0024 / P0.4: the agent-emitted A2UI design-system surface (raw message
+  // list from the SSE `complete` event), plus a fail-soft latch. When the flag
+  // is ON and a payload is present we render the A2UI panel; if its renderer
+  // throws, `a2uiRenderFailed` latches and we fall back to the hand-built panel.
+  const [a2uiPayload, setA2uiPayload] = useState<A2uiMessage[] | null>(null);
+  const [a2uiRenderFailed, setA2uiRenderFailed] = useState(false);
+  // G3 a11y: a single SHELL-OWNED announcer. `a2uiAnnouncement` is written into a
+  // persistent role="status" aria-live="polite" region mounted BEFORE the surface
+  // (so SC 4.1.3 is satisfied — the region pre-exists the update). `a2uiPanelRef`
+  // points at the A2UI panel wrapper so we can move focus to it on (re)mount.
+  const [a2uiAnnouncement, setA2uiAnnouncement] = useState('');
+  const a2uiPanelRef = useRef<HTMLDivElement>(null);
+  // Render the A2UI panel only when: flag ON, a payload arrived, and it has not
+  // already failed. Otherwise the hand-built panel is the default + fallback.
+  const useA2uiPanel = A2UI_RENDER_ENABLED && a2uiPayload !== null && !a2uiRenderFailed;
   const effectiveDesignSystem = useMemo(
     () =>
       baseDesignSystem ? computeEffectiveSystem(baseDesignSystem, tokenEdits, groupScales) : null,
@@ -494,6 +524,25 @@ export default function StudioClientShell({ id }: { id: string }) {
     setLogs((prev) => [...prev, { id: Date.now(), time, level, msg }]);
   };
 
+  // ADR-0024 / P0.4: fail-soft latch for the A2UI panel. On a renderer failure
+  // we acknowledge degradation (log) and flip to the hand-built panel — the
+  // agent always acknowledges degradation; never a silent blank.
+  const handleA2uiRenderError = (error: Error) => {
+    setA2uiRenderFailed(true);
+    addLog('WARN', `A2UI panel degraded — using hand-built panel: ${error.message}`);
+    // G3 a11y: durable announcement of the fail-soft swap (the in-panel degraded
+    // transient unmounts on fallback; the shell live region is the durable voice).
+    setA2uiAnnouncement('Design system panel unavailable — showing the standard panel');
+  };
+
+  // G3 a11y: the A2UI surface materialized. Announce readiness once and move
+  // focus to the Atelier-owned wrapper (NOT the catalog's markdown-rendered,
+  // id-less heading). Fired from the panel post-mount, so the wrapper exists.
+  const handleA2uiSurfaceReady = useCallback(() => {
+    setA2uiAnnouncement('Design system panel ready');
+    a2uiPanelRef.current?.focus();
+  }, []);
+
   const handleZoom = (delta: number) => {
     setScale((s) => Math.max(0.2, Math.min(3, s + delta)));
   };
@@ -508,6 +557,11 @@ export default function StudioClientShell({ id }: { id: string }) {
     setBaseDesignSystem(null);
     setTokenEdits({});
     setGroupScales({});
+    // ADR-0024 / P0.4: reset the A2UI surface + fail-soft latch for the new run
+    setA2uiPayload(null);
+    setA2uiRenderFailed(false);
+    // G3 a11y: clear the live region so the next surface-ready re-announces.
+    setA2uiAnnouncement('');
     addLog('INFO', 'Initiating Vertex AI Convergence Loop...');
 
     const brief = new URLSearchParams(window.location.search).get('brief') || 'SaaS landing page';
@@ -545,6 +599,14 @@ export default function StudioClientShell({ id }: { id: string }) {
         if (data.nielsen) setNielsen(data.nielsen);
         // AT-044: the design's own system if it carries one, else the default.
         setBaseDesignSystem(data.tokens ?? DEFAULT_DESIGN_SYSTEM);
+        // ADR-0024 / P0.4: capture the Governed A2UI surface if the backend
+        // emitted one. Only consumed when NEXT_PUBLIC_A2UI_RENDER === '1';
+        // otherwise it is inert and the hand-built panel renders.
+        setA2uiPayload(
+          Array.isArray(data.a2ui_payload) && data.a2ui_payload.length > 0
+            ? data.a2ui_payload
+            : null
+        );
         if (data.degraded) {
           const reason =
             data.degradation_reason || 'Output quality fell below the convergence threshold.';
@@ -603,7 +665,7 @@ export default function StudioClientShell({ id }: { id: string }) {
             </button>
             <div className="flex items-center gap-2">
               <span className="font-semibold text-[13px] text-white tracking-wide">{id}</span>
-              <span className="px-1.5 py-0.5 rounded text-[10px] bg-indigo-500/20 text-indigo-300 font-mono border border-indigo-500/30">
+              <span className="px-1.5 py-0.5 rounded text-[10px] bg-[var(--g-info)]/20 text-[var(--g-info)] font-mono border border-[var(--g-info)]/30">
                 v1.0
               </span>
             </div>
@@ -623,7 +685,7 @@ export default function StudioClientShell({ id }: { id: string }) {
 
           <div className="flex items-center gap-3">
             <div className="px-3 py-1.5 text-xs text-gray-400 border border-[var(--g-outline)] rounded-md bg-black/20 flex items-center gap-2">
-              Model: <span className="text-white font-medium">Gemini 1.5 Pro</span>
+              Model: <span className="text-white font-medium">Gemini 2.5 Pro</span>
             </div>
             <button
               onClick={startGeneration}
@@ -658,7 +720,7 @@ export default function StudioClientShell({ id }: { id: string }) {
                   >
                     <Box
                       size={14}
-                      className="text-gray-500 group-hover:text-indigo-400 transition-colors"
+                      className="text-gray-500 group-hover:text-[var(--g-info)] transition-colors"
                     />
                     <span className="truncate">{layer}</span>
                   </div>
@@ -674,7 +736,7 @@ export default function StudioClientShell({ id }: { id: string }) {
               <button
                 data-testid="device-390"
                 aria-label="Mobile 390px"
-                className={`p-1.5 rounded transition-colors ${deviceWidth === 390 ? 'bg-indigo-500/30 text-indigo-300' : 'hover:bg-[var(--g-surface-hover)] text-gray-400 hover:text-white'}`}
+                className={`p-1.5 rounded transition-colors ${deviceWidth === 390 ? 'bg-[var(--g-info)]/30 text-[var(--g-info)]' : 'hover:bg-[var(--g-surface-hover)] text-gray-400 hover:text-white'}`}
                 onClick={() => setDeviceWidth(390)}
               >
                 <Smartphone size={16} />
@@ -682,7 +744,7 @@ export default function StudioClientShell({ id }: { id: string }) {
               <button
                 data-testid="device-768"
                 aria-label="Tablet 768px"
-                className={`p-1.5 rounded transition-colors ${deviceWidth === 768 ? 'bg-indigo-500/30 text-indigo-300' : 'hover:bg-[var(--g-surface-hover)] text-gray-400 hover:text-white'}`}
+                className={`p-1.5 rounded transition-colors ${deviceWidth === 768 ? 'bg-[var(--g-info)]/30 text-[var(--g-info)]' : 'hover:bg-[var(--g-surface-hover)] text-gray-400 hover:text-white'}`}
                 onClick={() => setDeviceWidth(768)}
               >
                 <Tablet size={16} />
@@ -690,7 +752,7 @@ export default function StudioClientShell({ id }: { id: string }) {
               <button
                 data-testid="device-1280"
                 aria-label="Desktop 1280px"
-                className={`p-1.5 rounded transition-colors ${deviceWidth === 1280 ? 'bg-indigo-500/30 text-indigo-300' : 'hover:bg-[var(--g-surface-hover)] text-gray-400 hover:text-white'}`}
+                className={`p-1.5 rounded transition-colors ${deviceWidth === 1280 ? 'bg-[var(--g-info)]/30 text-[var(--g-info)]' : 'hover:bg-[var(--g-surface-hover)] text-gray-400 hover:text-white'}`}
                 onClick={() => setDeviceWidth(1280)}
               >
                 <Monitor size={16} />
@@ -739,7 +801,7 @@ export default function StudioClientShell({ id }: { id: string }) {
                   data-testid="state-empty"
                   className="w-full h-full flex flex-col items-center justify-center bg-gray-50 gap-4 px-8"
                 >
-                  <MousePointer2 size={40} className="text-indigo-300" aria-hidden="true" />
+                  <MousePointer2 size={40} className="text-[var(--g-info)]" aria-hidden="true" />
                   <h2 className="text-lg font-semibold text-gray-700 text-center">
                     Ready to generate
                   </h2>
@@ -760,7 +822,11 @@ export default function StudioClientShell({ id }: { id: string }) {
                   aria-label="Generating design \u2014 please wait"
                   className="w-full h-full flex flex-col items-center justify-center bg-gray-50 gap-4"
                 >
-                  <Loader2 size={40} className="text-indigo-500 animate-spin" aria-hidden="true" />
+                  <Loader2
+                    size={40}
+                    className="text-[var(--g-info)] animate-spin"
+                    aria-hidden="true"
+                  />
                   <h2 className="text-lg font-semibold text-gray-700">Generating\u2026</h2>
                   <p className="text-sm text-gray-600">
                     Vertex AI Convergence Loop is running. This may take a moment.
@@ -860,8 +926,22 @@ export default function StudioClientShell({ id }: { id: string }) {
 
           {/* Right Vertex AI Config Panel */}
           <aside className="w-72 border-l border-[var(--g-outline)] bg-[var(--g-surface)]/50 backdrop-blur-md flex flex-col z-10">
+            {/* G3 a11y: persistent, single live region for A2UI state. Mounted
+                UNCONDITIONALLY and BEFORE the A2UI surface so per SC 4.1.3 the
+                region pre-exists the update (the renderer injects container +
+                content together and has no aria-live of its own). Tailwind's
+                built-in `sr-only` keeps it visually hidden but screen-reader
+                reachable. Do NOT mount a second live region — double-announce. */}
+            <div
+              data-testid="a2ui-live-region"
+              role="status"
+              aria-live="polite"
+              className="sr-only"
+            >
+              {a2uiAnnouncement}
+            </div>
             <div className="p-4 border-b border-[var(--g-outline)] flex items-center gap-2">
-              <SlidersHorizontal size={16} className="text-indigo-400" />
+              <SlidersHorizontal size={16} className="text-[var(--g-info)]" />
               <span className="text-sm font-semibold text-white">Vertex AI Settings</span>
             </div>
 
@@ -879,7 +959,7 @@ export default function StudioClientShell({ id }: { id: string }) {
                     step="0.05"
                     value={temperature}
                     onChange={(e) => setTemperature(parseFloat(e.target.value))}
-                    className="w-full accent-indigo-500"
+                    className="w-full accent-[var(--g-primary-blue)]"
                     aria-label="Temperature"
                   />
                 </div>
@@ -894,7 +974,7 @@ export default function StudioClientShell({ id }: { id: string }) {
                     max="40"
                     value={topK}
                     onChange={(e) => setTopK(parseInt(e.target.value))}
-                    className="w-full accent-indigo-500"
+                    className="w-full accent-[var(--g-primary-blue)]"
                     aria-label="Top-K"
                   />
                 </div>
@@ -910,7 +990,7 @@ export default function StudioClientShell({ id }: { id: string }) {
                     step="512"
                     value={maxTokens}
                     onChange={(e) => setMaxTokens(parseInt(e.target.value))}
-                    className="w-full accent-indigo-500"
+                    className="w-full accent-[var(--g-primary-blue)]"
                     aria-label="Max Tokens"
                   />
                 </div>
@@ -923,16 +1003,16 @@ export default function StudioClientShell({ id }: { id: string }) {
                 <h4 className="text-[11px] uppercase tracking-wider font-semibold text-gray-500 mb-3">
                   D-O-R-A-V Scorecard
                   {currentIteration != null && (
-                    <span className="ml-2 px-1.5 py-0.5 rounded text-[9px] bg-indigo-500/20 text-indigo-300 font-mono border border-indigo-500/30 align-middle">
+                    <span className="ml-2 px-1.5 py-0.5 rounded text-[9px] bg-[var(--g-info)]/20 text-[var(--g-info)] font-mono border border-[var(--g-info)]/30 align-middle">
                       iter {currentIteration + 1}
                     </span>
                   )}
                 </h4>
                 {/* Composite headline */}
-                <div className="bg-black/40 p-3 rounded border border-indigo-500/30 flex justify-between items-center mb-3">
+                <div className="bg-black/40 p-3 rounded border border-[var(--g-info)]/30 flex justify-between items-center mb-3">
                   <span className="text-xs text-gray-300 font-semibold">Composite</span>
                   <span
-                    className={`text-sm font-mono font-bold ${liveDorav?.composite != null ? 'text-indigo-300' : 'text-gray-600'}`}
+                    className={`text-sm font-mono font-bold ${liveDorav?.composite != null ? 'text-[var(--g-info)]' : 'text-gray-600'}`}
                   >
                     {liveDorav?.composite != null ? (
                       <AnimatedScoreValue value={liveDorav.composite} />
@@ -1110,15 +1190,48 @@ export default function StudioClientShell({ id }: { id: string }) {
                 </div>
               )}
 
-              {/* AT-044: Design-system panel + agent-generated controls */}
+              {/* AT-044 / ADR-0024: design-system panel. When the A2UI flag is ON
+                  and the agent emitted a surface, render it via @a2ui/react;
+                  otherwise (and on any A2UI render failure) the hand-built panel
+                  is the default + fail-soft fallback. */}
               {convergedHtml && effectiveDesignSystem && (
-                <DesignSystemPanel
-                  rows={designSystemRows}
-                  controls={generatedControls}
-                  scales={groupScales}
-                  onEditToken={handleEditToken}
-                  onScale={handleScaleGroup}
-                />
+                <>
+                  {useA2uiPanel && a2uiPayload ? (
+                    // G3 a11y: aria-busy reflects an in-flight generation so AT
+                    // knows the design-system region is updating.
+                    <div data-testid="studio-a2ui-section" aria-busy={status === 'generating'}>
+                      <div className="h-px bg-[var(--g-outline)] my-4" />
+                      {/* Provenance only — the A2UI surface is self-describing
+                          (it renders its own "Design System" title + token rows),
+                          so the chrome adds just the Governed-A2UI badge. Design-
+                          system colored (--g-info); indigo is off-system per
+                          DESIGN_SYSTEM.md and must not be (re)introduced here. */}
+                      <div className="mb-2 flex justify-end">
+                        <span
+                          className="rounded border border-[var(--g-info)]/30 bg-[var(--g-info)]/15 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-[var(--g-info)]"
+                          title="Rendered from the agent-emitted A2UI surface (Governed A2UI)"
+                        >
+                          A2UI
+                        </span>
+                      </div>
+                      <A2uiDesignSystemPanel
+                        ref={a2uiPanelRef}
+                        messages={a2uiPayload}
+                        onRenderError={handleA2uiRenderError}
+                        onSurfaceReady={handleA2uiSurfaceReady}
+                        isStreaming={status === 'generating'}
+                      />
+                    </div>
+                  ) : (
+                    <DesignSystemPanel
+                      rows={designSystemRows}
+                      controls={generatedControls}
+                      scales={groupScales}
+                      onEditToken={handleEditToken}
+                      onScale={handleScaleGroup}
+                    />
+                  )}
+                </>
               )}
 
               {/* AT-090: Competitor-contrast beat */}

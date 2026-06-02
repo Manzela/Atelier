@@ -381,6 +381,31 @@ async def generate(
     return response
 
 
+def _extract_design_tokens(payload: dict[str, Any]) -> dict[str, Any]:
+    """Pull the flat design-token map out of a runner ``complete`` payload.
+
+    The runner stores ``project_context`` as a Pydantic ``ProjectContext`` (with a
+    ``design_tokens`` attribute), but a re-serialized (``model_dump``) dict can
+    also reach here. Read either shape; on absence/wrong-type, return an empty
+    map so a valid (empty-row) A2UI surface is still emitted.
+
+    Args:
+        payload: The runner ``complete`` payload.
+
+    Returns:
+        ``{token_name: value}`` (possibly empty). Never raises — token absence is
+        a normal degraded case (no DESIGN.md), not an error.
+    """
+    project_context = payload.get("project_context")
+    tokens: Any = None
+    if project_context is not None:
+        if isinstance(project_context, dict):
+            tokens = project_context.get("design_tokens")
+        else:
+            tokens = getattr(project_context, "design_tokens", None)
+    return tokens if isinstance(tokens, dict) else {}
+
+
 def _enrich_complete_payload(payload: dict[str, Any]) -> dict[str, Any]:
     """Enrich the SSE ``complete`` event payload for Studio frontend consumption.
 
@@ -406,10 +431,56 @@ def _enrich_complete_payload(payload: dict[str, Any]) -> dict[str, Any]:
     """
     from uuid import uuid4 as _uuid4  # noqa: PLC0415
 
+    from atelier.a2ui.gate import gate_a2ui_surface  # noqa: PLC0415
+    from atelier.a2ui.surface import build_design_system_surface  # noqa: PLC0415
     from atelier.models.data_contracts import CandidateUI  # noqa: PLC0415
     from atelier.nodes.nielsen import evaluate_nielsen  # noqa: PLC0415
 
     enriched: dict[str, Any] = dict(payload)
+
+    # ------------------------------------------------------------------
+    # a2ui_payload: the Governed A2UI v0.10-SDK/v0.9-wire surface for the
+    # AT-044 design-system panel (ADR-0024). Threaded onto the complete event
+    # alongside best_html so the frontend can render the Studio CHROME via
+    # @a2ui/react behind a feature flag (the design deliverable stays the HTML
+    # in best_html — A2UI never touches it). The SSE field carries the raw
+    # ordered message LIST that the renderer consumes directly.
+    #
+    # CANONICAL GATE SITE (G2, ADR-0024 §2): this enrichment runs LAST in the
+    # SSE pipeline and OVERWRITES a2ui_payload, so it governs the surface that
+    # actually RENDERS. The fail-closed gate validates envelope/catalog/
+    # accessible-name/contrast; on PASS the surface ships unchanged (identity),
+    # on REJECT we blank a2ui_payload (frontend fail-soft) and carry the custom
+    # governance event on a2ui_governance + log fail-closed at WARNING.
+    # ------------------------------------------------------------------
+    _design_tokens = _extract_design_tokens(payload)
+    _a2ui_surface = build_design_system_surface(
+        _design_tokens,
+        surface_id="atelier-design-system",
+    )
+    _a2ui_gate = gate_a2ui_surface(
+        _a2ui_surface,
+        design_tokens=_design_tokens,
+        surface_id="atelier-design-system",
+    )
+    if _a2ui_gate.passed:
+        enriched["a2ui_payload"] = _a2ui_surface
+    else:
+        # Fail-closed (server): never emit the rejected surface. Empty payload
+        # drives the frontend's existing fail-soft fallback (hand-built panel).
+        enriched["a2ui_payload"] = []
+        enriched["a2ui_governance"] = _a2ui_gate.governance_messages
+        logger.warning(
+            "atelier.a2ui.gate.rejected",
+            extra={
+                "surface_id": "atelier-design-system",
+                "reason_count": len(_a2ui_gate.reasons),
+                "validators": sorted({r.validator for r in _a2ui_gate.reasons}),
+                "first_json_pointer": (
+                    _a2ui_gate.reasons[0].json_pointer if _a2ui_gate.reasons else ""
+                ),
+            },
+        )
 
     # ------------------------------------------------------------------
     # best_html: the converged candidate HTML (runner stores it as a

@@ -266,6 +266,16 @@ def generate_candidate(
     """
     html = _render_html(brief, surface)
     css = _render_css(brief.visual_register)
+    # Governed A2UI (ADR-0024) — G6 single-source convergence: the AT-044
+    # design-system panel surface is built + gated EXACTLY ONCE per run, at the
+    # canonical emit boundary (``api/generate.py:_enrich_complete_payload``), from
+    # the run's resolved ``project_context.design_tokens``. The per-candidate
+    # build that previously lived here derived a SEPARATE surface from
+    # register-token defaults that the frontend never rendered (it renders only
+    # the ``complete`` event's enriched ``a2ui_payload``) — a dead write and an
+    # inconsistent second token source. It is intentionally NOT rebuilt here.
+    # ``CandidateUI.a2ui_payload`` is retained as a forward-compat carrier slot
+    # but stays ``None``: candidates carry no ungoverned A2UI surface.
     return CandidateUI(
         candidate_id=uuid4(),
         surface_id=surface.surface_id,

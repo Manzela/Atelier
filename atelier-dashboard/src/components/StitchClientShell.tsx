@@ -261,7 +261,7 @@ export default function StitchClientShell() {
 
                 <div className="flex items-center gap-2">
                   <button className="h-8 px-3 rounded-full border border-[var(--g-outline)] flex items-center gap-1.5 text-sm text-gray-300 hover:bg-[var(--g-surface-hover)] transition-colors">
-                    Gemini 1.5 Flash <ChevronDown size={14} className="text-gray-500" />
+                    Gemini 2.5 Pro <ChevronDown size={14} className="text-gray-500" />
                   </button>
                   <button
                     className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-[var(--g-surface-hover)] transition-colors"

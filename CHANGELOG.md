@@ -108,7 +108,7 @@ Phase 2: consensus pipeline, trajectory recording, DPO flywheel, production infr
 ### Documentation
 
 - **adr:** Absorb audit approvals — ADRs 0011-0013 ratified, +22 features queued ([c909dbf](https://github.com/Manzela/atelier/commit/c909dbf9a4541bc136b9f22de87aa41df94ac491))
-- **adr:** Add ADR 0011 Web-Research-Augmented Intake (N14) + N15 MJG ([8022ec2](https://github.com/Manzela/atelier/commit/8022ec281daedf65e206534b714bd598bd06fbaf))
+- **adr:** Add ADR 0024 Web-Research-Augmented Intake (N14) + N15 MJG ([8022ec2](https://github.com/Manzela/atelier/commit/8022ec281daedf65e206534b714bd598bd06fbaf))
 - Correct feature count from 198/~194 to verified 183 across all docs ([cb8425a](https://github.com/Manzela/atelier/commit/cb8425a57183d5ee6c180760e28cf51608ef39a2))
 - **plan:** Add 21-day sprint implementation plan + populate features.json ([861d592](https://github.com/Manzela/atelier/commit/861d59242bf5ecba282160b931fd6699004a87d3))
 - **secrets:** Document GCP Secret Manager pattern + add deny-by-default gitignore ([f85c68a](https://github.com/Manzela/atelier/commit/f85c68aff37fee21f6ad0add550fa7f05e88920c))
@@ -129,7 +129,7 @@ Phase 2: consensus pipeline, trajectory recording, DPO flywheel, production infr
 
 - Initial repository scaffold with full SDLC + CI/CD infrastructure
 - PRD: Atelier autonomous design agent (831 lines, 13 novel contributions, 5 quantified 10× axes, full Google-native production stack)
-- 10 Architecture Decision Records (MADR format) covering wrap-don't-fork inheritance, Cloud Run not Agent Engine for runtime, tiered sandboxing, PIP layer, RLRD, Google-native stack, EvoDesign K-candidate search, multi-judge Bayesian consensus, public calibration dashboard, A2UI-native output
+- 10 Architecture Decision Records (MADR format) covering wrap-don't-fork inheritance, Cloud Run not Agent Engine for runtime, tiered sandboxing, PIP layer, RLRD, Google-native stack, EvoDesign K-candidate search, multi-judge Bayesian consensus, public calibration dashboard, A2UI-native output (ADR-0010, since superseded by PRD v2.2 — A2UI is now the Studio chrome layer, ADR-0024)
 - Full SDLC documentation: README, CHANGELOG, ROADMAP, SECURITY, CONTRIBUTING, CODE_OF_CONDUCT, GOVERNANCE, NOTICE
 - Repo discipline: locked-decisions index (`DECISIONS.md`), rejected-approaches log (`REJECTED.md`), one-time bootstrap (`init.sh`)
 - GitHub Actions workflows: CI (lint + typecheck + unit + integration + security + build), eval (nightly WebGen-Bench + Design2Code), CodeQL security scanning, release (release-please), docs (mkdocs to Firebase Hosting), stale issue management
@@ -149,12 +149,12 @@ Phase 2: consensus pipeline, trajectory recording, DPO flywheel, production infr
 
 ## Release tagging plan
 
-| Tag            | Date       | What it represents                                                                                                              |
-| -------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `v0.1.0-alpha` | 2026-05-21 | Phase 1 Foundation gate passed — single-surface end-to-end working on Cloud Run staging                                         |
+| Tag            | Date       | What it represents                                                                                                               |
+| -------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `v0.1.0-alpha` | 2026-05-21 | Phase 1 Foundation gate passed — single-surface end-to-end working on Cloud Run staging                                          |
 | `v0.2.0-beta`  | 2026-05-28 | Phase 2 10× Mechanisms gate passed — 12-surface autonomous campaign converges + WebGen-Bench ≥ 51 + beta tenant cohort onboarded |
-| `v1.0.0`       | 2026-06-03 | Public launch + Google for Startups AI Agents Challenge submission filed                                                        |
-| `v1.1.0`       | TBD        | Post-launch features (multiplayer dashboard, voice input, Discord community)                                                    |
-| `v2.0.0`       | TBD        | SOC 2 Type 2 + per-tenant CMEK + HIPAA tier                                                                                     |
+| `v1.0.0`       | 2026-06-03 | Public launch + Google for Startups AI Agents Challenge submission filed                                                         |
+| `v1.1.0`       | TBD        | Post-launch features (multiplayer dashboard, voice input, Discord community)                                                     |
+| `v2.0.0`       | TBD        | SOC 2 Type 2 + per-tenant CMEK + HIPAA tier                                                                                      |
 
 [Unreleased]: https://github.com/Manzela/atelier/compare/v0.0.0...HEAD
