@@ -1,16 +1,24 @@
-# Identity-Aware Proxy (IAP) configuration for Atelier API
+# Identity-Aware Proxy (IAP) — OPT-IN alternative ingress (disabled by default).
 #
-# Replaces the previous allUsers Cloud Run IAM binding (AG-03 / B3).
-# All API access now flows through IAP for:
-#   - Google Identity authentication
-#   - Context-aware access policies
-#   - Audit logging of all API calls
+# The default public ingress model for Atelier (PRD section 13.1) is the
+# external Application Load Balancer (alb.tf) with Firebase Google SSO enforced
+# at the application layer and Cloud Armor at the edge. Under that model the
+# Cloud Run service grants `roles/run.invoker` to allUsers (alb.tf) so the load
+# balancer can reach it, and the FastAPI Firebase middleware gates the /v1/*
+# routes.
+#
+# IAP is retained as an alternative ingress for an internal/staff-only
+# deployment. It is gated behind `var.enable_iap` (default false) because (a) it
+# conflicts with the allUsers binding the ALB path requires, and (b)
+# `google_iap_brand` relies on the deprecated IAP OAuth Admin API. Enable it
+# only for an IAP-fronted, non-public deployment.
 
 # ---------------------------------------------------------------------------
 # Enable IAP API
 # ---------------------------------------------------------------------------
 
 resource "google_project_service" "iap" {
+  count   = var.enable_iap ? 1 : 0
   project = var.project_id
   service = "iap.googleapis.com"
 
@@ -23,6 +31,7 @@ resource "google_project_service" "iap" {
 # ---------------------------------------------------------------------------
 
 resource "google_iap_brand" "atelier" {
+  count             = var.enable_iap ? 1 : 0
   support_email     = var.iap_support_email
   application_title = "Atelier Autonomous Design Agent"
   project           = var.project_id
@@ -35,8 +44,9 @@ resource "google_iap_brand" "atelier" {
 # ---------------------------------------------------------------------------
 
 resource "google_iap_client" "atelier_api" {
+  count        = var.enable_iap ? 1 : 0
   display_name = "Atelier API IAP Client"
-  brand        = google_iap_brand.atelier.name
+  brand        = google_iap_brand.atelier[0].name
 }
 
 # ---------------------------------------------------------------------------
@@ -44,6 +54,7 @@ resource "google_iap_client" "atelier_api" {
 # ---------------------------------------------------------------------------
 
 resource "google_cloud_run_v2_service_iam_member" "api_iap" {
+  count    = var.enable_iap ? 1 : 0
   name     = google_cloud_run_v2_service.api.name
   location = var.region
   role     = "roles/run.invoker"
@@ -54,7 +65,7 @@ resource "google_cloud_run_v2_service_iam_member" "api_iap" {
 
 # Allow specific users/groups via IAP
 resource "google_iap_web_iam_member" "api_users" {
-  for_each = toset(var.iap_allowed_members)
+  for_each = var.enable_iap ? toset(var.iap_allowed_members) : toset([])
 
   project = var.project_id
   role    = "roles/iap.httpsResourceAccessor"

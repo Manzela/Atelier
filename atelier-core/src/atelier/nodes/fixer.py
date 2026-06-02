@@ -16,6 +16,10 @@ from pydantic import BaseModel, ConfigDict, Field
 # at runtime even under `from __future__ import annotations`, so it must stay a
 # runtime import (TC001 is a false positive here).
 from atelier.models.enums import MutationOp  # noqa: TC001
+from atelier.models.model_armor_callbacks import (
+    model_armor_after_callback,
+    model_armor_before_callback,
+)
 from atelier.models.model_registry import FIXER_MODEL
 from atelier.models.safety import default_model_armor_config
 
@@ -60,6 +64,8 @@ class FixerAgent:
         self._governor = governor
         self._llm = LlmAgent(
             name="atelier_fixer",
+            before_model_callback=model_armor_before_callback,
+            after_model_callback=model_armor_after_callback,
             model=FIXER_MODEL.model_id,
             output_schema=FixerDirective,
             instruction=_FIXER_SYSTEM_PROMPT,

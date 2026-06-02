@@ -26,6 +26,10 @@ from google.adk.agents import LlmAgent
 from google.genai import types as genai_types
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from atelier.models.model_armor_callbacks import (
+    model_armor_after_callback,
+    model_armor_before_callback,
+)
 from atelier.models.model_registry import resolve_model_id
 from atelier.models.safety import default_model_armor_config
 
@@ -121,6 +125,8 @@ class PlannerAgent:
         self.model = model or resolve_model_id()
         self._llm = LlmAgent(
             name="atelier_planner",
+            before_model_callback=model_armor_before_callback,
+            after_model_callback=model_armor_after_callback,
             model=self.model,
             output_schema=PlanStep,
             instruction=_PLANNER_SYSTEM_PROMPT,
@@ -128,6 +134,11 @@ class PlannerAgent:
                 model_armor_config=default_model_armor_config(),
             ),
         )
+
+    @property
+    def llm(self) -> LlmAgent:
+        """The underlying ADK ``LlmAgent`` (consumed by the Agent Engine deploy, AT-082)."""
+        return self._llm
 
     async def plan(self, brief_text: str) -> PlanStep:
         """Parse brief → PlanStep. Falls back to default plan on failure.

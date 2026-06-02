@@ -31,6 +31,12 @@ def default_model_armor_config() -> types.ModelArmorConfig:
 
     Uses centralized Model Armor templates instead of static thresholds.
     Template names can be overridden via ATELIER_MODEL_ARMOR_TEMPLATE env var.
+
+    Operator step (AT-081): the referenced template must be provisioned once per
+    project in the configured location via the Model Armor API / gcloud. Until it
+    exists, Vertex applies no server-side Model Armor filtering, and the
+    before_model_callback in ``atelier.models.model_armor_callbacks`` is the
+    deterministic first-line injection guard (defense in depth).
     """
     project = os.getenv("GOOGLE_CLOUD_PROJECT", "atelier-build-2026")
     location = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")

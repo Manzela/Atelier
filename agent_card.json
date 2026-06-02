@@ -3,7 +3,7 @@
   "name": "Atelier",
   "description": "Autonomous UI/UX design agent — generates, judges, and iterates production-grade web interfaces through an 8-node DAG with deterministic gates and D-O-R-A-V consensus judges.",
   "version": "0.1.1-alpha",
-  "url": "https://atelier.dev",
+  "url": "https://atelier.autonomous-agent.dev",
   "provider": {
     "organization": "Manzela",
     "url": "https://manzela.com"

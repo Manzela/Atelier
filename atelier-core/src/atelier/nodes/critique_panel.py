@@ -46,6 +46,10 @@ from google.genai import types as genai_types
 from atelier.gates.contrast import check_wcag_contrast
 from atelier.gates.runner import run_gates
 from atelier.models.enums import GateAxis, GateDecision
+from atelier.models.model_armor_callbacks import (
+    model_armor_after_callback,
+    model_armor_before_callback,
+)
 from atelier.models.model_registry import resolve_model_id
 from atelier.models.safety import default_model_armor_config
 from atelier.nodes.consensus import CONVERGENCE_DEFAULT, ConsensusEvaluation, evaluate_candidate
@@ -333,6 +337,8 @@ def create_critique_panel(*, model: str | BaseLlm | None = None) -> ParallelAgen
                 description=spec.description,
                 output_key=spec.output_key,
                 instruction=_build_critic_instruction(spec),
+                before_model_callback=model_armor_before_callback,
+                after_model_callback=model_armor_after_callback,
                 generate_content_config=genai_types.GenerateContentConfig(
                     model_armor_config=default_model_armor_config(),
                 ),
