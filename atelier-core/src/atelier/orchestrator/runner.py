@@ -42,6 +42,7 @@ if TYPE_CHECKING:
 
     from atelier.nodes.llm_judge import JudgeClient
 
+from atelier.a2ui.surface import build_design_system_surface
 from atelier.durability.usage_counter import UsageCounterStore, get_usage_store
 from atelier.gates.runner import run_gates
 from atelier.gates.signoff import (
@@ -1024,6 +1025,20 @@ class AtelierRunner:
         self._usage_store.check_circuit_breaker()
         self._governor._check_token_budget()
 
+        # Governed A2UI (ADR-0011): build the AT-044 design-system panel surface
+        # ONCE from the resolved design tokens, then thread it onto the
+        # screen_converged + complete events alongside best_candidate. This is the
+        # Studio CHROME only — the design deliverable stays the HTML in
+        # best_candidate (A2UI never touches it). Built here (not per-iteration)
+        # because the token map is iteration-invariant (R4 anchor).
+        # NOTE(P0.5 gate-before-emit): the fail-closed governance gate on the
+        # surface (axe/contrast + D-O-R-A-V + token enforcement, REJECT → CUSTOM
+        # event per ADR-0011 §2) hooks in HERE before the surface is emitted.
+        a2ui_design_system = build_design_system_surface(
+            getattr(project_ctx, "design_tokens", None) or {},
+            surface_id="atelier-design-system",
+        )
+
         for idx, screen in enumerate(surfaces):
             if progress_callback:
                 await progress_callback("screen_start", {"screen": screen, "index": idx})
@@ -1362,6 +1377,9 @@ class AtelierRunner:
                         "screen": screen,
                         "best_candidate": best_candidate,
                         "converged": convergence_result.get("converged", False),
+                        # Governed A2UI chrome (ADR-0011) — additive; the
+                        # deliverable stays best_candidate (HTML).
+                        "a2ui_payload": a2ui_design_system,
                     },
                 )
 
@@ -1429,6 +1447,13 @@ class AtelierRunner:
             "session_id": session_id,
             "plan": plan.model_dump() if hasattr(plan, "model_dump") else {},
             "screens": screens_results,
+            # Governed A2UI chrome (ADR-0011): the design-system panel surface,
+            # carried on the complete event alongside best_candidate. Additive —
+            # the design deliverable is unchanged. _enrich_complete_payload also
+            # (re)derives this at the API boundary from project_context, so the
+            # SSE field is present even on the degraded/early-return paths that
+            # bypass this assembler.
+            "a2ui_payload": a2ui_design_system,
         }
 
         # Mid-flight DPO pair extraction — Dreaming Module (fail-soft).

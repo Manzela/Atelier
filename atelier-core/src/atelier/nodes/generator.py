@@ -17,6 +17,7 @@ ADR Reference: 0007 (worktree discipline) — v1.0 implementation scope only
 
 from uuid import UUID, uuid4
 
+from atelier.a2ui.surface import build_design_system_surface
 from atelier.intake.brief_spec import BriefSpec, VisualRegister
 from atelier.models.data_contracts import CandidateUI, SurfaceState
 
@@ -66,6 +67,31 @@ _REGISTER_TOKENS: dict[VisualRegister, tuple[str, str, str, str]] = {
         '"Inter", "Helvetica Neue", sans-serif',
     ),
 }
+
+
+def _register_token_map(register: VisualRegister) -> dict[str, str]:
+    """Flatten a register's token tuple to the ``{name: value}`` shape A2UI needs.
+
+    Mirrors the CSS custom properties emitted by :func:`_render_css` (so the
+    governed A2UI design-system panel shows exactly the tokens the generated HTML
+    actually consumes via ``var()``). The names use the Style-Dictionary kebab
+    naming the frontend AT-044 panel expects (``color-primary`` etc.).
+
+    Args:
+        register: The :class:`VisualRegister` whose token tuple drives the map.
+
+    Returns:
+        Ordered ``{token_name: value}`` mapping for the four register tokens plus
+        the shared spacing base.
+    """
+    primary, surface, ink, font_stack = _REGISTER_TOKENS[register]
+    return {
+        "color-primary": primary,
+        "color-surface": surface,
+        "color-ink": ink,
+        "font-body": font_stack,
+        "space-base": "1rem",
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -266,6 +292,17 @@ def generate_candidate(
     """
     html = _render_html(brief, surface)
     css = _render_css(brief.visual_register)
+    # Governed A2UI (ADR-0011): emit the AT-044 design-system panel as an A2UI
+    # v0.10-SDK/v0.9-wire surface into the carrier slot. This is the Studio CHROME
+    # only — the design deliverable stays portable HTML in ``artifacts`` (untouched).
+    # NOTE(P0.5 gate-before-emit): the fail-closed governance gate (axe/contrast +
+    # D-O-R-A-V + token enforcement on the surface, REJECT → CUSTOM event per
+    # ADR-0011 §2) hooks in HERE — validate ``a2ui_surface`` before it is carried
+    # forward, in a later slice. P0.4 emits the additive payload only.
+    a2ui_surface = build_design_system_surface(
+        _register_token_map(brief.visual_register),
+        surface_id=f"design-system-{surface.surface_id}",
+    )
     return CandidateUI(
         candidate_id=uuid4(),
         surface_id=surface.surface_id,
@@ -276,5 +313,5 @@ def generate_candidate(
             "index.html": html,
             "main.css": css,
         },
-        a2ui_payload=None,
+        a2ui_payload={"messages": a2ui_surface},
     )
