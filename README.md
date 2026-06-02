@@ -152,23 +152,23 @@ Atelier is built on Google ADK 2.0 across five integration surfaces:
 
 ## 15 Novel Contributions
 
-| #   | Contribution                                             | Status      |
-| --- | -------------------------------------------------------- | ----------- |
-| N1  | DGF-D2C — Deterministic-Gate-First Design-to-Convergence | Shipped     |
-| N2  | DEMAS-D — Per-axis Provenance Matrix Design Judge        | Shipped     |
-| N3  | PerJudge — Per-Project DPO Judge with Hebbian Mutator    | Shipped     |
-| N4  | PADI — Project-Agnostic Descriptor Inference             | Shipped     |
-| N5  | EvoDesign — AlphaEvolve-Inspired K-Candidate Search      | Shipped     |
-| N6  | CSC-D — Constitutional Self-Critique for Design          | Shipped     |
-| N7  | A2UI-Native Output                                       | Shipped     |
-| N8  | Public Judge Calibration Dashboard                       | Shipped     |
-| N9  | Open Eval Adapters Library                               | In progress |
-| N10 | Convergence Spec RFC                                     | In progress |
-| N11 | Public Eval Harness                                      | Shipped     |
-| N12 | RLRD — Recursive Long-Running Discipline                 | Shipped     |
-| N13 | PIP — Pre-Generation Intake Protocol                     | Shipped     |
-| N14 | WRAI — Web-Research-Augmented Intake                     | Shipped     |
-| N15 | MJG — Multi-Judge Governance                             | Shipped     |
+| #   | Contribution                                                          | Status      |
+| --- | --------------------------------------------------------------------- | ----------- |
+| N1  | DGF-D2C — Deterministic-Gate-First Design-to-Convergence              | Shipped     |
+| N2  | DEMAS-D — Per-axis Provenance Matrix Design Judge                     | Shipped     |
+| N3  | PerJudge — Per-Project DPO Judge with Hebbian Mutator                 | Shipped     |
+| N4  | PADI — Project-Agnostic Descriptor Inference                          | Shipped     |
+| N5  | EvoDesign — AlphaEvolve-Inspired K-Candidate Search                   | Shipped     |
+| N6  | CSC-D — Constitutional Self-Critique for Design                       | Shipped     |
+| N7  | Governed A2UI — aligned output (Google A2UI v0.9 pattern, flag-gated) | In progress |
+| N8  | Public Judge Calibration Dashboard                                    | Shipped     |
+| N9  | Open Eval Adapters Library                                            | In progress |
+| N10 | Convergence Spec RFC                                                  | In progress |
+| N11 | Public Eval Harness                                                   | Shipped     |
+| N12 | RLRD — Recursive Long-Running Discipline                              | Shipped     |
+| N13 | PIP — Pre-Generation Intake Protocol                                  | Shipped     |
+| N14 | WRAI — Web-Research-Augmented Intake                                  | Shipped     |
+| N15 | MJG — Multi-Judge Governance                                          | Shipped     |
 
 ---
 
