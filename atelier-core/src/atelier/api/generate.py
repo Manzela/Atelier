@@ -513,8 +513,10 @@ async def generate_stream(  # noqa: C901, PLR0915 — SSE orchestrator: nested p
     async def _run_pipeline_task() -> None:
         from atelier.models.data_contracts import TenantContext  # noqa: PLC0415
         from atelier.orchestrator.governor import (  # noqa: PLC0415
+            CIRCUIT_BREAKER_MESSAGE,
             TOKEN_CAP_MESSAGE,
             USAGE_UNAVAILABLE_MESSAGE,
+            GovernorCircuitBreakerOpen,
             GovernorRateLimitExceeded,
             GovernorTokenCapExceeded,
             GovernorUsageUnavailable,
@@ -547,6 +549,23 @@ async def generate_stream(  # noqa: C901, PLR0915 — SSE orchestrator: nested p
                 ("degraded", {"mode": "unavailable", "message": USAGE_UNAVAILABLE_MESSAGE})
             )
             await queue.put(("complete", {"user_message": USAGE_UNAVAILABLE_MESSAGE}))
+        except GovernorCircuitBreakerOpen as exc:
+            # AT-097: the fleet-wide token breaker is open — a SYSTEM protection,
+            # not this user's fault. Acknowledge honestly with a retryable degraded
+            # event (reuses the "unavailable" retryable bucket) + its own message;
+            # never the per-user cap message. Logged for fleet-protection alerting.
+            logger.error(  # noqa: TRY400
+                "atelier.generate.stream.circuit_breaker_open",
+                extra={
+                    "uid": sanitize(user.uid),
+                    "reason": exc.reason,
+                    "retry_after_seconds": exc.retry_after_seconds,
+                },
+            )
+            await queue.put(
+                ("degraded", {"mode": "unavailable", "message": CIRCUIT_BREAKER_MESSAGE})
+            )
+            await queue.put(("complete", {"user_message": CIRCUIT_BREAKER_MESSAGE}))
         except GovernorTokenCapExceeded as exc:
             # AT-095: an already-at-cap user hits the run-start pre-flight. Surface
             # the branded message as a clean `degraded` cap event (PRD §7A.6) — never

@@ -19,24 +19,39 @@ once), never specific generated output — no test-driven slop.
 
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Iterator
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from atelier.durability.usage_counter import TOKEN_CAP_DEFAULT, UsageCounterStore
+from atelier.durability.usage_counter import (
+    TOKEN_CAP_DEFAULT,
+    UsageCounterStore,
+    reset_global_breaker,
+)
 from atelier.intake.brief_spec import BriefSpec
 from atelier.intake.source_resolver import ProjectContext
 from atelier.models.data_contracts import TenantContext
 from atelier.nodes.llm_judge import LLMJudgeResponse
 from atelier.orchestrator.governor import (
     TOKEN_CAP_MESSAGE,
+    GovernorCircuitBreakerOpen,
     GovernorRateLimitExceeded,
     GovernorTokenCapExceeded,
 )
 from atelier.orchestrator.planner import PlanStep
 from atelier.orchestrator.runner import AtelierRunner
 from google.adk.sessions.in_memory_session_service import InMemorySessionService
+
+
+@pytest.fixture(autouse=True)
+def _reset_global_breaker_after() -> Iterator[None]:
+    # The fleet circuit-breaker is process-wide module state; the breaker
+    # integration test trips it with a long cooldown. Reset after every test so a
+    # tripped state never leaks into another test (spurious 503s).
+    yield
+    reset_global_breaker()
+
 
 _BRIEF = "Build a calm editorial landing page for a co-working studio with pricing."
 _UID = "cap-test-user"
@@ -379,6 +394,34 @@ async def test_rate_limit_blocks_rapid_runs() -> None:
     await _run()  # 1st request — within the limit
     with pytest.raises(GovernorRateLimitExceeded):
         await _run()  # 2nd rapid request — blocked before any generation
+
+
+# --------------------------------------------------------------------------- #
+# AT-097: the fleet-wide (global) circuit-breaker is enforced at run pre-flight
+# --------------------------------------------------------------------------- #
+
+
+@pytest.mark.anyio
+async def test_circuit_breaker_blocks_run_after_global_budget_tripped() -> None:
+    # AT-097 acceptance: "global circuit-breaker threshold enforced." With a tiny
+    # fleet budget, the first run's token spend trips the breaker, and the NEXT
+    # run is rejected at the pre-flight — before any Vertex call — the global
+    # analogue of the per-user rate limit. Large window/cooldown so the trip
+    # persists across the two back-to-back runs (no clock injection needed).
+    store = _fresh_store(
+        global_token_budget_per_window=1,
+        global_window_seconds=3600.0,
+        circuit_breaker_cooldown_seconds=3600.0,
+    )
+
+    async def _run() -> None:
+        runner = AtelierRunner(session_service=InMemorySessionService(), usage_store=store)
+        with _offline():
+            await runner.run(_BRIEF, _tenant_ctx())
+
+    await _run()  # 1st run consumes > 1 token → fleet window now over budget
+    with pytest.raises(GovernorCircuitBreakerOpen):
+        await _run()  # 2nd run rejected at pre-flight (fleet breaker open)
 
 
 # --------------------------------------------------------------------------- #

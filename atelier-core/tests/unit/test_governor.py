@@ -6,6 +6,7 @@ from atelier.orchestrator.governor import (
     STALL_TIMEOUT_SECONDS,
     TOKEN_CAP_DEFAULT,
     FailureMode,
+    GovernorCircuitBreakerOpen,
     GovernorRateLimitExceeded,
     GovernorState,
     GovernorTokenCapExceeded,
@@ -23,11 +24,14 @@ class TestGovernorClassification:
     @pytest.mark.parametrize(
         ("exc", "expected"),
         [
-            # AT-095: the token cap, rate limit, and fail-closed usage-unavailable
-            # are all fail-loud security/integrity controls.
+            # AT-095/097: the token cap, rate limit, fail-closed usage-unavailable,
+            # and the fleet circuit-breaker are all fail-loud security/integrity
+            # controls — never self-healed (R5). This table guards against a future
+            # edit silently dropping one into the string-matched SELF_HEAL bucket.
             (GovernorTokenCapExceeded(uid="u1"), FailureMode.FAIL_LOUD),
             (GovernorRateLimitExceeded(uid="u1"), FailureMode.FAIL_LOUD),
             (GovernorUsageUnavailable(uid="u1"), FailureMode.FAIL_LOUD),
+            (GovernorCircuitBreakerOpen(), FailureMode.FAIL_LOUD),
             (ValueError("invalid"), FailureMode.FAIL_SOFT),
             (RuntimeError("context length exceeded"), FailureMode.FAIL_SOFT),
             (TimeoutError("timeout"), FailureMode.SELF_HEAL),

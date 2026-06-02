@@ -515,6 +515,7 @@ class LLMJudge:
             Both code paths return a valid score in ``[0.0, 1.0]``.
         """
         spec = self.model_spec
+        response: LLMJudgeResponse | None = None
         try:
             user_prompt = self.user_template.format(
                 artifacts=_format_artifacts(candidate.artifacts),
@@ -538,6 +539,11 @@ class LLMJudge:
             # ("agent always acknowledges degradation" per architectural invariants §
             # failure trichotomy).
             fallback_score = self._fallback(candidate)
+            # AT-097: if generate() SUCCEEDED and the error was raised by the
+            # downstream parse / CI step, the Vertex tokens were ALREADY spent —
+            # count them even though we fall back to the heuristic score (no silent
+            # under-count of real spend). If generate() itself failed, response is
+            # None and there is genuinely nothing to count.
             return _JudgeScore(
                 score=fallback_score.score,
                 diagnostic=(
@@ -546,6 +552,9 @@ class LLMJudge:
                 provenance_vars=fallback_score.provenance_vars,
                 judge_model=fallback_score.judge_model,
                 confidence_interval=fallback_score.confidence_interval,
+                input_tokens=response.input_tokens if response is not None else 0,
+                output_tokens=response.output_tokens if response is not None else 0,
+                thinking_tokens=response.thinking_tokens if response is not None else 0,
             )
 
         diagnostic = (
@@ -559,6 +568,9 @@ class LLMJudge:
             provenance_vars=list(evidence),
             judge_model=f"{spec.display_name} ({spec.model_id})",
             confidence_interval=ci,
+            input_tokens=response.input_tokens,
+            output_tokens=response.output_tokens,
+            thinking_tokens=response.thinking_tokens,
         )
 
 
@@ -685,6 +697,12 @@ def _make_hybrid_scorer(
             provenance_vars=llm_result.provenance_vars,
             judge_model=llm_result.judge_model,
             confidence_interval=llm_result.confidence_interval,
+            # AT-097: hybrid mode DOES call the LLM judge (real Vertex spend), so
+            # carry the LLM result's tokens through — otherwise hybrid silently
+            # re-opens the N3a-only under-count the llm path already closed.
+            input_tokens=llm_result.input_tokens,
+            output_tokens=llm_result.output_tokens,
+            thinking_tokens=llm_result.thinking_tokens,
         )
 
     return hybrid_scorer
