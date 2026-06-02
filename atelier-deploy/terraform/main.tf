@@ -210,6 +210,14 @@ resource "google_cloud_run_v2_service" "api" {
         value = var.region
       }
 
+      # Route google-genai / ADK through Vertex AI (ADC / Workload Identity)
+      # rather than Google AI Studio. Without this the client defaults to AI
+      # Studio and every model call fails with "No API key was provided".
+      env {
+        name  = "GOOGLE_GENAI_USE_VERTEXAI"
+        value = "true"
+      }
+
       # The Vertex session/memory services bind to the Agent Engine deployed by
       # AT-082; the operator sets this after `make deploy-agent-engine`.
       env {
