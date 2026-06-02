@@ -4,6 +4,6 @@
 # _DEPLOY_REQUIREMENTS in atelier/agent_engine_deploy.py: the deployed runtime
 # must resolve the same major versions as the verified build.
 google-adk>=2.1.0,<3
-google-genai>=1.0,<2
+google-genai>=1.0,<3
 google-cloud-aiplatform>=1.71,<2
 pydantic>=2.6,<3

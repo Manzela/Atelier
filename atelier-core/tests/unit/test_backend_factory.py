@@ -77,3 +77,13 @@ def test_vertex_backend_selects_vertex_memory_bank_service() -> None:
 def test_unknown_memory_backend_raises_value_error() -> None:
     with pytest.raises(ValueError, match="Unknown SESSION_BACKEND"):
         create_memory_service("redis")
+
+
+def test_runner_wires_a_memory_service(monkeypatch: pytest.MonkeyPatch) -> None:
+    # AT-080: the memory backend is consumed by the runner (not dead code).
+    from atelier.orchestrator.runner import AtelierRunner
+    from google.adk.memory import BaseMemoryService
+
+    monkeypatch.delenv("SESSION_BACKEND", raising=False)
+    runner = AtelierRunner()
+    assert isinstance(runner._memory_service, BaseMemoryService)

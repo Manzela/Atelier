@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 # the verified build so the served agent matches what was tested.
 _DEPLOY_REQUIREMENTS: tuple[str, ...] = (
     "google-adk>=2.1.0,<3",
-    "google-genai>=1.0,<2",
+    "google-genai>=1.0,<3",
     "google-cloud-aiplatform>=1.71,<2",
     "pydantic>=2.6,<3",
 )

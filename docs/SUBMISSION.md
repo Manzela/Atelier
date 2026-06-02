@@ -36,9 +36,11 @@ larger prompt.
   only on approval; a non-destructive stop preserves a checkpoint.
 
 Atelier runs end-to-end on Google's managed stack: Google ADK orchestrates the
-agents, Gemini on Vertex AI serves them, Agent Engine hosts the runtime, Vertex
-Sessions and Memory Bank persist state, Model Armor enforces safety, and
-Firestore, Cloud Run, Cloud Armor, and Certificate Manager carry the product.
+agents, Gemini on Vertex AI serves them, Cloud Run hosts the API and dashboard,
+Vertex Agent Engine is the managed deploy target for the agent runtime, Vertex
+Sessions and Memory Bank back session and long-term state in production, Model
+Armor guards every model call, and Firestore, Cloud Armor, and Certificate
+Manager carry the product.
 
 Every claim is reproducible. `make verify` runs the hermetic offline suite,
 including a byte-identical golden trajectory across repeated runs; `make replay`
@@ -62,7 +64,7 @@ Atelier is built end-to-end on Google Cloud (region `us-central1`):
 
 - Google Agent Development Kit (ADK) — agent orchestration
 - Gemini on Vertex AI — model serving
-- Vertex AI Agent Engine — managed agent runtime
+- Vertex AI Agent Engine — managed agent deploy target (the agent runtime)
 - Vertex AI Sessions + Memory Bank — session and long-term memory persistence
 - Model Armor — prompt-injection and output safety
 - Cloud Run — API and dashboard hosting

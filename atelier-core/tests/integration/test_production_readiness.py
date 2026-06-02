@@ -36,24 +36,32 @@ _POLL_TIMEOUT_SEC = 180
 _POLL_INTERVAL_SEC = 5
 _FIXED_BRIEF = "Design a calm onboarding flow for a fintech mobile app."
 
+# Convergence maps to composite_score >= the is_converged threshold (stop_reason.py).
+# The /v1/replay payload (SessionReplayPayload) exposes `outcome`, `composite_score`,
+# and total_input_tokens / total_output_tokens — there is no `converged`/`tokens` field.
+_CONVERGENCE_THRESHOLD = 0.70
+_SUCCESS_OUTCOMES = frozenset({"accepted", "pass"})
+_TERMINAL_OUTCOMES = _SUCCESS_OUTCOMES | frozenset({"reject", "timeout", "error"})
 
-def _poll_until_converged(
+
+def _poll_until_terminal(
     client: httpx.Client,
     base: str,
     session_id: str,
 ) -> dict[str, object]:
-    """Poll the replay endpoint until the run converges or the deadline passes."""
+    """Poll /v1/replay until the run reaches a terminal outcome or the deadline passes."""
     elapsed = 0
     while elapsed < _POLL_TIMEOUT_SEC:
         resp = client.get(f"{base}/v1/replay/{session_id}")
         if resp.status_code == httpx.codes.OK:
-            trace = resp.json()
-            final = trace.get("final_state") or trace
-            if final.get("converged") is True:
-                return final  # type: ignore[no-any-return]
+            payload = resp.json()
+            if payload.get("outcome") in _TERMINAL_OUTCOMES and payload.get("ended_at"):
+                return payload  # type: ignore[no-any-return]
         time.sleep(_POLL_INTERVAL_SEC)
         elapsed += _POLL_INTERVAL_SEC
-    pytest.fail(f"replay did not converge within {_POLL_TIMEOUT_SEC}s for session {session_id}")
+    pytest.fail(
+        f"run did not reach a terminal outcome within {_POLL_TIMEOUT_SEC}s for {session_id}"
+    )
 
 
 @pytest.mark.skipif(
@@ -73,6 +81,12 @@ def test_golden_path_succeeds_three_times_consecutively() -> None:
             session_id = resp.json().get("session_id")
             assert session_id, f"run {run}: no session_id returned"
 
-            final = _poll_until_converged(client, base, session_id)
-            assert final.get("converged") is True, f"run {run}: did not converge"
-            assert final.get("tokens"), f"run {run}: empty token accounting"
+            payload = _poll_until_terminal(client, base, session_id)
+            assert payload["outcome"] in _SUCCESS_OUTCOMES, (
+                f"run {run}: outcome={payload['outcome']!r} (expected a converged success)"
+            )
+            assert payload["composite_score"] >= _CONVERGENCE_THRESHOLD, (
+                f"run {run}: composite {payload['composite_score']} < {_CONVERGENCE_THRESHOLD}"
+            )
+            tokens = int(payload["total_input_tokens"]) + int(payload["total_output_tokens"])  # type: ignore[call-overload]
+            assert tokens > 0, f"run {run}: empty token accounting"

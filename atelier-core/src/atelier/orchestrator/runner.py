@@ -37,6 +37,7 @@ from google.adk.runners import Runner
 from google.genai import types as genai_types
 
 if TYPE_CHECKING:
+    from google.adk.memory import BaseMemoryService
     from google.adk.sessions import BaseSessionService
     from google.adk.tools.tool_confirmation import ToolConfirmation
 
@@ -368,6 +369,18 @@ def _default_session_service() -> BaseSessionService:
     return create_session_service()
 
 
+def _default_memory_service() -> BaseMemoryService:
+    """Create the default memory service from ``SESSION_BACKEND`` (AT-080).
+
+    Mirrors :func:`_default_session_service`: the ``vertex`` backend yields a
+    ``VertexAiMemoryBankService`` and the offline default yields an
+    ``InMemoryMemoryService``.
+    """
+    from atelier.orchestrator.backend_factory import create_memory_service  # noqa: PLC0415
+
+    return create_memory_service()
+
+
 class AtelierRunner:
     """Pipeline Runner with Governor + injectable SessionBackend.
 
@@ -382,6 +395,7 @@ class AtelierRunner:
         self,
         *,
         session_service: BaseSessionService | None = None,
+        memory_service: BaseMemoryService | None = None,
         judge_client: JudgeClient | None = None,
         usage_store: UsageCounterStore | None = None,
         max_iterations: int = 3,
@@ -405,6 +419,7 @@ class AtelierRunner:
         self._governor = MetacognitiveGovernor(state=state)
         self._usage_store = usage_store or get_usage_store()
         self._session_service = session_service or _default_session_service()
+        self._memory_service = memory_service or _default_memory_service()
 
         # Auto-wire production Vertex client when a non-heuristic mode is
         # configured via the environment.  Tests inject a fake client to
@@ -1102,6 +1117,7 @@ class AtelierRunner:
                     adk_runner = Runner(
                         agent=pipeline,
                         session_service=self._session_service,
+                        memory_service=self._memory_service,
                         app_name=_APP_NAME,
                     )
 

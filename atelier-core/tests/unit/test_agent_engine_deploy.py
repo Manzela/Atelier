@@ -19,11 +19,13 @@ from atelier.agent_engine_deploy import (
 
 
 def test_deployment_requirements_match_at002_pins() -> None:
+    # Exact constraint strings — must stay in lockstep with pyproject.toml so a
+    # dependency bump that drifts the deploy sandbox is caught here.
     reqs = deployment_requirements()
     assert "google-adk>=2.1.0,<3" in reqs
-    assert any(r.startswith("google-genai") for r in reqs)
-    assert any(r.startswith("google-cloud-aiplatform") for r in reqs)
-    assert any(r.startswith("pydantic") for r in reqs)
+    assert "google-genai>=1.0,<3" in reqs
+    assert "google-cloud-aiplatform>=1.71,<2" in reqs
+    assert "pydantic>=2.6,<3" in reqs
 
 
 def test_validate_adk_pin_accepts_installed_version() -> None:
