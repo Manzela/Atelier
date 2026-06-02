@@ -350,25 +350,22 @@ def _build_iteration_dorav(
 
 
 def _default_session_service() -> BaseSessionService:
-    """Create the default session service.
+    """Create the default session service from ``SESSION_BACKEND`` (B4, AT-080).
 
-    In local dev (no BQ SDK), falls back to InMemorySessionService.
-    In production, uses BigQuerySessionBackend.
+    Delegates to
+    :func:`atelier.orchestrator.backend_factory.create_session_service`, which
+    selects the backend from the ``SESSION_BACKEND`` env var:
+
+        ``memory`` (default) — ``InMemorySessionService`` (offline, zero network)
+        ``vertex``           — ``VertexAiSessionService`` (managed production)
+        ``bigquery``         — ``BigQuerySessionBackend`` (legacy BigQuery store)
 
     Returns:
-        A BaseSessionService implementation.
+        A ``BaseSessionService`` implementation.
     """
-    try:
-        from atelier.memory.bigquery_session import BigQuerySessionBackend  # noqa: PLC0415
+    from atelier.orchestrator.backend_factory import create_session_service  # noqa: PLC0415
 
-        return BigQuerySessionBackend()
-    except ImportError:
-        from google.adk.sessions.in_memory_session_service import (  # noqa: PLC0415
-            InMemorySessionService,
-        )
-
-        logger.info("Using InMemorySessionService (BigQuery SDK not available)")
-        return InMemorySessionService()
+    return create_session_service()
 
 
 class AtelierRunner:
