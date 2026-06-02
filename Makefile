@@ -28,7 +28,7 @@ VENV := $(ROOT)/.venv
 PY   := $(VENV)/bin/python
 UV   := $(shell command -v uv 2>/dev/null)
 
-.PHONY: help verify preflight replay \
+.PHONY: help verify preflight replay deploy-agent-engine \
         _deps verify-types verify-tests verify-lint verify-dashboard verify-eval \
         verify-token-roundtrip
 
@@ -37,6 +37,7 @@ help:
 	@echo "  make verify    - offline hermetic gate: deps + mypy --strict + tests + lint"
 	@echo "  make preflight - named-reason GCP / deploy-readiness probes"
 	@echo "  make replay    - deterministic replay of a recorded trajectory (AT-003)"
+	@echo "  make deploy-agent-engine - deploy planner to Vertex Agent Engine (AT-082, operator-gated)"
 
 # ---- verify -----------------------------------------------------------------
 verify: _deps verify-types verify-tests verify-lint verify-dashboard verify-tokens verify-token-roundtrip verify-eval
@@ -106,3 +107,8 @@ replay: _deps
 preflight:
 	@echo "[preflight] named-reason GCP / deploy-readiness probes"
 	@bash deploy/preflight.sh
+
+# ---- deploy -----------------------------------------------------------------
+deploy-agent-engine: preflight
+	@echo "[deploy] Vertex AI Agent Engine (AT-082) - operator-gated, requires GCP creds"
+	@bash deploy/agent_engine.sh

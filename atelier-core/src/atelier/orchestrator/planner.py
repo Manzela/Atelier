@@ -135,6 +135,11 @@ class PlannerAgent:
             ),
         )
 
+    @property
+    def llm(self) -> LlmAgent:
+        """The underlying ADK ``LlmAgent`` (consumed by the Agent Engine deploy, AT-082)."""
+        return self._llm
+
     async def plan(self, brief_text: str) -> PlanStep:
         """Parse brief → PlanStep. Falls back to default plan on failure.
 
