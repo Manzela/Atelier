@@ -43,7 +43,10 @@ async def test_end_to_end_pipeline_n1_n2_n3a() -> None:
 
     with (
         patch.object(BriefParserAgent, "_call_llm", new_callable=AsyncMock) as mock_n1,
-        patch("atelier.orchestrator.runner.source_resolver_gate", return_value=True),
+        # NOTE: the N2 gate is deliberately NOT mocked here. The brief above uses
+        # design_system_source="infer", which the real source_resolver_gate must
+        # admit (PADI auto-discovery). This is the integration guard that the unit
+        # suite's gate mocks would otherwise hide — see test_source_resolver_gate.
         patch(
             "atelier.intake.source_resolver.pull_design_tokens", new_callable=AsyncMock
         ) as mock_tokens,

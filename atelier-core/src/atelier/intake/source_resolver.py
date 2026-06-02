@@ -27,13 +27,31 @@ class ProjectContext(BaseModel):
 
 
 def source_resolver_gate(tenant_ctx: TenantContext, brief: BriefSpec) -> bool:
-    """SourceResolverGate (deterministic).
+    """SourceResolverGate (deterministic precondition for N2).
 
-    Passes if descriptor is present OR brief contains path.
+    N2's ``source_resolver_agent`` is fail-soft (PRD §21): it always returns a
+    valid ``ProjectContext``. It resolves from a tenant descriptor or an explicit
+    DESIGN.md path when one is present, and otherwise auto-discovers a DESIGN.md
+    and falls back to safe design-token defaults. All four source modes resolve:
+
+      - ``tenant_ctx.descriptor`` present → resolve from prior project state
+      - explicit DESIGN.md path           → parse that file
+      - ``"infer"``                       → PADI auto-discovery (StackChoice docs)
+      - ``None``                          → auto-discover, then safe defaults
+
+    ``"infer"`` and ``None`` are first-class resolution modes, not failures. An
+    earlier revision returned ``False`` for both, which broke the golden path:
+    ``brief_parser`` never sets ``design_system_source`` (so it defaults to
+    ``None``) and the API constructs ``TenantContext`` without a descriptor, so
+    *every* first brief failed N2 before reaching generation. The gate now fails
+    closed only on a structurally malformed source — an empty-string path, which
+    is neither a real file nor an auto-discovery sentinel.
     """
     if tenant_ctx.descriptor is not None:
         return True
-    return brief.design_system_source is not None and brief.design_system_source != "infer"
+    # None (auto-discover + defaults), "infer" (PADI), and any non-empty path are
+    # all resolvable by the fail-soft agent. Only an empty-string path is invalid.
+    return brief.design_system_source is None or bool(brief.design_system_source)
 
 
 def _parse_design_md_tokens(design_md_text: str) -> dict[str, Any]:
