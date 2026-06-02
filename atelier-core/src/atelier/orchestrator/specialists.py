@@ -50,6 +50,10 @@ from atelier.integrations.stitch_mcp import (
     StitchDegradationInfo,
     try_get_stitch_mcp_toolset,
 )
+from atelier.models.model_armor_callbacks import (
+    model_armor_after_callback,
+    model_armor_before_callback,
+)
 from atelier.models.model_registry import resolve_model_id
 from atelier.models.safety import default_model_armor_config
 
@@ -249,6 +253,8 @@ def create_specialist_pipeline(
                 description=spec.description,
                 output_key=spec.output_key,
                 instruction=_build_instruction(spec),
+                before_model_callback=model_armor_before_callback,
+                after_model_callback=model_armor_after_callback,
                 tools=list(toolsets),
                 generate_content_config=genai_types.GenerateContentConfig(
                     model_armor_config=default_model_armor_config(),

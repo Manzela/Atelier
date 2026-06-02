@@ -158,6 +158,15 @@ module = "atelier.models.safety"
 disallow_any_unimported = false
 
 [[tool.mypy.overrides]]
+module = "atelier.models.model_armor_callbacks"
+# google.adk submodules (models.llm_request.LlmRequest, models.llm_response.LlmResponse,
+# agents.callback_context.CallbackContext) ship no inline stubs, so the callback
+# signatures resolve to Any in strict mode. The runtime behaviour is verified
+# against google-adk==2.1.0; this override suppresses the false positive while
+# every other strict check on the callbacks stays enabled.
+disallow_any_unimported = false
+
+[[tool.mypy.overrides]]
 module = "atelier.auth.*"
 # firebase-admin (7.4.0) ships no PEP-561 py.typed marker. Also, fastapi.security
 # (HTTPAuthorizationCredentials) resolves through Any in strict mode because FastAPI
