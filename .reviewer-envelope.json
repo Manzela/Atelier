@@ -5,9 +5,9 @@
   "mypy_exit": 0,
   "eval_delta_vs_head1": null,
   "files_touched_sha": {
-    ".gitignore": "4fdfce429bb312290a36626ba96e02ca96cd6d0de799c09fb6edfef603b52e08",
-    "atelier-dashboard/e2e/at096-token-meter.spec.ts": "6f46ce27832e376bf9f12d40ecd2313be013b5cfc336a5ef0c0d5420c9aaadd9",
-    "atelier-dashboard/src/components/StudioClientShell.tsx": "f2e9b20556b978fb6d3edf309cb4e1ce27d23b270006f14a55417cc16e8564c2",
-    "atelier-dashboard/src/lib/api.ts": "676ac571e8eea49099b4352762a1bf25377c41eba4a949403d2ec7a283e5367f"
+    "atelier-dashboard/src/lib/design-system.ts": "c8c9f8a2f5a1ca012a856da3b7d9400be60f8eab8e52597fb7c62d40bb51d462",
+    "atelier-dashboard/src/lib/api.ts": "3217d7c60a2baa052dcc1ffef6184a49b9bbadaf357de386d0274f787438bc26",
+    "atelier-dashboard/src/components/StudioClientShell.tsx": "f7441f4d69e359619374fd82f3b2b0235895ac240aad668be61a4ad6c4cc05d9",
+    "atelier-dashboard/e2e/at044-design-system-panel.spec.ts": "aab6dafd65511cf187e30c7ae720ea3b88b369e49cc0cc5850c1e81a8fd9be88"
   }
 }

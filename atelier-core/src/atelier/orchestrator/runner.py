@@ -552,6 +552,10 @@ class AtelierRunner:
                 len(raw_candidates),
             )
 
+        # AT-097: total N3d (D-O-R-A-V judge) token spend across every evaluated
+        # candidate this iteration. 0 in heuristic mode (no LLM call); > 0 when
+        # ATELIER_JUDGE_MODE routes axes through Vertex judges. The runner charges
+        # this to the per-user lifetime cap (closes the AT-095 N3a-only under-count).
         return {
             "best_candidate": best_candidate,
             "all_gate_results": gate_results,
@@ -560,6 +564,9 @@ class AtelierRunner:
             "composite_score": best_score,
             "candidates_evaluated": len(raw_candidates),
             "candidates_passed_gates": candidates_passed_gates,
+            "judge_input_tokens": sum(e.total_input_tokens for e, _ in evaluations),
+            "judge_output_tokens": sum(e.total_output_tokens for e, _ in evaluations),
+            "judge_thinking_tokens": sum(e.total_thinking_tokens for e, _ in evaluations),
         }
 
     async def _run_n1_n2(
@@ -669,6 +676,9 @@ class AtelierRunner:
         # at/over the cap (acceptance (c): no Vertex spend once at cap).
         user_id = _require_user_id(tenant_ctx)
         self._usage_store.check_rate_limit(user_id)
+        # AT-097: the fleet-wide token circuit-breaker — reject before N1/N2 (the
+        # first Vertex spend) if aggregate consumption across all users tripped it.
+        self._usage_store.check_circuit_breaker()
         self._seed_lifetime_counter(user_id)
         self._governor._check_token_budget()
 
@@ -1008,7 +1018,10 @@ class AtelierRunner:
         # pre-flight the cap on every entry to the generation loop. This covers the
         # resume() path (which calls this helper directly) as well as run(): a resume
         # that would start past the cap is rejected before any screen renders.
+        # AT-097: re-check the fleet circuit-breaker here too, so a resume() (which
+        # enters this helper directly, bypassing run()'s pre-flight) is also gated.
         self._seed_lifetime_counter(user_id)
+        self._usage_store.check_circuit_breaker()
         self._governor._check_token_budget()
 
         for idx, screen in enumerate(surfaces):
@@ -1183,6 +1196,38 @@ class AtelierRunner:
                 convergence_result = self._run_n3c_n3d_n4(
                     raw_candidates, brief_text, iteration=iteration
                 )
+                # AT-097: charge N3d (D-O-R-A-V judge) token spend to the user's
+                # lifetime counter too — not just N3a. Mirrors the N3a attribution
+                # above so the cap, the persisted counter, and the live meter all
+                # include judge spend (closes the AT-095 N3a-only under-count). 0 in
+                # heuristic mode → the guard skips the no-op add + event.
+                judge_in = int(convergence_result.get("judge_input_tokens", 0))
+                judge_out = int(convergence_result.get("judge_output_tokens", 0))
+                judge_think = int(convergence_result.get("judge_thinking_tokens", 0))
+                if judge_in or judge_out or judge_think:
+                    self._governor._state.add_user_tokens(
+                        input_tokens=judge_in,
+                        output_tokens=judge_out,
+                        thinking_tokens=judge_think,
+                    )
+                    self._usage_store.add(
+                        user_id,
+                        input_tokens=judge_in,
+                        output_tokens=judge_out,
+                        thinking_tokens=judge_think,
+                    )
+                    if progress_callback:
+                        await progress_callback(
+                            "token_delta",
+                            {
+                                "input": judge_in,
+                                "output": judge_out,
+                                "thinking": judge_think,
+                                "cumulative_user_tokens": (
+                                    self._governor._state.cumulative_user_tokens
+                                ),
+                            },
+                        )
                 best_candidate = convergence_result.get("best_candidate")
 
                 gate_results_serialized = [

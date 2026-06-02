@@ -8,17 +8,30 @@ the input/output/thinking breakdown (G15), the per-window rate limit (acceptance
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+
 import pytest
 from atelier.durability.usage_counter import (
     TOKEN_CAP_DEFAULT,
     UsageCounterStore,
     get_usage_store,
+    reset_global_breaker,
     reset_usage_store_singleton,
 )
 from atelier.orchestrator.governor import (
+    GovernorCircuitBreakerOpen,
     GovernorRateLimitExceeded,
     GovernorUsageUnavailable,
 )
+
+
+@pytest.fixture(autouse=True)
+def _reset_global_breaker_after() -> Iterator[None]:
+    # The global circuit-breaker lives in process-wide module state; a test that
+    # trips it must not leak a tripped cooldown into the next test (which would
+    # see spurious 503s). Reset after every test in this module.
+    yield
+    reset_global_breaker()
 
 
 @pytest.fixture
@@ -196,3 +209,97 @@ def test_postwrite_read_failure_does_not_deny_a_committed_charge() -> None:
     # manufacture a deny for an already-successful charge). Returns best-effort.
     s = _firestore_store_with(_WriteOkReadFailsDoc())
     assert s.add("u", input_tokens=7) == 7  # best-effort = the delta, no raise
+
+
+# --- AT-097 global (per-total) circuit-breaker --------------------------------
+# The third orthogonal limit (PRD §13.2): a fleet-wide token budget per rolling
+# window that trips a circuit-breaker, so a coordinated multi-account burst cannot
+# drain the shared paid key in seconds. Thresholds are operator-open (§22). A
+# fully-injected clock makes every assertion deterministic (no real time).
+
+
+def _breaker_store(
+    *,
+    budget: int = 1000,
+    window: float = 60.0,
+    cooldown: float = 60.0,
+    clock_time: list[float],
+) -> UsageCounterStore:
+    s = UsageCounterStore(
+        backend="memory",
+        global_token_budget_per_window=budget,
+        global_window_seconds=window,
+        circuit_breaker_cooldown_seconds=cooldown,
+        clock=lambda: clock_time[0],
+    )
+    s.reset()  # clears both _MEMORY and the process-wide _GLOBAL breaker window
+    return s
+
+
+def test_circuit_breaker_trips_at_global_budget() -> None:
+    t = [1000.0]
+    s = _breaker_store(budget=1000, clock_time=t)
+    s.add("u", input_tokens=600, output_tokens=400)  # window aggregate = 1000
+    with pytest.raises(GovernorCircuitBreakerOpen) as exc:
+        s.check_circuit_breaker()
+    assert exc.value.budget == 1000
+    assert exc.value.window_tokens >= 1000
+    assert exc.value.retry_after_seconds >= 1
+
+
+def test_circuit_breaker_aggregates_across_users_not_per_user() -> None:
+    # The breaker is PER-TOTAL: two different users, each individually well under
+    # both the global budget AND their own 5M lifetime cap, still trip the breaker
+    # in aggregate. This is what makes it a *fleet* protection vs the per-user cap.
+    t = [1000.0]
+    s = _breaker_store(budget=1000, clock_time=t)
+    s.add("alice", input_tokens=600)
+    s.add("bob", input_tokens=400)
+    with pytest.raises(GovernorCircuitBreakerOpen):
+        s.check_circuit_breaker()
+    # Neither user is individually over anything — only the aggregate tripped.
+    assert s.get_total("alice") == 600
+    assert s.get_total("bob") == 400
+
+
+def test_circuit_breaker_under_budget_passes() -> None:
+    t = [1000.0]
+    s = _breaker_store(budget=1000, clock_time=t)
+    s.add("u", input_tokens=999)
+    s.check_circuit_breaker()  # 999 < 1000 → must NOT raise
+
+
+def test_circuit_breaker_cooldown_then_recovers() -> None:
+    t = [1000.0]
+    s = _breaker_store(budget=1000, window=60.0, cooldown=60.0, clock_time=t)
+    s.add("u", input_tokens=1000)
+    with pytest.raises(GovernorCircuitBreakerOpen):
+        s.check_circuit_breaker()  # trips at t=1000, open until t=1060
+    # During the cooldown the breaker stays OPEN (fast-reject) even though the
+    # caller did nothing new — a breaker that re-closes immediately is no breaker.
+    t[0] = 1030.0
+    with pytest.raises(GovernorCircuitBreakerOpen):
+        s.check_circuit_breaker()
+    # After the cooldown AND the triggering tokens age out of the window → recover.
+    t[0] = 1061.0
+    s.check_circuit_breaker()  # must NOT raise
+
+
+def test_circuit_breaker_window_slides() -> None:
+    # Tokens older than the window age out, so a steady trickle under budget never
+    # trips — only a genuine burst within one window does.
+    t = [1000.0]
+    s = _breaker_store(budget=1000, window=60.0, cooldown=60.0, clock_time=t)
+    s.add("u", input_tokens=600)  # t=1000
+    t[0] = 1061.0  # advance past the window; the first 600 must age out
+    s.add("u", input_tokens=600)  # t=1061 → window holds only this 600
+    s.check_circuit_breaker()  # 600 < 1000 → must NOT raise (proves pruning)
+
+
+def test_circuit_breaker_disabled_when_budget_non_positive() -> None:
+    # Operator can DISABLE the breaker with budget <= 0 (§22 operator-open). When
+    # disabled, even a huge burst neither records to the window nor trips.
+    t = [1000.0]
+    s = _breaker_store(budget=0, clock_time=t)
+    s.add("u", input_tokens=10_000_000)
+    s.check_circuit_breaker()  # disabled → never raises

@@ -5,6 +5,8 @@ Design Principles:
     - Structured logging (structlog) for Cloud Logging
     - GovernorTokenCapExceeded -> HTTP 402 with the branded usage-limit body (AT-095)
     - GovernorRateLimitExceeded -> HTTP 429 (AT-095/097 quota-DoS guard)
+    - GovernorCircuitBreakerOpen -> HTTP 503 + Retry-After (AT-097 fleet breaker)
+    - GovernorUsageUnavailable -> HTTP 503 + Retry-After (AT-095 fail-closed)
     - CORS restrictive — dashboard origin only
     - All error responses follow the ``ErrorResponse`` schema for UI consumption
 
@@ -32,8 +34,10 @@ from fastapi.responses import JSONResponse
 
 from atelier.__version__ import __version__
 from atelier.orchestrator.governor import (
+    CIRCUIT_BREAKER_MESSAGE,
     TOKEN_CAP_MESSAGE,
     USAGE_UNAVAILABLE_MESSAGE,
+    GovernorCircuitBreakerOpen,
     GovernorRateLimitExceeded,
     GovernorTokenCapExceeded,
     GovernorUsageUnavailable,
@@ -94,7 +98,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 # ---------------------------------------------------------------------------
 
 
-def create_app() -> FastAPI:
+def create_app() -> FastAPI:  # noqa: C901 — handler-registration factory: cyclomatic count grows 1 per exception handler (inherent, not accidental complexity)
     """Factory function for the FastAPI application.
 
     Returns a fully configured FastAPI instance with:
@@ -231,6 +235,40 @@ def create_app() -> FastAPI:
                     "Please wait a moment and try again."
                 ),
                 "user_action": "Retry after a short pause.",
+            },
+        )
+
+    # --- Global exception handler: GovernorCircuitBreakerOpen → HTTP 503 ──────
+    # AT-097: the fleet-wide (per-total) token circuit-breaker tripped — aggregate
+    # consumption across ALL users crossed the operator-set budget, so new work is
+    # paused for a cooldown to protect the shared paid key. This is a SYSTEM
+    # protection, NOT a per-user fault, so it is surfaced as a retryable 503 +
+    # Retry-After with its own message — never the per-user "you reached your
+    # limit" (402) body. Logged at error level for fleet-protection alerting.
+    @application.exception_handler(GovernorCircuitBreakerOpen)
+    async def circuit_breaker_open_handler(
+        request: Request,
+        exc: GovernorCircuitBreakerOpen,
+    ) -> JSONResponse:
+        client_ip = exc.client_ip or (request.client.host if request.client else None)
+        await logger.aerror(
+            "atelier.circuit_breaker_open",
+            path=str(request.url.path),
+            client_ip=sanitize(str(client_ip)) if client_ip else None,
+            reason=exc.reason,
+            window_tokens=exc.window_tokens,
+            budget=exc.budget,
+            retry_after_seconds=exc.retry_after_seconds,
+        )
+        return JSONResponse(
+            status_code=503,
+            headers={"Retry-After": str(int(exc.retry_after_seconds))},
+            content={
+                "error": "circuit_breaker_open",
+                "code": 503,
+                "title": "Service temporarily unavailable",
+                "detail": CIRCUIT_BREAKER_MESSAGE,
+                "user_action": "Please retry shortly.",
             },
         )
 

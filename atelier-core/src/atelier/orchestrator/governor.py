@@ -69,6 +69,18 @@ USAGE_UNAVAILABLE_MESSAGE: Final[str] = (
     "This is temporary — please retry shortly."
 )
 
+#: Shown when the fleet-wide (global) token circuit-breaker is open (AT-097). A
+#: SYSTEM-level protection on the shared paid key: aggregate token consumption
+#: across ALL users crossed the operator-set budget, so new work is paused for a
+#: short cooldown. The individual user did nothing wrong (unlike the per-user cap
+#: or per-user rate limit), so this is an HONEST, retryable degradation (PRD §21)
+#: surfaced as HTTP 503 + Retry-After — never the per-user "you reached your
+#: limit" message. Distinct from USAGE_UNAVAILABLE_MESSAGE (a read/write fault).
+CIRCUIT_BREAKER_MESSAGE: Final[str] = (
+    "The service is briefly busy protecting shared capacity and paused new work "
+    "to stay reliable. This is temporary — please retry shortly."
+)
+
 
 class GovernorTokenCapExceeded(Exception):  # noqa: N818 — domain terminology
     """Raised when a user's cumulative lifetime token count reaches the cap.
@@ -144,6 +156,41 @@ class GovernorRateLimitExceeded(Exception):  # noqa: N818 — domain terminology
         self.client_ip = client_ip
         super().__init__(
             f"Rate limit exceeded for uid={uid}: > {max_requests} requests in {window_seconds:.0f}s"
+        )
+
+
+class GovernorCircuitBreakerOpen(Exception):  # noqa: N818 — domain terminology
+    """Raised when the fleet-wide (global) token circuit-breaker is open (AT-097).
+
+    The third of the three orthogonal limits (PRD §13.2): per-user lifetime cap ·
+    **per-total/global circuit-breaker** · per-window request-rate limit. Trips
+    when aggregate token consumption across ALL users inside a rolling window
+    crosses the operator-set budget (§22 D-cap-numbers — operator-open; only the
+    per-user 5M is fixed). Protects the shared paid Vertex key from a coordinated
+    multi-account / sybil burn that each-individually stays under 5M.
+
+    A SYSTEM protection, not a user fault — surfaced as a retryable HTTP 503 +
+    Retry-After, never the per-user cap message. Fail-loud (never self-healed,
+    R5): a breaker that silently self-heals is not a breaker.
+    """
+
+    def __init__(
+        self,
+        *,
+        reason: str = "global_token_budget",
+        retry_after_seconds: int = 60,
+        window_tokens: int = 0,
+        budget: int = 0,
+        client_ip: str | None = None,
+    ) -> None:
+        self.reason = reason
+        self.retry_after_seconds = retry_after_seconds
+        self.window_tokens = window_tokens
+        self.budget = budget
+        self.client_ip = client_ip
+        super().__init__(
+            f"Global circuit-breaker open ({reason}): "
+            f"{window_tokens} >= {budget} tokens in window; retry after {retry_after_seconds}s"
         )
 
 
@@ -227,7 +274,10 @@ class MetacognitiveGovernor:
         """Classify exception into trichotomy. Never returns None."""
         if isinstance(
             exc,
-            GovernorTokenCapExceeded | GovernorRateLimitExceeded | GovernorUsageUnavailable,
+            GovernorTokenCapExceeded
+            | GovernorRateLimitExceeded
+            | GovernorUsageUnavailable
+            | GovernorCircuitBreakerOpen,
         ):
             return FailureMode.FAIL_LOUD
 

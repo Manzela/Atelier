@@ -156,6 +156,46 @@ def test_rate_limit_exceeded_handler_returns_429(client: TestClient) -> None:
     assert body["code"] == 429
 
 
+def test_circuit_breaker_open_handler_returns_503_not_402(client: TestClient) -> None:
+    """AT-097: the fleet-wide breaker tripping is a SYSTEM protection — a retryable
+    503 + Retry-After with its own message, never the per-user 402 cap body."""
+    from atelier.orchestrator.governor import (
+        CIRCUIT_BREAKER_MESSAGE,
+        TOKEN_CAP_MESSAGE,
+        GovernorCircuitBreakerOpen,
+    )
+    from fastapi import APIRouter
+
+    router = APIRouter()
+
+    @router.get("/test/circuit-breaker-open")
+    async def trigger_circuit_breaker_open() -> None:
+        raise GovernorCircuitBreakerOpen(
+            reason="global_token_budget", retry_after_seconds=60, window_tokens=99, budget=50
+        )
+
+    app = client.app  # type: ignore[attr-defined]
+    app.include_router(router)
+
+    import structlog
+
+    with structlog.testing.capture_logs() as logs:
+        resp = client.get("/test/circuit-breaker-open")
+    assert resp.status_code == 503
+    assert resp.headers.get("Retry-After") == "60"
+    body = resp.json()
+    assert body["error"] == "circuit_breaker_open"
+    assert body["code"] == 503
+    assert body["detail"] == CIRCUIT_BREAKER_MESSAGE
+    # Honesty: a fleet protection must NOT tell the individual user they hit their cap.
+    assert body["detail"] != TOKEN_CAP_MESSAGE
+    assert "Contact administrator" not in body["detail"]
+    # Logged at error level for fleet-protection alerting.
+    alert = next((e for e in logs if e.get("event") == "atelier.circuit_breaker_open"), None)
+    assert alert is not None, "the circuit-breaker trip must be logged"
+    assert alert["log_level"] == "error"
+
+
 # ---------------------------------------------------------------------------
 # /auth/signin — sign-in flow documentation (unauthenticated)
 # ---------------------------------------------------------------------------
