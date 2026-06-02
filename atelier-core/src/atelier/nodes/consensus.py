@@ -229,6 +229,13 @@ class ConsensusEvaluation:
             penalty helper). Reserved keys are present whether or not their
             value is informative -- absent keys would force every consumer
             to defensively ``.get(..., None)``.
+        total_input_tokens: Sum of Vertex prompt tokens across all axis judges
+            for this candidate (``0`` in heuristic mode — no LLM call). Threaded
+            into the per-user lifetime cap by the runner so N3d judge spend is
+            counted (AT-097 — closes the AT-095 under-count carry-forward).
+        total_output_tokens: Sum of Vertex completion tokens across all axes.
+        total_thinking_tokens: Sum of Vertex ``thoughts_token_count`` across all
+            axes (G15).
     """
 
     candidate_id: UUID
@@ -237,6 +244,9 @@ class ConsensusEvaluation:
     passed: bool
     constitution_name: str | None
     diagnostics: dict[str, str]
+    total_input_tokens: int = 0
+    total_output_tokens: int = 0
+    total_thinking_tokens: int = 0
 
 
 # ---------------------------------------------------------------------------
@@ -685,10 +695,18 @@ def evaluate_candidate(
     raw_scores: dict[str, float] = {}
     votes: dict[JudgeAxis, JudgeVote] = {}
     diagnostics: dict[str, str] = {}
+    # AT-097: accumulate the per-axis LLM-judge token spend so the runner can
+    # charge N3d to the per-user lifetime cap (0 for heuristic scorers).
+    total_input_tokens = 0
+    total_output_tokens = 0
+    total_thinking_tokens = 0
 
     for axis_name in bias_report.evaluation_order:
         judge_score = scorers[axis_name](candidate)
         raw_scores[axis_name] = judge_score.score
+        total_input_tokens += judge_score.input_tokens
+        total_output_tokens += judge_score.output_tokens
+        total_thinking_tokens += judge_score.thinking_tokens
         votes[_AXIS_NAME_TO_ENUM[axis_name]] = _build_judge_vote(
             candidate.candidate_id, axis_name, judge_score
         )
@@ -715,4 +733,7 @@ def evaluate_candidate(
         passed=passed,
         constitution_name=constitution_name,
         diagnostics=diagnostics,
+        total_input_tokens=total_input_tokens,
+        total_output_tokens=total_output_tokens,
+        total_thinking_tokens=total_thinking_tokens,
     )

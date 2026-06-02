@@ -52,6 +52,13 @@ class _JudgeScore:
             LLMJudge.score(). Defaults to ``None`` so
             ``_build_judge_vote`` can derive the synthetic v1.0 implementation band via
             :func:`_confidence_interval` when absent.
+        input_tokens: Vertex prompt tokens this axis's LLM judge consumed
+            (``0`` for heuristic scorers, which make no LLM call). Threaded into
+            the per-user lifetime cap so N3d judge spend is counted, not just N3a
+            (AT-097 — closes the AT-095 under-count carry-forward).
+        output_tokens: Vertex completion tokens this axis's LLM judge consumed.
+        thinking_tokens: Vertex ``thoughts_token_count`` this axis's LLM judge
+            consumed (G15).
     """
 
     score: float
@@ -59,3 +66,6 @@ class _JudgeScore:
     provenance_vars: list[str] = field(default_factory=list)
     judge_model: str | None = None
     confidence_interval: tuple[float, float] | None = None
+    input_tokens: int = 0
+    output_tokens: int = 0
+    thinking_tokens: int = 0
