@@ -25,7 +25,7 @@ from enum import StrEnum
 from typing import Any
 
 import structlog
-from google.adk.tools.mcp_tool.mcp_session_manager import SseConnectionParams
+from google.adk.tools.mcp_tool.mcp_session_manager import StreamableHTTPConnectionParams
 from google.adk.tools.mcp_tool.mcp_toolset import McpToolset
 from google.cloud import secretmanager
 
@@ -315,10 +315,21 @@ def _get_api_key() -> str:
 
 
 def get_stitch_mcp_toolset() -> McpToolset:
-    """Returns an ADK MCPToolset configured for Stitch MCP."""
+    """Returns an ADK MCPToolset configured for Stitch MCP.
+
+    The Stitch endpoint (``stitch.googleapis.com/mcp``) is a stateless
+    Streamable HTTP MCP server — it answers ``initialize`` with a plain
+    ``application/json`` body and advertises no ``mcp-session-id``. It must be
+    reached with ``StreamableHTTPConnectionParams``; the earlier
+    ``SseConnectionParams`` opened an SSE stream the server never speaks, so the
+    handshake died with "unhandled errors in a TaskGroup", ADK retried it for
+    tens of minutes, and every generation silently fell back to direct mode
+    without the Stitch design tools. The bounded ``timeout`` (default 5s) keeps a
+    genuine outage fail-fast instead of hanging the convergence loop.
+    """
     api_key = _get_api_key()
 
-    connection_params = SseConnectionParams(
+    connection_params = StreamableHTTPConnectionParams(
         url="https://stitch.googleapis.com/mcp", headers={"Authorization": f"Bearer {api_key}"}
     )
 

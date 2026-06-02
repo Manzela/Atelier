@@ -105,3 +105,35 @@ class TestVisualRegisterMapping:
     def test_whitespace_trimmed(self) -> None:
         spec = get_design_system_for_register("  startup  ")
         assert spec.headline_font == StitchFont.SPACE_GROTESK
+
+
+@pytest.mark.unit
+class TestStitchMcpTransport:
+    """Lock the MCP transport for the Stitch toolset.
+
+    Regression guard: ``stitch.googleapis.com/mcp`` is a stateless Streamable
+    HTTP server. It was previously reached with ``SseConnectionParams``, whose
+    SSE handshake the server never answers — ADK then retried for tens of
+    minutes and every generation silently fell back to direct mode without the
+    Stitch design tools. The toolset must use ``StreamableHTTPConnectionParams``.
+    """
+
+    def test_toolset_uses_streamable_http_transport(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        # Avoid a Secret Manager call — _get_api_key short-circuits on this env.
+        monkeypatch.setenv("STITCH_API_KEY", "fake-key-for-test")
+
+        from atelier.integrations.stitch_mcp import get_stitch_mcp_toolset
+        from google.adk.tools.mcp_tool.mcp_session_manager import (
+            StreamableHTTPConnectionParams,
+        )
+
+        toolset = get_stitch_mcp_toolset()
+        params = toolset._connection_params
+
+        # Streamable HTTP, not SSE — the type itself is the regression guard
+        # (SseConnectionParams and StreamableHTTPConnectionParams are disjoint).
+        assert type(params).__name__ == "StreamableHTTPConnectionParams"
+        assert isinstance(params, StreamableHTTPConnectionParams)
+        assert params.url == "https://stitch.googleapis.com/mcp"
+        assert params.headers is not None
+        assert params.headers["Authorization"] == "Bearer fake-key-for-test"
