@@ -42,8 +42,6 @@ if TYPE_CHECKING:
 
     from atelier.nodes.llm_judge import JudgeClient
 
-from atelier.a2ui.gate import gate_a2ui_surface
-from atelier.a2ui.surface import build_design_system_surface
 from atelier.durability.usage_counter import UsageCounterStore, get_usage_store
 from atelier.gates.runner import run_gates
 from atelier.gates.signoff import (
@@ -1026,46 +1024,18 @@ class AtelierRunner:
         self._usage_store.check_circuit_breaker()
         self._governor._check_token_budget()
 
-        # Governed A2UI (ADR-0024): build the AT-044 design-system panel surface
-        # ONCE from the resolved design tokens, then thread it onto the
-        # screen_converged + complete events alongside best_candidate. This is the
-        # Studio CHROME only — the design deliverable stays the HTML in
-        # best_candidate (A2UI never touches it). Built here (not per-iteration)
-        # because the token map is iteration-invariant (R4 anchor).
-        #
-        # DEFENSE-IN-DEPTH GATE (G2, ADR-0024 §2): the fail-closed governance gate
-        # runs here so the internal payload is also governed. The CANONICAL gate
-        # site is api/generate.py:_enrich_complete_payload (it rebuilds + overwrites
-        # a2ui_payload LAST, governing the surface that actually renders); this
-        # mirror prevents an ungoverned surface leaking onto the screen_converged /
-        # complete events on any path that bypasses the API rebuild. On REJECT we
-        # blank the surface (frontend fail-soft) and stash the custom governance
-        # event for the trace. Resolves the prior NOTE(P0.5 gate-before-emit).
-        a2ui_design_tokens = getattr(project_ctx, "design_tokens", None) or {}
-        a2ui_design_system = build_design_system_surface(
-            a2ui_design_tokens,
-            surface_id="atelier-design-system",
-        )
-        a2ui_governance: list[dict[str, Any]] = []
-        a2ui_gate = gate_a2ui_surface(
-            a2ui_design_system,
-            design_tokens=a2ui_design_tokens,
-            surface_id="atelier-design-system",
-        )
-        if not a2ui_gate.passed:
-            a2ui_governance = a2ui_gate.governance_messages
-            a2ui_design_system = []
-            logger.warning(
-                "atelier.a2ui.gate.rejected",
-                extra={
-                    "surface_id": "atelier-design-system",
-                    "reason_count": len(a2ui_gate.reasons),
-                    "validators": sorted({r.validator for r in a2ui_gate.reasons}),
-                    "first_json_pointer": (
-                        a2ui_gate.reasons[0].json_pointer if a2ui_gate.reasons else ""
-                    ),
-                },
-            )
+        # Governed A2UI (ADR-0024) — G6 single-source convergence: the AT-044
+        # design-system panel surface is built + gated EXACTLY ONCE per run, at the
+        # canonical emit boundary (api/generate.py:_enrich_complete_payload), from
+        # the run's resolved project_context.design_tokens. That enrichment runs
+        # LAST in the SSE pipeline and OVERWRITES a2ui_payload, so it governs the
+        # surface the frontend actually RENDERS (the frontend consumes a2ui_payload
+        # only off the enriched `complete` event; `screen_converged` does not read
+        # it). A second surface build here would be a redundant write — discarded by
+        # the API rebuild on the rendered path and never consumed on the SSE path —
+        # built from a token source that could drift from the canonical one. It is
+        # intentionally NOT built here; a2ui_payload / a2ui_governance are threaded
+        # solely from the canonical enrich site.
 
         for idx, screen in enumerate(surfaces):
             if progress_callback:
@@ -1405,12 +1375,10 @@ class AtelierRunner:
                         "screen": screen,
                         "best_candidate": best_candidate,
                         "converged": convergence_result.get("converged", False),
-                        # Governed A2UI chrome (ADR-0024) — additive; the
-                        # deliverable stays best_candidate (HTML). a2ui_payload is
-                        # [] when the gate REJECTed (fail-closed); a2ui_governance
-                        # then carries the custom governance event for the trace.
-                        "a2ui_payload": a2ui_design_system,
-                        "a2ui_governance": a2ui_governance,
+                        # Governed A2UI chrome (ADR-0024) is NOT threaded here: the
+                        # frontend reads a2ui_payload only off the enriched
+                        # `complete` event (G6 single-source convergence). The
+                        # canonical build+gate is api/generate.py:_enrich_complete_payload.
                     },
                 )
 
@@ -1478,16 +1446,14 @@ class AtelierRunner:
             "session_id": session_id,
             "plan": plan.model_dump() if hasattr(plan, "model_dump") else {},
             "screens": screens_results,
-            # Governed A2UI chrome (ADR-0024): the design-system panel surface,
-            # carried on the complete event alongside best_candidate. Additive —
-            # the design deliverable is unchanged. _enrich_complete_payload also
-            # (re)derives + RE-GATES this at the API boundary from project_context
-            # (the canonical gate site), so the SSE field is present and governed
-            # even on the degraded/early-return paths that bypass this assembler.
-            # a2ui_payload is [] + a2ui_governance carries the custom event when
-            # this assembler's defense-in-depth gate REJECTed.
-            "a2ui_payload": a2ui_design_system,
-            "a2ui_governance": a2ui_governance,
+            # Governed A2UI chrome (ADR-0024) — G6 single-source convergence: the
+            # design-system panel surface is built, gated, and threaded EXACTLY
+            # ONCE, at the canonical emit boundary
+            # (api/generate.py:_enrich_complete_payload), which derives it from
+            # project_context.design_tokens and OVERWRITES a2ui_payload on the
+            # `complete` event LAST. That is the surface the frontend renders. It
+            # is intentionally NOT set here, so there is no second token source to
+            # drift from the canonical one.
         }
 
         # Mid-flight DPO pair extraction — Dreaming Module (fail-soft).

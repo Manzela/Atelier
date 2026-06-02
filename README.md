@@ -152,23 +152,51 @@ Atelier is built on Google ADK 2.0 across five integration surfaces:
 
 ## 15 Novel Contributions
 
-| #   | Contribution                                                          | Status      |
-| --- | --------------------------------------------------------------------- | ----------- |
-| N1  | DGF-D2C — Deterministic-Gate-First Design-to-Convergence              | Shipped     |
-| N2  | DEMAS-D — Per-axis Provenance Matrix Design Judge                     | Shipped     |
-| N3  | PerJudge — Per-Project DPO Judge with Hebbian Mutator                 | Shipped     |
-| N4  | PADI — Project-Agnostic Descriptor Inference                          | Shipped     |
-| N5  | EvoDesign — AlphaEvolve-Inspired K-Candidate Search                   | Shipped     |
-| N6  | CSC-D — Constitutional Self-Critique for Design                       | Shipped     |
-| N7  | Governed A2UI — aligned output (Google A2UI v0.9 pattern, flag-gated) | In progress |
-| N8  | Public Judge Calibration Dashboard                                    | Shipped     |
-| N9  | Open Eval Adapters Library                                            | In progress |
-| N10 | Convergence Spec RFC                                                  | In progress |
-| N11 | Public Eval Harness                                                   | Shipped     |
-| N12 | RLRD — Recursive Long-Running Discipline                              | Shipped     |
-| N13 | PIP — Pre-Generation Intake Protocol                                  | Shipped     |
-| N14 | WRAI — Web-Research-Augmented Intake                                  | Shipped     |
-| N15 | MJG — Multi-Judge Governance                                          | Shipped     |
+| #   | Contribution                                                             | Status       |
+| --- | ------------------------------------------------------------------------ | ------------ |
+| N1  | DGF-D2C — Deterministic-Gate-First Design-to-Convergence                 | Shipped      |
+| N2  | DEMAS-D — Per-axis Provenance Matrix Design Judge                        | Shipped      |
+| N3  | PerJudge — Per-Project DPO Judge with Hebbian Mutator                    | Shipped      |
+| N4  | PADI — Project-Agnostic Descriptor Inference                             | Shipped      |
+| N5  | EvoDesign — AlphaEvolve-Inspired K-Candidate Search                      | Shipped      |
+| N6  | CSC-D — Constitutional Self-Critique for Design                          | Shipped      |
+| N7  | Governed A2UI — built on A2UI v0.9 (server-to-client subset), flag-gated | Experimental |
+| N8  | Public Judge Calibration Dashboard                                       | Shipped      |
+| N9  | Open Eval Adapters Library                                               | In progress  |
+| N10 | Convergence Spec RFC                                                     | In progress  |
+| N11 | Public Eval Harness                                                      | Shipped      |
+| N12 | RLRD — Recursive Long-Running Discipline                                 | Shipped      |
+| N13 | PIP — Pre-Generation Intake Protocol                                     | Shipped      |
+| N14 | WRAI — Web-Research-Augmented Intake                                     | Shipped      |
+| N15 | MJG — Multi-Judge Governance                                             | Shipped      |
+
+---
+
+## A2UI status (honest claim)
+
+Atelier's Studio chrome is **built on A2UI v0.9 (the server-to-client subset)** —
+not a "native" or "conformant" A2UI implementation. The feature is **experimental
+and flag-gated** (`NEXT_PUBLIC_A2UI_RENDER`, default off); the hand-built React
+design-system panel remains the default render path and the fail-soft fallback.
+The design **deliverable** never touches A2UI — it stays DTCG tokens + portable
+self-contained HTML (PRD v2.2 §3.4/§10). A2UI is the Studio control layer only.
+Full rationale and dependency pins: [ADR-0024](docs/decisions/0024-governed-a2ui.md).
+
+Each row below is independently verifiable by cloning the repo and opening the
+cited file (a DevPost judge can check every claim against committed code):
+
+| Claim                                                | Evidence                                                                                                                                                                                                                                                                           | Status              |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
+| Emits a server-to-client A2UI v0.9 surface           | [`atelier-core/src/atelier/a2ui/surface.py`](atelier-core/src/atelier/a2ui/surface.py) (`build_design_system_surface`) + [`tests/unit/test_a2ui_surface.py`](atelier-core/tests/unit/test_a2ui_surface.py) (pins the `createSurface`/`updateComponents`/`updateDataModel` payload) | Shipped, flag-gated |
+| Renders via `@a2ui/react` custom catalog             | [`atelier-dashboard/src/components/a2ui/atelierCatalog.ts`](atelier-dashboard/src/components/a2ui/atelierCatalog.ts) + e2e [`e2e/a2ui-render.spec.ts`](atelier-dashboard/e2e/a2ui-render.spec.ts)                                                                                  | Shipped, flag-gated |
+| Fail-closed governance gate before emit              | [`atelier-core/src/atelier/a2ui/gate.py`](atelier-core/src/atelier/a2ui/gate.py) (`gate_a2ui_surface`) + [`tests/unit/test_a2ui_gate.py`](atelier-core/tests/unit/test_a2ui_gate.py)                                                                                               | Shipped, flag-gated |
+| Custom Material-3 catalog (semantic HTML, axe-clean) | [`atelier-dashboard/src/components/a2ui/atelierCatalog.ts`](atelier-dashboard/src/components/a2ui/atelierCatalog.ts) + axe scan in [`e2e/a2ui-render.spec.ts`](atelier-dashboard/e2e/a2ui-render.spec.ts) (`@axe-core/playwright`, 0 critical/serious)                             | Shipped             |
+| Conformance suite pass-rate                          | `google/A2UI` `agent_sdks/conformance/` (pinned in ADR-0024); not yet run against our surface                                                                                                                                                                                      | Not yet             |
+
+**Vocabulary discipline:** we say "built on A2UI v0.9 (server-to-client subset)"
+and "A2UI v0.9/v0.10-pattern aligned" — never "native", "conformant", or
+"certified". The conformance suite has not been run against the Atelier surface;
+once it is, the claim becomes "A2UI vX-compatible (Y%)" with the score cited.
 
 ---
 

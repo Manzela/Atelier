@@ -154,10 +154,10 @@ function CompetitorContrastBeat({ onDismiss }: { onDismiss: () => void }) {
       exit={{ opacity: 0, y: 8 }}
       transition={{ type: 'spring', bounce: 0, duration: 0.35 }}
       data-testid="competitor-contrast-beat"
-      className="rounded border border-indigo-500/30 bg-black/40 p-4 text-[11px] leading-relaxed"
+      className="rounded border border-[var(--g-info)]/30 bg-black/40 p-4 text-[11px] leading-relaxed"
     >
       <div className="flex items-start justify-between gap-2 mb-3">
-        <h4 className="text-[11px] uppercase tracking-wider font-semibold text-indigo-300">
+        <h4 className="text-[11px] uppercase tracking-wider font-semibold text-[var(--g-info)]">
           Why Atelier?
         </h4>
         <button
@@ -327,10 +327,10 @@ function GeneratedControlRow({
       <div
         data-testid={`ds-generated-control-${control.id}`}
         data-token={control.tokenPath}
-        className="px-3 py-2 rounded bg-black/30 border border-indigo-500/30"
+        className="px-3 py-2 rounded bg-black/30 border border-[var(--g-info)]/30"
       >
         <div className="flex justify-between items-center mb-1.5">
-          <span className="text-[11px] text-indigo-200 font-medium">{control.label}</span>
+          <span className="text-[11px] text-[var(--g-info)] font-medium">{control.label}</span>
           <span className="text-[10px] font-mono text-gray-400">{Math.round(hue)}&deg;</span>
         </div>
         <input
@@ -344,7 +344,7 @@ function GeneratedControlRow({
             const base = hsl ?? { s: 0.7, l: 0.5 };
             onEditToken(control.tokenPath, hslToHex(parseInt(e.target.value, 10), base.s, base.l));
           }}
-          className="w-full accent-indigo-500"
+          className="w-full accent-[var(--g-primary-blue)]"
           aria-label={`${control.label} — bound to ${control.tokenPath}`}
         />
       </div>
@@ -355,10 +355,10 @@ function GeneratedControlRow({
     <div
       data-testid={`ds-generated-control-${control.id}`}
       data-token={control.tokenPath}
-      className="px-3 py-2 rounded bg-black/30 border border-indigo-500/30"
+      className="px-3 py-2 rounded bg-black/30 border border-[var(--g-info)]/30"
     >
       <div className="flex justify-between items-center mb-1.5">
-        <span className="text-[11px] text-indigo-200 font-medium">{control.label}</span>
+        <span className="text-[11px] text-[var(--g-info)] font-medium">{control.label}</span>
         <span className="text-[10px] font-mono text-gray-400">{scale.toFixed(2)}&times;</span>
       </div>
       <input
@@ -369,7 +369,7 @@ function GeneratedControlRow({
         step="0.05"
         value={scale}
         onChange={(e) => onScale(control.group, parseFloat(e.target.value))}
-        className="w-full accent-indigo-500"
+        className="w-full accent-[var(--g-primary-blue)]"
         aria-label={`${control.label} — bound to ${control.tokenPath}`}
       />
     </div>
@@ -393,11 +393,11 @@ function DesignSystemPanel({
     <div data-testid="ds-panel">
       <div className="h-px bg-[var(--g-outline)] my-4" />
       <h4 className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider font-semibold text-gray-500 mb-3">
-        <Palette size={12} className="text-indigo-400" />
+        <Palette size={12} className="text-[var(--g-info)]" />
         Design System
         <span
           data-testid="ds-panel-count"
-          className="ml-auto px-1.5 py-0.5 rounded text-[9px] bg-indigo-500/20 text-indigo-300 font-mono border border-indigo-500/30"
+          className="ml-auto px-1.5 py-0.5 rounded text-[9px] bg-[var(--g-info)]/20 text-[var(--g-info)] font-mono border border-[var(--g-info)]/30"
         >
           {rows.length} tokens
         </span>
@@ -665,7 +665,7 @@ export default function StudioClientShell({ id }: { id: string }) {
             </button>
             <div className="flex items-center gap-2">
               <span className="font-semibold text-[13px] text-white tracking-wide">{id}</span>
-              <span className="px-1.5 py-0.5 rounded text-[10px] bg-indigo-500/20 text-indigo-300 font-mono border border-indigo-500/30">
+              <span className="px-1.5 py-0.5 rounded text-[10px] bg-[var(--g-info)]/20 text-[var(--g-info)] font-mono border border-[var(--g-info)]/30">
                 v1.0
               </span>
             </div>
@@ -720,7 +720,7 @@ export default function StudioClientShell({ id }: { id: string }) {
                   >
                     <Box
                       size={14}
-                      className="text-gray-500 group-hover:text-indigo-400 transition-colors"
+                      className="text-gray-500 group-hover:text-[var(--g-info)] transition-colors"
                     />
                     <span className="truncate">{layer}</span>
                   </div>
@@ -736,7 +736,7 @@ export default function StudioClientShell({ id }: { id: string }) {
               <button
                 data-testid="device-390"
                 aria-label="Mobile 390px"
-                className={`p-1.5 rounded transition-colors ${deviceWidth === 390 ? 'bg-indigo-500/30 text-indigo-300' : 'hover:bg-[var(--g-surface-hover)] text-gray-400 hover:text-white'}`}
+                className={`p-1.5 rounded transition-colors ${deviceWidth === 390 ? 'bg-[var(--g-info)]/30 text-[var(--g-info)]' : 'hover:bg-[var(--g-surface-hover)] text-gray-400 hover:text-white'}`}
                 onClick={() => setDeviceWidth(390)}
               >
                 <Smartphone size={16} />
@@ -744,7 +744,7 @@ export default function StudioClientShell({ id }: { id: string }) {
               <button
                 data-testid="device-768"
                 aria-label="Tablet 768px"
-                className={`p-1.5 rounded transition-colors ${deviceWidth === 768 ? 'bg-indigo-500/30 text-indigo-300' : 'hover:bg-[var(--g-surface-hover)] text-gray-400 hover:text-white'}`}
+                className={`p-1.5 rounded transition-colors ${deviceWidth === 768 ? 'bg-[var(--g-info)]/30 text-[var(--g-info)]' : 'hover:bg-[var(--g-surface-hover)] text-gray-400 hover:text-white'}`}
                 onClick={() => setDeviceWidth(768)}
               >
                 <Tablet size={16} />
@@ -752,7 +752,7 @@ export default function StudioClientShell({ id }: { id: string }) {
               <button
                 data-testid="device-1280"
                 aria-label="Desktop 1280px"
-                className={`p-1.5 rounded transition-colors ${deviceWidth === 1280 ? 'bg-indigo-500/30 text-indigo-300' : 'hover:bg-[var(--g-surface-hover)] text-gray-400 hover:text-white'}`}
+                className={`p-1.5 rounded transition-colors ${deviceWidth === 1280 ? 'bg-[var(--g-info)]/30 text-[var(--g-info)]' : 'hover:bg-[var(--g-surface-hover)] text-gray-400 hover:text-white'}`}
                 onClick={() => setDeviceWidth(1280)}
               >
                 <Monitor size={16} />
@@ -801,7 +801,7 @@ export default function StudioClientShell({ id }: { id: string }) {
                   data-testid="state-empty"
                   className="w-full h-full flex flex-col items-center justify-center bg-gray-50 gap-4 px-8"
                 >
-                  <MousePointer2 size={40} className="text-indigo-300" aria-hidden="true" />
+                  <MousePointer2 size={40} className="text-[var(--g-info)]" aria-hidden="true" />
                   <h2 className="text-lg font-semibold text-gray-700 text-center">
                     Ready to generate
                   </h2>
@@ -822,7 +822,11 @@ export default function StudioClientShell({ id }: { id: string }) {
                   aria-label="Generating design \u2014 please wait"
                   className="w-full h-full flex flex-col items-center justify-center bg-gray-50 gap-4"
                 >
-                  <Loader2 size={40} className="text-indigo-500 animate-spin" aria-hidden="true" />
+                  <Loader2
+                    size={40}
+                    className="text-[var(--g-info)] animate-spin"
+                    aria-hidden="true"
+                  />
                   <h2 className="text-lg font-semibold text-gray-700">Generating\u2026</h2>
                   <p className="text-sm text-gray-600">
                     Vertex AI Convergence Loop is running. This may take a moment.
@@ -937,7 +941,7 @@ export default function StudioClientShell({ id }: { id: string }) {
               {a2uiAnnouncement}
             </div>
             <div className="p-4 border-b border-[var(--g-outline)] flex items-center gap-2">
-              <SlidersHorizontal size={16} className="text-indigo-400" />
+              <SlidersHorizontal size={16} className="text-[var(--g-info)]" />
               <span className="text-sm font-semibold text-white">Vertex AI Settings</span>
             </div>
 
@@ -955,7 +959,7 @@ export default function StudioClientShell({ id }: { id: string }) {
                     step="0.05"
                     value={temperature}
                     onChange={(e) => setTemperature(parseFloat(e.target.value))}
-                    className="w-full accent-indigo-500"
+                    className="w-full accent-[var(--g-primary-blue)]"
                     aria-label="Temperature"
                   />
                 </div>
@@ -970,7 +974,7 @@ export default function StudioClientShell({ id }: { id: string }) {
                     max="40"
                     value={topK}
                     onChange={(e) => setTopK(parseInt(e.target.value))}
-                    className="w-full accent-indigo-500"
+                    className="w-full accent-[var(--g-primary-blue)]"
                     aria-label="Top-K"
                   />
                 </div>
@@ -986,7 +990,7 @@ export default function StudioClientShell({ id }: { id: string }) {
                     step="512"
                     value={maxTokens}
                     onChange={(e) => setMaxTokens(parseInt(e.target.value))}
-                    className="w-full accent-indigo-500"
+                    className="w-full accent-[var(--g-primary-blue)]"
                     aria-label="Max Tokens"
                   />
                 </div>
@@ -999,16 +1003,16 @@ export default function StudioClientShell({ id }: { id: string }) {
                 <h4 className="text-[11px] uppercase tracking-wider font-semibold text-gray-500 mb-3">
                   D-O-R-A-V Scorecard
                   {currentIteration != null && (
-                    <span className="ml-2 px-1.5 py-0.5 rounded text-[9px] bg-indigo-500/20 text-indigo-300 font-mono border border-indigo-500/30 align-middle">
+                    <span className="ml-2 px-1.5 py-0.5 rounded text-[9px] bg-[var(--g-info)]/20 text-[var(--g-info)] font-mono border border-[var(--g-info)]/30 align-middle">
                       iter {currentIteration + 1}
                     </span>
                   )}
                 </h4>
                 {/* Composite headline */}
-                <div className="bg-black/40 p-3 rounded border border-indigo-500/30 flex justify-between items-center mb-3">
+                <div className="bg-black/40 p-3 rounded border border-[var(--g-info)]/30 flex justify-between items-center mb-3">
                   <span className="text-xs text-gray-300 font-semibold">Composite</span>
                   <span
-                    className={`text-sm font-mono font-bold ${liveDorav?.composite != null ? 'text-indigo-300' : 'text-gray-600'}`}
+                    className={`text-sm font-mono font-bold ${liveDorav?.composite != null ? 'text-[var(--g-info)]' : 'text-gray-600'}`}
                   >
                     {liveDorav?.composite != null ? (
                       <AnimatedScoreValue value={liveDorav.composite} />

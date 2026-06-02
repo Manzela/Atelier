@@ -17,8 +17,6 @@ ADR Reference: 0007 (worktree discipline) — v1.0 implementation scope only
 
 from uuid import UUID, uuid4
 
-from atelier.a2ui.gate import gate_a2ui_surface
-from atelier.a2ui.surface import build_design_system_surface
 from atelier.intake.brief_spec import BriefSpec, VisualRegister
 from atelier.models.data_contracts import CandidateUI, SurfaceState
 
@@ -68,31 +66,6 @@ _REGISTER_TOKENS: dict[VisualRegister, tuple[str, str, str, str]] = {
         '"Inter", "Helvetica Neue", sans-serif',
     ),
 }
-
-
-def _register_token_map(register: VisualRegister) -> dict[str, str]:
-    """Flatten a register's token tuple to the ``{name: value}`` shape A2UI needs.
-
-    Mirrors the CSS custom properties emitted by :func:`_render_css` (so the
-    governed A2UI design-system panel shows exactly the tokens the generated HTML
-    actually consumes via ``var()``). The names use the Style-Dictionary kebab
-    naming the frontend AT-044 panel expects (``color-primary`` etc.).
-
-    Args:
-        register: The :class:`VisualRegister` whose token tuple drives the map.
-
-    Returns:
-        Ordered ``{token_name: value}`` mapping for the four register tokens plus
-        the shared spacing base.
-    """
-    primary, surface, ink, font_stack = _REGISTER_TOKENS[register]
-    return {
-        "color-primary": primary,
-        "color-surface": surface,
-        "color-ink": ink,
-        "font-body": font_stack,
-        "space-base": "1rem",
-    }
 
 
 # ---------------------------------------------------------------------------
@@ -293,30 +266,16 @@ def generate_candidate(
     """
     html = _render_html(brief, surface)
     css = _render_css(brief.visual_register)
-    # Governed A2UI (ADR-0024): emit the AT-044 design-system panel as an A2UI
-    # v0.10-SDK/v0.9-wire surface into the carrier slot. This is the Studio CHROME
-    # only — the design deliverable stays portable HTML in ``artifacts`` (untouched).
-    # GATE-BEFORE-EMIT (G2, ADR-0024 §2): the fail-closed governance gate
-    # (:func:`atelier.a2ui.gate.gate_a2ui_surface`) validates the candidate surface
-    # before it is carried forward. On PASS the surface ships in the carrier slot;
-    # on REJECT the slot drops to ``None`` (the candidate carries no ungoverned
-    # surface). The CANONICAL gate site that governs the surface the frontend
-    # RENDERS is api/generate.py:_enrich_complete_payload (it rebuilds + overwrites
-    # a2ui_payload last); runner.py mirrors it for the SSE events; this per-candidate
-    # gate is the third defense-in-depth layer.
-    a2ui_tokens = _register_token_map(brief.visual_register)
-    a2ui_surface = build_design_system_surface(
-        a2ui_tokens,
-        surface_id=f"design-system-{surface.surface_id}",
-    )
-    a2ui_gate = gate_a2ui_surface(
-        a2ui_surface,
-        design_tokens=a2ui_tokens,
-        surface_id=f"design-system-{surface.surface_id}",
-    )
-    a2ui_payload: dict[str, object] | None = (
-        {"messages": a2ui_surface} if a2ui_gate.passed else None
-    )
+    # Governed A2UI (ADR-0024) — G6 single-source convergence: the AT-044
+    # design-system panel surface is built + gated EXACTLY ONCE per run, at the
+    # canonical emit boundary (``api/generate.py:_enrich_complete_payload``), from
+    # the run's resolved ``project_context.design_tokens``. The per-candidate
+    # build that previously lived here derived a SEPARATE surface from
+    # register-token defaults that the frontend never rendered (it renders only
+    # the ``complete`` event's enriched ``a2ui_payload``) — a dead write and an
+    # inconsistent second token source. It is intentionally NOT rebuilt here.
+    # ``CandidateUI.a2ui_payload`` is retained as a forward-compat carrier slot
+    # but stays ``None``: candidates carry no ungoverned A2UI surface.
     return CandidateUI(
         candidate_id=uuid4(),
         surface_id=surface.surface_id,
@@ -327,5 +286,5 @@ def generate_candidate(
             "index.html": html,
             "main.css": css,
         },
-        a2ui_payload=a2ui_payload,
+        a2ui_payload=None,
     )

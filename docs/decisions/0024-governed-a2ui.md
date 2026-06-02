@@ -50,6 +50,39 @@ All coordinates verified against live registries this session (`npm view` / `gh`
 
 **Python side (P1, deferred):** `a2ui-agent-sdk` / `ag_ui_adk` (wrap the existing ADK) — must verify `google-adk` pin compatibility before adding; tracked as an ADR addendum, not authorized by this ADR.
 
+## Transport decision (SSE over AG-UI/A2A)
+
+A2UI is **transport-agnostic** — the v0.9 server-to-client message list
+(`createSurface` / `updateComponents` / `updateDataModel`) is a JSON payload that
+can be carried over any duplex or server-push channel. Atelier therefore carries
+the emitted A2UI surface over its **existing server-to-client SSE stream** (the
+`POST /v1/generate` event stream that already ships pipeline progress + the
+`complete` event), **not** over an AG-UI/CopilotKit runtime nor an A2A task
+channel. This is spec-compliant: A2UI prescribes the _message schema_, not the
+wire.
+
+**Why SSE, not AG-UI runtime:**
+
+- **No new heavy dependency, no lock-in.** A `CopilotRuntime` Node proxy or
+  CopilotKit Cloud would add a server-side runtime Atelier does not need —
+  Atelier already owns auth (Firebase token middleware), persistence (Firestore),
+  observability (OTel), and serving (ADK / Vertex / Cloud Run). SSE reuses the
+  transport already wired and tested, so the A2UI surface inherits the existing
+  trusted boundary for free. (See Decision driver #3 and Alternative A.)
+- **Server-to-client is the whole job here.** The Governed A2UI scope is
+  agent-driven Studio _chrome_ — the agent pushes surfaces, the client renders
+  them. That is a strictly server→client flow, exactly what SSE does natively.
+  The pinned `@ag-ui/client` `HttpAgent` (ADR table) is the **optional headless
+  consume path** for the same stream; it is not a runtime and adds no proxy.
+- **Lower attack + supply-chain surface.** Fewer packages on the render path
+  (`<lockfile_only_installs>` + Snyk), consistent with the honest-claim posture.
+
+**Revisit trigger:** adopt a bidirectional channel (AG-UI duplex events or A2A
+`message/stream`) **only if** we need client-to-agent **`userAction` steering** —
+i.e., the rendered A2UI surface itself originates agent control intents (button
+clicks driving the pipeline mid-run), which the current server→push design-system
+panel does not require. Until then, SSE is the deliberate, sufficient choice.
+
 ## Consequences
 
 ### Positive
