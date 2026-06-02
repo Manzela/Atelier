@@ -28,7 +28,7 @@
  *   `accessibility.label` is wired to `aria-label` on every component. This is
  *   the semantic-DOM contract the a11y track (G3) and its axe assertion rely on.
  *
- * VERIFIED API (grounded against the installed packages — `<no_unverified_apis>`):
+ * Verified API (grounded against the installed packages):
  *   - `createComponentImplementation(api, FC)` from `@a2ui/react/v0_9`
  *     (`v0_9/index.d.ts:37`): returns `ReactComponentImplementation` ({name,
  *     schema, render}). The FC receives `{ props, buildChild, context }` where
@@ -57,7 +57,7 @@
  * STYLING: 100% driven by the existing `--a2ui-*` CSS custom properties supplied
  * by `a2ui-theme.css` on `.a2ui-host`, so the theme sheet is REUSED UNCHANGED.
  * We deliberately do NOT call `injectBasicCatalogStyles` (a `basic_catalog`
- * subpath we must not couple to per `<wrap_dont_fork>`); each component inlines
+ * subpath we avoid coupling to, consistent with the wrap-don't-fork stance); each component inlines
  * the same `--a2ui-*` `style={{}}` var pattern as upstream — safe because the
  * theme overlay defines every referenced var.
  */

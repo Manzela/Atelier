@@ -10,7 +10,7 @@
  * (`best_html`). It mounts behind the `NEXT_PUBLIC_A2UI_RENDER` flag, with the
  * hand-built `DesignSystemPanel` as the default and the fail-soft fallback.
  *
- * Verified API (grounded against the installed packages — `<no_unverified_apis>`):
+ * Verified API (grounded against the installed packages):
  *   - `@a2ui/react@0.10.0`  → `A2uiSurface`, `MarkdownContext` from `.../v0_9`
  *     (`node_modules/@a2ui/react/v0_9/index.d.ts`):
  *       · `A2uiSurface: FC<{ surface: SurfaceModel<ReactComponentImplementation> }>`
@@ -100,7 +100,7 @@ class A2uiRenderErrorBoundary extends Component<
   }
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
-    // Structured log (never a silent swallow — <no_silent_error_suppression>).
+    // Structured log (never a silent swallow).
     console.error(
       '[A2uiDesignSystemPanel] render failed; falling back to the hand-built panel:',
       error,

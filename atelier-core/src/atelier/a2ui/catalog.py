@@ -20,7 +20,7 @@ Three things are declared here:
   design contract: a surface whose component is outside the allowlist, or omits a
   required prop, is REJECTed fail-closed by :func:`atelier.a2ui.gate.gate_a2ui_surface`.
 
-Schema provenance (verified, per ``<no_unverified_apis>``): the required-prop sets
+Schema provenance (verified against the published schema): the required-prop sets
 mirror ``@a2ui/web_core@0.10.0`` ⇒ ``src/v0_9/schemas/basic_catalog.json`` component
 shapes (Text needs ``text``; Card needs ``child``; Row/Column/List need ``children``;
 Divider's ``axis`` is optional). The upstream JSON-schema ``required`` arrays are

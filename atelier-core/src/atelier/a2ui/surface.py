@@ -19,7 +19,7 @@ entry in the ``/tokens`` data-model object. This mirrors the frontend AT-044
 ``FlatToken`` panel (``atelier-dashboard/src/lib/design-system.ts``): one editable
 row per leaf token (``path`` + ``value``).
 
-Schema provenance (verified against live sources this session — ``<no_unverified_apis>``):
+Schema provenance (verified against the published A2UI sources):
   * Wire schema: ``@a2ui/web_core@0.10.0`` ⇒ ``src/v0_9/schemas/server_to_client.json``
     (``$id`` ``https://a2ui.org/specification/v0_9/server_to_client.json``). Each
     message carries ``version: "v0.9"``; ``createSurface`` requires

@@ -21,7 +21,7 @@ custom governance event is carried on ``a2ui_governance``.
 ``CandidateUI.a2ui_payload`` is the per-candidate carrier slot — also gated in
 ``nodes/generator.py`` (dropped to ``None`` on REJECT).
 
-Schema source of truth (verified, per ``<no_unverified_apis>``):
+Schema source of truth (verified against the published schema):
   * ``@a2ui/web_core@0.10.0`` → ``src/v0_9/schemas/server_to_client.json``
     (``$id`` ``https://a2ui.org/specification/v0_9/server_to_client.json``).
   * Cross-checked against pinned ``google/A2UI``

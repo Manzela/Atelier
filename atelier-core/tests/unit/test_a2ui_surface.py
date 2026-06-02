@@ -8,7 +8,7 @@ against the pinned ``google/A2UI`` repo
 (commit ``0fde624719c500133c526f49df5b007d0392f3cb``) conformance fixture
 ``agent_sdks/conformance/test_data/simplified_s2c_v09.json``.
 
-Verified facts the assertions below encode (no guessing — per ``<no_unverified_apis>``):
+Verified facts the assertions below encode:
   * Every message carries ``version: "v0.9"`` (the SDK is 0.10.0; the *wire*
     version string is ``"v0.9"`` in both the npm schema and the repo fixture).
   * A full surface is an *ordered list* of messages: ``createSurface`` first,

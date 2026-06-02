@@ -1,15 +1,15 @@
 # 0024. Governed A2UI — control-layer adoption + catalog export
 
-**Status:** Accepted (2026-06-02) — P0 scope approved by operator. Additive to PRD v2.2; does **NOT** revive A2UI-as-output (ADR-0010, superseded).
+**Status:** Accepted (2026-06-02) — P0 scope approved. Additive to PRD v2.2; does **NOT** revive A2UI-as-output (ADR-0010, superseded).
 **Date:** 2026-06-02
-**Decision-makers:** Daniel Manzela (operator) + Claude Opus 4.8 (1M, ultracode) as builder
+**Decision-makers:** Daniel Manzela
 **Relates to:** complements ADR-0001 (wrap-don't-fork), ADR-0007 (worktree-per-phase); supersedes nothing; explicitly distinct from ADR-0010 (A2UI-as-output, superseded by PRD v2.2 §3.4/§10).
 
 ## Context and problem statement
 
 A2UI standardizes **how** an agent describes a UI; it says **nothing about whether that UI is good** — accessible, on-brand, within budget. That gap is Atelier's existing moat (deterministic gates, D-O-R-A-V judge, zero-tolerance token enforcement, token cap).
 
-ADR-0010 once made A2UI the **design output** protocol (render the deliverable to A2UI for React/Flutter/Lit/Angular). PRD v2.2 (2026-05-31) **dropped that** in favor of DTCG tokens + self-contained portable HTML. The code-grounding verification (`audit/governed-a2ui-gap-verification.md`) confirmed A2UI is today **scaffolded only**: `CandidateUI.a2ui_payload` is hardwired `None` (`nodes/generator.py:279`), the `complete` SSE event ships `best_html`, and the Studio chrome is hand-built React on a bespoke SSE vocabulary. The README even claimed "A2UI-Native Output | Shipped" — corrected this session (commit `6515d77`).
+ADR-0010 once made A2UI the **design output** protocol (render the deliverable to A2UI for React/Flutter/Lit/Angular). PRD v2.2 (2026-05-31) **dropped that** in favor of DTCG tokens + self-contained portable HTML. A review of the code at decision time confirmed A2UI was **scaffolded only**: `CandidateUI.a2ui_payload` was hardwired `None` (`nodes/generator.py`), the `complete` SSE event shipped `best_html`, and the Studio chrome was hand-built React on a bespoke SSE vocabulary. The README previously claimed "A2UI-Native Output | Shipped"; that overclaim was corrected in commit `6515d77`.
 
 The question: how to adopt A2UI **credibly and honestly** for the hackathon without (a) reviving the dropped output decision, (b) forking upstream, or (c) taking CopilotKit runtime/cloud lock-in.
 
@@ -18,7 +18,7 @@ The question: how to adopt A2UI **credibly and honestly** for the hackathon with
 - Four equally-weighted DevPost axes: Design / Technological Implementation / Quality of Idea / Potential Impact.
 - Honest-claim boundary — no "conformant"/"native"/"shipped" without substantiation (a live overclaim was just corrected).
 - PRD v2.2 §3.4/§10: the design **output** stays DTCG + portable HTML. Do not convert the deliverable.
-- `<wrap_dont_fork>` (ADR-0001); `<lockfile_only_installs>`; supply-chain hardening (Snyk).
+- Wrap upstream rather than fork (ADR-0001); lockfile-only installs; supply-chain hardening (Snyk).
 - Deadline: DevPost 2026-06-05; the `google/A2UI` GitHub repo **moves orgs 2026-06-03** (pin by commit before then).
 
 ## Decision
@@ -33,18 +33,18 @@ Adopt **Governed A2UI** scoped to the **Studio chrome / control layer + a catalo
 
 ### Verified dependency pins (captured 2026-06-02, before the org move)
 
-All coordinates verified against live registries this session (`npm view` / `gh`), per `<no_unverified_apis>`.
+All version coordinates were verified against the live registries (`npm view`, GitHub) before pinning.
 
-| Package                     | Pinned version                                                 | Role                                                            | Verified                                              |
-| --------------------------- | -------------------------------------------------------------- | --------------------------------------------------------------- | ----------------------------------------------------- |
-| `@a2ui/react`               | `0.10.0`                                                       | A2UI React renderer (`A2uiSurface` + `MessageProcessor`, /v0_9) | npm ✓                                                 |
-| `@a2ui/web_core`            | `0.10.0`                                                       | core renderer/types                                             | npm ✓                                                 |
-| `@ag-ui/core`               | `0.0.54`                                                       | AG-UI typed events/encoder (zero-dep)                           | npm ✓                                                 |
-| `@ag-ui/client`             | `0.0.54`                                                       | `HttpAgent` — headless stream consume                           | npm ✓                                                 |
-| `@copilotkit/a2ui-renderer` | `1.59.2`                                                       | CopilotKit A2UI renderer                                        | npm ✓ — **NOT adopted** (CONVERT: no runtime lock-in) |
-| `google/A2UI` (GitHub)      | commit `0fde624719c500133c526f49df5b007d0392f3cb` / tag `v0.9` | spec + conformance suite (`agent_sdks/conformance/`)            | gh ✓                                                  |
+| Package                     | Pinned version                                                 | Role                                                            | Verified                                       |
+| --------------------------- | -------------------------------------------------------------- | --------------------------------------------------------------- | ---------------------------------------------- |
+| `@a2ui/react`               | `0.10.0`                                                       | A2UI React renderer (`A2uiSurface` + `MessageProcessor`, /v0_9) | npm                                            |
+| `@a2ui/web_core`            | `0.10.0`                                                       | core renderer/types                                             | npm                                            |
+| `@ag-ui/core`               | `0.0.54`                                                       | AG-UI typed events/encoder (zero-dep)                           | npm                                            |
+| `@ag-ui/client`             | `0.0.54`                                                       | `HttpAgent` — headless stream consume                           | npm                                            |
+| `@copilotkit/a2ui-renderer` | `1.59.2`                                                       | CopilotKit A2UI renderer                                        | npm — **NOT adopted** (avoids runtime lock-in) |
+| `google/A2UI` (GitHub)      | commit `0fde624719c500133c526f49df5b007d0392f3cb` / tag `v0.9` | spec + conformance suite (`agent_sdks/conformance/`)            | GitHub                                         |
 
-**Pin by commit, not just tag:** `google/A2UI` (Apache-2.0, 15.1k★, pushed 2026-06-01) moves GitHub orgs on 2026-06-03, so the commit SHA `0fde6247…` is the durable reference; the `v0.9` tag may follow the repo.
+**Pin by commit, not just tag:** `google/A2UI` (Apache-2.0, 15.1k stars, pushed 2026-06-01) moves GitHub orgs on 2026-06-03, so the commit SHA `0fde6247…` is the durable reference; the `v0.9` tag may follow the repo.
 
 **Version skew (recorded):** the renderer SDK is at the **v0.10** wire schema (`createSurface`/`updateComponents`/`updateDataModel`/`version`/`callFunction`) while the repo's latest **tag is v0.9**. Target the v0.10 schema (what `@a2ui/react@0.10.0` renders); the G-34 conformance signal runs against the suite's supported version. Public claim: **"A2UI v0.9/v0.10-pattern aligned"**, never "certified".
 
@@ -75,7 +75,7 @@ wire.
   The pinned `@ag-ui/client` `HttpAgent` (ADR table) is the **optional headless
   consume path** for the same stream; it is not a runtime and adds no proxy.
 - **Lower attack + supply-chain surface.** Fewer packages on the render path
-  (`<lockfile_only_installs>` + Snyk), consistent with the honest-claim posture.
+  (lockfile-only installs + Snyk), consistent with the honest-claim posture.
 
 **Revisit trigger:** adopt a bidirectional channel (AG-UI duplex events or A2A
 `message/stream`) **only if** we need client-to-agent **`userAction` steering** —
@@ -116,7 +116,7 @@ The Governed A2UI render path ships behind a single build-time flag. The operato
 - **A — Adopt CopilotKit runtime + Cloud.** Rejected: vendor/runtime lock-in, not Google-native; Atelier already owns the trusted boundary + persistence + serving.
 - **B — Revive A2UI as the design OUTPUT (ADR-0010).** Rejected: PRD v2.2 dropped it; the deliverable stays DTCG + portable HTML.
 - **C — Keep bespoke SSE, no A2UI.** Rejected: forfeits the Tech/Idea standards signal for a Google-judged hackathon.
-- **D — Hand-roll an A2UI renderer.** Rejected per `<wrap_dont_fork>` (ADR-0001): consume via pinned deps.
+- **D — Hand-roll an A2UI renderer.** Rejected per the wrap-don't-fork principle (ADR-0001): consume via pinned deps.
 
 ## Honest-claim boundary
 
@@ -124,12 +124,10 @@ Until a real `surfaceUpdate`/`createSurface` is emitted and rendered (and, ideal
 
 ## Governance note (branch divergence)
 
-This build branch (`feature/studio-design-pass`) currently **lacks** `docs/decisions/0001-0010` and `DECISIONS.md` that exist on `origin/main` (the two lines diverged at `9b70317`; the app source lives only on this branch). This ADR continues the **canonical** numbering (`0011`) regardless. Reconciling the governance scaffold between the build branch and `origin/main` is a tracked follow-up, deferred per the operator's "build here, reconcile later" decision.
+This build branch (`feature/studio-design-pass`) currently **lacks** the `docs/decisions/0001-0023` set and `DECISIONS.md` that exist on `origin/main` (the two lines diverged at `9b70317`; the app source lives only on this branch). This ADR takes number **`0024`** — the next free slot in the canonical sequence — because `0011` is already the ratified "Web-Research-Augmented Intake" decision on `origin/main`. Reconciling the governance scaffold between the build branch and `origin/main` is a tracked follow-up.
 
 ## References
 
-- `audit/governed-a2ui-architecture.md` — the Governed A2UI build spec.
-- `audit/governed-a2ui-gap-verification.md` — the code-grounding verification (34 gaps; this ADR closes the "no decision record" precondition for P0).
 - ADR-0010 (superseded) — A2UI-as-output, dropped by PRD v2.2.
 - ADR-0001 (wrap-don't-fork), ADR-0007 (worktree-per-phase).
 - `docs/superpowers/specs/2026-05-31-atelier-prd-v2.2.md` §3.4/§10 — output protocol decision (HTML, not A2UI).
