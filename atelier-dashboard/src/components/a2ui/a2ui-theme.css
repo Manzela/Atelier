@@ -78,14 +78,31 @@
   color: var(--g-text);
 }
 
-/* Token VALUE rows: the catalog's caption-variant Text wraps its content in a
-   semantic `<em>` (verified in-DOM: the value renders as `<p><em>…</em></p>`,
-   and the wrapper className is empty at runtime — NOT `.a2uiCaption` — so a
-   class-scoped override never matches). DESIGN_SYSTEM.md wants token values /
-   numerals in MONOSPACE + upright (mirroring the hand-built panel), so target
-   the caption `<em>` directly. Our governed surface only ever emphasizes token
-   values, so `.a2ui-host em` is safe; `!important` wins over the catalog's
-   auto-injected (`document.adoptedStyleSheets`) component sheet. */
+/* ---- WCAG AA contrast guard (G3 a11y — MEASURED, do NOT "fix") ------------
+   The Governed A2UI panel's text/surface pairs were measured against the WCAG
+   2.x relative-luminance formula and BOTH clear the AA 4.5:1 normal-text floor
+   on the panel surface `--g-surface` (#1e1f22):
+
+     • token NAMES  — `--g-text` (#e3e3e3) on #1e1f22  = 12.84:1
+     • token VALUES — `--g-text-muted` (#9aa0a6) on #1e1f22 = 6.24:1
+       (rendered at `--a2ui-font-size-xs` = 0.625rem ≈ 10px → the 4.5:1 normal
+        threshold applies, not the 3:1 large-text one; 6.24:1 clears it.)
+
+   INVARIANT: never darken `--g-text-muted` below the 4.5:1 floor on #1e1f22,
+   and never render token-value text dimmer/smaller than this. There is NO color
+   change to make here — the guard is enforced empirically by the `color-contrast`
+   axe rule in `e2e/a2ui-render.spec.ts` (scoped to the panel), which catches any
+   future token drift. If extra headroom is ever wanted, scope a value-only
+   override to `.a2ui-host` (e.g. #c4c7c5 = 9.67:1) — do NOT touch the global
+   `--g-text-muted` token shared by the hand-built panel. */
+
+/* Token VALUE rows: the Atelier catalog's caption-variant Text renders a
+   semantic `<small>` whose inner `*…*` markdown yields `<em>` (the value renders
+   as `<small><em>…</em></small>`). DESIGN_SYSTEM.md wants token values / numerals
+   in MONOSPACE + upright (mirroring the hand-built panel), so target the caption
+   `<em>` directly. Our governed surface only ever emphasizes token values, so
+   `.a2ui-host em` is safe. (Keep this rule in lockstep with the catalog's Text
+   caption → `<small><em>` rendering — see `atelierCatalog.ts`.) */
 .a2ui-host em {
   font-family: ui-monospace, 'SF Mono', 'Roboto Mono', monospace !important;
   font-style: normal !important;

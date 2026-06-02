@@ -5,7 +5,10 @@ agent-driven Studio design-system token panel. No I/O, no LLM calls, no network.
 
 The output is an ordered list of A2UI server-to-client messages:
 
-  1. ``createSurface``    — opens the surface against the basic catalog.
+  1. ``createSurface``    — opens the surface against the **Atelier design-system
+     catalog** (:data:`A2UI_CATALOG_ID`, mirrored from
+     :data:`atelier.a2ui.catalog.ATELIER_CATALOG_ID`), the custom 6-component
+     trusted allowlist that replaces the upstream basic catalog (G4, ADR-0024).
   2. ``updateComponents`` — the declarative component tree (one ``id == "root"``).
   3. ``updateDataModel``  — the token rows the tree's template binds against.
 
@@ -23,10 +26,14 @@ Schema provenance (verified against live sources this session — ``<no_unverifi
     ``surfaceId`` + ``catalogId``; ``updateComponents`` requires ``surfaceId`` +
     a non-empty ``components`` array with exactly one ``id == "root"``;
     ``updateDataModel`` requires ``surfaceId`` and carries ``value`` (the data model).
-  * Component catalog: ``@a2ui/web_core@0.10.0`` ⇒ ``src/v0_9/schemas/basic_catalog.json``
-    (``Card``/``Column``/``Row``/``Text``/``Divider``/``List`` shapes; ``Text.text`` is a
-    ``DynamicString`` = literal or ``{"path": ...}`` ``DataBinding``; ``ChildList`` may be
-    a template object ``{"componentId", "path"}``).
+  * Component catalog: the Atelier design-system catalog
+    (:data:`atelier.a2ui.catalog.ATELIER_CATALOG_ID`) — a hand-authored 6-component
+    trusted allowlist (``Card``/``Column``/``Row``/``Text``/``Divider``/``List``) whose
+    per-component schema mirrors ``@a2ui/web_core@0.10.0`` ⇒
+    ``src/v0_9/schemas/basic_catalog.json`` field-for-field so the wire tree below
+    validates against the renderer unchanged (``Text.text`` is a ``DynamicString`` =
+    literal or ``{"path": ...}`` ``DataBinding``; ``ChildList`` may be a template
+    object ``{"componentId", "path"}``).
   * Template-binding pattern: pinned ``google/A2UI`` (commit
     ``0fde624719c500133c526f49df5b007d0392f3cb``)
     ``samples/agent/adk/custom-components-example/examples/0.9/contact_list.json``.
@@ -39,6 +46,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from atelier.a2ui.catalog import ATELIER_CATALOG_ID
+
 logger = logging.getLogger(__name__)
 
 #: The A2UI **wire** protocol version string. NOTE: the renderer *SDK* is at
@@ -49,10 +58,14 @@ logger = logging.getLogger(__name__)
 #: against the renderer's schema; the renderer rejects an unknown version const.
 A2UI_WIRE_VERSION: str = "v0.9"
 
-#: The basic catalog the design-system panel renders against (the only catalog
-#: shipped with ``@a2ui/web_core@0.10.0``: ``src/v0_9/schemas/basic_catalog.json``,
-#: whose ``catalogId`` is this URL).
-A2UI_BASIC_CATALOG_ID: str = "https://a2ui.org/specification/v0_9/basic_catalog.json"
+#: The Atelier design-system catalog the panel renders against (G4, ADR-0024).
+#: This is the **wire-emit** alias of :data:`atelier.a2ui.catalog.ATELIER_CATALOG_ID`
+#: — re-exported here (not re-declared) so the ``createSurface.catalogId`` the
+#: backend emits can never byte-diverge from the gate's allowlist constant or the
+#: frontend's registered catalog id. It is an OPAQUE IDENTIFIER (never fetched);
+#: the renderer matches ``createSurface.catalogId`` against the registered
+#: ``atelierCatalog.id``, so this string MUST equal that catalog's id exactly.
+A2UI_CATALOG_ID: str = ATELIER_CATALOG_ID
 
 #: Component IDs used in the design-system surface tree. Kept as constants so the
 #: tree and any future ``userAction`` ownership checks reference the same names.
@@ -139,6 +152,13 @@ def _build_components() -> list[dict[str, Any]]:
     Returns:
         The ``components`` array for the ``updateComponents`` message. Exactly one
         component has ``id == "root"`` (schema-required).
+
+    Every ``component`` type used here is a member of the Atelier catalog allowlist
+    :data:`atelier.a2ui.catalog.ATELIER_CATALOG_COMPONENTS`
+    (``{Card, Column, Row, Text, Divider, List}``) — the gate's security-perimeter
+    source of truth. The fail-closed gate (:func:`atelier.a2ui.gate.gate_a2ui_surface`)
+    REJECTS any surface whose component falls outside that set, so this tree must
+    only ever emit those 6 types.
     """
     return [
         {
@@ -244,7 +264,7 @@ def build_design_system_surface(
             "version": A2UI_WIRE_VERSION,
             "createSurface": {
                 "surfaceId": surface_id,
-                "catalogId": A2UI_BASIC_CATALOG_ID,
+                "catalogId": A2UI_CATALOG_ID,
             },
         },
         {

@@ -11,35 +11,50 @@
  * hand-built `DesignSystemPanel` as the default and the fail-soft fallback.
  *
  * Verified API (grounded against the installed packages — `<no_unverified_apis>`):
- *   - `@a2ui/react@0.10.0`  → `A2uiSurface`, `basicCatalog` from `.../v0_9`
+ *   - `@a2ui/react@0.10.0`  → `A2uiSurface`, `MarkdownContext` from `.../v0_9`
  *     (`node_modules/@a2ui/react/v0_9/index.d.ts`):
  *       · `A2uiSurface: FC<{ surface: SurfaceModel<ReactComponentImplementation> }>`
- *       · `basicCatalog: Catalog<ReactComponentImplementation>`
- *     Component styles auto-inject via `document.adoptedStyleSheets`
- *     (`useBasicCatalogStyles`), so this component is strictly client-side.
+ *   - `atelierCatalog` (G4, this repo) — the Atelier custom Material-3 catalog
+ *     that REPLACES the upstream `basicCatalog`. It declares exactly the 6
+ *     trusted component types (Card/Column/Row/Text/Divider/List) and renders
+ *     NATIVE SEMANTIC HTML with `aria-label` by construction (see
+ *     `./atelierCatalog`). Its `.id` is `ATELIER_CATALOG_ID`; the surface's
+ *     `createSurface.catalogId` must equal it or nothing renders.
  *   - `@a2ui/web_core`      → `MessageProcessor` from `.../v0_9`
  *     (`message-processor.d.ts` / `surface-group-model.d.ts`):
  *       · `new MessageProcessor(catalogs)` ; `.processMessages(A2uiMessage[])`
  *       · `.model.surfacesMap: ReadonlyMap<string, SurfaceModel>`
  *       · `.onSurfaceCreated(fn) / .onSurfaceDeleted(fn) → { unsubscribe() }`
  *
- * The catalog's component CSS auto-injects at runtime (`useBasicCatalogStyles`
- * → `document.adoptedStyleSheets`), so we only overlay the Material-3 dark
- * "Stitch" theme via `a2ui-theme.css` (maps `--g-*` Studio tokens → `--a2ui-*`).
- * The `Text` component renders MARKDOWN, so we also provide `@a2ui/markdown-it`'s
- * `renderMarkdown` via `MarkdownContext` (else headings/values leak raw markdown).
+ * Styling is driven entirely by the `--a2ui-*` CSS custom properties supplied by
+ * the Material-3 dark "Stitch" overlay (`a2ui-theme.css`, maps `--g-*` Studio
+ * tokens → `--a2ui-*`); the Atelier catalog inlines those vars per component, so
+ * no external catalog sheet is needed. The `Text` component renders MARKDOWN, so
+ * we also provide `@a2ui/markdown-it`'s `renderMarkdown` via `MarkdownContext`
+ * (else headings/values leak raw markdown).
+ *
+ * Accessibility (G3): the Atelier-owned root wrapper carries a stable identity
+ * (`role="group"`, `aria-label`, `tabIndex={-1}`, `aria-busy`, ref forwarding)
+ * so the shell can move focus to it on (re)mount and scope its axe assertion to
+ * it — independent of the catalog's (markdown-rendered, id-less) heading.
  */
 
-import React, { Component, useEffect, useState, type ErrorInfo, type ReactNode } from 'react';
-import { A2uiSurface, basicCatalog, MarkdownContext } from '@a2ui/react/v0_9';
+import React, {
+  Component,
+  forwardRef,
+  useEffect,
+  useState,
+  type ErrorInfo,
+  type ReactNode,
+} from 'react';
+import { A2uiSurface, MarkdownContext } from '@a2ui/react/v0_9';
 import { MessageProcessor } from '@a2ui/web_core/v0_9';
 import { renderMarkdown } from '@a2ui/markdown-it';
 import type { A2uiMessage } from '@/lib/api';
+import { atelierCatalog } from './atelierCatalog';
 // Material-3 dark "Stitch" overlay — maps `--g-*` Studio tokens onto `--a2ui-*`.
-// NOTE: the catalog's own component styles are auto-injected at runtime by the
-// renderer (`useBasicCatalogStyles` → `document.adoptedStyleSheets`), so we do
-// NOT import `@a2ui/react/v0_9/index.css` — the package's `exports` map does not
-// expose it as a subpath, and the runtime injection makes it unnecessary.
+// The Atelier catalog drives every component's visuals through these vars, so we
+// do NOT import any catalog component sheet — the overlay is the single source.
 import './a2ui-theme.css';
 
 /**
@@ -53,7 +68,11 @@ import './a2ui-theme.css';
  * (verified: the `data-model.d.ts` files diff clean) and there are NO `instanceof`
  * checks in the renderer — they differ only nominally because each class declares
  * a `private` field, which TypeScript treats as a distinct identity. The two
- * boundary casts below bridge that nominal gap; they are runtime no-ops.
+ * boundary casts below bridge that nominal gap; they are runtime no-ops. The
+ * Atelier catalog is built on the react package's `createComponentImplementation`
+ * (web_core 0.10.0) and registered into the root 0.9.2 `MessageProcessor` — the
+ * SAME nominal-private-field gap, bridged by the SAME documented cast (we do not
+ * introduce a new cast style).
  *
  * A root `overrides` forcing a single `@a2ui/web_core@0.10.0` was evaluated and
  * REJECTED: npm retains both copies regardless (`@a2ui/markdown-it` pins 0.9.2),
@@ -113,16 +132,23 @@ class A2uiRenderErrorBoundary extends Component<
  * `MessageProcessor` once, seed it with the message list, then keep the surface
  * list in sync with create/delete events.
  */
-function A2uiSurfaceRenderer({ messages }: { messages: A2uiMessage[] }) {
+function A2uiSurfaceRenderer({
+  messages,
+  onSurfaceReady,
+}: {
+  messages: A2uiMessage[];
+  onSurfaceReady?: () => void;
+}) {
   // `processMessages` accepts the strict `A2uiMessage[]` union; our loose
   // `api.ts` type is assignable to it. The single `unknown`→processor cast is
   // localized here so the rest of the app stays free of the renderer's
   // internal package types.
   const [processor] = useState(() => {
-    // `basicCatalog` (0.10.0) → `MessageProcessor` (0.9.2) catalog param: bridged
-    // (see the version-bridge note above; runtime-identical, nominal-only gap).
+    // `atelierCatalog` (built on react-pkg 0.10.0) → `MessageProcessor` (0.9.2)
+    // catalog param: bridged (see the version-bridge note above; runtime-
+    // identical, nominal-only gap). REUSE the documented cast — no new style.
     const p = new MessageProcessor([
-      basicCatalog as unknown as ConstructorParameters<typeof MessageProcessor>[0][number],
+      atelierCatalog as unknown as ConstructorParameters<typeof MessageProcessor>[0][number],
     ]);
     p.processMessages(messages as Parameters<typeof p.processMessages>[0]);
     return p;
@@ -140,17 +166,28 @@ function A2uiSurfaceRenderer({ messages }: { messages: A2uiMessage[] }) {
     };
   }, [processor]);
 
+  // A11y (G3): once a surface has materialized, signal the shell so it can
+  // announce readiness in the persistent live region and move focus to the
+  // Atelier-owned wrapper. Fires post-paint (effect) so AT does not miss it; the
+  // catalog heading is markdown-rendered with no stable id, so the shell focuses
+  // the wrapper, NOT the heading.
+  const ready = surfaces.length > 0;
+  useEffect(() => {
+    if (ready) onSurfaceReady?.();
+  }, [ready, onSurfaceReady]);
+
   if (surfaces.length === 0) {
     // No surface materialized — treat as a soft gap so the parent can fall back.
     throw new Error('A2UI payload produced no surfaces');
   }
 
   return (
-    // The basic-catalog `Text` component renders its content as MARKDOWN; without
-    // a renderer in context it falls back to a raw-passthrough that leaks the
-    // markdown source (e.g. `### Design System`, `**`). We provide `@a2ui/markdown-it`'s
-    // `renderMarkdown` (the package's own renderer; signature matches the
-    // `MarkdownRenderer` type) so headings/values render cleanly.
+    // The Atelier catalog's `Text` component renders its content as MARKDOWN;
+    // without a renderer in context it falls back to a raw-passthrough that leaks
+    // the markdown source (e.g. `### Design System`, `**`). We provide
+    // `@a2ui/markdown-it`'s `renderMarkdown` (the package's own renderer;
+    // signature matches the `MarkdownRenderer` type) so headings/values render
+    // cleanly INSIDE the semantic <h1..5>/<small>/<p> elements the catalog emits.
     <MarkdownContext.Provider value={renderMarkdown}>
       {surfaces.map((surface) => (
         // 0.9.2 SurfaceModel → renderer's 0.10.0 SurfaceModel: bridged
@@ -170,22 +207,50 @@ export interface A2uiDesignSystemPanelProps {
    * AT-044 panel. The agent always acknowledges degradation — never silent.
    */
   onRenderError: (error: Error) => void;
+  /**
+   * A11y (G3): fired once a surface has materialized (post-mount). The shell uses
+   * it to announce readiness in the persistent live region and move focus to this
+   * wrapper (the focus-on-remount target — NOT the catalog's id-less heading).
+   */
+  onSurfaceReady?: () => void;
+  /**
+   * A11y (G3): drives `aria-busy` on the wrapper. The shell sets this true while
+   * the surface is streaming/generating so AT knows the region is updating.
+   * Defaults to false; forward-compatible with future streaming (G2).
+   */
+  isStreaming?: boolean;
 }
 
 /**
  * Governed A2UI design-system panel. Themed to match the hand-built panel; on
  * any render failure it acknowledges degradation and signals the parent to fall
- * back. Root carries `data-testid="studio-a2ui-design-system"` for e2e.
+ * back.
+ *
+ * A11y (G3): the root wrapper (`data-testid="studio-a2ui-design-system"`) is the
+ * Atelier-owned focus + axe anchor. It carries a stable identity that survives
+ * the React/MessageProcessor subtree swap because it lives OUTSIDE the renderer's
+ * reconciliation: `role="group"`, `aria-label="Generated design system"`,
+ * `tabIndex={-1}` (programmatically focusable on remount), `aria-busy`
+ * (streaming hint), and a forwarded `ref` so the shell can call `.focus()`.
  */
-export default function A2uiDesignSystemPanel({
-  messages,
-  onRenderError,
-}: A2uiDesignSystemPanelProps) {
-  return (
-    <div data-testid="studio-a2ui-design-system" className="a2ui-host">
-      <A2uiRenderErrorBoundary onRenderError={onRenderError}>
-        <A2uiSurfaceRenderer messages={messages} />
-      </A2uiRenderErrorBoundary>
-    </div>
-  );
-}
+const A2uiDesignSystemPanel = forwardRef<HTMLDivElement, A2uiDesignSystemPanelProps>(
+  function A2uiDesignSystemPanel({ messages, onRenderError, onSurfaceReady, isStreaming }, ref) {
+    return (
+      <div
+        ref={ref}
+        data-testid="studio-a2ui-design-system"
+        className="a2ui-host"
+        role="group"
+        aria-label="Generated design system"
+        tabIndex={-1}
+        aria-busy={isStreaming ?? false}
+      >
+        <A2uiRenderErrorBoundary onRenderError={onRenderError}>
+          <A2uiSurfaceRenderer messages={messages} onSurfaceReady={onSurfaceReady} />
+        </A2uiRenderErrorBoundary>
+      </div>
+    );
+  }
+);
+
+export default A2uiDesignSystemPanel;

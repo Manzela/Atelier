@@ -67,15 +67,18 @@ def test_every_message_carries_wire_version() -> None:
 
 @pytest.mark.unit
 def test_create_surface_message_shape() -> None:
-    """createSurface must carry surfaceId + catalogId (required by the schema)."""
-    from atelier.a2ui.surface import build_design_system_surface
+    """createSurface must carry surfaceId + the Atelier catalogId."""
+    from atelier.a2ui.catalog import ATELIER_CATALOG_ID
+    from atelier.a2ui.surface import A2UI_CATALOG_ID, build_design_system_surface
 
     surface = build_design_system_surface(_TOKENS, surface_id="design-system")
     create = surface[0]["createSurface"]
 
     assert create["surfaceId"] == "design-system"
-    assert isinstance(create["catalogId"], str)
-    assert create["catalogId"]
+    # The emitted catalogId is the Atelier design-system catalog id — byte-identical
+    # to the catalog module's constant (single source of truth, no drift).
+    assert create["catalogId"] == ATELIER_CATALOG_ID
+    assert A2UI_CATALOG_ID == ATELIER_CATALOG_ID
     # additionalProperties:false — only the schema-allowed keys may appear.
     assert set(create.keys()) <= {"surfaceId", "catalogId", "theme", "sendDataModel"}
 
@@ -100,29 +103,35 @@ def test_update_components_has_exactly_one_root() -> None:
         assert comp["id"]
         assert isinstance(comp.get("component"), str)
         assert comp["component"]
-    # All catalog component types used must be from the basic catalog.
-    allowed = {
-        "Text",
-        "Image",
-        "Icon",
-        "Video",
-        "AudioPlayer",
-        "Row",
-        "Column",
-        "List",
-        "Card",
-        "Tabs",
-        "Modal",
-        "Divider",
-        "Button",
-        "TextField",
-        "CheckBox",
-        "ChoicePicker",
-        "Slider",
-        "DateTimeInput",
-    }
+    # All catalog component types used MUST be from the TIGHTER Atelier catalog
+    # allowlist (the 6-component security perimeter), not the upstream 18-name
+    # basic catalog. This enforces the production trusted set as the source of truth.
+    from atelier.a2ui.catalog import ATELIER_CATALOG_COMPONENTS
+
     for comp in components:
-        assert comp["component"] in allowed, f"unknown component {comp['component']}"
+        assert comp["component"] in ATELIER_CATALOG_COMPONENTS, (
+            f"component {comp['component']!r} is outside the Atelier catalog allowlist "
+            f"{sorted(ATELIER_CATALOG_COMPONENTS)}"
+        )
+
+
+@pytest.mark.unit
+def test_every_component_is_in_atelier_catalog_allowlist() -> None:
+    """Security-perimeter invariant: the surface emits ONLY allowlisted components."""
+    from atelier.a2ui.catalog import ATELIER_CATALOG_COMPONENTS
+    from atelier.a2ui.surface import build_design_system_surface
+
+    # The Atelier catalog is exactly the 6 trusted component types.
+    expected_allowlist = frozenset({"Card", "Column", "Row", "Text", "Divider", "List"})
+    assert set(ATELIER_CATALOG_COMPONENTS) == set(expected_allowlist)
+
+    surface = build_design_system_surface(_TOKENS, surface_id="design-system")
+    components = surface[1]["updateComponents"]["components"]
+    emitted_types = {c["component"] for c in components}
+    # Every emitted type is allowlisted (subset), and the surface exercises the
+    # whole allowlist (the panel uses all 6 types).
+    assert emitted_types <= ATELIER_CATALOG_COMPONENTS
+    assert emitted_types == ATELIER_CATALOG_COMPONENTS
 
 
 @pytest.mark.unit

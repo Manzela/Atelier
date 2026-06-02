@@ -17,6 +17,7 @@ ADR Reference: 0007 (worktree discipline) — v1.0 implementation scope only
 
 from uuid import UUID, uuid4
 
+from atelier.a2ui.gate import gate_a2ui_surface
 from atelier.a2ui.surface import build_design_system_surface
 from atelier.intake.brief_spec import BriefSpec, VisualRegister
 from atelier.models.data_contracts import CandidateUI, SurfaceState
@@ -295,13 +296,26 @@ def generate_candidate(
     # Governed A2UI (ADR-0024): emit the AT-044 design-system panel as an A2UI
     # v0.10-SDK/v0.9-wire surface into the carrier slot. This is the Studio CHROME
     # only — the design deliverable stays portable HTML in ``artifacts`` (untouched).
-    # NOTE(P0.5 gate-before-emit): the fail-closed governance gate (axe/contrast +
-    # D-O-R-A-V + token enforcement on the surface, REJECT → CUSTOM event per
-    # ADR-0024 §2) hooks in HERE — validate ``a2ui_surface`` before it is carried
-    # forward, in a later slice. P0.4 emits the additive payload only.
+    # GATE-BEFORE-EMIT (G2, ADR-0024 §2): the fail-closed governance gate
+    # (:func:`atelier.a2ui.gate.gate_a2ui_surface`) validates the candidate surface
+    # before it is carried forward. On PASS the surface ships in the carrier slot;
+    # on REJECT the slot drops to ``None`` (the candidate carries no ungoverned
+    # surface). The CANONICAL gate site that governs the surface the frontend
+    # RENDERS is api/generate.py:_enrich_complete_payload (it rebuilds + overwrites
+    # a2ui_payload last); runner.py mirrors it for the SSE events; this per-candidate
+    # gate is the third defense-in-depth layer.
+    a2ui_tokens = _register_token_map(brief.visual_register)
     a2ui_surface = build_design_system_surface(
-        _register_token_map(brief.visual_register),
+        a2ui_tokens,
         surface_id=f"design-system-{surface.surface_id}",
+    )
+    a2ui_gate = gate_a2ui_surface(
+        a2ui_surface,
+        design_tokens=a2ui_tokens,
+        surface_id=f"design-system-{surface.surface_id}",
+    )
+    a2ui_payload: dict[str, object] | None = (
+        {"messages": a2ui_surface} if a2ui_gate.passed else None
     )
     return CandidateUI(
         candidate_id=uuid4(),
@@ -313,5 +327,5 @@ def generate_candidate(
             "index.html": html,
             "main.css": css,
         },
-        a2ui_payload={"messages": a2ui_surface},
+        a2ui_payload=a2ui_payload,
     )

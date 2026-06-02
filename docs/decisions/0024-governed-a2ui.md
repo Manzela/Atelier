@@ -68,6 +68,16 @@ All coordinates verified against live registries this session (`npm view` / `gh`
 
 - The flag keeps the hand-built React path live; A2UI is opt-in until proven, then promoted.
 
+## Feature-flag lifecycle
+
+The Governed A2UI render path ships behind a single build-time flag. The operator-facing canonical record is [`atelier-dashboard/.env.example`](../../atelier-dashboard/.env.example); this table is the governance record. CI exercises **both** flag states via the `dashboard-e2e` matrix (`a2ui_flag: [off, on]`) in [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
+
+| Flag                      | Owner          | Introduced | Default   | Flip-on criteria                                                                                                     | Removal criteria                                                                                                         |
+| ------------------------- | -------------- | ---------- | --------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `NEXT_PUBLIC_A2UI_RENDER` | Daniel Manzela | 2026-06-02 | `0` (off) | G2 fail-closed gate-before-emit green **and** G3 a11y/axe-in-CI green **and** the `a2ui-render` flag-ON CI leg green | A2UI promoted to the default render path with the hand-built `DesignSystemPanel` retained only as the fail-soft fallback |
+
+**Build-time-inline caveat:** Next.js statically inlines `NEXT_PUBLIC_*` at build time, so flipping the default requires a rebuild, not a restart. The dependency bridge the render path relies on (`@a2ui/web_core` 0.9.2 + 0.10.0) is machine-guarded by `scripts/ci/check-a2ui-skew.mjs` (the `a2ui-skew` CI job).
+
 ## Alternatives considered
 
 - **A — Adopt CopilotKit runtime + Cloud.** Rejected: vendor/runtime lock-in, not Google-native; Atelier already owns the trusted boundary + persistence + serving.

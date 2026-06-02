@@ -124,6 +124,23 @@ export interface CompleteData {
    * Absent on legacy/degraded paths; the hand-built panel is the fail-soft fallback.
    */
   a2ui_payload?: A2uiMessage[];
+  /**
+   * ADR-0024 / P0.4 (G2): governance events from the fail-closed A2UI gate. When
+   * the gate REJECTS the surface, the backend sets ``a2ui_payload`` to ``[]``
+   * (frontend fail-soft → hand-built panel) and attaches the rejection event(s)
+   * here. Shape mirrors the gate's ``governance_messages``: an A2UI custom event
+   * (``name: "atelier/governance.rejected"``) carrying the surface id and the
+   * per-error validation detail. Consumed for provenance/telemetry; the panel
+   * still falls back via the empty payload. Absent when the surface passed.
+   */
+  a2ui_governance?: {
+    version: 'v0.9';
+    custom: {
+      surfaceId: string;
+      name: string;
+      payload: Record<string, unknown>;
+    };
+  }[];
 }
 
 export interface CapReachedData {

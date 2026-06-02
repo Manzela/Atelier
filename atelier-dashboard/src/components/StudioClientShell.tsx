@@ -476,6 +476,12 @@ export default function StudioClientShell({ id }: { id: string }) {
   // throws, `a2uiRenderFailed` latches and we fall back to the hand-built panel.
   const [a2uiPayload, setA2uiPayload] = useState<A2uiMessage[] | null>(null);
   const [a2uiRenderFailed, setA2uiRenderFailed] = useState(false);
+  // G3 a11y: a single SHELL-OWNED announcer. `a2uiAnnouncement` is written into a
+  // persistent role="status" aria-live="polite" region mounted BEFORE the surface
+  // (so SC 4.1.3 is satisfied — the region pre-exists the update). `a2uiPanelRef`
+  // points at the A2UI panel wrapper so we can move focus to it on (re)mount.
+  const [a2uiAnnouncement, setA2uiAnnouncement] = useState('');
+  const a2uiPanelRef = useRef<HTMLDivElement>(null);
   // Render the A2UI panel only when: flag ON, a payload arrived, and it has not
   // already failed. Otherwise the hand-built panel is the default + fallback.
   const useA2uiPanel = A2UI_RENDER_ENABLED && a2uiPayload !== null && !a2uiRenderFailed;
@@ -524,7 +530,18 @@ export default function StudioClientShell({ id }: { id: string }) {
   const handleA2uiRenderError = (error: Error) => {
     setA2uiRenderFailed(true);
     addLog('WARN', `A2UI panel degraded — using hand-built panel: ${error.message}`);
+    // G3 a11y: durable announcement of the fail-soft swap (the in-panel degraded
+    // transient unmounts on fallback; the shell live region is the durable voice).
+    setA2uiAnnouncement('Design system panel unavailable — showing the standard panel');
   };
+
+  // G3 a11y: the A2UI surface materialized. Announce readiness once and move
+  // focus to the Atelier-owned wrapper (NOT the catalog's markdown-rendered,
+  // id-less heading). Fired from the panel post-mount, so the wrapper exists.
+  const handleA2uiSurfaceReady = useCallback(() => {
+    setA2uiAnnouncement('Design system panel ready');
+    a2uiPanelRef.current?.focus();
+  }, []);
 
   const handleZoom = (delta: number) => {
     setScale((s) => Math.max(0.2, Math.min(3, s + delta)));
@@ -543,6 +560,8 @@ export default function StudioClientShell({ id }: { id: string }) {
     // ADR-0024 / P0.4: reset the A2UI surface + fail-soft latch for the new run
     setA2uiPayload(null);
     setA2uiRenderFailed(false);
+    // G3 a11y: clear the live region so the next surface-ready re-announces.
+    setA2uiAnnouncement('');
     addLog('INFO', 'Initiating Vertex AI Convergence Loop...');
 
     const brief = new URLSearchParams(window.location.search).get('brief') || 'SaaS landing page';
@@ -903,6 +922,20 @@ export default function StudioClientShell({ id }: { id: string }) {
 
           {/* Right Vertex AI Config Panel */}
           <aside className="w-72 border-l border-[var(--g-outline)] bg-[var(--g-surface)]/50 backdrop-blur-md flex flex-col z-10">
+            {/* G3 a11y: persistent, single live region for A2UI state. Mounted
+                UNCONDITIONALLY and BEFORE the A2UI surface so per SC 4.1.3 the
+                region pre-exists the update (the renderer injects container +
+                content together and has no aria-live of its own). Tailwind's
+                built-in `sr-only` keeps it visually hidden but screen-reader
+                reachable. Do NOT mount a second live region — double-announce. */}
+            <div
+              data-testid="a2ui-live-region"
+              role="status"
+              aria-live="polite"
+              className="sr-only"
+            >
+              {a2uiAnnouncement}
+            </div>
             <div className="p-4 border-b border-[var(--g-outline)] flex items-center gap-2">
               <SlidersHorizontal size={16} className="text-indigo-400" />
               <span className="text-sm font-semibold text-white">Vertex AI Settings</span>
@@ -1160,7 +1193,9 @@ export default function StudioClientShell({ id }: { id: string }) {
               {convergedHtml && effectiveDesignSystem && (
                 <>
                   {useA2uiPanel && a2uiPayload ? (
-                    <div data-testid="studio-a2ui-section">
+                    // G3 a11y: aria-busy reflects an in-flight generation so AT
+                    // knows the design-system region is updating.
+                    <div data-testid="studio-a2ui-section" aria-busy={status === 'generating'}>
                       <div className="h-px bg-[var(--g-outline)] my-4" />
                       {/* Provenance only — the A2UI surface is self-describing
                           (it renders its own "Design System" title + token rows),
@@ -1176,8 +1211,11 @@ export default function StudioClientShell({ id }: { id: string }) {
                         </span>
                       </div>
                       <A2uiDesignSystemPanel
+                        ref={a2uiPanelRef}
                         messages={a2uiPayload}
                         onRenderError={handleA2uiRenderError}
+                        onSurfaceReady={handleA2uiSurfaceReady}
+                        isStreaming={status === 'generating'}
                       />
                     </div>
                   ) : (
