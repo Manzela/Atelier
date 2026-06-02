@@ -44,7 +44,7 @@ RUN uv venv /app/.venv \
         "google-cloud-firestore>=2.18,<3" \
         "google-cloud-bigquery>=3.25,<4" \
         "google-cloud-secret-manager>=2.20,<3" \
-        "google-cloud-storage>=2.18,<3" \
+        "google-cloud-storage>=3.10,<4" \
         "opentelemetry-api>=1.27,<2" \
         "opentelemetry-sdk>=1.27,<2" \
         "opentelemetry-exporter-gcp-trace>=1.7,<2" \
@@ -53,6 +53,9 @@ RUN uv venv /app/.venv \
         "playwright>=1.49,<2" \
         "axe-playwright-python>=0.1.7,<0.2" \
         "firebase-admin>=7.4,<8" \
+        "google-genai>=1.0,<3" \
+        "numpy>=1.26" \
+        "mcp>=1.0" \
         structlog pydantic httpx pyyaml
 # NOTE: this runtime dependency set must stay in sync with the [project]
 # dependencies in atelier-core/pyproject.toml. firebase-admin was missing here,
