@@ -666,7 +666,7 @@ export default function StudioClientShell({ id }: { id: string }) {
 
           <div className="flex items-center gap-3">
             <div className="px-3 py-1.5 text-xs text-gray-400 border border-[var(--g-outline)] rounded-md bg-black/20 flex items-center gap-2">
-              Model: <span className="text-white font-medium">Gemini 1.5 Pro</span>
+              Model: <span className="text-white font-medium">Gemini 2.5 Pro</span>
             </div>
             <button
               onClick={startGeneration}

@@ -35,14 +35,14 @@ Adopt **Governed A2UI** scoped to the **Studio chrome / control layer + a catalo
 
 All coordinates verified against live registries this session (`npm view` / `gh`), per `<no_unverified_apis>`.
 
-| Package                     | Pinned version                                                 | Role                                                 | Verified                                              |
-| --------------------------- | -------------------------------------------------------------- | ---------------------------------------------------- | ----------------------------------------------------- |
-| `@a2ui/react`               | `0.10.0`                                                       | A2UI React renderer (`createA2UIMessageRenderer`)    | npm ✓                                                 |
-| `@a2ui/web_core`            | `0.10.0`                                                       | core renderer/types                                  | npm ✓                                                 |
-| `@ag-ui/core`               | `0.0.54`                                                       | AG-UI typed events/encoder (zero-dep)                | npm ✓                                                 |
-| `@ag-ui/client`             | `0.0.54`                                                       | `HttpAgent` — headless stream consume                | npm ✓                                                 |
-| `@copilotkit/a2ui-renderer` | `1.59.2`                                                       | CopilotKit A2UI renderer                             | npm ✓ — **NOT adopted** (CONVERT: no runtime lock-in) |
-| `google/A2UI` (GitHub)      | commit `0fde624719c500133c526f49df5b007d0392f3cb` / tag `v0.9` | spec + conformance suite (`agent_sdks/conformance/`) | gh ✓                                                  |
+| Package                     | Pinned version                                                 | Role                                                            | Verified                                              |
+| --------------------------- | -------------------------------------------------------------- | --------------------------------------------------------------- | ----------------------------------------------------- |
+| `@a2ui/react`               | `0.10.0`                                                       | A2UI React renderer (`A2uiSurface` + `MessageProcessor`, /v0_9) | npm ✓                                                 |
+| `@a2ui/web_core`            | `0.10.0`                                                       | core renderer/types                                             | npm ✓                                                 |
+| `@ag-ui/core`               | `0.0.54`                                                       | AG-UI typed events/encoder (zero-dep)                           | npm ✓                                                 |
+| `@ag-ui/client`             | `0.0.54`                                                       | `HttpAgent` — headless stream consume                           | npm ✓                                                 |
+| `@copilotkit/a2ui-renderer` | `1.59.2`                                                       | CopilotKit A2UI renderer                                        | npm ✓ — **NOT adopted** (CONVERT: no runtime lock-in) |
+| `google/A2UI` (GitHub)      | commit `0fde624719c500133c526f49df5b007d0392f3cb` / tag `v0.9` | spec + conformance suite (`agent_sdks/conformance/`)            | gh ✓                                                  |
 
 **Pin by commit, not just tag:** `google/A2UI` (Apache-2.0, 15.1k★, pushed 2026-06-01) moves GitHub orgs on 2026-06-03, so the commit SHA `0fde6247…` is the durable reference; the `v0.9` tag may follow the repo.
 

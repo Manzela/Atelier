@@ -6,8 +6,12 @@ deliverable, which stays portable DTCG-tokenized HTML (PRD v2.2 §3.4/§10).
 This package builds A2UI **v0.10-SDK / v0.9-wire** surfaces
 (``createSurface`` / ``updateComponents`` / ``updateDataModel``) for agent-driven
 Studio surfaces. P0 ships exactly one surface: the AT-044 design-system token
-panel, emitted into ``CandidateUI.a2ui_payload`` and threaded onto the SSE
-``complete`` event alongside ``best_html``.
+panel. The surface the frontend renders is (re)built at the API boundary
+(``api/generate.py:_enrich_complete_payload``) from the run's resolved design
+tokens and threaded onto the SSE ``complete`` event alongside ``best_html``.
+``CandidateUI.a2ui_payload`` is the per-candidate carrier slot — the intended
+fail-closed gate-before-emit target (deferred) — not itself what the SSE renders
+today (see the gap-analysis ledger).
 
 Schema source of truth (verified, per ``<no_unverified_apis>``):
   * ``@a2ui/web_core@0.10.0`` → ``src/v0_9/schemas/server_to_client.json``
