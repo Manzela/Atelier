@@ -1,4 +1,4 @@
-"""Governed A2UI surface builder for the AT-044 design-system panel (ADR-0011).
+"""Governed A2UI surface builder for the AT-044 design-system panel (ADR-0024).
 
 Pure, typed construction of an A2UI **v0.10-SDK / v0.9-wire** surface for the
 agent-driven Studio design-system token panel. No I/O, no LLM calls, no network.
@@ -31,7 +31,7 @@ Schema provenance (verified against live sources this session — ``<no_unverifi
     ``0fde624719c500133c526f49df5b007d0392f3cb``)
     ``samples/agent/adk/custom-components-example/examples/0.9/contact_list.json``.
 
-PRD Reference: §3.4/§10 (output stays HTML); ADR-0011 (Governed A2UI, control layer).
+PRD Reference: §3.4/§10 (output stays HTML); ADR-0024 (Governed A2UI, control layer).
 """
 
 from __future__ import annotations
@@ -214,7 +214,7 @@ def build_design_system_surface(
     ordered message list. The caller's ``design_tokens`` dict is **never mutated**.
 
     The deliverable design (``best_html``) is untouched — this surface is the
-    governed Studio *chrome* (ADR-0011), not the design output.
+    governed Studio *chrome* (ADR-0024), not the design output.
 
     Args:
         design_tokens: Flat ``{token_name: value}`` mapping (the shape carried by

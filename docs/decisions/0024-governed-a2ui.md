@@ -1,4 +1,4 @@
-# 0011. Governed A2UI — control-layer adoption + catalog export
+# 0024. Governed A2UI — control-layer adoption + catalog export
 
 **Status:** Accepted (2026-06-02) — P0 scope approved by operator. Additive to PRD v2.2; does **NOT** revive A2UI-as-output (ADR-0010, superseded).
 **Date:** 2026-06-02

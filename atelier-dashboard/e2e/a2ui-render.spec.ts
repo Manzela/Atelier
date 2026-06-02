@@ -1,5 +1,5 @@
 /**
- * ADR-0011 / P0.4 — Governed A2UI render acceptance (FRONTEND SLICE 2).
+ * ADR-0024 / P0.4 — Governed A2UI render acceptance (FRONTEND SLICE 2).
  *
  * Hermetic: intercepts /v1/generate/stream with a local SSE fixture whose
  * `complete` event carries the agent-emitted `a2ui_payload` — the EXACT ordered

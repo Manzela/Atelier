@@ -1,12 +1,12 @@
 'use client';
 
 /**
- * ADR-0011 / P0.4 — Governed A2UI design-system panel (FRONTEND SLICE 2).
+ * ADR-0024 / P0.4 — Governed A2UI design-system panel (FRONTEND SLICE 2).
  *
  * Renders the agent-emitted A2UI surface (the AT-044 design-system token panel)
  * via `@a2ui/react`, themed to the Material-3 dark "Stitch" system so it is
  * visually indistinguishable in quality from the hand-built panel. This is
- * Studio CHROME only (ADR-0011) — it never touches the design deliverable
+ * Studio CHROME only (ADR-0024) — it never touches the design deliverable
  * (`best_html`). It mounts behind the `NEXT_PUBLIC_A2UI_RENDER` flag, with the
  * hand-built `DesignSystemPanel` as the default and the fail-soft fallback.
  *

@@ -1,4 +1,4 @@
-"""Governed A2UI emit layer (ADR-0011).
+"""Governed A2UI emit layer (ADR-0024).
 
 A2UI is adopted for the **Studio chrome / control layer only** — never the design
 deliverable, which stays portable DTCG-tokenized HTML (PRD v2.2 §3.4/§10).

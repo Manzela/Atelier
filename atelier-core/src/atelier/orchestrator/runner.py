@@ -1025,7 +1025,7 @@ class AtelierRunner:
         self._usage_store.check_circuit_breaker()
         self._governor._check_token_budget()
 
-        # Governed A2UI (ADR-0011): build the AT-044 design-system panel surface
+        # Governed A2UI (ADR-0024): build the AT-044 design-system panel surface
         # ONCE from the resolved design tokens, then thread it onto the
         # screen_converged + complete events alongside best_candidate. This is the
         # Studio CHROME only — the design deliverable stays the HTML in
@@ -1033,7 +1033,7 @@ class AtelierRunner:
         # because the token map is iteration-invariant (R4 anchor).
         # NOTE(P0.5 gate-before-emit): the fail-closed governance gate on the
         # surface (axe/contrast + D-O-R-A-V + token enforcement, REJECT → CUSTOM
-        # event per ADR-0011 §2) hooks in HERE before the surface is emitted.
+        # event per ADR-0024 §2) hooks in HERE before the surface is emitted.
         a2ui_design_system = build_design_system_surface(
             getattr(project_ctx, "design_tokens", None) or {},
             surface_id="atelier-design-system",
@@ -1377,7 +1377,7 @@ class AtelierRunner:
                         "screen": screen,
                         "best_candidate": best_candidate,
                         "converged": convergence_result.get("converged", False),
-                        # Governed A2UI chrome (ADR-0011) — additive; the
+                        # Governed A2UI chrome (ADR-0024) — additive; the
                         # deliverable stays best_candidate (HTML).
                         "a2ui_payload": a2ui_design_system,
                     },
@@ -1447,7 +1447,7 @@ class AtelierRunner:
             "session_id": session_id,
             "plan": plan.model_dump() if hasattr(plan, "model_dump") else {},
             "screens": screens_results,
-            # Governed A2UI chrome (ADR-0011): the design-system panel surface,
+            # Governed A2UI chrome (ADR-0024): the design-system panel surface,
             # carried on the complete event alongside best_candidate. Additive —
             # the design deliverable is unchanged. _enrich_complete_payload also
             # (re)derives this at the API boundary from project_context, so the

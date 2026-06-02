@@ -233,7 +233,7 @@ def test_enrich_complete_payload_dorav_fallback_on_empty_evaluations() -> None:
 def test_enrich_complete_payload_adds_a2ui_payload_from_project_context() -> None:
     """complete payload must carry a non-None A2UI surface built from design tokens.
 
-    P0.4 (ADR-0011): the design-system panel is emitted as an A2UI v0.10/v0.9-wire
+    P0.4 (ADR-0024): the design-system panel is emitted as an A2UI v0.10/v0.9-wire
     surface threaded onto the ``complete`` event alongside ``best_html``.
     """
     from atelier.api.generate import _enrich_complete_payload

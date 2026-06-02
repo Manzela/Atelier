@@ -1,4 +1,4 @@
-"""Unit tests for the Governed A2UI surface builder (P0.4 — ADR-0011).
+"""Unit tests for the Governed A2UI surface builder (P0.4 — ADR-0024).
 
 These tests pin the A2UI **v0.10 SDK / v0.9 wire-protocol** message shape that
 ``@a2ui/web_core@0.10.0`` renders. The wire schema is the authoritative

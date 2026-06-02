@@ -439,7 +439,7 @@ def _enrich_complete_payload(payload: dict[str, Any]) -> dict[str, Any]:
 
     # ------------------------------------------------------------------
     # a2ui_payload: the Governed A2UI v0.10-SDK/v0.9-wire surface for the
-    # AT-044 design-system panel (ADR-0011). Threaded onto the complete event
+    # AT-044 design-system panel (ADR-0024). Threaded onto the complete event
     # alongside best_html so the frontend can render the Studio CHROME via
     # @a2ui/react behind a feature flag (the design deliverable stays the HTML
     # in best_html — A2UI never touches it). The SSE field carries the raw

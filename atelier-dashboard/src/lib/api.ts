@@ -56,7 +56,7 @@ export interface DoravScores {
 }
 
 /**
- * ADR-0011 / P0.4: a single A2UI v0.9-wire server-to-client message. The backend
+ * ADR-0024 / P0.4: a single A2UI v0.9-wire server-to-client message. The backend
  * (``atelier-core/src/atelier/a2ui/surface.py``) emits the raw ordered list of
  * the three kinds below on the SSE ``complete`` event (``a2ui_payload``):
  *
@@ -116,7 +116,7 @@ export interface CompleteData {
    */
   tokens?: DesignSystem;
   /**
-   * ADR-0011 / P0.4: the Governed A2UI design-system surface — the raw ordered
+   * ADR-0024 / P0.4: the Governed A2UI design-system surface — the raw ordered
    * server-to-client message list emitted by the backend alongside ``best_html``.
    * Drives the agent-emitted A2UI rendering of the Studio design-system panel
    * (``A2uiDesignSystemPanel``) behind the ``NEXT_PUBLIC_A2UI_RENDER`` flag. The

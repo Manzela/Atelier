@@ -292,12 +292,12 @@ def generate_candidate(
     """
     html = _render_html(brief, surface)
     css = _render_css(brief.visual_register)
-    # Governed A2UI (ADR-0011): emit the AT-044 design-system panel as an A2UI
+    # Governed A2UI (ADR-0024): emit the AT-044 design-system panel as an A2UI
     # v0.10-SDK/v0.9-wire surface into the carrier slot. This is the Studio CHROME
     # only — the design deliverable stays portable HTML in ``artifacts`` (untouched).
     # NOTE(P0.5 gate-before-emit): the fail-closed governance gate (axe/contrast +
     # D-O-R-A-V + token enforcement on the surface, REJECT → CUSTOM event per
-    # ADR-0011 §2) hooks in HERE — validate ``a2ui_surface`` before it is carried
+    # ADR-0024 §2) hooks in HERE — validate ``a2ui_surface`` before it is carried
     # forward, in a later slice. P0.4 emits the additive payload only.
     a2ui_surface = build_design_system_surface(
         _register_token_map(brief.visual_register),

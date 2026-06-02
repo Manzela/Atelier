@@ -61,13 +61,13 @@ import {
   type GeneratedControl,
 } from '@/lib/design-system';
 
-// ADR-0011 / P0.4: the Governed A2UI design-system panel. Client-only (the
+// ADR-0024 / P0.4: the Governed A2UI design-system panel. Client-only (the
 // renderer auto-injects styles via document.adoptedStyleSheets), so it is
 // dynamically imported with `ssr: false` to keep it out of the server bundle.
 const A2uiDesignSystemPanel = dynamic(() => import('./a2ui/A2uiDesignSystemPanel'), { ssr: false });
 
 /**
- * ADR-0011 / P0.4: feature flag for rendering the agent-emitted A2UI surface in
+ * ADR-0024 / P0.4: feature flag for rendering the agent-emitted A2UI surface in
  * place of the hand-built design-system panel. Default OFF — the hand-built
  * panel stays the default AND the fail-soft fallback. Read at module scope
  * because `NEXT_PUBLIC_*` env vars are statically inlined at build time.
@@ -470,7 +470,7 @@ export default function StudioClientShell({ id }: { id: string }) {
   const [baseDesignSystem, setBaseDesignSystem] = useState<DesignSystem | null>(null);
   const [tokenEdits, setTokenEdits] = useState<Record<string, TokenValue>>({});
   const [groupScales, setGroupScales] = useState<Record<string, number>>({});
-  // ADR-0011 / P0.4: the agent-emitted A2UI design-system surface (raw message
+  // ADR-0024 / P0.4: the agent-emitted A2UI design-system surface (raw message
   // list from the SSE `complete` event), plus a fail-soft latch. When the flag
   // is ON and a payload is present we render the A2UI panel; if its renderer
   // throws, `a2uiRenderFailed` latches and we fall back to the hand-built panel.
@@ -518,7 +518,7 @@ export default function StudioClientShell({ id }: { id: string }) {
     setLogs((prev) => [...prev, { id: Date.now(), time, level, msg }]);
   };
 
-  // ADR-0011 / P0.4: fail-soft latch for the A2UI panel. On a renderer failure
+  // ADR-0024 / P0.4: fail-soft latch for the A2UI panel. On a renderer failure
   // we acknowledge degradation (log) and flip to the hand-built panel — the
   // agent always acknowledges degradation; never a silent blank.
   const handleA2uiRenderError = (error: Error) => {
@@ -540,7 +540,7 @@ export default function StudioClientShell({ id }: { id: string }) {
     setBaseDesignSystem(null);
     setTokenEdits({});
     setGroupScales({});
-    // ADR-0011 / P0.4: reset the A2UI surface + fail-soft latch for the new run
+    // ADR-0024 / P0.4: reset the A2UI surface + fail-soft latch for the new run
     setA2uiPayload(null);
     setA2uiRenderFailed(false);
     addLog('INFO', 'Initiating Vertex AI Convergence Loop...');
@@ -580,7 +580,7 @@ export default function StudioClientShell({ id }: { id: string }) {
         if (data.nielsen) setNielsen(data.nielsen);
         // AT-044: the design's own system if it carries one, else the default.
         setBaseDesignSystem(data.tokens ?? DEFAULT_DESIGN_SYSTEM);
-        // ADR-0011 / P0.4: capture the Governed A2UI surface if the backend
+        // ADR-0024 / P0.4: capture the Governed A2UI surface if the backend
         // emitted one. Only consumed when NEXT_PUBLIC_A2UI_RENDER === '1';
         // otherwise it is inert and the hand-built panel renders.
         setA2uiPayload(
@@ -1153,7 +1153,7 @@ export default function StudioClientShell({ id }: { id: string }) {
                 </div>
               )}
 
-              {/* AT-044 / ADR-0011: design-system panel. When the A2UI flag is ON
+              {/* AT-044 / ADR-0024: design-system panel. When the A2UI flag is ON
                   and the agent emitted a surface, render it via @a2ui/react;
                   otherwise (and on any A2UI render failure) the hand-built panel
                   is the default + fail-soft fallback. */}
