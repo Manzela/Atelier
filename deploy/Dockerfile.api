@@ -52,7 +52,12 @@ RUN uv venv /app/.venv \
         "uvicorn[standard]>=0.30,<1" \
         "playwright>=1.49,<2" \
         "axe-playwright-python>=0.1.7,<0.2" \
+        "firebase-admin>=7.4,<8" \
         structlog pydantic httpx pyyaml
+# NOTE: this runtime dependency set must stay in sync with the [project]
+# dependencies in atelier-core/pyproject.toml. firebase-admin was missing here,
+# which silently disabled all Firebase token verification at runtime (lazy
+# import) — every authenticated request failed with invalid_token.
 
 # ---------------------------------------------------------------------------
 # Stage 2: Production image

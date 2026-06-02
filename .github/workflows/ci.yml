@@ -407,6 +407,13 @@ jobs:
       - uses: actions/checkout@v6
       - name: Build the API image
         run: docker build -f deploy/Dockerfile.api -t atelier-api:ci .
+      - name: Verify auth-critical runtime deps import
+        # firebase-admin is lazy-imported (only at token verification), so a
+        # missing runtime dependency does not crash startup or fail the /health
+        # smoke — it silently breaks every authenticated request. Import the
+        # auth-critical modules explicitly so the image's dependency set can not
+        # drift from atelier-core/pyproject.toml unnoticed.
+        run: docker run --rm atelier-api:ci python -c "import firebase_admin; import atelier.api.app; print('auth-critical deps import OK')"
       - name: Start the container
         run: |
           docker run -d --name atelier-api-ci \
