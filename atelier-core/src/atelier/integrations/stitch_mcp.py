@@ -22,12 +22,16 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import structlog
 from google.adk.tools.mcp_tool.mcp_session_manager import StreamableHTTPConnectionParams
 from google.adk.tools.mcp_tool.mcp_toolset import McpToolset
 from google.cloud import secretmanager
+
+if TYPE_CHECKING:
+    from google.adk.agents.readonly_context import ReadonlyContext
+    from google.adk.tools.base_tool import BaseTool
 
 logger = structlog.get_logger("atelier.stitch")
 
@@ -314,6 +318,36 @@ def _get_api_key() -> str:
         raise
 
 
+def _strip_tool_output_schemas(tools: list[BaseTool]) -> list[BaseTool]:
+    """Drop each MCP tool's ``outputSchema`` so Vertex accepts the declaration.
+
+    ADK forwards an MCP tool's ``outputSchema`` as ``response_json_schema`` on the
+    Gemini ``FunctionDeclaration`` it builds. At least one Stitch tool
+    (``upload_design_md``) carries an output schema Vertex rejects with
+    ``400 INVALID_ARGUMENT`` — and because all tool declarations ship in a single
+    request, that one bad declaration fails the *entire* generation call (every
+    candidate, every retry), not just that tool. The response schema is purely
+    informational for function calling, so it is dropped for every tool; the model
+    can still call all 14 Stitch tools. Input schemas are Vertex-compatible (their
+    ``$ref``/``$defs`` resolve in ``parameters_json_schema`` mode) and left intact.
+    """
+    for tool in tools:
+        mcp_tool = getattr(tool, "_mcp_tool", None)
+        if mcp_tool is not None and getattr(mcp_tool, "outputSchema", None) is not None:
+            mcp_tool.outputSchema = None
+    return tools
+
+
+class _VertexSafeMcpToolset(McpToolset):
+    """``McpToolset`` that makes MCP tool declarations safe for Vertex generation.
+
+    See :func:`_strip_tool_output_schemas` for the failure this prevents.
+    """
+
+    async def get_tools(self, readonly_context: ReadonlyContext | None = None) -> list[BaseTool]:
+        return _strip_tool_output_schemas(await super().get_tools(readonly_context))
+
+
 def get_stitch_mcp_toolset() -> McpToolset:
     """Returns an ADK MCPToolset configured for Stitch MCP.
 
@@ -333,7 +367,7 @@ def get_stitch_mcp_toolset() -> McpToolset:
         url="https://stitch.googleapis.com/mcp", headers={"Authorization": f"Bearer {api_key}"}
     )
 
-    return McpToolset(connection_params=connection_params, tool_name_prefix="stitch_")
+    return _VertexSafeMcpToolset(connection_params=connection_params, tool_name_prefix="stitch_")
 
 
 def try_get_stitch_mcp_toolset() -> tuple[McpToolset | None, StitchDegradationInfo]:

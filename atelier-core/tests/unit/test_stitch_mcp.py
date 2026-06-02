@@ -137,3 +137,46 @@ class TestStitchMcpTransport:
         assert params.url == "https://stitch.googleapis.com/mcp"
         assert params.headers is not None
         assert params.headers["Authorization"] == "Bearer fake-key-for-test"
+
+    def test_toolset_is_vertex_safe_subclass(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("STITCH_API_KEY", "fake-key-for-test")
+        from atelier.integrations.stitch_mcp import _VertexSafeMcpToolset, get_stitch_mcp_toolset
+
+        assert isinstance(get_stitch_mcp_toolset(), _VertexSafeMcpToolset)
+
+
+@pytest.mark.unit
+class TestStripToolOutputSchemas:
+    """Vertex rejects some MCP outputSchemas forwarded as response_json_schema.
+
+    Regression guard for the N3a 400 INVALID_ARGUMENT: once the transport fix let
+    Stitch actually connect, ADK began forwarding each tool's outputSchema as the
+    FunctionDeclaration response schema, and Stitch's upload_design_md output
+    schema failed the whole generation request. The toolset must null every MCP
+    outputSchema before ADK builds declarations.
+    """
+
+    def test_strips_output_schema_and_preserves_input(self) -> None:
+        import mcp.types as mt
+        from atelier.integrations.stitch_mcp import _strip_tool_output_schemas
+
+        class _FakeTool:
+            def __init__(self, mcp_tool: mt.Tool) -> None:
+                self._mcp_tool = mcp_tool
+
+        with_out = _FakeTool(
+            mt.Tool(
+                name="upload",
+                inputSchema={"type": "object", "properties": {"a": {"type": "string"}}},
+                outputSchema={"type": "object", "properties": {"ok": {"type": "boolean"}}},
+            )
+        )
+        without_out = _FakeTool(mt.Tool(name="clean", inputSchema={"type": "object"}))
+
+        result = _strip_tool_output_schemas([with_out, without_out])  # type: ignore[list-item]
+
+        assert with_out._mcp_tool.outputSchema is None
+        assert without_out._mcp_tool.outputSchema is None
+        # Input schemas are untouched (they are Vertex-compatible as-is).
+        assert with_out._mcp_tool.inputSchema["properties"] == {"a": {"type": "string"}}
+        assert result == [with_out, without_out]
