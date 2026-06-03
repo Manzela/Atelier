@@ -431,6 +431,22 @@ def _enrich_complete_payload(payload: dict[str, Any]) -> dict[str, Any]:
 
     enriched: dict[str, Any] = dict(payload)
 
+    # The runner's complete payload carries rich pydantic objects (brief,
+    # project_context, web_research) that are NOT JSON-serializable. The SSE
+    # layer json.dumps the event, so coerce them to plain JSON here. Without
+    # this the complete event used to crash json.dumps (TypeError, uncaught by
+    # the stream's TimeoutError handler) and the connection closed WITHOUT a
+    # complete event — the Studio then showed "Pipeline error" despite a fully
+    # converged design. The SSE json.dumps(default=str) is the backstop;
+    # model_dump keeps the data structured for the frontend.
+    for _obj_key in ("brief", "project_context", "web_research"):
+        _obj = enriched.get(_obj_key)
+        if _obj is not None and hasattr(_obj, "model_dump"):
+            try:
+                enriched[_obj_key] = _obj.model_dump(mode="json")
+            except Exception:  # noqa: BLE001
+                enriched[_obj_key] = str(_obj)
+
     # ------------------------------------------------------------------
     # a2ui_payload: the Governed A2UI v0.10-SDK/v0.9-wire surface for the
     # AT-044 design-system panel (ADR-0024). Threaded onto the complete event
@@ -671,7 +687,7 @@ async def generate_stream(  # noqa: C901, PLR0915 — SSE orchestrator: nested p
             try:
                 # Wait for an event with a 1.0 second timeout to support keep-alive pinging
                 event_type, payload = await asyncio.wait_for(queue.get(), timeout=1.0)
-                yield f"event: {event_type}\ndata: {json.dumps(payload)}\n\n"
+                yield f"event: {event_type}\ndata: {json.dumps(payload, default=str)}\n\n"
                 queue.task_done()
                 if event_type in {"complete", "error"}:
                     break
@@ -680,7 +696,7 @@ async def generate_stream(  # noqa: C901, PLR0915 — SSE orchestrator: nested p
                     # Process remaining items in the queue
                     while not queue.empty():
                         event_type, payload = queue.get_nowait()
-                        yield f"event: {event_type}\ndata: {json.dumps(payload)}\n\n"
+                        yield f"event: {event_type}\ndata: {json.dumps(payload, default=str)}\n\n"
                         queue.task_done()
                     break
                 # Yield keep-alive comment
