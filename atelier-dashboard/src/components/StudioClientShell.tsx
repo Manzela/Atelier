@@ -46,7 +46,16 @@ import {
   type IterationScoreData,
   type TokenDeltaData,
   type A2uiMessage,
+  type PlanData,
 } from '@/lib/api';
+import ApprovalCard from './ApprovalCard';
+import {
+  subscribeSignoff,
+  submitApproval,
+  SIGNOFF_APPROVED,
+  SIGNOFF_COMPLETED,
+  type SignoffSnapshot,
+} from '@/lib/approval-listener';
 import {
   DEFAULT_DESIGN_SYSTEM,
   flattenDesignSystem,
@@ -473,8 +482,19 @@ export default function StudioClientShell({ id }: { id: string }) {
   const { user, initRef } = useClientAuth();
 
   const [status, setStatus] = useState<
-    'idle' | 'generating' | 'converged' | 'degraded' | 'error' | 'cap-reached'
+    'idle' | 'generating' | 'awaiting-signoff' | 'converged' | 'degraded' | 'error' | 'cap-reached'
   >('idle');
+  // AT-042: the locked pre-sign-off plan surfaced by the ApprovalCard. Captured
+  // from the `plan` SSE event when it carries sign-off-relevant content (cited
+  // defaults or the est-tokens/WCAG/specialist scope fields). Null until then.
+  const [signoffPlan, setSignoffPlan] = useState<PlanData | null>(null);
+  // AT-042: true while the APPROVED write to the run doc is in flight.
+  const [signoffSubmitting, setSignoffSubmitting] = useState(false);
+  // AT-042: teardown for the active Firestore onSnapshot subscription. The
+  // subscription is the push-free resume mechanism — a cold clone observes the
+  // APPROVED transition through it, with no FCM. Held in a ref so we can
+  // unsubscribe on resume/unmount without re-subscribing on every render.
+  const signoffUnsubRef = useRef<(() => void) | null>(null);
   // AT-094 (R9): live network status. Offline is a transient, self-acknowledged
   // degradation: it overrides the idle/empty canvas with a skeleton + banner,
   // but NEVER masks an in-flight run (would lose context) nor the fail-loud
@@ -562,6 +582,84 @@ export default function StudioClientShell({ id }: { id: string }) {
     setLogs((prev) => [...prev, { id: Date.now(), time, level, msg }]);
   };
 
+  // AT-042: tear down any active sign-off subscription. Idempotent — safe to
+  // call on resume, on a new run, and on unmount.
+  const teardownSignoff = useCallback(() => {
+    signoffUnsubRef.current?.();
+    signoffUnsubRef.current = null;
+  }, []);
+
+  // AT-042: the run resumes the moment the run doc reaches APPROVED (or the
+  // terminal COMPLETED). This is the push-free hook: a cold clone subscribed via
+  // onSnapshot observes the transition with NO FCM and leaves the ApprovalCard,
+  // dropping into the generating state the backend is already advancing.
+  const handleSignoffSnapshot = useCallback(
+    (snap: SignoffSnapshot | null) => {
+      const next = snap?.signoff_status;
+      if (next === SIGNOFF_APPROVED || next === SIGNOFF_COMPLETED) {
+        teardownSignoff();
+        setSignoffSubmitting(false);
+        addLog('SUCCESS', `Sign-off ${next} — resuming generation.`);
+        setStatus('generating');
+      }
+    },
+    [teardownSignoff]
+  );
+
+  // AT-042: subscribe to the run's sign-off doc. Always attached when a sign-off
+  // plan is surfaced, so a status already-APPROVED on a cold clone resumes
+  // immediately (onSnapshot fires with the current doc on attach).
+  const watchSignoff = useCallback(
+    (tenantId: string, runId: string) => {
+      teardownSignoff();
+      signoffUnsubRef.current = subscribeSignoff(
+        tenantId,
+        runId,
+        handleSignoffSnapshot,
+        (error) => {
+          // Fail-soft: the agent acknowledges the degradation; the user can
+          // still approve (the write path reports its own failure).
+          addLog('WARN', `Sign-off subscription degraded: ${error.message}`);
+        }
+      );
+    },
+    [teardownSignoff, handleSignoffSnapshot]
+  );
+
+  // AT-042: approve the (possibly user-edited) plan. Writes APPROVED + the plan
+  // of record to the run doc; the onSnapshot subscription then resumes the run.
+  const handleApproveSignoff = useCallback(
+    async (editedPlan: PlanData) => {
+      if (!user || signoffSubmitting) return;
+      setSignoffSubmitting(true);
+      addLog('INFO', 'Submitting sign-off approval…');
+      try {
+        await submitApproval(user.tenant_id, id, user.uid, editedPlan);
+        // The resume itself is driven by the onSnapshot subscription (push-free),
+        // not by this write returning — keep submitting until the snapshot lands.
+      } catch (error: unknown) {
+        // Fail-soft: the approval did not land. Acknowledge it; do not silently
+        // swallow, and do not falsely advance to generating.
+        const message = error instanceof Error ? error.message : String(error);
+        addLog('ERROR', `Sign-off approval failed: ${message}`);
+        setSignoffSubmitting(false);
+      }
+    },
+    [user, id, signoffSubmitting]
+  );
+
+  // AT-042: back out of sign-off without approving — return to the empty canvas.
+  const handleRejectSignoff = useCallback(() => {
+    teardownSignoff();
+    setSignoffPlan(null);
+    setSignoffSubmitting(false);
+    addLog('INFO', 'Sign-off dismissed — generation not started.');
+    setStatus('idle');
+  }, [teardownSignoff]);
+
+  // AT-042: release the subscription when the shell unmounts.
+  React.useEffect(() => teardownSignoff, [teardownSignoff]);
+
   // ADR-0024 / P0.4: fail-soft latch for the A2UI panel. On a renderer failure
   // we acknowledge degradation (log) and flip to the hand-built panel — the
   // agent always acknowledges degradation; never a silent blank.
@@ -596,6 +694,10 @@ export default function StudioClientShell({ id }: { id: string }) {
     }
     setStatus('generating');
     setLogs([]);
+    // AT-042: reset any prior sign-off state for the new run.
+    teardownSignoff();
+    setSignoffPlan(null);
+    setSignoffSubmitting(false);
     setIterationScores([]); // AT-093: reset per-iteration scorecard on each new run
     setCompetitorBeatVisible(true); // AT-090: show beat again on each new run
     // AT-044: reset the design-system panel for the new run
@@ -614,6 +716,23 @@ export default function StudioClientShell({ id }: { id: string }) {
     const callbacks: StreamCallbacks = {
       onPlan: (data) => {
         addLog('INFO', `Plan received: ${data.surfaces?.join(', ') || 'N/A'}`);
+        // AT-042: a plan that carries sign-off-relevant scope (cited defaults or
+        // the est-tokens/WCAG/specialist fields) HALTS for human sign-off before
+        // any screen generation. A legacy minimal plan (surfaces only) keeps the
+        // old straight-through behaviour, so existing flows are unchanged.
+        const isSignoffPlan =
+          (data.proposed_defaults != null && data.proposed_defaults.length > 0) ||
+          data.est_tokens != null ||
+          data.wcag_target != null ||
+          data.specialist_count != null;
+        if (isSignoffPlan && user) {
+          setSignoffPlan(data);
+          setStatus('awaiting-signoff');
+          // Subscribe to the run doc: if a cold clone finds it already APPROVED,
+          // onSnapshot fires on attach and resumes without showing the card.
+          watchSignoff(user.tenant_id, id);
+          addLog('INFO', 'Plan locked — awaiting human sign-off.');
+        }
       },
       onScreenStart: (data) => {
         addLog('INFO', `Generating screen: ${data.screen}`);
@@ -912,6 +1031,16 @@ export default function StudioClientShell({ id }: { id: string }) {
                     Convergence Loop.
                   </p>
                 </div>
+              )}
+
+              {/* \u2500\u2500 Awaiting sign-off (AT-042) \u2014 ApprovalCard, push-free resume \u2500\u2500 */}
+              {status === 'awaiting-signoff' && signoffPlan && (
+                <ApprovalCard
+                  plan={signoffPlan}
+                  onApprove={handleApproveSignoff}
+                  onReject={handleRejectSignoff}
+                  isSubmitting={signoffSubmitting}
+                />
               )}
 
               {/* \u2500\u2500 Loading (generating) state \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */}

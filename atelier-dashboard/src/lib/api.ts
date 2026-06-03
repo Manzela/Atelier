@@ -1,7 +1,51 @@
 import type { DesignSystem } from './design-system';
 
+/**
+ * AT-030 / AT-025: a domain Tier-1 standard the planner proposes applying by
+ * default, each attributable to a cited, trust-scored source (PRD §3.5). Wire
+ * shape mirrors `atelier-core` `ProposedDefault` EXACTLY (the `plan` SSE event
+ * serializes the Pydantic model field-for-field):
+ *   standard_id, name, rule, citation_url, trust_score, domain.
+ * `citation_url` is never empty — every default Atelier applies on the user's
+ * behalf carries its provenance, which the ApprovalCard (AT-042) renders as a
+ * clickable citation so the user can verify and edit before approving.
+ */
+export interface ProposedDefault {
+  standard_id: string;
+  name: string;
+  rule: string;
+  citation_url: string;
+  trust_score: number;
+  domain: string;
+}
+
+/**
+ * AT-042: the pre-sign-off plan the ApprovalCard surfaces for human review.
+ * Extends the original (surfaces-only) shape — every field beyond `surfaces` is
+ * optional so the existing `plan` SSE consumers and narrow-brief plans (which
+ * carry only `surfaces`) keep working unchanged. Mirrors the subset of
+ * `atelier-core` `PlanStep` the dashboard consumes.
+ */
 export interface PlanData {
   surfaces: string[];
+  /** Estimated total token budget for the run (rendered on the ApprovalCard). */
+  est_tokens?: number;
+  /** WCAG conformance target the run will gate against (e.g. "AA"). */
+  wcag_target?: string;
+  /** Number of specialist agents the run will dispatch (the D-O-R-A-V panel). */
+  specialist_count?: number;
+  /** D-O-R-A-V axis weight distribution (sums to ~1.0). */
+  axis_weights?: Record<string, number>;
+  /** Brand constitution to apply, or null/absent for the default. */
+  constitution?: string | null;
+  /** One-sentence justification for the plan (planner reasoning). */
+  reasoning?: string;
+  /** AT-025/AT-030 cited defaults — the editable, citation-backed plan rows. */
+  proposed_defaults?: ProposedDefault[];
+  /** Under-specified aspects of the brief surfaced for the user to clarify. */
+  open_questions?: string[];
+  /** Known coverage gaps (e.g. research unavailable) acknowledged on the plan. */
+  gaps?: string[];
 }
 
 export interface ScreenStartData {
