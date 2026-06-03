@@ -72,7 +72,7 @@ from atelier.intake.web_research import (
 from atelier.models.axis_weights import AxisWeights
 from atelier.models.data_contracts import CandidateUI, TenantContext
 from atelier.models.enums import GateAxis, GateDecision
-from atelier.nodes.consensus import evaluate_candidate
+from atelier.nodes.consensus import ConsensusEvaluation, evaluate_candidate
 from atelier.orchestrator.governor import (
     TOKEN_CAP_MESSAGE,
     GovernorState,
@@ -623,7 +623,7 @@ class AtelierRunner:
         self._governor._state.token_cap = self._usage_store.token_cap
         self._governor._state.cumulative_user_tokens = self._usage_store.get_total(user_id)
 
-    def _run_n3c_n3d_n4(
+    def _run_n3c_n3d_n4(  # noqa: C901 — the N3c gate / N3d judge / N4 select convergence core
         self,
         raw_candidates: list[Any],
         brief_text: str,  # noqa: ARG002
@@ -659,17 +659,20 @@ class AtelierRunner:
             Dict with keys: best_candidate, all_gate_results, all_evaluations,
             converged, composite_score, candidates_evaluated, candidates_passed_gates.
         """
+        from concurrent.futures import ThreadPoolExecutor  # noqa: PLC0415
         from uuid import uuid4  # noqa: PLC0415
 
         weights = AxisWeights()
         gate_results = []
-        evaluations = []
         candidates_passed_gates = 0
         # Best gate-passing-adjacent candidate, used for the no-convergence
         # fallback so we never return a non-design specialist output (e.g. the UX
         # Researcher's markdown) as the "best candidate".
         best_partial_html: str | None = None
         best_partial_score: float = -1.0
+        # Candidates that cleared every N3c gate, paired with their normalized
+        # HTML; judged concurrently after the (cheap, deterministic) gate pass.
+        passing: list[tuple[CandidateUI, str]] = []
 
         for raw in raw_candidates:
             # Normalize each candidate before the zero-tolerance N3c gates, which
@@ -720,17 +723,30 @@ class AtelierRunner:
                 continue
 
             candidates_passed_gates += 1
+            passing.append((candidate, html_content))
 
-            # N3d: D-O-R-A-V consensus evaluation (heuristic or LLM per ATELIER_JUDGE_MODE)
-            # Consensus evaluation runs synchronously; consider asyncio.to_thread for high-concurrency deployments.
-            evaluation = evaluate_candidate(candidate, weights, judge_client=self._judge_client)
-            evaluations.append((evaluation, html_content))
-            logger.info(
-                "N3d: candidate %s composite=%.3f passed=%s",
-                str(candidate.candidate_id)[:8],
-                evaluation.composite_score,
-                evaluation.passed,
-            )
+        # N3d: D-O-R-A-V consensus over every gate-passing candidate. The
+        # candidates are independent, so judge them concurrently — each
+        # evaluate_candidate is a blocking, thread-safe call (heuristic scorers are
+        # pure Python; the LLM judge client is concurrency-safe). This cuts N3d
+        # wall-clock from the sum of per-candidate judging to roughly the slowest
+        # single candidate, the dominant latency cost once gates pass. Order is
+        # preserved so selection and token accounting are identical to serial.
+        evaluations: list[tuple[ConsensusEvaluation, str]] = []
+        if passing:
+            with ThreadPoolExecutor(max_workers=min(len(passing), 8)) as pool:
+                futures = [
+                    pool.submit(
+                        evaluate_candidate, candidate, weights, judge_client=self._judge_client
+                    )
+                    for candidate, _ in passing
+                ]
+                results = [future.result() for future in futures]
+            evaluations = [(ev, html) for ev, (_, html) in zip(results, passing, strict=True)]
+            for ev, _html in evaluations:
+                logger.info(
+                    "N3d: candidate composite=%.3f passed=%s", ev.composite_score, ev.passed
+                )
 
         # N4: select best candidate
         best_candidate: str | None = None
