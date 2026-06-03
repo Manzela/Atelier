@@ -38,6 +38,13 @@ const nextConfig: NextConfig = {
           value: 'DENY',
         },
         {
+          // signInWithPopup opens a cross-origin OAuth popup; same-origin-allow-popups
+          // keeps the opener's handle to it (silences the window.closed COOP warning and
+          // lets the SDK detect a user-cancelled popup) without weakening isolation.
+          key: 'Cross-Origin-Opener-Policy',
+          value: 'same-origin-allow-popups',
+        },
+        {
           key: 'Referrer-Policy',
           value: 'strict-origin-when-cross-origin',
         },
