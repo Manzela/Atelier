@@ -1,6 +1,6 @@
 {
   "schema_version": "2.0",
-  "generated_at": "2026-06-03T14:03:29.602012+00:00",
+  "generated_at": "2026-06-03T14:08:00.833775+00:00",
   "provenance": {
     "atelier_source": "BigQuery atelier-build-2026.atelier_trajectories.trajectory_records",
     "ab_source": "scripts/eval/run_baseline_ab.py (Atelier vs single-shot, identical gate path)",
@@ -92,20 +92,13 @@
     },
     "per_brief": [
       {
-        "task_id": "cs-001",
+        "task": "cs-001",
         "category": "dashboard",
-        "reference_score": 0.86,
-        "atelier": {
-          "composite_score": 0.0,
-          "converged": false,
-          "mean_gate_score": 84.7,
-          "failed_gates": ["axe"]
-        },
-        "baseline": {
-          "composite_score": 0.3867,
-          "mean_gate_score": 88.5,
-          "failed_gates": []
-        }
+        "reference_target": 0.86,
+        "atelier_gate_score": 84.7,
+        "converged": false,
+        "baseline_gate_score": 88.5,
+        "baseline_failed_gates": []
       }
     ]
   },

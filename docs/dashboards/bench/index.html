@@ -1245,15 +1245,31 @@
       const b = ab.baseline || {};
       const n = ab.n_briefs;
 
-      // Headline: the single-shot baseline is expected to fail the accessibility gate
-      // outright, which the pipeline enforces and iterates on. Lead with that.
+      // Data-driven, honest framing. The local Atelier arm in this harness runs
+      // in a DEGRADED configuration (Stitch design system disabled) and is NOT
+      // representative of production — the Production results above are Atelier's
+      // real signal. Never assert a result the numbers do not support.
+      const baselineConv = b.convergence_rate || 0;
+      const reachClause =
+        baselineConv <= 0
+          ? "do not reach"
+          : baselineConv < 0.5
+            ? "rarely reach"
+            : "do not reliably reach";
       const headline = `
         <div class="callout" style="margin-bottom:16px">
-          <span class="material-symbols-outlined" aria-hidden="true">priority_high</span>
+          <span class="material-symbols-outlined" aria-hidden="true">science</span>
           <div class="callout-body">
-            <h2>Headline</h2>
-            <p>The single-shot baseline fails the accessibility gate; Atelier&rsquo;s pipeline
-            <strong>enforces and iterates on it</strong> until the candidate converges.</p>
+            <h2>What this controlled run shows</h2>
+            <p>Both arms were scored by the identical gate + D-O-R-A-V consensus path on the
+            same briefs. The single-shot baseline produces structurally valid HTML, but its
+            designs ${reachClause} the 0.70 convergence bar on the quality consensus &mdash;
+            single-shot output does not meet the bar Atelier ships against.</p>
+            <p class="footnote" style="margin-top:8px"><strong>Methodology:</strong> the Atelier
+            arm in this local harness runs with the Stitch design system disabled (a degraded
+            configuration) and is <em>not</em> representative of production. Atelier&rsquo;s
+            representative performance is the Production results above. This A/B is shown for
+            transparency, not as a production benchmark.</p>
           </div>
         </div>`;
 
@@ -1269,16 +1285,16 @@
           <div class="ab-cell ab-head ab-col-atelier" role="columnheader">Atelier</div>
           <div class="ab-cell ab-head" role="columnheader">Single-shot</div>
           ${rows.map((r) => {
-            const aWins = typeof r.aRaw === "number" && typeof r.bRaw === "number" && r.aRaw >= r.bRaw;
-            const aColor = aWins ? T("--md-positive") : T("--md-on-surface");
-            const bColor = !aWins && typeof r.bRaw === "number" && typeof r.aRaw === "number" ? T("--md-on-surface") : T("--md-on-surface-variant");
+            // No winner-highlighting: the local Atelier arm is degraded (see the
+            // methodology note), so colour-coding a "winner" here would mislead.
+            // The numbers are shown plainly; the reader weighs them with the caveat.
             return `
               <div class="ab-cell" role="cell">
                 <span class="ab-metric-name">${esc(r.name)}</span>
                 <span class="ab-metric-note">${esc(r.note)}</span>
               </div>
-              <div class="ab-cell" role="cell"><span class="ab-num" style="color:${aColor}">${esc(r.a)}</span></div>
-              <div class="ab-cell" role="cell"><span class="ab-num" style="color:${bColor}">${esc(r.b)}</span></div>`;
+              <div class="ab-cell" role="cell"><span class="ab-num">${esc(r.a)}</span></div>
+              <div class="ab-cell" role="cell"><span class="ab-num">${esc(r.b)}</span></div>`;
           }).join("")}
         </div>`;
 

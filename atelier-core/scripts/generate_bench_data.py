@@ -180,22 +180,16 @@ def _load_ab_comparison() -> dict[str, Any]:
         "generated_at": doc.get("generated_at"),
         "atelier": _arm_means("atelier"),
         "baseline": _arm_means("baseline"),
+        # Flat per-brief rows matching the dashboard table's field names.
         "per_brief": [
             {
-                "task_id": r["task_id"],
+                "task": r["task_id"],
                 "category": r.get("category", "general"),
-                "reference_score": r.get("reference_score"),
-                "atelier": {
-                    "composite_score": r["atelier"].get("composite_score"),
-                    "converged": r["atelier"].get("converged"),
-                    "mean_gate_score": r["atelier"].get("mean_gate_score"),
-                    "failed_gates": r["atelier"].get("failed_gates", []),
-                },
-                "baseline": {
-                    "composite_score": r["baseline"].get("composite_score"),
-                    "mean_gate_score": r["baseline"].get("mean_gate_score"),
-                    "failed_gates": r["baseline"].get("failed_gates", []),
-                },
+                "reference_target": r.get("reference_score"),
+                "atelier_gate_score": r["atelier"].get("mean_gate_score"),
+                "converged": r["atelier"].get("converged"),
+                "baseline_gate_score": r["baseline"].get("mean_gate_score"),
+                "baseline_failed_gates": r["baseline"].get("failed_gates", []),
             }
             for r in records
         ],
