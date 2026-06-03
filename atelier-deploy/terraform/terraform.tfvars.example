@@ -1,0 +1,55 @@
+# Atelier Terraform variables — copy to terraform.tfvars and edit.
+#   cp terraform.tfvars.example terraform.tfvars
+# Only project_id is strictly required; every other line is an optional override
+# of the default in variables.tf. See docs/runbooks/go-live.md for the full flow.
+
+# --- Required -----------------------------------------------------------------
+
+# GCP project to deploy into. If omitted, falls back to the GOOGLE_CLOUD_PROJECT
+# env var; set it explicitly here for a reproducible apply.
+project_id = "atelier-build-2026"
+
+# Deployment environment: "staging" | "production".
+environment = "production"
+
+# --- Common overrides ---------------------------------------------------------
+
+# region        = "us-central1"
+# custom_domain = "atelier.autonomous-agent.dev"   # must match dns.tf / alb.tf
+# auth_domain   = "auth.atelier.autonomous-agent.dev"
+
+# Container image the Cloud Run API serves. Pin to an immutable digest for prod
+# rather than the :latest tag.
+# api_image = "us-central1-docker.pkg.dev/atelier-build-2026/atelier/api:latest"
+
+# Vertex Agent Engine id the session/memory services bind to (AT-080/082).
+# Leave empty for the first apply; fill in the resource name printed by
+# `make deploy-agent-engine`, then re-apply (go-live.md step 3).
+# agent_engine_id = ""
+
+# --- Sizing (defaults are tuned; change only with reason) ---------------------
+# The API runs the axe-core a11y gate in-process via chromium; below ~2Gi
+# chromium OOMs and every candidate fails the gate. Cloud Run also requires
+# >=2 vCPU for >4Gi memory. A full DAG generation exceeds the 300s default
+# request timeout, so it is raised to the 3600s maximum.
+# api_memory                  = "4Gi"
+# api_cpu                     = "2"
+# api_request_timeout_seconds = 3600
+# api_min_instances           = 0     # scale-to-zero
+# api_max_instances           = 10
+
+# --- Data + security ----------------------------------------------------------
+# bq_trajectory_retention_days  = null   # null = no expiry
+# armor_rate_limit_count        = 60     # Cloud Armor per-IP requests per interval
+# armor_rate_limit_interval_sec = 60
+
+# Ingress model. false (default): ALB + Firebase SSO (allUsers run.invoker, app
+# enforces auth). true: Identity-Aware Proxy gates ingress instead.
+# enable_iap          = false
+# iap_support_email   = "you@example.com"
+# iap_allowed_members = ["user:you@example.com"]
+
+# Extra domains authorized for Firebase OAuth redirects beyond custom_domain
+# (e.g. a *.run.app staging dashboard host). The identity config replaces the
+# whole list on apply, so staging hosts must be declared here to survive.
+# additional_authorized_domains = []
