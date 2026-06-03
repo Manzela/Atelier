@@ -13,6 +13,7 @@ from atelier.gates.runner import run_gates
 from atelier.models.data_contracts import CandidateUI
 from atelier.orchestrator.runner import (
     _N3C_GATE_AXES,
+    _complete_accessibility,
     _complete_color_token_palette,
     _extract_html_document,
 )
@@ -104,3 +105,66 @@ class TestCompleteColorTokenPalette:
         assert token_gate(_extract_html_document(_DOC)) == "reject"
         # After palette completion the literal is a declared token -> pass.
         assert token_gate(_complete_color_token_palette(_extract_html_document(_DOC))) == "pass"
+
+
+@pytest.mark.unit
+class TestCompleteAccessibility:
+    """Deterministic remediation of the mechanically-fixable axe violations.
+
+    Regression guard for the convergence-reliability finding: the N3c axe gate is
+    zero-tolerance and the generator reliably leaks html-has-lang / document-title
+    / aria-progressbar-name. Each has one correct, content-preserving remedy.
+    """
+
+    def test_adds_lang_when_missing(self) -> None:
+        out = _complete_accessibility("<html><head><title>T</title></head><body>x</body></html>")
+        assert 'lang="en"' in out
+
+    def test_preserves_existing_lang(self) -> None:
+        out = _complete_accessibility('<html lang="fr"><head><title>T</title></head><body/></html>')
+        assert 'lang="fr"' in out
+        assert out.count("lang=") == 1
+
+    def test_adds_title_from_h1_when_missing(self) -> None:
+        out = _complete_accessibility(
+            '<html lang="en"><head></head><body><h1>My Screen</h1></body></html>'
+        )
+        assert "<title>My Screen</title>" in out
+
+    def test_adds_default_title_when_no_h1(self) -> None:
+        out = _complete_accessibility('<html lang="en"><head></head><body><p>x</p></body></html>')
+        assert "<title>Generated Design</title>" in out
+
+    def test_creates_head_for_title_when_absent(self) -> None:
+        out = _complete_accessibility('<html lang="en"><body><h1>Hi</h1></body></html>')
+        assert "<title>Hi</title>" in out
+        assert "<head>" in out.lower()
+
+    def test_names_unnamed_progressbar(self) -> None:
+        out = _complete_accessibility(
+            '<html lang="en"><head><title>T</title></head><body><div role="progressbar"></div></body></html>'
+        )
+        assert 'aria-label="Progress"' in out
+
+    def test_preserves_named_progressbar(self) -> None:
+        html = '<html lang="en"><head><title>T</title></head><body><div role="progressbar" aria-label="Step 1 of 3"></div></body></html>'
+        assert _complete_accessibility(html) == html
+
+    def test_adds_alt_to_img_including_self_closing(self) -> None:
+        out = _complete_accessibility(
+            '<html lang="en"><head><title>T</title></head><body><img src="a.png"><img src="b.png"/></body></html>'
+        )
+        # Both imgs get alt, and the self-closing one stays well-formed.
+        assert out.count("alt=") == 2
+        assert "/ alt" not in out
+        assert 'alt=""/>' in out.replace(" ", "")
+
+    def test_is_idempotent(self) -> None:
+        once = _complete_accessibility(
+            '<html><head></head><body><h1>X</h1><img src="a"><div role="progressbar"></div></body></html>'
+        )
+        assert _complete_accessibility(once) == once
+
+    def test_fully_compliant_doc_unchanged(self) -> None:
+        doc = '<html lang="en"><head><title>Ok</title></head><body><main>ok</main></body></html>'
+        assert _complete_accessibility(doc) == doc
