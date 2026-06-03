@@ -16,12 +16,17 @@ const nextConfig: NextConfig = {
           key: 'Content-Security-Policy',
           value: [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+            // apis.google.com + gstatic: Firebase Auth signInWithPopup loads the
+            // Google API (gapi) client; without these the Google sign-in script is
+            // CSP-blocked and the popup fails with auth/internal-error.
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://www.gstatic.com",
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
             "font-src 'self' https://fonts.gstatic.com",
-            "img-src 'self' data: blob:",
-            "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com https://*.run.app https://*.autonomous-agent.dev wss://*.firebaseio.com http://localhost:*",
-            "frame-src 'self' https://*.firebaseapp.com",
+            // googleusercontent: the signed-in user's Google avatar.
+            "img-src 'self' data: blob: https://*.googleusercontent.com",
+            "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com https://*.run.app https://*.autonomous-agent.dev https://accounts.google.com wss://*.firebaseio.com http://localhost:*",
+            // accounts.google.com + apis.google.com: the Google OAuth popup/iframe.
+            "frame-src 'self' https://*.firebaseapp.com https://apis.google.com https://accounts.google.com",
           ].join('; '),
         },
         {
@@ -31,6 +36,13 @@ const nextConfig: NextConfig = {
         {
           key: 'X-Frame-Options',
           value: 'DENY',
+        },
+        {
+          // signInWithPopup opens a cross-origin OAuth popup; same-origin-allow-popups
+          // keeps the opener's handle to it (silences the window.closed COOP warning and
+          // lets the SDK detect a user-cancelled popup) without weakening isolation.
+          key: 'Cross-Origin-Opener-Policy',
+          value: 'same-origin-allow-popups',
         },
         {
           key: 'Referrer-Policy',
