@@ -169,32 +169,22 @@ async def _record_trajectory(
 
         now = datetime.now(tz=UTC)
         session_id = result.get("session_id", run_id)
-        candidates = result.get("candidates", [])
-        evaluations = result.get("evaluations", [])
-        gate_results = result.get("gate_results", [])
+        scored_candidates = result.get("scored_candidates", [])
         best_candidate = result.get("best_candidate", "")
+        converged = result.get("converged", False)
 
-        # Build a TrajectoryRecord for each N3a candidate.
-        # P0-4: use actual per-candidate composite_score from evaluations (not 0.0 for losers).
-        # Zero scores corrupt the DPO pair miner margin calculation and produce noise pairs.
+        # Build a TrajectoryRecord per gate-passing candidate from the canonical
+        # scored_candidates join (candidate_id + html + composite_score, paired
+        # correctly in the runner). The previous positional walk of raw candidates
+        # against the score-descending evaluations attached the wrong score to the
+        # wrong candidate and poisoned the DPO pair-miner margins (audit 2026-06-03).
         # P0-3 / P1-3: use the _MAX_CANDIDATE_RECORDS constant instead of hardcoded 3.
         records = []
-        eval_cursor = 0
-        for i, candidate in enumerate(candidates[:_MAX_CANDIDATE_RECORDS]):
-            content = candidate if isinstance(candidate, str) else str(candidate)
-            is_best = content == best_candidate
-            outcome = "accepted" if is_best and result.get("converged") else "rejected"
-
-            # Extract actual composite score for this candidate from the evaluations list.
-            # Evaluations only exist for candidates that passed N3c gates.
-            gate_passed = (
-                gate_results[i].get("all_passed", False) if i < len(gate_results) else False
-            )
-            if gate_passed and eval_cursor < len(evaluations):
-                candidate_score = float(evaluations[eval_cursor].get("composite_score", 0.0))
-                eval_cursor += 1
-            else:
-                candidate_score = 0.0  # did not pass gates — no consensus score available
+        for i, scored in enumerate(scored_candidates[:_MAX_CANDIDATE_RECORDS]):
+            html = scored.get("html", "")
+            is_best = html == best_candidate
+            outcome = "accepted" if is_best and converged else "rejected"
+            candidate_score = float(scored.get("composite_score", 0.0))
 
             record = TrajectoryRecord(
                 trajectory_id=uuid4(),
@@ -239,16 +229,19 @@ def _build_response(
     """Build a GenerateResponse from the runner result dict."""
     raw_candidates = result.get("candidates", [])
     gate_results = result.get("gate_results", [])
-    evaluations = result.get("evaluations", [])
+    scored_candidates = result.get("scored_candidates", [])
+    # Join each gate result to its consensus score/votes by candidate_id. The
+    # gate results are in raw candidate order while the evaluations are
+    # score-descending, so indexing one by the other's position attaches the
+    # wrong score to the wrong candidate (audit 2026-06-03). scored_candidates
+    # carries html + score + votes keyed by candidate_id.
+    score_by_id: dict[str, dict[str, Any]] = {
+        str(sc.get("candidate_id")): sc for sc in scored_candidates
+    }
 
     candidate_summaries: list[CandidateSummary] = []
-    for i, _raw in enumerate(raw_candidates):
-        gate_data = gate_results[i] if i < len(gate_results) else {}
-        eval_data = {}
-        if gate_data.get("all_passed") and evaluations:
-            eval_idx = sum(1 for gr in gate_results[:i] if gr.get("all_passed")) - 1
-            if 0 <= eval_idx < len(evaluations):
-                eval_data = evaluations[eval_idx]
+    for i, gate_data in enumerate(gate_results):
+        eval_data = score_by_id.get(str(gate_data.get("candidate_id")), {})
 
         candidate_summaries.append(
             CandidateSummary(

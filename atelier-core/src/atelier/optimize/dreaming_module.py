@@ -118,27 +118,30 @@ def extract_pairs_midflight(
     tenant_id: str,
     surface_id: str,
     brief_text: str,
-    candidates: list[str],
-    evaluations: list[dict[str, Any]],
-    gate_results: list[dict[str, Any]],
-    best_candidate: str | None,  # noqa: ARG001  # retained for API symmetry with runner
-    converged: bool,  # noqa: ARG001  # retained for API symmetry with runner
+    scored_candidates: list[dict[str, Any]],
 ) -> list[ExtractedPair]:
     """Extract DPO pairs from a single /v1/generate request's results.
 
     Called synchronously from runner.run() immediately after N3d evaluation.
-    Extracts accepted/rejected pairs from the current request's K=3 candidates.
+    Extracts accepted/rejected pairs from the current request's gate-passing
+    candidates.
+
+    Each ``scored_candidates`` entry already pairs a candidate's HTML with its
+    OWN consensus score (joined by ``candidate_id`` in the runner, where
+    html<->score alignment is provable). The chosen/rejected labels are derived
+    from each candidate's own score, so they can never invert — unlike the
+    previous positional zip of raw-order candidates against the
+    score-descending evaluations list, which silently wrote direction-inverted
+    training pairs whenever raw order != score order (audit 2026-06-03).
 
     Args:
         session_id: Current request's session ID.
         tenant_id: Tenant isolation key.
         surface_id: UUID for the surface being designed.
         brief_text: The design brief (used as the DPO prompt).
-        candidates: Raw HTML strings from N3a.
-        evaluations: Per-candidate D-O-R-A-V scores from N3d.
-        gate_results: Per-candidate gate outcomes from N3c.
-        best_candidate: The HTML string selected by N4.
-        converged: Whether the pipeline converged (composite_score >= 0.70).
+        scored_candidates: Per gate-passing candidate, each a dict with at least
+            ``html`` (str) and ``composite_score`` (float). Order is irrelevant —
+            each entry is self-describing.
 
     Returns:
         List of ExtractedPair ready for BQ insertion.
@@ -147,33 +150,29 @@ def extract_pairs_midflight(
     pairs: list[ExtractedPair] = []
     now = datetime.now(tz=UTC).isoformat()
 
-    # Map each candidate to its score
-    eval_cursor = 0
-    scored_candidates: list[tuple[str, float]] = []
-    for i, candidate in enumerate(candidates):
-        gate_passed = gate_results[i].get("all_passed", False) if i < len(gate_results) else False
-        if gate_passed and eval_cursor < len(evaluations):
-            score = float(evaluations[eval_cursor].get("composite_score", 0.0))
-            eval_cursor += 1
-            scored_candidates.append((candidate, score))
+    # Keep only candidates with real HTML, carrying each one's own score. No
+    # positional cursor: the (html, score) pairing is fixed inside each entry.
+    scored: list[tuple[str, float]] = [
+        (str(c.get("html", "")), float(c.get("composite_score", 0.0)))
+        for c in scored_candidates
+        if str(c.get("html", "")).strip()
+    ]
 
-    if len(scored_candidates) < 2:  # noqa: PLR2004
+    if len(scored) < 2:  # noqa: PLR2004
         logger.debug(
             "Mid-flight pair extraction: insufficient scored candidates",
-            extra={"session_id": session_id, "scored": len(scored_candidates)},
+            extra={"session_id": session_id, "scored": len(scored)},
         )
         return []
 
     # Form pairs: best vs each loser
-    scored_candidates.sort(key=lambda x: x[1], reverse=True)
-    chosen_html, chosen_score = scored_candidates[0]
+    scored.sort(key=lambda x: x[1], reverse=True)
+    chosen_html, chosen_score = scored[0]
 
-    for rejected_html, rejected_score in scored_candidates[1:]:
+    for rejected_html, rejected_score in scored[1:]:
         margin = chosen_score - rejected_score
         if margin < MIN_MARGIN:
             continue  # Too close — not useful training signal
-        if not chosen_html.strip() or not rejected_html.strip():
-            continue  # Empty HTML — skip
 
         pairs.append(
             ExtractedPair(
@@ -197,7 +196,7 @@ def extract_pairs_midflight(
         extra={
             "session_id": session_id,
             "pairs_extracted": len(pairs),
-            "chosen_score": scored_candidates[0][1] if scored_candidates else 0,
+            "chosen_score": scored[0][1] if scored else 0,
         },
     )
     return pairs

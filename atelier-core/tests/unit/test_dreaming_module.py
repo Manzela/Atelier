@@ -23,12 +23,14 @@ from atelier.optimize.dreaming_module import (
 # ---------------------------------------------------------------------------
 
 
-def _make_gate_result(all_passed: bool) -> dict[str, object]:  # noqa: FBT001
-    return {"candidate_id": "c1", "all_passed": all_passed, "outcomes": []}
-
-
-def _make_evaluation(composite_score: float) -> dict[str, object]:
-    return {"composite_score": composite_score, "passed": composite_score >= 0.70, "votes": {}}
+def _scored(html: str, composite_score: float, candidate_id: str = "c") -> dict[str, object]:
+    """A canonical scored_candidates entry: html paired with its OWN score+id."""
+    return {
+        "candidate_id": candidate_id,
+        "html": html,
+        "composite_score": composite_score,
+        "votes": {},
+    }
 
 
 class TestExtractPairsMidflight:
@@ -38,20 +40,48 @@ class TestExtractPairsMidflight:
             tenant_id="tenant-alpha",
             surface_id="surf-1",
             brief_text="Design a dashboard for retail analytics",
-            candidates=["<html>chosen</html>", "<html>rejected</html>"],
-            evaluations=[_make_evaluation(0.90), _make_evaluation(0.70)],
-            gate_results=[_make_gate_result(True), _make_gate_result(True)],
-            best_candidate="<html>chosen</html>",
-            converged=True,
+            scored_candidates=[
+                _scored("<html>chosen</html>", 0.90, "a"),
+                _scored("<html>rejected</html>", 0.70, "b"),
+            ],
         )
         assert len(pairs) == 1
         pair = pairs[0]
         assert pair.chosen_score == pytest.approx(0.90)
         assert pair.rejected_score == pytest.approx(0.70)
+        assert pair.chosen_response == "<html>chosen</html>"
+        assert pair.rejected_response == "<html>rejected</html>"
         assert pair.margin == pytest.approx(0.20)
         assert pair.margin >= MIN_MARGIN
         assert pair.tenant_id == "tenant-alpha"
         assert pair.session_id == "sess-1"
+
+    def test_chosen_is_highest_score_regardless_of_input_order(self) -> None:
+        """Regression (audit 2026-06-03): the chosen/rejected labels must follow
+        each candidate's OWN score, never list position.
+
+        The old extractor walked candidates in raw order and consumed a
+        score-descending evaluations list via a positional cursor, so when the
+        worst candidate appeared first it was labeled `chosen` and the best
+        `rejected` — direction-inverted DPO signal written to BigQuery. With the
+        canonical join each entry self-describes, so worst-first input still
+        yields the true winner as chosen.
+        """
+        pairs = extract_pairs_midflight(
+            session_id="sess-inv",
+            tenant_id="tenant-alpha",
+            surface_id="surf-inv",
+            brief_text="Brief",
+            scored_candidates=[
+                _scored("<html>LOSER</html>", 0.60, "a"),  # worst, listed FIRST
+                _scored("<html>WINNER</html>", 0.95, "b"),  # best, listed second
+            ],
+        )
+        assert len(pairs) == 1
+        assert pairs[0].chosen_response == "<html>WINNER</html>"
+        assert pairs[0].chosen_score == pytest.approx(0.95)
+        assert pairs[0].rejected_response == "<html>LOSER</html>"
+        assert pairs[0].rejected_score == pytest.approx(0.60)
 
     def test_returns_empty_when_margin_below_threshold(self) -> None:
         pairs = extract_pairs_midflight(
@@ -59,33 +89,28 @@ class TestExtractPairsMidflight:
             tenant_id="tenant-alpha",
             surface_id="surf-2",
             brief_text="Brief",
-            candidates=["<html>a</html>", "<html>b</html>"],
-            evaluations=[_make_evaluation(0.75), _make_evaluation(0.72)],
-            gate_results=[_make_gate_result(True), _make_gate_result(True)],
-            best_candidate="<html>a</html>",
-            converged=False,
+            scored_candidates=[
+                _scored("<html>a</html>", 0.75, "a"),
+                _scored("<html>b</html>", 0.72, "b"),
+            ],
         )
         # 0.75 - 0.72 = 0.03 < MIN_MARGIN (0.12) → no pairs
         assert pairs == []
 
-    def test_skips_candidates_that_failed_gate(self) -> None:
+    def test_skips_entries_with_empty_html(self) -> None:
+        # An entry whose HTML is empty (e.g. a non-design specialist output) is
+        # dropped, leaving fewer than two scorable candidates → no pair.
         pairs = extract_pairs_midflight(
             session_id="sess-3",
             tenant_id="tenant-alpha",
             surface_id="surf-3",
             brief_text="Brief",
-            candidates=["<html>gate_fail</html>", "<html>chosen</html>", "<html>rejected</html>"],
-            evaluations=[_make_evaluation(0.90), _make_evaluation(0.70)],
-            gate_results=[
-                _make_gate_result(False),  # First candidate failed gate
-                _make_gate_result(True),
-                _make_gate_result(True),
+            scored_candidates=[
+                _scored("   ", 0.90, "a"),  # empty HTML — skipped
+                _scored("<html>only</html>", 0.70, "b"),
             ],
-            best_candidate="<html>chosen</html>",
-            converged=True,
         )
-        assert len(pairs) == 1
-        assert pairs[0].chosen_score == pytest.approx(0.90)
+        assert pairs == []
 
     def test_returns_empty_when_only_one_scored_candidate(self) -> None:
         pairs = extract_pairs_midflight(
@@ -93,11 +118,7 @@ class TestExtractPairsMidflight:
             tenant_id="tenant-alpha",
             surface_id="surf-4",
             brief_text="Brief",
-            candidates=["<html>only</html>"],
-            evaluations=[_make_evaluation(0.85)],
-            gate_results=[_make_gate_result(True)],
-            best_candidate="<html>only</html>",
-            converged=True,
+            scored_candidates=[_scored("<html>only</html>", 0.85, "a")],
         )
         assert pairs == []
 
@@ -108,11 +129,10 @@ class TestExtractPairsMidflight:
             tenant_id="t",
             surface_id="s",
             brief_text=long_brief,
-            candidates=["<html>a</html>", "<html>b</html>"],
-            evaluations=[_make_evaluation(0.90), _make_evaluation(0.70)],
-            gate_results=[_make_gate_result(True), _make_gate_result(True)],
-            best_candidate="<html>a</html>",
-            converged=True,
+            scored_candidates=[
+                _scored("<html>a</html>", 0.90, "a"),
+                _scored("<html>b</html>", 0.70, "b"),
+            ],
         )
         assert len(pairs) == 1
         assert len(pairs[0].prompt) == 2000

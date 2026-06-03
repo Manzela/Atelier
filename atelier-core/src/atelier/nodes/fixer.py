@@ -26,7 +26,14 @@ from atelier.models.safety import default_model_armor_config
 if TYPE_CHECKING:
     # The live governor passed by the runner is atelier.orchestrator.governor
     # (the token-cap governor, AT-095); annotate against it for type honesty.
-    from atelier.models.data_contracts import ConsensusResult, GateOutcome
+    from atelier.models.data_contracts import GateOutcome
+
+    # The runner passes a nodes.consensus.ConsensusEvaluation (it exposes
+    # ``votes``), NOT data_contracts.ConsensusResult (which has per_axis_scores
+    # and no votes). Annotate against the type actually received so a future
+    # caller cannot hand a ConsensusResult and reintroduce the per_axis_scores
+    # AttributeError this code path already hit once (audit 2026-06-03).
+    from atelier.nodes.consensus import ConsensusEvaluation
     from atelier.orchestrator.governor import MetacognitiveGovernor
 
 logger = logging.getLogger(__name__)
@@ -82,7 +89,7 @@ class FixerAgent:
     async def fix(
         self,
         gate_outcomes: list[GateOutcome],
-        consensus: ConsensusResult | None,
+        consensus: ConsensusEvaluation | None,
     ) -> FixerDirective:
         """Analyze failures and propose a fix.
 

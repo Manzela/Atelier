@@ -656,7 +656,9 @@ class AtelierRunner:
             brief_text: Original brief text (used to build candidate metadata).
 
         Returns:
-            Dict with keys: best_candidate, all_gate_results, all_evaluations,
+            Dict with keys: best_candidate, all_gate_results, all_evaluations
+            (score-descending), scored_candidates (per gate-passing candidate:
+            candidate_id + html + composite_score + votes, joined by id),
             converged, composite_score, candidates_evaluated, candidates_passed_gates.
         """
         from concurrent.futures import ThreadPoolExecutor  # noqa: PLC0415
@@ -788,6 +790,26 @@ class AtelierRunner:
                 len(raw_candidates),
             )
 
+        # Canonical per-candidate join (audit 2026-06-03). Each entry pairs a
+        # gate-passing candidate's normalized HTML with its OWN consensus score,
+        # votes, and candidate_id, built straight from the `evaluations` zip where
+        # html<->score<->id are provably aligned. Every per-candidate consumer
+        # (DPO pair extraction, trajectory recording, the API response builder)
+        # MUST read this structure and join by candidate_id — never positionally
+        # zip the raw-order candidates / gate_results against the
+        # score-descending `all_evaluations`. That positional mismatch silently
+        # inverted the DPO chosen/rejected labels and mispaired per-candidate
+        # scores. This list is self-describing, so its order does not matter.
+        scored_candidates = [
+            {
+                "candidate_id": str(ev.candidate_id),
+                "html": html,
+                "composite_score": ev.composite_score,
+                "votes": {axis.value: {"score": v.score} for axis, v in ev.votes.items()},
+            }
+            for ev, html in evaluations
+        ]
+
         # AT-097: total N3d (D-O-R-A-V judge) token spend across every evaluated
         # candidate this iteration. 0 in heuristic mode (no LLM call); > 0 when
         # ATELIER_JUDGE_MODE routes axes through Vertex judges. The runner charges
@@ -795,7 +817,11 @@ class AtelierRunner:
         return {
             "best_candidate": best_candidate,
             "all_gate_results": gate_results,
+            # Score-descending (so [0] is the best); the dorav enrichment and the
+            # iteration scorecard rely on this order. Per-candidate consumers must
+            # use `scored_candidates` (joined by id) instead.
             "all_evaluations": [e for e, _ in evaluations],
+            "scored_candidates": scored_candidates,
             "converged": converged,
             "composite_score": best_score,
             "candidates_evaluated": len(raw_candidates),
@@ -1290,6 +1316,7 @@ class AtelierRunner:
             user_message = None
             gate_results_serialized: list[dict[str, Any]] = []
             evaluations_serialized: list[dict[str, Any]] = []
+            scored_candidates_serialized: list[dict[str, Any]] = []
             raw_candidates: list[Any] = []
             exit_reason: StopReason = StopReason.MAX_ITERATIONS
             iteration = 0
@@ -1503,6 +1530,11 @@ class AtelierRunner:
                     }
                     for e in convergence_result.get("all_evaluations", [])
                 ]
+                # Canonical per-candidate join (already plain JSON-safe dicts):
+                # candidate_id + html + composite_score + votes, paired correctly
+                # upstream. Threaded to the API so per-candidate consumers join by
+                # id instead of positionally zipping the score-desc evaluations.
+                scored_candidates_serialized = convergence_result.get("scored_candidates", [])
 
                 if progress_callback:
                     await progress_callback(
@@ -1577,12 +1609,30 @@ class AtelierRunner:
                         screen,
                     )
 
-                    # Extract outcomes for the best candidate (or first if none)
+                    # Feed the fixer the BEST candidate's OWN evidence — its
+                    # consensus scores AND its own gate outcomes. all_evaluations is
+                    # score-descending so [0] is the best consensus, but
+                    # all_gate_results is in raw candidate order and INCLUDES
+                    # gate-failers, so its [0] is a different candidate. Match the
+                    # gate outcomes to the best consensus by candidate_id, never by
+                    # list position (audit 2026-06-03).
                     best_evals = convergence_result.get("all_evaluations", [])
                     best_consensus = best_evals[0] if best_evals else None
 
                     all_gate_results = convergence_result.get("all_gate_results", [])
-                    target_gate_outcomes = all_gate_results[0].outcomes if all_gate_results else []
+                    if best_consensus is not None:
+                        target_gate_outcomes = next(
+                            (
+                                gr.outcomes
+                                for gr in all_gate_results
+                                if gr.candidate_id == best_consensus.candidate_id
+                            ),
+                            [],
+                        )
+                    elif all_gate_results:
+                        target_gate_outcomes = all_gate_results[0].outcomes
+                    else:
+                        target_gate_outcomes = []
 
                     directive = await fixer.fix(
                         gate_outcomes=target_gate_outcomes, consensus=best_consensus
@@ -1631,6 +1681,7 @@ class AtelierRunner:
                 "candidates_passed_gates": convergence_result.get("candidates_passed_gates", 0),
                 "gate_results": gate_results_serialized,
                 "evaluations": evaluations_serialized,
+                "scored_candidates": scored_candidates_serialized,
                 "stitch_degraded": stitch_degraded,
                 "degradation_reason": degradation_reason,
                 "user_message": user_message,
@@ -1671,6 +1722,7 @@ class AtelierRunner:
             "candidates_passed_gates": first_screen_res["candidates_passed_gates"],
             "gate_results": first_screen_res["gate_results"],
             "evaluations": first_screen_res["evaluations"],
+            "scored_candidates": first_screen_res["scored_candidates"],
             "stitch_degraded": first_screen_res["stitch_degraded"],
             "degradation_reason": first_screen_res["degradation_reason"],
             "user_message": top_user_message,
@@ -1706,11 +1758,11 @@ class AtelierRunner:
                 tenant_id=tenant_ctx.tenant_id,
                 surface_id=str(uuid.uuid4()),
                 brief_text=brief_text,
-                candidates=[str(c) for c in raw_candidates],
-                evaluations=evaluations_serialized,
-                gate_results=gate_results_serialized,
-                best_candidate=str(best_candidate) if best_candidate is not None else None,
-                converged=convergence_result["converged"],
+                # Pre-joined (candidate_id, html, score) per gate-passing candidate
+                # — the chosen/rejected labels are derived from each candidate's
+                # OWN score, so they can never invert. Replaces the old positional
+                # zip of raw candidates / score-desc evaluations (audit 2026-06-03).
+                scored_candidates=scored_candidates_serialized,
             )
             write_pairs_to_bq(dpo_pairs)
         except Exception as _dreaming_exc:  # noqa: BLE001
