@@ -205,6 +205,15 @@ module = "atelier.gates.signoff"
 # other strict check on the gate's own logic stays enabled (no ignore_errors).
 disallow_any_unimported = false
 
+[[tool.mypy.overrides]]
+module = "atelier.gates.clarify"
+# Same as gates.signoff: the clarify gate's durable human-in-the-loop tool uses the
+# un-stubbed google-adk symbols (LongRunningFunctionTool, ToolContext) so they
+# resolve to Any under strict mode (AT-030). disallow_any_unimported=false
+# suppresses that single false positive while every other strict check on the
+# gate's own decision logic stays enabled (no ignore_errors).
+disallow_any_unimported = false
+
 # numpy is TYPE_CHECKING-gated in Protocol modules by design (ruff TC002).
 # When mypy resolves TYPE_CHECKING=True paths, NDArray types come from an
 # "unfollowed" perspective in strict mode. These overrides suppress the

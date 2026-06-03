@@ -166,6 +166,25 @@ def verify_run(acceptance: AcceptanceCriteria, surfaces: dict[str, CandidateUI])
             )
         )
 
+    # ---- AT-030: user-confirmed domain standards (attribution criteria) ----
+    # Each standard the user CONFIRMED at the clarify gate is recorded as an
+    # honored attribution criterion (source='standard:<id>'). These are provenance
+    # records, not artifact gates — the standard's own gate axis (axe/contrast/
+    # token) already covers the machine-checkable side; this row makes the §14
+    # view show "the user accepted this cited default". Overriding a default
+    # removes the id from ``confirmed_standards``, so no row is emitted for it.
+    for standard_id in acceptance.confirmed_standards:
+        criteria.append(
+            CriterionVerdict(
+                criterion_id=f"standard:{standard_id}",
+                kind="standard",
+                target=standard_id,
+                source=f"standard:{standard_id}",
+                verdict=True,
+                evidence_ref="user-confirmed domain default (AT-030 clarify gate)",
+            )
+        )
+
     # ---- Condition 5: handoff bundle complete -----------------------------
     all_artifact_names = {n for c in surfaces.values() for n in c.artifacts}
     for artifact in acceptance.handoff_artifacts:
