@@ -20,11 +20,14 @@ ADR Reference: 0007 (worktree discipline)
 from __future__ import annotations
 
 import logging
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from google.adk.agents import LlmAgent
 from google.genai import types as genai_types
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+if TYPE_CHECKING:
+    from atelier.intake.research_findings import ResearchFindings
 
 from atelier.models.model_armor_callbacks import (
     model_armor_after_callback,
@@ -65,6 +68,33 @@ _PLANNER_SYSTEM_PROMPT: str = (
 )
 
 
+class ProposedDefault(BaseModel):
+    """A domain Tier-1 standard the planner proposes applying by default (AT-025).
+
+    Surfaced from :class:`atelier.intake.research_findings.ResearchFindings` so the
+    clarify-gate (AT-030, separate feature) can decide ask-vs-silent. Each carries
+    its full provenance — a default Atelier applies on the user's behalf is always
+    attributable to a cited, trust-scored source (PRD §3.5).
+
+    Attributes:
+        standard_id: The source standard's stable id (e.g. ``"dash-card-cap"``).
+        name: Human-readable source title.
+        rule: The imperative rule text being proposed as a default.
+        citation_url: The authoritative source URL (never empty).
+        trust_score: Trust seed in ``[0.0, 1.0]``.
+        domain: The project-type scope the standard applies to.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    standard_id: str
+    name: str
+    rule: str
+    citation_url: str
+    trust_score: float = Field(ge=0.0, le=1.0)
+    domain: str
+
+
 class PlanStep(BaseModel):
     """Dynamic DAG execution plan from brief analysis.
 
@@ -79,6 +109,12 @@ class PlanStep(BaseModel):
         gate_axes_to_skip: Deterministic gate axes to skip for efficiency.
         surfaces: List of screens or pages to generate sequentially.
         reasoning: One-sentence justification for the plan.
+        open_questions: Under-specified aspects of the brief worth clarifying.
+            AT-025 populates the data field; AT-030 owns the clarify-gate logic
+            that decides which become user-facing asks.
+        gaps: Known coverage gaps (e.g. research unavailable, no reference seed).
+        proposed_defaults: Domain Tier-1 standards surfaced from WRAI research as
+            defaults Atelier proposes applying (each cited + trust-scored).
     """
 
     model_config = ConfigDict(frozen=True)
@@ -90,6 +126,13 @@ class PlanStep(BaseModel):
     gate_axes_to_skip: list[str] = Field(default_factory=list)
     surfaces: list[str] = Field(default_factory=lambda: ["landing page"])
     reasoning: str = ""
+    # AT-025 anti-railroad fields. Data model + population live here; the
+    # clarify-gate DECISION logic (ask vs. silent-default-with-citation) is owned
+    # by AT-030. Safe empty defaults keep narrow briefs and the LLM JSON contract
+    # unchanged (the planner LLM is not asked to populate these).
+    open_questions: list[str] = Field(default_factory=list)
+    gaps: list[str] = Field(default_factory=list)
+    proposed_defaults: list[ProposedDefault] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def weights_sum_to_one(self) -> PlanStep:
@@ -98,6 +141,50 @@ class PlanStep(BaseModel):
         if abs(total - 1.0) > _AXIS_WEIGHT_SUM_TOLERANCE:
             raise ValueError(f"axis_weights sum={total:.3f}; must be within 0.05 of 1.0")
         return self
+
+    def with_research(self, findings: ResearchFindings) -> PlanStep:
+        """Return a copy enriched with WRAI research (AT-025).
+
+        Populates ``proposed_defaults`` from the research's domain Tier-1
+        standards (highest-trust first) and records a ``gaps`` entry when the
+        research path was blocked or unavailable, so the acknowledgment is
+        carried on the plan the user reviews. PlanStep is frozen, so this returns
+        a NEW instance (``model_copy(update=...)``) rather than mutating in place.
+
+        AT-030 consumes ``proposed_defaults`` / ``open_questions`` / ``gaps`` to
+        drive the clarify gate; this method only populates the data.
+
+        Args:
+            findings: The frozen ResearchFindings synthesized post-N14.
+
+        Returns:
+            A new PlanStep with the research fields populated.
+        """
+        from atelier.intake.research_findings import ArmorVerdict  # noqa: PLC0415
+
+        proposed = [
+            ProposedDefault(
+                standard_id=s.standard_id,
+                name=s.name,
+                rule=s.rule,
+                citation_url=s.citation_url,
+                trust_score=s.trust_score,
+                domain=s.domain,
+            )
+            for s in findings.proposed_defaults()
+        ]
+        gaps = list(self.gaps)
+        if findings.armor_verdict == ArmorVerdict.BLOCKED:
+            gaps.append(
+                "Grounded web research was blocked on the safety path "
+                "(prompt-injection pattern); proceeding with applicable standards only."
+            )
+        elif findings.armor_verdict == ArmorVerdict.UNAVAILABLE:
+            gaps.append(
+                "Grounded web research was unavailable (degraded); "
+                "proceeding with applicable standards only."
+            )
+        return self.model_copy(update={"proposed_defaults": proposed, "gaps": gaps})
 
 
 class PlannerAgent:

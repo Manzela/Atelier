@@ -1,0 +1,74 @@
+{
+  "pack": "saas-dashboard",
+  "scope": "saas-dashboard",
+  "version": "2026-05-31.seed",
+  "note": "Project-scoped. Analytics/admin dashboards. Encodes NN/g progressive-disclosure discipline AND its expert-mode exception (where density IS the requirement) so the default is senior-level, not naive. Chart rules partly gate-able; disclosure rules route to the judge.",
+  "standards": [
+    {
+      "id": "dash-progressive-disclosure",
+      "rule": "Three-layer progressive disclosure: glance-level KPIs default-visible, detail on click, configuration on deliberate intent.",
+      "check": "judge",
+      "threshold": null,
+      "source_url": "https://www.nngroup.com/articles/progressive-disclosure/",
+      "source_title": "NN/g Progressive Disclosure",
+      "trust": 0.85,
+      "year": 2024,
+      "scope": "saas-dashboard"
+    },
+    {
+      "id": "dash-card-cap",
+      "rule": "Cap the default summary to 5-7 cards/metrics to respect working-memory limits.",
+      "check": "judge",
+      "threshold": "5-7",
+      "source_url": "https://www.pencilandpaper.io/articles/ux-pattern-analysis-data-dashboards",
+      "source_title": "Data dashboard UX patterns (summary cap)",
+      "trust": 0.8,
+      "year": 2025,
+      "scope": "saas-dashboard"
+    },
+    {
+      "id": "dash-bar-over-pie",
+      "rule": "Prefer bar over pie for comparison; length is judged ~3-4x faster than angle.",
+      "check": "judge",
+      "threshold": null,
+      "source_url": "https://www.pencilandpaper.io/articles/ux-pattern-analysis-data-dashboards",
+      "source_title": "Dashboard dataviz (bar over pie)",
+      "trust": 0.8,
+      "year": 2025,
+      "scope": "saas-dashboard"
+    },
+    {
+      "id": "dash-not-color-only",
+      "rule": "Charts encode by more than color: add pattern, texture, label, or direct-label (cross-cutting 1.4.1 + 1.4.11 graphical 3:1).",
+      "check": "gate-axis:axe",
+      "threshold": "3:1",
+      "source_url": "https://www.tpgi.com/making-data-visualizations-accessible/",
+      "source_title": "Accessible data visualization (not color-only)",
+      "trust": 0.85,
+      "year": 2024,
+      "scope": "saas-dashboard"
+    },
+    {
+      "id": "dash-expert-exception",
+      "rule": "EXCEPTION: disable progressive disclosure for expert/operational-monitoring views where density is the point. Show the standard and its non-applicability condition.",
+      "check": "manual",
+      "threshold": null,
+      "source_url": "https://www.nngroup.com/articles/progressive-disclosure/",
+      "source_title": "Progressive disclosure exception (operational/expert mode)",
+      "trust": 0.8,
+      "year": 2024,
+      "scope": "saas-dashboard"
+    },
+    {
+      "id": "dash-direct-label",
+      "rule": "Direct-label data series instead of distant legends where feasible.",
+      "check": "judge",
+      "threshold": null,
+      "source_url": "https://www.tpgi.com/making-data-visualizations-accessible/",
+      "source_title": "Direct labeling over distant legends",
+      "trust": 0.8,
+      "year": 2024,
+      "scope": "saas-dashboard"
+    }
+  ]
+}

@@ -1,0 +1,74 @@
+{
+  "pack": "marketing-landing",
+  "scope": "marketing-landing",
+  "version": "2026-05-31.seed",
+  "note": "Project-scoped. Fuses conversion craft with performance/accessibility so the page is fast AND converts — competitors treat pretty, fast, and accessible as separate concerns; this pack ships them as one. The hero LCP-budget rule encodes conversion and Core Web Vitals as a single standard.",
+  "standards": [
+    {
+      "id": "landing-above-fold",
+      "rule": "Value proposition plus primary CTA are above the fold (above-fold content gets ~84% more attention).",
+      "check": "judge",
+      "threshold": null,
+      "source_url": "https://www.nngroup.com/articles/page-fold-manifesto/",
+      "source_title": "NN/g above-the-fold attention",
+      "trust": 0.85,
+      "year": 2024,
+      "scope": "marketing-landing"
+    },
+    {
+      "id": "landing-one-cta",
+      "rule": "One dominant CTA intent per page; repeat the SAME CTA down long pages, do not compete CTAs.",
+      "check": "judge",
+      "threshold": null,
+      "source_url": "https://group107.com/blog/conversion-rate-optimization-best-practices/",
+      "source_title": "CRO best practices (single dominant CTA)",
+      "trust": 0.8,
+      "year": 2025,
+      "scope": "marketing-landing"
+    },
+    {
+      "id": "landing-min-fields",
+      "rule": "Minimize form fields; prefer a multi-step form for longer asks (each added field raises abandonment).",
+      "check": "gate-axis:axe",
+      "threshold": null,
+      "source_url": "https://cxl.com/blog/landing-page-infrastructure/",
+      "source_title": "Landing page form minimization",
+      "trust": 0.8,
+      "year": 2025,
+      "scope": "marketing-landing"
+    },
+    {
+      "id": "landing-social-proof",
+      "rule": "Place social proof / trust badges adjacent to the conversion ask, not orphaned in a footer.",
+      "check": "judge",
+      "threshold": null,
+      "source_url": "https://group107.com/blog/conversion-rate-optimization-best-practices/",
+      "source_title": "CRO: social proof near the ask",
+      "trust": 0.8,
+      "year": 2025,
+      "scope": "marketing-landing"
+    },
+    {
+      "id": "landing-mobile-first",
+      "rule": "Mobile-first layout; 65-80% of landing traffic is mobile.",
+      "check": "gate-axis:lighthouse-lab",
+      "threshold": null,
+      "source_url": "https://cxl.com/blog/landing-page-infrastructure/",
+      "source_title": "Mobile-first landing layout",
+      "trust": 0.8,
+      "year": 2025,
+      "scope": "marketing-landing"
+    },
+    {
+      "id": "landing-hero-lcp",
+      "rule": "Hero LCP budget: prioritize the LCP element (no lazy-load, preload, sized) to hit cross-cutting LCP<=2.5s — one rule for conversion AND CWV.",
+      "check": "gate-axis:lighthouse-lab",
+      "threshold": "<=2.5s p75",
+      "source_url": "https://web.dev/articles/optimize-lcp",
+      "source_title": "Optimize LCP (hero element prioritization)",
+      "trust": 0.9,
+      "year": 2024,
+      "scope": "marketing-landing"
+    }
+  ]
+}

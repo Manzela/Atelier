@@ -483,6 +483,36 @@ class _SignoffToolContext:
         )
 
 
+def _research_seed_blob(brief: Any, wrai_report: Any) -> str:
+    """AT-025: the deterministic research seed embedded in the generator anchor.
+
+    Re-derives the frozen :class:`ResearchFindings` synchronously from the
+    (signed-off, immutable) brief + WRAI report and returns its
+    ``seed_blob`` — the reference palette / layout / type plus the top applicable
+    Tier-1 standards. Re-deriving here (rather than threading the dataclass through
+    the AT-031 checkpoint) keeps the anchor byte-stable across iterations AND
+    across a sign-off halt/resume, since the inputs are immutable. This is what
+    makes a reference URL's tokens demonstrably seed the UI Designer + Token
+    Generator output (acceptance A). Fail-soft: any synthesis error degrades to an
+    empty seed rather than breaking the generator prompt (R8).
+    """
+    from atelier.intake.research_findings import synthesize_findings  # noqa: PLC0415
+
+    brief_text = getattr(brief, "intent", "") or ""
+    reference_urls = list(getattr(brief, "reference_artifacts", []) or [])
+    try:
+        findings = synthesize_findings(brief_text, wrai_report, reference_urls)
+    except Exception as exc:  # noqa: BLE001
+        # Fail-soft (R8): a research-seed failure must never break generation.
+        logger.warning(
+            "AT-025 anchor seed synthesis failed (fail-soft): %s: %s",
+            type(exc).__name__,
+            str(exc)[:200],
+        )
+        return ""
+    return findings.seed_blob()
+
+
 def _compose_anchor(brief: Any, project_ctx: Any, wrai_report: Any) -> str:
     """R4 (ADR-0012 anchored_context): the immutable anchor re-injected into the
     generator prompt every iteration -- the signed-off brief + design tokens +
@@ -494,6 +524,8 @@ def _compose_anchor(brief: Any, project_ctx: Any, wrai_report: Any) -> str:
     tokens_blob = json.dumps(tokens, sort_keys=True, default=str)
     findings = getattr(wrai_report, "results", None) or []
     research_blob = json.dumps([str(f) for f in findings], sort_keys=True)
+    # AT-025: the applicable-standards + reference-palette seed (deterministic).
+    seed_blob = _research_seed_blob(brief, wrai_report)
     return (
         "--- BRIEF (anchor; do not deviate) ---\n"
         + brief_blob
@@ -501,6 +533,8 @@ def _compose_anchor(brief: Any, project_ctx: Any, wrai_report: Any) -> str:
         + tokens_blob
         + "\n--- RESEARCH FINDINGS (anchor) ---\n"
         + research_blob
+        + "\n"
+        + seed_blob
     )
 
 
@@ -871,11 +905,17 @@ class AtelierRunner:
 
         The PlannerAgent (N0) runs after brief parsing to produce a PlanStep
         that drives WRAI routing: narrow briefs skip web research, creative
-        briefs get full research augmentation.
+        briefs get full research augmentation. AT-025 then synthesizes the WRAI
+        report + domain Tier-1 standards + reference-URL palette into a frozen
+        ``ResearchFindings`` and enriches the plan with its ``proposed_defaults``;
+        the seed is re-derived deterministically at anchor-composition time so it
+        also survives the AT-031 sign-off halt/resume (no extra checkpoint field).
 
         Returns:
-            Tuple of (brief, project_ctx, wrai_report, plan_step).
+            Tuple of (brief, project_ctx, wrai_report, plan_step). The plan carries
+            the AT-025 ``proposed_defaults`` / ``gaps`` populated from research.
         """
+        from atelier.intake.research_findings import research_synthesizer  # noqa: PLC0415
         from atelier.orchestrator.planner import PlannerAgent  # noqa: PLC0415
 
         gate = BriefParserGate()
@@ -909,6 +949,28 @@ class AtelierRunner:
         else:
             logger.info("N14 WRAI: skipped per PlannerAgent (should_run_wrai=False)")
             wrai_report = WebResearchReport(results=[])
+
+        # AT-025: synthesize report + domain standards + reference palette into a
+        # frozen ResearchFindings; enrich the plan with proposed_defaults + gaps.
+        # research_synthesizer performs no network I/O (grounding already ran) and
+        # never blocks intake — an injection brief is acknowledged (armor_verdict)
+        # and intake proceeds (fail-soft, R8).
+        research_findings = await research_synthesizer(
+            brief_text=brief_text,
+            report=wrai_report,
+            reference_urls=list(getattr(brief, "reference_artifacts", []) or []),
+        )
+        plan = plan.with_research(research_findings)
+        logger.info(
+            "AT-025: research synthesized",
+            extra={
+                "domain": research_findings.domain,
+                "applicable_standards": len(research_findings.applicable_standards),
+                "proposed_defaults": len(plan.proposed_defaults),
+                "armor_verdict": research_findings.armor_verdict.value,
+                "reference_palette": len(research_findings.reference_extract.palette),
+            },
+        )
 
         if not source_resolver_gate(tenant_ctx, brief):
             raise ValueError("Source resolver gate failed (no descriptor or design source).")
