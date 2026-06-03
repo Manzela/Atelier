@@ -44,6 +44,7 @@ if TYPE_CHECKING:
 
     from atelier.nodes.llm_judge import JudgeClient
 
+from atelier.durability.design_system_persister import persist_design_system
 from atelier.durability.usage_counter import UsageCounterStore, get_usage_store
 from atelier.gates.runner import run_gates
 from atelier.gates.signoff import (
@@ -1970,10 +1971,100 @@ class AtelierRunner:
                 str(_dreaming_exc)[:200],
             )
 
+        # AT-053: persist the tenant's design system at run finalization (the
+        # sign-off boundary). On a converged run this writes the run's resolved
+        # tokens + constitution + standards as the tenant's CURRENT system, so the
+        # NEXT run auto-applies them (no re-specification) and the AT-012 gate
+        # enforces them. Fail-soft: a persistence failure is acknowledged + logged
+        # and never fails the run (the design was already produced).
+        await self._persist_design_system_at_signoff(
+            tenant_ctx=tenant_ctx,
+            project_ctx=project_ctx,
+            plan=plan,
+            session_id=session_id,
+            converged=bool(first_screen_res.get("converged")),
+        )
+
         if progress_callback:
             await progress_callback("complete", response_payload)
 
         return response_payload
+
+    async def _persist_design_system_at_signoff(
+        self,
+        *,
+        tenant_ctx: TenantContext,
+        project_ctx: ProjectContext,
+        plan: PlanStep,
+        session_id: str,
+        converged: bool,
+    ) -> None:
+        """AT-053: persist the tenant's design system at the sign-off boundary (fail-soft).
+
+        Writes the run's resolved design tokens (the converged system) as the
+        tenant's CURRENT persisted design system so the next run auto-applies and
+        the AT-012 gate enforces it. Only a CONVERGED run persists — a degraded /
+        non-converged run must not overwrite a good system with a half-baked one.
+
+        Fail-soft (PRD §21): persistence is durability, not correctness — the
+        design has already been produced and returned. A write failure is logged
+        with structured context and acknowledged, never raised.
+        """
+        if not converged:
+            logger.info(
+                "AT-053: run did not converge; not persisting design system",
+                extra={"tenant_id": tenant_ctx.tenant_id, "session_id": session_id},
+            )
+            return
+
+        tokens = {
+            name: value
+            for name, value in (getattr(project_ctx, "design_tokens", None) or {}).items()
+            if not str(name).startswith("_")
+        }
+        if not tokens:
+            logger.info(
+                "AT-053: no design tokens resolved; nothing to persist",
+                extra={"tenant_id": tenant_ctx.tenant_id, "session_id": session_id},
+            )
+            return
+
+        constitution = getattr(plan, "constitution", None)
+        research = getattr(plan, "research_findings", None)
+        standards_raw = getattr(research, "applicable_standards", None) or []
+        standards: list[dict[str, Any]] = []
+        for item in standards_raw:
+            if isinstance(item, dict):
+                standards.append(item)
+            elif hasattr(item, "model_dump"):
+                standards.append(item.model_dump(mode="json"))
+
+        try:
+            await persist_design_system(
+                tenant_id=tenant_ctx.tenant_id,
+                tokens=tokens,
+                constitution=constitution if isinstance(constitution, str) else None,
+                standards=standards,
+                run_id=session_id,
+            )
+            logger.info(
+                "AT-053: persisted tenant design system at sign-off",
+                extra={
+                    "tenant_id": tenant_ctx.tenant_id,
+                    "session_id": session_id,
+                    "token_count": len(tokens),
+                },
+            )
+        except Exception as exc:  # noqa: BLE001 — fail-soft durability (see docstring)
+            logger.warning(
+                "AT-053: design-system persist failed at sign-off (fail-soft; run unaffected)",
+                exc_info=True,
+                extra={
+                    "tenant_id": tenant_ctx.tenant_id,
+                    "session_id": session_id,
+                    "error_type": type(exc).__name__,
+                },
+            )
 
     @property
     def tokens_used(self) -> int:

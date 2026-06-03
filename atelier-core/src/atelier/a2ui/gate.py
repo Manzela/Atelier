@@ -416,6 +416,90 @@ def _infer_contrast_pairs(
     return pairs
 
 
+def _coerce_token_value_for_fidelity(value: object) -> str:
+    """Coerce a persisted token value to the display string a row would carry.
+
+    Mirrors :func:`atelier.a2ui.surface._coerce_token_value` so the authorized
+    value set compares apples-to-apples with the rendered ``/tokens`` row values.
+    """
+    if isinstance(value, list):
+        return ", ".join(str(item) for item in value)
+    return str(value)
+
+
+def _validate_token_fidelity(
+    messages: list[Any],
+    persisted_design_tokens: dict[str, Any] | None,
+) -> list[A2uiRejectReason]:
+    """Enforce the persisted per-tenant design system (AT-053 / AT-012, zero-tolerance).
+
+    This is the "enforced, not merely applied" guarantee. When a tenant has a
+    persisted design system, every literal token VALUE the surface renders in its
+    ``/tokens`` rows must belong to that system's authorized value set. Any
+    off-system literal (a value the tenant never signed off for THIS tenant) →
+    REJECT, naming the offending token + value. This makes the persisted system a
+    hard fidelity gate on a paid surface, not a soft prior.
+
+    Honest scope (fail-open by design ONLY when there is nothing to enforce):
+
+    * ``persisted_design_tokens is None`` — no system persisted yet (a tenant's
+      first run). Nothing to enforce → no-op PASS. First runs are never blocked.
+    * ``persisted_design_tokens == {}`` — an empty system carries no authorized
+      values; treated the same as "no system" (no-op PASS) so an accidental empty
+      persist can never brick every subsequent run.
+
+    When a non-empty system IS present, enforcement is zero-tolerance: a single
+    off-system value REJECTs the surface. The authorized set is the persisted
+    token VALUES (metadata ``_``-prefixed keys excluded), matching how the surface
+    renders them.
+
+    Args:
+        messages: The A2UI message list (the ``/tokens`` rows are read from the
+            ``updateDataModel`` message — the surface that renders).
+        persisted_design_tokens: The tenant's persisted authorized token map, or
+            ``None`` when no system is persisted.
+
+    Returns:
+        A list of :class:`A2uiRejectReason` (empty iff every rendered token value
+        is authorized, or there is no persisted system to enforce).
+    """
+    reasons: list[A2uiRejectReason] = []
+    if not persisted_design_tokens:
+        return reasons
+
+    authorized: set[str] = {
+        _coerce_token_value_for_fidelity(value)
+        for name, value in persisted_design_tokens.items()
+        if not name.startswith("_")
+    }
+    if not authorized:
+        return reasons
+
+    for msg_idx, rows in _data_model_rows(messages):
+        for row_idx, row in enumerate(rows):
+            if not isinstance(row, dict):
+                continue
+            path = row.get("path")
+            value = row.get("value")
+            if not isinstance(path, str) or not isinstance(value, str):
+                continue
+            if isinstance(path, str) and path.startswith("_"):
+                continue
+            if value not in authorized:
+                reasons.append(
+                    A2uiRejectReason(
+                        validator="token_fidelity",
+                        json_pointer=f"/{msg_idx}/updateDataModel/value/tokens/{row_idx}/value",
+                        message=(
+                            f"Token {path!r} value {value!r} is not in the persisted design "
+                            f"system for this tenant (off-system literal; AT-053 zero-tolerance "
+                            f"fidelity gate, fail-closed)."
+                        ),
+                    )
+                )
+    return reasons
+
+
 def _validate_token_contrast(
     messages: list[Any],
     design_tokens: dict[str, Any],
@@ -515,6 +599,7 @@ def gate_a2ui_surface(
     design_tokens: dict[str, Any],
     surface_id: str,
     allowed_components: Mapping[str, frozenset[str]] | None = None,
+    persisted_design_tokens: dict[str, Any] | None = None,
 ) -> A2uiGateResult:
     """Fail-closed gate over an A2UI surface (the cross-track G2 entry point).
 
@@ -538,6 +623,12 @@ def gate_a2ui_surface(
         allowed_components: The catalog allowlist
             (``componentType -> required-prop names``). Defaults to the Atelier
             catalog :data:`atelier.a2ui.catalog.ALLOWED_COMPONENTS`.
+        persisted_design_tokens: The tenant's persisted per-tenant design system
+            (AT-053). When present and non-empty, the **token_fidelity** validator
+            enforces it zero-tolerance: any rendered ``/tokens`` literal value not
+            in the persisted authorized set → REJECT (the "enforced, not merely
+            applied" guarantee). ``None`` / ``{}`` → no enforcement (a tenant's
+            first run is never blocked).
 
     Returns:
         An :class:`A2uiGateResult`.
@@ -549,6 +640,7 @@ def gate_a2ui_surface(
     reasons.extend(_validate_catalog(messages, allowed))
     reasons.extend(_validate_accessible_names(messages))
     reasons.extend(_validate_token_contrast(messages, design_tokens))
+    reasons.extend(_validate_token_fidelity(messages, persisted_design_tokens))
 
     if not reasons:
         logger.debug(
