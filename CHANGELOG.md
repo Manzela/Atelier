@@ -8,6 +8,19 @@ Releases are managed via [release-please](https://github.com/googleapis/release-
 
 ---
 
+## [Unreleased]
+
+### Fixed
+
+- **Per-candidate score join.** Every consumer of N3d consensus results — DPO mid-flight pair extraction, BigQuery trajectory recording, the `/v1/generate` per-candidate breakdown, and the N3e FixerAgent input — now joins each candidate to its D-O-R-A-V score by `candidate_id` through a canonical `scored_candidates` structure, rather than positionally pairing the generation-order candidate/gate lists against the score-descending evaluations. The previous positional pairing attached the wrong score to the wrong candidate whenever generation order differed from score order: it inverted the chosen/rejected labels on DPO preference pairs written to BigQuery (reversed training signal), mispaired per-candidate scores in trajectory records, and fed the FixerAgent one candidate's consensus scores with another candidate's gate outcomes.
+- Removed a `convergence_result["converged"]` hard subscript that raised `KeyError` on a first-iteration early break of the final surface (token-cap stop, governor halt, or N3a fail-soft).
+
+### Changed
+
+- `POST /v1/generate` — the `candidates[]` array now enumerates gradeable (gate-reaching) candidates instead of every raw model emission, so non-HTML specialist outputs no longer appear as phantom zero-score rows. `candidate_index` numbers the gradeable candidates in order.
+
+---
+
 ## [0.2.0-phase-2-gate] — 2026-05-25
 
 Phase 2: consensus pipeline, trajectory recording, DPO flywheel, production infrastructure, evaluation framework.
