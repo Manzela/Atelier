@@ -13,10 +13,12 @@ an availability check.
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 from collections.abc import Sequence
 from dataclasses import dataclass
+from pathlib import Path
 
 from atelier.memory.scope import MemoryScopeKey  # noqa: TC001
 
@@ -51,21 +53,90 @@ class VertexSemanticMemoryBackend:
         location: GCP region (default us-central1).
     """
 
-    def __init__(self, project_id: str, location: str = "us-central1") -> None:
-        # H-7: In-memory stub loses all data on process restart. In production
-        # (Cloud Run scales to zero), this silently pretends memory works.
-        # Fail-loud outside development until real Vertex Memory Bank is wired.
-        if os.getenv("ATELIER_ENV", "development") != "development":
-            raise NotImplementedError(
-                "VertexSemanticMemoryBackend is an in-memory stub with no persistence. "
-                "It must not be used in non-development environments. "
-                "Wire the real Vertex AI Memory Bank API or set ATELIER_ENV=development."
-            )
+    def __init__(
+        self,
+        project_id: str,
+        location: str = "us-central1",
+        *,
+        persist_dir: str | None = None,
+    ) -> None:
+        # AT-053 / AT-080: the durable per-tenant design-system record is owned by
+        # `atelier.durability.design_system_persister` (Firestore online; a real
+        # on-disk JSON store offline), so a process restart never loses a signed-off
+        # system. This backend is the SEMANTIC substrate (scope-keyed similarity
+        # search), backed offline by a real file store under `persist_dir` so
+        # writes survive across backend instances and a process restart — `make
+        # verify` exercises real persistence with no creds and no NotImplementedError.
+        #
+        # Production wires the managed Vertex AI Memory Bank via the
+        # `orchestrator.backend_factory` (SESSION_BACKEND=vertex →
+        # VertexAiMemoryBankService); this class remains the offline/dev semantic
+        # store and the Protocol shim the type checker and integration wiring use.
         self._project_id = project_id
         self._location = location
-        self._store: dict[str, list[tuple[str, str, dict[str, str]]]] = {}
-        # In-memory store keyed by scope_encoded -> [(resource_name, content, metadata)]
-        self._resource_counter = 0
+        if persist_dir is None:
+            persist_dir = os.getenv("ATELIER_SEMANTIC_MEMORY_DIR")
+        self._persist_dir: Path | None = Path(persist_dir) if persist_dir else None
+        if self._persist_dir is not None:
+            self._persist_dir.mkdir(parents=True, exist_ok=True)
+        # In-memory store keyed by scope_encoded -> [(resource_name, content, metadata)].
+        # Seeded from the persisted file store (if any) so a fresh instance sees
+        # prior writes.
+        self._store: dict[str, list[tuple[str, str, dict[str, str]]]] = self._load_persisted()
+        self._resource_counter = sum(len(v) for v in self._store.values())
+        if self._persist_dir is None:
+            logger.warning(
+                "VertexSemanticMemoryBackend: ephemeral in-process semantic store "
+                "(no ATELIER_SEMANTIC_MEMORY_DIR); the durable per-tenant design "
+                "system is still persisted by the design_system_persister. Set "
+                "ATELIER_SEMANTIC_MEMORY_DIR or SESSION_BACKEND=vertex for a durable "
+                "semantic substrate.",
+            )
+
+    def _store_file(self) -> Path | None:
+        """Path to the JSON file backing the offline semantic store, if enabled."""
+        if self._persist_dir is None:
+            return None
+        return self._persist_dir / "semantic_store.json"
+
+    def _load_persisted(self) -> dict[str, list[tuple[str, str, dict[str, str]]]]:
+        """Load the offline semantic store from disk (empty when absent/disabled)."""
+        store_file = self._store_file()
+        if store_file is None or not store_file.exists():
+            return {}
+        try:
+            raw = json.loads(store_file.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            logger.warning(
+                "VertexSemanticMemoryBackend: could not read persisted semantic store "
+                "(starting empty)",
+                exc_info=True,
+                extra={"store_file": str(store_file)},
+            )
+            return {}
+        store: dict[str, list[tuple[str, str, dict[str, str]]]] = {}
+        for scope_key, entries in raw.items():
+            store[scope_key] = [
+                (entry["resource_name"], entry["content"], entry.get("metadata", {}))
+                for entry in entries
+            ]
+        return store
+
+    def _persist(self) -> None:
+        """Atomically write the offline semantic store to disk (no-op when disabled)."""
+        store_file = self._store_file()
+        if store_file is None:
+            return
+        serializable = {
+            scope_key: [
+                {"resource_name": rn, "content": content, "metadata": meta}
+                for rn, content, meta in entries
+            ]
+            for scope_key, entries in self._store.items()
+        }
+        tmp = store_file.with_suffix(".tmp")
+        tmp.write_text(json.dumps(serializable), encoding="utf-8")
+        tmp.replace(store_file)
 
     async def write_semantic(
         self,
@@ -88,6 +159,9 @@ class VertexSemanticMemoryBackend:
         self._store[scope_key].append(
             (resource_name, content, metadata or {}),
         )
+        # Durably persist to the offline file store (no-op when disabled) so a
+        # fresh backend instance / process sees this write (AT-053 cross-run).
+        self._persist()
 
         logger.info(
             "write_semantic: scope=%s resource=%s len=%d",

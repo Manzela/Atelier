@@ -8,8 +8,10 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from atelier.durability.design_system_persister import load_persisted_design_system
 from atelier.intake.brief_spec import BriefSpec
 from atelier.models.data_contracts import TenantContext
+from atelier.models.design_system import DesignSystemRecord, serialize_priors
 
 
 class ProjectContext(BaseModel):
@@ -23,6 +25,11 @@ class ProjectContext(BaseModel):
     brief: BriefSpec
     design_tokens: dict[str, Any] = Field(default_factory=dict)
     memory_bank_priors: list[str] = Field(default_factory=list)
+    #: AT-053: the tenant's PERSISTED design system, auto-applied from a prior
+    #: signed-off run. ``None`` when no system is persisted yet (the tenant's
+    #: first run). The AT-012 token-fidelity gate enforces this set zero-tolerance
+    #: — an off-system literal in this run is REJECTed, never silently merged.
+    persisted_design_tokens: dict[str, Any] | None = None
     schema_version: int = 1
 
 
@@ -147,28 +154,55 @@ async def pull_design_tokens(design_system_source: str | None = None) -> dict[st
     return {"primary_color": "#1a73e8", "font": "Inter", "_source": "defaults"}
 
 
-async def pull_memory_bank_priors(tenant_id: str | None = None) -> list[str]:
-    """Return memory bank priors from the in-process semantic backend.
+async def load_tenant_design_system(
+    tenant_id: str | None = None,
+) -> DesignSystemRecord | None:
+    """Load the tenant's PERSISTED design system (AT-053), or ``None``.
 
-    The default configuration uses the in-memory VertexSemanticMemoryBackend (no Vertex API call).
-    VertexAiMemoryBankService is used when the API is available and the backend is configured.
+    Fail-soft: a missing system or a persistence outage returns ``None`` (no
+    persisted system → the tenant's first run, or a degraded auto-apply) — it
+    never raises. Critically, a ``None`` here degrades only *auto-apply*; it does
+    NOT disable enforcement of a system that already loaded into a run.
 
     Args:
-        tenant_id: Optional tenant scope for prior retrieval.
+        tenant_id: The tenant scope. ``None`` short-circuits to ``None`` (no
+            tenant → nothing to load).
 
     Returns:
-        List of prior preference strings, most-relevant first.
+        The persisted :class:`DesignSystemRecord`, or ``None``.
     """
-    # v1.0 implementation: return scope-aware defaults rather than a hardcoded string.
-    # VertexAiMemoryBankService integration is available via configuration query here.
-    tenant_scope = f"tenant:{tenant_id}" if tenant_id else "global"
-    return [
-        f"Scope: {tenant_scope}",
-        "Design preference: Material Design 3 dark theme with tonal surfaces",
-        "Typography preference: Roboto/system-ui, 14-16px body, 1.5 line-height",
-        "Color preference: Google Blue primary (#1a73e8), accessible contrast ratios",
-        "Layout preference: responsive grid, 4dp spacing unit, card-based surfaces",
-    ]
+    if not tenant_id:
+        return None
+    return await load_persisted_design_system(tenant_id)
+
+
+async def pull_memory_bank_priors(tenant_id: str | None = None) -> list[str]:
+    """Return memory-bank priors for ``tenant_id`` — the persisted system, auto-applied.
+
+    AT-053: the priors are now sourced from the tenant's PERSISTED design system
+    (written at the prior run's sign-off), so run #2 inherits run #1's tokens +
+    constitution with NO re-specification. When no system is persisted yet (a
+    tenant's first run), this returns an empty list — there are no priors to
+    apply, and the generator works from the brief alone. Fail-soft: a persistence
+    outage degrades to an empty prior list (logged downstream), never an
+    exception.
+
+    The structured authorized token set used by the AT-012 enforcement gate is
+    carried separately on ``ProjectContext.persisted_design_tokens`` (set in
+    :func:`source_resolver_agent`); these strings are the human/model-readable
+    rendering of the same system for the generator anchor.
+
+    Args:
+        tenant_id: The tenant scope for prior retrieval.
+
+    Returns:
+        List of prior strings (empty when no system is persisted), most-relevant
+        first.
+    """
+    record = await load_tenant_design_system(tenant_id)
+    if record is None:
+        return []
+    return serialize_priors(record)
 
 
 async def source_resolver_agent(
@@ -177,17 +211,51 @@ async def source_resolver_agent(
 ) -> ProjectContext:
     """SourceResolverAgent (probabilistic).
 
-    Pulls DESIGN.md tokens (via pure-Python parsing) and Memory Bank priors
-    in parallel, returning a unified ProjectContext. Both fetches are fail-soft
-    per PRD §21 — failures yield safe defaults, never exceptions.
+    Pulls DESIGN.md tokens (via pure-Python parsing), the tenant's persisted
+    design system (AT-053), and Memory Bank priors, returning a unified
+    ProjectContext. Every fetch is fail-soft per PRD §21 — failures yield safe
+    defaults, never exceptions.
+
+    AT-053 auto-apply: when the tenant has a PERSISTED design system, its tokens
+    are auto-applied as the run's defaults (the brief did not re-specify them) and
+    its authorized set is threaded onto ``persisted_design_tokens`` so the AT-012
+    gate can enforce it zero-tolerance. Explicit DESIGN.md tokens for THIS run
+    still win over the inherited defaults (an in-run override is layered on top of
+    the persisted base — the gate then decides fidelity), so a tenant can evolve a
+    system; but absent any explicit source, run #2 simply inherits run #1.
     """
-    tokens, priors = await asyncio.gather(
+    tokens, record = await asyncio.gather(
         pull_design_tokens(brief.design_system_source),
-        pull_memory_bank_priors(tenant_ctx.tenant_id),
+        load_tenant_design_system(tenant_ctx.tenant_id),
     )
+
+    persisted_tokens: dict[str, Any] | None = None
+    if record is not None:
+        persisted_tokens = dict(record.tokens)
+        priors = serialize_priors(record)
+        # Auto-apply: the persisted system is the BASE. When this run resolved
+        # tokens from a REAL DESIGN.md (an explicit in-run override), those layer
+        # on top so a tenant can evolve the system and the gate then judges
+        # fidelity. But when ``pull_design_tokens`` only returned its synthetic
+        # safe-defaults (no DESIGN.md present — ``_source == "defaults"``), those
+        # placeholders MUST NOT clobber the persisted system: run #2 with no
+        # explicit source inherits run #1 verbatim (no re-specification). This is
+        # the whole point — an absent source means "use my saved system", not
+        # "reset to library defaults".
+        is_synthetic_defaults = tokens.get("_source") == "defaults"
+        merged = dict(persisted_tokens)
+        if not is_synthetic_defaults:
+            merged.update(tokens)
+        elif "_source" in tokens:
+            # Preserve only the provenance marker; keep the persisted values.
+            merged["_source"] = tokens["_source"]
+        tokens = merged
+    else:
+        priors = []
 
     return ProjectContext(
         brief=brief,
         design_tokens=tokens,
         memory_bank_priors=priors,
+        persisted_design_tokens=persisted_tokens,
     )

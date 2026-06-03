@@ -399,6 +399,31 @@ def _extract_design_tokens(payload: dict[str, Any]) -> dict[str, Any]:
     return tokens if isinstance(tokens, dict) else {}
 
 
+def _extract_persisted_design_tokens(payload: dict[str, Any]) -> dict[str, Any] | None:
+    """Pull the tenant's PERSISTED design system (AT-053) from a runner payload.
+
+    The runner threads the auto-applied persisted system onto
+    ``ProjectContext.persisted_design_tokens`` (``None`` on a tenant's first run).
+    The AT-012 token-fidelity gate enforces it zero-tolerance: an off-system
+    literal in this run's rendered surface is REJECTed.
+
+    Args:
+        payload: The runner ``complete`` payload.
+
+    Returns:
+        The persisted ``{token_name: value}`` map, or ``None`` when no system is
+        persisted (first run → no enforcement, first runs are never blocked).
+    """
+    project_context = payload.get("project_context")
+    persisted: Any = None
+    if project_context is not None:
+        if isinstance(project_context, dict):
+            persisted = project_context.get("persisted_design_tokens")
+        else:
+            persisted = getattr(project_context, "persisted_design_tokens", None)
+    return persisted if isinstance(persisted, dict) else None
+
+
 def _enrich_complete_payload(payload: dict[str, Any]) -> dict[str, Any]:
     """Enrich the SSE ``complete`` event payload for Studio frontend consumption.
 
@@ -463,14 +488,20 @@ def _enrich_complete_payload(payload: dict[str, Any]) -> dict[str, Any]:
     # governance event on a2ui_governance + log fail-closed at WARNING.
     # ------------------------------------------------------------------
     _design_tokens = _extract_design_tokens(payload)
+    _persisted_design_tokens = _extract_persisted_design_tokens(payload)
     _a2ui_surface = build_design_system_surface(
         _design_tokens,
         surface_id="atelier-design-system",
     )
+    # AT-053 enforcement: thread the tenant's persisted design system into the
+    # gate. When present, any off-system literal in the rendered /tokens rows is
+    # REJECTed zero-tolerance (the "enforced, not merely applied" guarantee);
+    # None → first run, no enforcement.
     _a2ui_gate = gate_a2ui_surface(
         _a2ui_surface,
         design_tokens=_design_tokens,
         surface_id="atelier-design-system",
+        persisted_design_tokens=_persisted_design_tokens,
     )
     if _a2ui_gate.passed:
         enriched["a2ui_payload"] = _a2ui_surface

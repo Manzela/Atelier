@@ -142,6 +142,8 @@ litellm-cache/
 # Per-tenant local state for testing
 .atelier-local/
 .atelier-test/
+# AT-053 offline design-system file store (dev-default persist dir; tenant data)
+.atelier/
 
 # ─── IDE ────────────────────────────────────────────────────────────────────
 
