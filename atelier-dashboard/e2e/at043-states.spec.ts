@@ -202,3 +202,160 @@ test('AT-043 cap-reached: state-cap-reached component visible + axe 0 critical/s
 
   await assertAxe(page);
 });
+
+// ═════════════════════════════════════════════════════════════════════════════
+// AT-094 — Acknowledged-degradation surfacing (R9) in the UI.
+// Three clauses: forced-degradation acknowledgement, offline skeleton+banner,
+// cap-hit SPEC-EXACT stop string (PRD §13.2 — governor.py TOKEN_CAP_MESSAGE).
+// ═════════════════════════════════════════════════════════════════════════════
+
+// The one branded cap stop string, byte-identical to the backend constant
+// `atelier-core/src/atelier/orchestrator/governor.py::TOKEN_CAP_MESSAGE`
+// (PRD §13.2). The UI must render it VERBATIM, not a paraphrase. The live API
+// emits it as the `cap_reached` event `detail`; the local fallback must match.
+const TOKEN_CAP_MESSAGE =
+  "You've reached this account's usage limit. Contact administrator to continue.";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Test 6 (AT-094): offline state — state-offline skeleton+banner is shown when
+// the browser goes offline (navigator.onLine === false) + axe 0 critical/serious
+// ─────────────────────────────────────────────────────────────────────────────
+test('AT-094 offline: state-offline component visible + axe 0 critical/serious', async ({
+  authenticatedPage: page,
+  context,
+}) => {
+  // Load the page while online (going offline first blocks the navigation
+  // itself with ERR_INTERNET_DISCONNECTED), then drive the real browser offline.
+  await page.goto('/studio/at094-offline?brief=acceptance');
+  await expect(page.locator('[data-testid="state-empty"]')).toBeVisible({ timeout: 10_000 });
+
+  // Flips navigator.onLine to false and fires the `offline` window event the
+  // shell's useOnlineStatus hook listens for (not a hard-coded UI toggle).
+  await context.setOffline(true);
+
+  const offlineEl = page.locator('[data-testid="state-offline"]');
+  await expect(offlineEl).toBeVisible({ timeout: 10_000 });
+
+  // The acknowledgement must carry a non-empty, human-readable banner label
+  // (agent always acknowledges degradation — no silent blank).
+  await expect(offlineEl).toContainText(/connection/i);
+
+  await assertAxe(page);
+
+  // Recovering connection clears the offline acknowledgement back to the
+  // generatable empty state (the `online` event re-renders).
+  await context.setOffline(false);
+  await expect(offlineEl).toBeHidden({ timeout: 10_000 });
+  await expect(page.locator('[data-testid="state-empty"]')).toBeVisible({ timeout: 10_000 });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Test 7 (AT-094): cap-hit shows the SPEC-EXACT stop string verbatim.
+// ─────────────────────────────────────────────────────────────────────────────
+test('AT-094 cap-exact-string: cap-reached renders the PRD §13.2 stop string verbatim', async ({
+  authenticatedPage: page,
+}) => {
+  // The live backend emits TOKEN_CAP_MESSAGE as the cap_reached `detail`.
+  const capBody = sseBody([
+    'event: plan',
+    'data: {"surfaces":["home"]}',
+    '',
+    'event: cap_reached',
+    `data: ${JSON.stringify({ detail: TOKEN_CAP_MESSAGE })}`,
+    '',
+  ]);
+
+  await page.route('**/v1/generate/stream', (route) =>
+    route.fulfill({
+      status: 200,
+      headers: { 'content-type': 'text/event-stream' },
+      body: capBody,
+    })
+  );
+
+  await page.goto('/studio/at094-cap?brief=acceptance');
+  await page.getByRole('button', { name: /^Run$/i }).click();
+
+  const capEl = page.locator('[data-testid="state-cap-reached"]');
+  await expect(capEl).toBeVisible({ timeout: 15_000 });
+  // Verbatim, not a paraphrase: the exact branded stop string must be present.
+  await expect(capEl).toContainText(TOKEN_CAP_MESSAGE);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Test 8 (AT-094): cap-hit fallback (no server detail) STILL renders the
+// SPEC-EXACT stop string — the UI must not drift to a paraphrase locally.
+// ─────────────────────────────────────────────────────────────────────────────
+test('AT-094 cap-exact-string fallback: empty-detail cap still shows the §13.2 stop string', async ({
+  authenticatedPage: page,
+}) => {
+  // cap_reached with NO detail — exercises the client-side fallback message.
+  const capBody = sseBody([
+    'event: plan',
+    'data: {"surfaces":["home"]}',
+    '',
+    'event: cap_reached',
+    'data: {}',
+    '',
+  ]);
+
+  await page.route('**/v1/generate/stream', (route) =>
+    route.fulfill({
+      status: 200,
+      headers: { 'content-type': 'text/event-stream' },
+      body: capBody,
+    })
+  );
+
+  await page.goto('/studio/at094-cap-fallback?brief=acceptance');
+  await page.getByRole('button', { name: /^Run$/i }).click();
+
+  const capEl = page.locator('[data-testid="state-cap-reached"]');
+  await expect(capEl).toBeVisible({ timeout: 15_000 });
+  await expect(capEl).toContainText(TOKEN_CAP_MESSAGE);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Test 9 (AT-094): forced degradation surfaces an on-screen acknowledgement.
+// (Re-asserts the R9 acknowledgement contract from the AT-094 acceptance bar —
+// the degraded banner carries a visible, non-silent "degraded" acknowledgement.)
+// ─────────────────────────────────────────────────────────────────────────────
+test('AT-094 forced-degradation: state-degraded surfaces an on-screen acknowledgement', async ({
+  authenticatedPage: page,
+}) => {
+  const degradedBody = sseBody([
+    'event: plan',
+    'data: {"surfaces":["home"]}',
+    '',
+    'event: complete',
+    `data: ${JSON.stringify({
+      best_html: BEST_HTML,
+      converged: false,
+      composite_score: 0.41,
+      degraded: true,
+      degradation_reason: 'Consensus gate passed only 1/3 iterations within the budget.',
+      dorav: DORAV,
+      nielsen: NIELSEN_ENTRIES,
+    })}`,
+    '',
+  ]);
+
+  await page.route('**/v1/generate/stream', (route) =>
+    route.fulfill({
+      status: 200,
+      headers: { 'content-type': 'text/event-stream' },
+      body: degradedBody,
+    })
+  );
+
+  await page.goto('/studio/at094-degraded?brief=acceptance');
+  await page.getByRole('button', { name: /^Run$/i }).click();
+
+  const degradedEl = page.locator('[data-testid="state-degraded"]');
+  await expect(degradedEl).toBeVisible({ timeout: 15_000 });
+  // The acknowledgement is explicit and announced (role=status), never silent.
+  await expect(degradedEl.getByRole('status')).toContainText(/degraded/i);
+  await expect(degradedEl).toContainText(
+    'Consensus gate passed only 1/3 iterations within the budget.'
+  );
+});

@@ -228,7 +228,10 @@ export async function runGenerationStream(
         } catch {
           detail = await response.text();
         }
-        callbacks.onCapReached?.({ detail: detail || 'Token cap reached.' });
+        // AT-094 (R9): pass the server's branded stop through verbatim; when the
+        // body carries none, leave detail empty so the UI renders the SPEC-EXACT
+        // TOKEN_CAP_MESSAGE fallback (PRD §13.2) rather than a paraphrase.
+        callbacks.onCapReached?.({ detail });
         return;
       }
       let errorDetail = '';
