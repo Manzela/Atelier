@@ -114,6 +114,26 @@ service cloud.firestore {
         }
       }
 
+      // ---- Run sign-off docs (AT-031 gate + AT-042 ApprovalCard) ----------
+      // /tenants/{tenantId}/runs/{runId}
+      //   The dashboard subscribes to this doc via onSnapshot (push-free resume)
+      //   and writes the human sign-off on Approve. Tenant-isolated: only a
+      //   tenant member may read or write their own run docs. Writes are further
+      //   constrained so a client can only set `signoff_status` to a valid
+      //   lifecycle value and can only stamp `approved_by` with its OWN uid —
+      //   it cannot forge an approval as another user. The server (Admin SDK)
+      //   bypasses these rules to advance the run past APPROVED.
+      match /runs/{runId} {
+        allow read: if isTenantMember(tenantId);
+        allow write: if isTenantMember(tenantId)
+          && request.resource.data.signoff_status in
+               ['AWAITING_SIGNOFF', 'APPROVED', 'REJECTED', 'COMPLETED']
+          && (
+               !('approved_by' in request.resource.data)
+               || request.resource.data.approved_by == request.auth.uid
+             );
+      }
+
       // Any other tenant-scoped subcollection inherits tenant-member access.
       match /{document=**} {
         allow read, write: if isTenantMember(tenantId);

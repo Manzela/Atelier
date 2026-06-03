@@ -18,10 +18,12 @@ const isFirebaseConfigured = !!(
 
 let auth: Auth | null = null;
 let googleProvider: GoogleAuthProvider | null = null;
+let firebaseApp: FirebaseApp | null = null;
 
 if (isFirebaseConfigured) {
   try {
     const app: FirebaseApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+    firebaseApp = app;
     auth = getAuth(app);
     googleProvider = new GoogleAuthProvider();
   } catch (error: unknown) {
@@ -29,4 +31,4 @@ if (isFirebaseConfigured) {
   }
 }
 
-export { auth, googleProvider, isFirebaseConfigured };
+export { auth, googleProvider, isFirebaseConfigured, firebaseApp };
