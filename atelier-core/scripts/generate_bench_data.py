@@ -1,10 +1,25 @@
-"""Generate Bench Data — BQ trajectory → bench-schema.json publisher.
+"""Generate Bench Observatory data from REAL sources — no fabrication.
 
-Queries ``atelier-build-2026.atelier_trajectories.trajectory_records`` and
-``dpo_pairs``, maps BigQuery columns (verified from
-``TrajectoryRecord.to_bq_row()`` in ``atelier-core/src/atelier/nodes/trajectory.py``)
-to ``bench-schema.json`` fields, validates output against the schema before
-writing, and falls back to demo data on any BQ failure.
+Assembles the Bench Observatory's ``data.json`` from three real sources and
+nothing else:
+
+  1. Production telemetry — the deployed pipeline's own run records in
+     ``atelier-build-2026.atelier_trajectories.trajectory_records``. These are
+     event-level rows whose run fields live in a ``payload`` JSON column
+     (``composite_score``, ``outcome``, ``candidate_id``, ...). This is the
+     authoritative record of what Atelier actually produced in production.
+  2. The Atelier-vs-single-shot A/B (``atelier-eval/results/calibration_ab.json``,
+     written by ``scripts/eval/run_baseline_ab.py``) — a controlled experiment
+     scoring both arms through the identical gate path.
+  3. External benchmark context — the WebGen-Bench prompt set
+     (``atelier-eval/datasets/webgen_bench_test.jsonl``) and a link to the
+     published leaderboard.
+
+There is NO demo/fallback data. If a source is absent the corresponding section
+is emitted with an explicit ``status: "no_data"`` (or omitted) so the dashboard
+renders an honest empty state — never a fabricated number. Every value the
+dashboard shows is traceable to one of the sources above via the ``provenance``
+block.
 
 Usage::
 
@@ -19,391 +34,299 @@ import json
 import logging
 import re
 import sys
-import uuid
-from collections import defaultdict
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-
-import jsonschema
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# Allowed GCP project ID pattern — defense-in-depth against SQL injection.
-# GCP project IDs: 6-30 chars, lowercase letters, digits, hyphens.
-# ---------------------------------------------------------------------------
+SCHEMA_VERSION = "2.0"
+CONVERGENCE_BAR = 0.70  # The composite a candidate must reach to converge (R1/AT-005).
+
+# GCP project IDs: 6-30 chars, lowercase alnum + hyphen. Validated before any
+# interpolation into a query string (defense-in-depth against injection).
 _PROJECT_ID_RE = re.compile(r"^[a-z][a-z0-9-]{4,28}[a-z0-9]$")
 
+_REPO = Path(__file__).resolve().parents[2]
+_AB_RESULTS = _REPO / "atelier-eval" / "results" / "calibration_ab.json"
+_WEBGEN_PROMPTS = _REPO / "atelier-eval" / "datasets" / "webgen_bench_test.jsonl"
+
 
 # ---------------------------------------------------------------------------
-# Demo / fallback data
+# 1. Production telemetry (real trajectory_records)
 # ---------------------------------------------------------------------------
 
 
-def _build_demo_data() -> dict[str, Any]:
-    """Build fallback DEMO data at call time (fresh timestamps).
+def _fetch_production_telemetry(project: str) -> dict[str, Any] | None:
+    """Aggregate the deployed pipeline's real run records, or None if none.
 
-    Mirrors the ``DEMO`` const in ``docs/dashboards/bench/index.html`` (≈L876).
+    Queries the event-level ``trajectory_records`` table, extracting the run
+    fields from the ``payload`` JSON. Returns ``None`` (NOT demo data) on any
+    failure or when the table is empty — the caller emits an honest empty state.
     """
-    now = datetime.now(UTC).isoformat()
-    return {
-        "schema_version": "1.0",
-        "run_id": f"demo-{uuid.uuid4()}",
-        "timestamp": now,
-        "calibration_pass_rate": 0.764,
-        "adversarial_pass_rate": 0.681,
-        "adk_criteria_scores": {
-            "tool_trajectory_avg_score": 0.821,
-            "multi_turn_trajectory_quality_v1": 0.793,
-            "rubric_based_instruction_following": 0.847,
-            "rubric_based_groundedness": 0.768,
-            "rubric_based_safety": 0.991,
-        },
-        "per_judge_calibration": {
-            "brand": 0.831,
-            "copy": 0.802,
-            "motion": 0.744,
-            "token": 0.876,
-            "coherence": 0.819,
-        },
-        "dpo_promotion_events": [
-            {
-                "event_id": "evt-001",
-                # P1-6: dynamic offset so DEMO timestamps stay realistic across runs
-                "promoted_at": (datetime.now(UTC) - timedelta(hours=8)).isoformat(),
-                "job_name": "projects/atelier-build-2026/locations/us-central1/tuningJobs/1001",
-                "kappa": 0.821,
-                "promoted": True,
-                "endpoint": "projects/atelier-build-2026/locations/us-central1/endpoints/4501",
-            },
-            {
-                "event_id": "evt-002",
-                "promoted_at": (datetime.now(UTC) - timedelta(hours=32)).isoformat(),
-                "job_name": "projects/atelier-build-2026/locations/us-central1/tuningJobs/998",
-                "kappa": 0.631,
-                "promoted": False,
-            },
-        ],
-        "meta": {
-            "generated_at": now,
-            "pipeline_version": "0.2.0-alpha",
-            "environment": "staging",
-        },
-        "summary": {
-            "total_trajectories": 247,
-            "total_candidates": 741,
-            "acceptance_rate": 0.764,
-            "avg_composite_score": 0.791,
-            "total_cost_usd": 18.42,
-            "avg_latency_ms": 3820,
-            "p99_latency_ms": 8740,
-        },
-        "axes": {
-            "brand": {"mean": 0.831, "median": 0.848, "p5": 0.52, "p95": 0.97, "count": 247},
-            "originality": {"mean": 0.714, "median": 0.729, "p5": 0.41, "p95": 0.91, "count": 247},
-            "relevance": {"mean": 0.893, "median": 0.901, "p5": 0.71, "p95": 0.98, "count": 247},
-            "accessibility": {
-                "mean": 0.762,
-                "median": 0.778,
-                "p5": 0.48,
-                "p95": 0.94,
-                "count": 247,
-            },
-            "visual_clarity": {
-                "mean": 0.847,
-                "median": 0.862,
-                "p5": 0.59,
-                "p95": 0.97,
-                "count": 247,
-            },
-        },
-        "trajectories": [
-            {
-                "trajectory_id": "traj-0001-abcde",
-                "timestamp": "2026-05-25T11:50:00.000Z",
-                "composite_score": 0.852,
-                "outcome": "accepted",
-                "cost_usd": 0.15,
-                "latency_ms": 4500,
-                "model_id": "gemini-3-pro",
-            }
-        ],
-    }
-
-
-# ---------------------------------------------------------------------------
-# Statistics helpers
-# ---------------------------------------------------------------------------
-
-
-def _compute_stats(scores: list[float]) -> dict[str, Any]:
-    """Compute mean, median, p5, p95, count from a list of scores.
-
-    Does NOT mutate the input list.
-    """
-    if not scores:
-        return {"mean": 0.0, "median": 0.0, "p5": 0.0, "p95": 0.0, "count": 0}
-    sorted_scores = sorted(scores)  # Copy — don't mutate input
-    n = len(sorted_scores)
-    mean = sum(sorted_scores) / n
-    if n % 2 != 0:
-        median = sorted_scores[n // 2]
-    else:
-        median = (sorted_scores[n // 2 - 1] + sorted_scores[n // 2]) / 2.0
-    p5 = sorted_scores[max(0, int(0.05 * n))]
-    p95 = sorted_scores[min(n - 1, int(0.95 * n))]
-    return {"mean": mean, "median": median, "p5": p5, "p95": p95, "count": n}
-
-
-def _safe_isoformat(val: Any) -> str:
-    """Convert a value to ISO format string, handling BQ Row types."""
-    if hasattr(val, "isoformat"):
-        result: str = val.isoformat()
-        return result
-    return "" if val is None else str(val)
-
-
-# ---------------------------------------------------------------------------
-# BigQuery data extraction (split into sub-functions for ruff C901)
-# ---------------------------------------------------------------------------
-
-
-def _parse_axes_and_calibration(
-    rows: list[dict[str, Any]],
-) -> tuple[dict[str, Any], dict[str, float]]:
-    """Parse judge_votes_json from rows → axes stats + per_judge_calibration."""
-    axis_scores: dict[str, list[float]] = defaultdict(list)
-    for r in rows:
-        votes_str = r.get("judge_votes_json", "[]")
-        if not votes_str:
-            continue
-        try:
-            votes = json.loads(votes_str)
-            for v in votes:
-                axis = v.get("axis")
-                score = v.get("score")
-                if axis and score is not None:
-                    axis_scores[axis].append(float(score))
-        except (json.JSONDecodeError, TypeError):
-            continue
-
-    axes_stats: dict[str, Any] = {}
-    for ax in ("brand", "originality", "relevance", "accessibility", "visual_clarity"):
-        axes_stats[ax] = _compute_stats(axis_scores.get(ax, []))
-
-    per_judge_cal: dict[str, float] = {}
-    for ax in ("brand", "copy", "motion", "token", "coherence"):
-        ax_scores = axis_scores.get(ax, [])
-        per_judge_cal[ax] = sum(ax_scores) / len(ax_scores) if ax_scores else 0.0
-
-    return axes_stats, per_judge_cal
-
-
-def _map_trajectories(rows: list[dict[str, Any]], *, limit: int = 50) -> list[dict[str, Any]]:
-    """Map BQ trajectory rows to dashboard timeline format."""
-    return [
-        {
-            "trajectory_id": str(r["trajectory_id"]),
-            "timestamp": _safe_isoformat(r["ts"]),
-            "composite_score": float(r["composite_score"]),
-            "outcome": str(r["outcome"]),
-            "cost_usd": float(r["total_cost_usd"]),
-            "latency_ms": float(r.get("latency_ms", 0)),
-        }
-        for r in rows[:limit]
-    ]
-
-
-def _fetch_dpo_events(client: Any, project: str) -> list[dict[str, Any]]:
-    """Fetch DPO pairs from BigQuery and map to dpo_promotion_events schema.
-
-    dpo_pairs.margin → dpo_promotion_events[].kappa (proxy; documented).
-    """
-    # Project ID already validated by caller via _PROJECT_ID_RE.
-    query_dpo = (
-        f"SELECT event_id, promoted_at, job_name, margin, promoted, endpoint "  # noqa: S608
-        f"FROM `{project}.atelier_trajectories.dpo_pairs` "
-        f"LIMIT 50"
-    )
-    try:
-        from google.api_core.exceptions import GoogleAPICallError as _GAPIErr  # noqa: PLC0415
-    except ImportError:
-        _GAPIErr = Exception  # type: ignore[assignment,misc]  # noqa: N806
-
-    try:
-        dpo_rows = [dict(row) for row in client.query(query_dpo).result()]
-    except (OSError, ValueError, _GAPIErr):
-        logger.warning("Failed to query dpo_pairs")
-        dpo_rows = []
-
-    dpo_events: list[dict[str, Any]] = []
-    for r in dpo_rows:
-        evt: dict[str, Any] = {
-            "event_id": str(r["event_id"]),
-            "promoted_at": _safe_isoformat(r["promoted_at"]),
-            "job_name": str(r.get("job_name", "")),
-            # margin → kappa (proxy; document in comment)
-            "kappa": float(r.get("margin", 0.0)),
-            "promoted": bool(r.get("promoted", False)),
-        }
-        if r.get("endpoint"):
-            evt["endpoint"] = str(r["endpoint"])
-        dpo_events.append(evt)
-    return dpo_events
-
-
-def _fetch_real_data(project: str) -> dict[str, Any] | None:
-    """Query BigQuery for real trajectory + DPO data.
-
-    Returns a fully-formed bench-schema dict, or None on any failure
-    (import error, auth error, query error, empty results).
-    """
-    # Validate project ID to prevent SQL injection
     if not _PROJECT_ID_RE.match(project):
         logger.warning("Invalid GCP project ID format: %s", project)
         return None
-
-    try:
-        from google.cloud import bigquery  # noqa: PLC0415
-    except ImportError:
-        logger.warning("BigQuery SDK not installed.")
-        return None
-
     try:
         from google.api_core.exceptions import GoogleAPICallError  # noqa: PLC0415
+        from google.cloud import bigquery  # noqa: PLC0415
     except ImportError:
-        GoogleAPICallError = Exception  # type: ignore[assignment,misc]  # noqa: N806
+        logger.warning("BigQuery SDK not installed; production telemetry unavailable.")
+        return None
 
     try:
         client = bigquery.Client(project=project)
     except (OSError, ValueError, GoogleAPICallError):
-        logger.warning("Failed to create BigQuery client")
+        logger.warning("Failed to create BigQuery client.")
         return None
 
-    # Project ID already validated above via _PROJECT_ID_RE.
-    query = (
-        f"SELECT trajectory_id, candidate_id, ts, ended_at, outcome, composite_score, "  # noqa: S608
-        f"total_cost_usd, judge_votes_json, "
-        f"TIMESTAMP_DIFF(ended_at, ts, MILLISECOND) AS latency_ms "
-        f"FROM `{project}.atelier_trajectories.trajectory_records` "
-        f"ORDER BY ts DESC LIMIT 1000"
+    # The run fields are nested in payload JSON; pull them with JSON_VALUE.
+    # node_name='pipeline_trajectory' selects run-summary events (not per-node).
+    # The only interpolation is `project`, validated by _PROJECT_ID_RE above
+    # (a table reference has no value-level injection vector).
+    _cols = (
+        "session_id, JSON_VALUE(payload,'$.candidate_id') AS candidate_id, "
+        "JSON_VALUE(payload,'$.trajectory_id') AS trajectory_id, "
+        "JSON_VALUE(payload,'$.outcome') AS outcome, "
+        "CAST(JSON_VALUE(payload,'$.composite_score') AS FLOAT64) AS composite_score, "
+        "CAST(JSON_VALUE(payload,'$.total_cost_usd') AS FLOAT64) AS total_cost_usd, "
+        "CAST(JSON_VALUE(payload,'$.total_input_tokens') AS INT64) AS in_tok, "
+        "CAST(JSON_VALUE(payload,'$.total_output_tokens') AS INT64) AS out_tok, occurred_at"
     )
-
+    table = f"`{project}.atelier_trajectories.trajectory_records`"
+    query = f"SELECT {_cols} FROM {table} WHERE node_name = 'pipeline_trajectory' ORDER BY occurred_at DESC LIMIT 1000"  # noqa: S608
     try:
-        result = client.query(query)
-        job_id = result.job_id  # Capture for run_id
-        rows = [dict(row) for row in result.result()]
+        rows = [dict(r) for r in client.query(query).result()]
     except (OSError, ValueError, GoogleAPICallError):
-        logger.warning("Failed to query trajectory_records")
+        logger.warning("Failed to query trajectory_records.")
         return None
-
     if not rows:
-        logger.warning("No rows returned from trajectory_records.")
+        logger.warning("trajectory_records is empty — emitting honest no_data state.")
         return None
 
-    # Calculate summary metrics
-    total_trajectories = len(rows)
-    total_candidates = len({r["candidate_id"] for r in rows})
+    composites = [float(r["composite_score"] or 0.0) for r in rows]
     accepted = [r for r in rows if r["outcome"] == "accepted"]
-    acceptance_rate = len(accepted) / total_trajectories
-    avg_score = sum(r["composite_score"] for r in rows) / total_trajectories
-    total_cost = sum(r["total_cost_usd"] for r in rows)
+    runs = sorted({r["session_id"] for r in rows})
+    total_tokens = sum(int(r["in_tok"] or 0) + int(r["out_tok"] or 0) for r in rows)
+    occurred = [r["occurred_at"] for r in rows if r["occurred_at"] is not None]
 
-    # Latency stats from TIMESTAMP_DIFF computed column
-    latencies = sorted(float(r.get("latency_ms", 0)) for r in rows if r.get("latency_ms"))
-    avg_latency = sum(latencies) / len(latencies) if latencies else None
-    p99_latency = (
-        latencies[min(len(latencies) - 1, int(0.99 * len(latencies)))] if latencies else None
-    )
-
-    axes_stats, per_judge_cal = _parse_axes_and_calibration(rows)
-    trajectories = _map_trajectories(rows)
-    dpo_events = _fetch_dpo_events(client, project)
-
-    now = datetime.now(UTC).isoformat()
     return {
-        "schema_version": "1.0",
-        "run_id": str(job_id),  # BQ job ID per schema spec
-        "timestamp": now,
-        "calibration_pass_rate": acceptance_rate,
-        # static until N7 adversarial eval
-        "adversarial_pass_rate": 0.65,
-        "adk_criteria_scores": {
-            "tool_trajectory_avg_score": avg_score,
-            "multi_turn_trajectory_quality_v1": avg_score,
-            "rubric_based_instruction_following": 0.0,
-            "rubric_based_groundedness": 0.0,
-            "rubric_based_safety": 0.0,
-        },
-        "per_judge_calibration": per_judge_cal,
-        "dpo_promotion_events": dpo_events,
-        "meta": {
-            "generated_at": now,
-            "pipeline_version": "0.2.0-alpha",
-            "environment": "production",
-            "dataset_id": f"{project}.atelier_trajectories",
-        },
-        "summary": {
-            "total_trajectories": total_trajectories,
-            "total_candidates": total_candidates,
-            "acceptance_rate": acceptance_rate,
-            "avg_composite_score": avg_score,
-            "total_cost_usd": total_cost,
-            # Latency keys are optional in the schema — omit when no data
-            # available to avoid null → "type: number" validation failure.
-            **({"avg_latency_ms": avg_latency} if avg_latency is not None else {}),
-            **({"p99_latency_ms": p99_latency} if p99_latency is not None else {}),
-        },
-        "axes": axes_stats,
-        "trajectories": trajectories,
+        "runs": len(runs),
+        "candidates": len(rows),
+        "accepted": len(accepted),
+        "acceptance_rate": len(accepted) / len(rows),
+        "avg_composite_all": sum(composites) / len(composites),
+        "avg_composite_accepted": (
+            sum(float(r["composite_score"] or 0.0) for r in accepted) / len(accepted)
+            if accepted
+            else None
+        ),
+        "max_composite": max(composites),
+        "at_or_above_bar": sum(1 for c in composites if c >= CONVERGENCE_BAR),
+        "convergence_bar": CONVERGENCE_BAR,
+        "composite_distribution": [round(c, 3) for c in composites],
+        "total_cost_usd": sum(float(r["total_cost_usd"] or 0.0) for r in rows),
+        "total_tokens": total_tokens,
+        "first_run": _iso(min(occurred)) if occurred else None,
+        "last_run": _iso(max(occurred)) if occurred else None,
+        "recent_runs": [
+            {
+                "trajectory_id": str(r["trajectory_id"] or "")[:18],
+                "session_id": str(r["session_id"])[:18],
+                "composite_score": round(float(r["composite_score"] or 0.0), 3),
+                "outcome": str(r["outcome"]),
+                "timestamp": _iso(r["occurred_at"]),
+            }
+            for r in rows[:25]
+        ],
     }
 
 
 # ---------------------------------------------------------------------------
-# CLI entry point
+# 2. Atelier-vs-single-shot A/B
 # ---------------------------------------------------------------------------
+
+
+def _load_ab_comparison() -> dict[str, Any]:
+    """Aggregate the A/B harness output, or a no_data state if absent/empty."""
+    if not _AB_RESULTS.exists():
+        return {"status": "no_data", "note": "A/B eval has not been run yet."}
+    try:
+        doc = json.loads(_AB_RESULTS.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {"status": "no_data", "note": "A/B results unreadable."}
+    records = [r for r in doc.get("records", []) if r.get("atelier") and r.get("baseline")]
+    if not records:
+        return {"status": "no_data", "note": "A/B eval produced no complete records."}
+
+    def _arm_means(arm: str) -> dict[str, Any]:
+        gate = [
+            r[arm]["mean_gate_score"] for r in records if r[arm].get("mean_gate_score") is not None
+        ]
+        a11y_pass = [bool("axe" not in (r[arm].get("failed_gates") or [])) for r in records]
+        converged = [bool(r[arm].get("converged")) for r in records]
+        return {
+            "avg_mean_gate_score": round(sum(gate) / len(gate), 1) if gate else None,
+            "a11y_pass_rate": round(sum(a11y_pass) / len(a11y_pass), 3) if a11y_pass else None,
+            "convergence_rate": round(sum(converged) / len(converged), 3) if converged else None,
+        }
+
+    return {
+        "status": "complete",
+        "n_briefs": len(records),
+        "brief_set": "calibration-seed-v0",
+        "model": doc.get("model"),
+        "generated_at": doc.get("generated_at"),
+        "atelier": _arm_means("atelier"),
+        "baseline": _arm_means("baseline"),
+        # Flat per-brief rows matching the dashboard table's field names.
+        "per_brief": [
+            {
+                "task": r["task_id"],
+                "category": r.get("category", "general"),
+                "reference_target": r.get("reference_score"),
+                "atelier_gate_score": r["atelier"].get("mean_gate_score"),
+                "converged": r["atelier"].get("converged"),
+                "baseline_gate_score": r["baseline"].get("mean_gate_score"),
+                "baseline_failed_gates": r["baseline"].get("failed_gates", []),
+            }
+            for r in records
+        ],
+    }
+
+
+# ---------------------------------------------------------------------------
+# 3. Gate axes (real intents/thresholds) + external benchmark context
+# ---------------------------------------------------------------------------
+
+
+def _gate_axes() -> list[dict[str, str]]:
+    """The N3c deterministic gates with their real intent + pass criterion.
+
+    Static, source-grounded descriptions (the gate code is the source of truth)
+    — these are explanations, not measurements, so a judge can read what each
+    gate enforces and what "good" means for it.
+    """
+    return [
+        {
+            "key": "semantic-html",
+            "name": "Semantic HTML",
+            "intent": "Document is a real, well-formed HTML5 page with landmark elements.",
+            "criterion": "Valid <!doctype> + semantic landmarks (header/main/section).",
+        },
+        {
+            "key": "token-fidelity",
+            "name": "Design-token fidelity",
+            "intent": "Every colour resolves to a declared design token — no raw literals.",
+            "criterion": "Zero-tolerance: one undeclared colour literal rejects the candidate.",
+        },
+        {
+            "key": "axe",
+            "name": "Accessibility (axe-core)",
+            "intent": "No critical/serious accessibility violations (contrast, labels, ARIA).",
+            "criterion": "Fail-closed on any axe-core critical/serious impact (WCAG AA aligned).",
+        },
+        {
+            "key": "visual-diff",
+            "name": "Visual consistency",
+            "intent": "Rendered layout is structurally coherent, not a broken/empty frame.",
+            "criterion": "Structure floor + visual regression check.",
+        },
+    ]
+
+
+def _external_benchmark() -> dict[str, Any]:
+    """WebGen-Bench context: the real prompt set + a link to published results.
+
+    We do NOT assert an official WebGen-Bench score for Atelier (the official
+    metric is a test-agent appearance/functionality eval, not implemented here).
+    We surface the real prompt set as an external generalization set and link the
+    published leaderboard for context. An Atelier slice scored by our OWN gates,
+    when run, is labelled as such — never presented as the official metric.
+    """
+    n_prompts = 0
+    if _WEBGEN_PROMPTS.exists():
+        n_prompts = sum(
+            1 for line in _WEBGEN_PROMPTS.read_text(encoding="utf-8").splitlines() if line.strip()
+        )
+    return {
+        "name": "WebGen-Bench",
+        "source": "luzimu/WebGen-Bench (HuggingFace)",
+        "paper": "arXiv:2505.03733",
+        "n_prompts_available": n_prompts,
+        "official_metric": "test-agent appearance/functionality score (not reproduced here)",
+        "atelier_slice": {"status": "no_data", "note": "Atelier-gate-scored slice not yet run."},
+    }
+
+
+# ---------------------------------------------------------------------------
+# Helpers + assembly
+# ---------------------------------------------------------------------------
+
+
+def _iso(val: Any) -> str:
+    if hasattr(val, "isoformat"):
+        return str(val.isoformat())
+    return "" if val is None else str(val)
+
+
+def build_payload(project: str) -> dict[str, Any]:
+    """Assemble the v2 Bench Observatory payload from real sources only."""
+    now = datetime.now(UTC).isoformat()
+    telemetry = _fetch_production_telemetry(project)
+    ab = _load_ab_comparison()
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "generated_at": now,
+        "provenance": {
+            "atelier_source": f"BigQuery {project}.atelier_trajectories.trajectory_records",
+            "ab_source": "scripts/eval/run_baseline_ab.py (Atelier vs single-shot, identical gate path)",
+            "benchmark_source": "luzimu/WebGen-Bench (arXiv:2505.03733)",
+            "note": "Every figure traces to one of these sources. No demo or synthetic data.",
+        },
+        "production_telemetry": telemetry if telemetry is not None else {"status": "no_data"},
+        "ab_comparison": ab,
+        "gate_axes": _gate_axes(),
+        "external_benchmark": _external_benchmark(),
+        "targets": {
+            "convergence_bar": CONVERGENCE_BAR,
+            "accessibility": "WCAG AA (axe-core critical/serious = reject)",
+        },
+    }
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Generate bench dashboard data from BigQuery trajectories.",
+        description="Generate Bench Observatory data from real sources."
     )
     parser.add_argument("--out", required=True, help="Path to write the bench JSON.")
-    parser.add_argument(
-        "--project",
-        default="atelier-build-2026",
-        help="GCP project ID (default: atelier-build-2026)",
-    )
+    parser.add_argument("--project", default="atelier-build-2026", help="GCP project ID.")
     args = parser.parse_args()
 
-    # Locate schema relative to repo root
-    root_dir = Path(__file__).resolve().parents[2]
-    schema_path = root_dir / "docs" / "dashboards" / "bench-schema.json"
+    payload = build_payload(args.project)
 
-    with schema_path.open() as f:
-        schema = json.load(f)
-
-    payload = _fetch_real_data(args.project)
-    if payload is None:
-        logger.warning("Using DEMO data fallback.")
-        payload = _build_demo_data()
-
-    # Validate — fail-loud per spec
-    try:
-        jsonschema.validate(instance=payload, schema=schema)
-        logger.info("Schema validation successful.")
-    except jsonschema.ValidationError as exc:
-        logger.exception("Schema validation failed: %s", exc.message)
-        sys.exit(1)
+    # Internal consistency check (no schema file dependency): a non-empty
+    # production_telemetry must carry the headline aggregates the dashboard reads.
+    tel = payload["production_telemetry"]
+    if "status" not in tel:
+        for key in ("runs", "candidates", "acceptance_rate", "avg_composite_all"):
+            if key not in tel:
+                logger.error(
+                    "Telemetry missing required key %r — aborting (no partial write).", key
+                )
+                sys.exit(1)
 
     out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    with out_path.open("w") as f:
-        json.dump(payload, f, indent=2)
-
-    logger.info("Wrote bench data to %s", args.out)
+    out_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    has_tel = "status" not in tel
+    logger.info(
+        "Wrote %s (telemetry=%s, ab=%s).",
+        args.out,
+        f"{tel.get('runs')} runs" if has_tel else "no_data",
+        payload["ab_comparison"].get("status"),
+    )
 
 
 if __name__ == "__main__":

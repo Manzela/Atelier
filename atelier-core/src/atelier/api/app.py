@@ -77,11 +77,22 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
             else structlog.processors.JSONRenderer(),
         ],
     )
+    # S7 hardening: validate the operator-set ATELIER_JUDGE_MODE here, at
+    # startup, so a non-canonical value fails LOUD and EARLY (a clear boot-time
+    # error the verify-before-shift health check catches) instead of latently
+    # 500-ing every generation request in production. A normalized whitespace/
+    # case typo passes; genuine garbage raises and the revision never takes
+    # traffic.
+    from atelier.nodes.llm_judge import validate_judge_mode_env  # noqa: PLC0415
+
+    judge_mode = validate_judge_mode_env()
+
     await logger.ainfo(
         "atelier.startup",
         version=__version__,
         env=os.getenv("ATELIER_ENV", "development"),
         port=os.getenv("PORT", "8080"),
+        judge_mode=judge_mode,
     )
 
     # Initialize OpenTelemetry tracing (Cloud Trace export)
@@ -98,7 +109,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 # ---------------------------------------------------------------------------
 
 
-def create_app() -> FastAPI:  # noqa: C901 — handler-registration factory: cyclomatic count grows 1 per exception handler (inherent, not accidental complexity)
+def create_app() -> FastAPI:  # noqa: C901, PLR0915 — handler-registration factory: statement/branch count grows one per exception handler (inherent, not accidental complexity)
     """Factory function for the FastAPI application.
 
     Returns a fully configured FastAPI instance with:
@@ -107,12 +118,18 @@ def create_app() -> FastAPI:  # noqa: C901 — handler-registration factory: cyc
         - CORS middleware (restrictive — dashboard origin only)
         - Structured logging via structlog
     """
+    _is_dev = os.getenv("ATELIER_ENV", "development") == "development"
     application = FastAPI(
         title="Atelier",
         description="Autonomous Design Agent — API",
         version=__version__,
-        docs_url="/docs" if os.getenv("ATELIER_ENV", "development") == "development" else None,
+        # S9 hardening: the interactive docs AND the raw OpenAPI schema are
+        # development-only. FastAPI serves /openapi.json by default even when
+        # docs_url is None, which would publish the full route/parameter surface
+        # of a paid, authenticated production API — so openapi_url is gated too.
+        docs_url="/docs" if _is_dev else None,
         redoc_url=None,
+        openapi_url="/openapi.json" if _is_dev else None,
         lifespan=lifespan,
     )
 
@@ -129,17 +146,27 @@ def create_app() -> FastAPI:  # noqa: C901 — handler-registration factory: cyc
         allow_headers=["Content-Type", "Authorization", "X-Request-ID"],
     )
 
-    # --- Request timing middleware ---
+    # --- Response headers middleware (timing + transport security) ---
     @application.middleware("http")
-    async def add_timing_header(
+    async def add_response_headers(
         request: Request,
         call_next: Callable[[Request], Any],
     ) -> Response:
-        """Add X-Process-Time header to every response."""
+        """Stamp timing + baseline security headers on every response.
+
+        S4 hardening: the API is reachable both through Cloudflare
+        (api.atelier.autonomous-agent.dev) and directly on its *.run.app host.
+        Setting HSTS at the origin guarantees the directive is present on the
+        direct host too, not only at the edge. ``nosniff`` blocks content-type
+        sniffing on the JSON error/agent-card bodies. These are added
+        unconditionally — the service is TLS-only in every deployed environment.
+        """
         start = time.perf_counter()
         response: Response = await call_next(request)
         elapsed = time.perf_counter() - start
         response.headers["X-Process-Time"] = f"{elapsed:.4f}"
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        response.headers["X-Content-Type-Options"] = "nosniff"
         return response
 
     # --- Global exception handler: GovernorTokenCapExceeded → HTTP 402 ────────

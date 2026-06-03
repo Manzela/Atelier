@@ -109,6 +109,51 @@ VALID_JUDGE_MODES: frozenset[str] = frozenset(
     {JUDGE_MODE_HEURISTIC, JUDGE_MODE_LLM, JUDGE_MODE_HYBRID},
 )
 
+
+def _normalize_judge_mode(raw: str | None) -> str:
+    """Normalize a raw ``ATELIER_JUDGE_MODE`` value to canonical mode shape.
+
+    Trims surrounding whitespace and lowercases, so the common operator typos
+    (``"LLM"``, ``"Hybrid"``, ``" heuristic "``) resolve to a valid mode instead
+    of hard-failing. An empty/unset value yields :data:`DEFAULT_JUDGE_MODE`. The
+    result is NOT guaranteed to be a member of :data:`VALID_JUDGE_MODES` —
+    membership is still checked by callers — but it is in the canonical shape.
+    """
+    if raw is None or not raw.strip():
+        return DEFAULT_JUDGE_MODE
+    return raw.strip().lower()
+
+
+def validate_judge_mode_env() -> str:
+    """Validate ``ATELIER_JUDGE_MODE`` at startup (fail-loud, fail-EARLY).
+
+    ``ATELIER_JUDGE_MODE`` is operator-set deployment config. Left unvalidated, a
+    non-canonical value (e.g. a typo'd ``"huristic"``) raises :class:`ValueError`
+    deep inside :func:`_resolve_axis_scorers` on *every* generation request — a
+    latent per-request 500 storm whose only signal is a server-side stack trace.
+    Calling this once at application startup converts that into a loud,
+    deploy-time boot failure that the verify-before-shift health check catches
+    before any traffic is shifted (CLAUDE.md invariant: misconfiguration is
+    loud). Whitespace/case typos are normalized rather than rejected.
+
+    Returns:
+        The normalized, validated judge mode (:data:`DEFAULT_JUDGE_MODE` when
+        the env var is unset or blank).
+
+    Raises:
+        ValueError: When the env var is set to a value that is not a valid mode
+            even after whitespace/case normalization.
+    """
+    raw = os.environ.get(ATELIER_JUDGE_MODE_ENV)
+    mode = _normalize_judge_mode(raw)
+    if mode not in VALID_JUDGE_MODES:
+        raise ValueError(
+            f"{ATELIER_JUDGE_MODE_ENV}={raw!r} is not a valid judge mode; "
+            f"valid modes are {sorted(VALID_JUDGE_MODES)}"
+        )
+    return mode
+
+
 #: Half-width of the synthetic confidence interval used when the LLM
 #: response carries no ``avg_logprob``. Mirrors the v1.0 implementation
 #: :data:`atelier.nodes.consensus.CONFIDENCE_HALF_WIDTH` so dashboards
@@ -742,7 +787,10 @@ def _resolve_axis_scorers(
     from atelier.nodes.consensus import _AXIS_SCORERS  # noqa: PLC0415
 
     if mode is None:
-        mode = os.environ.get(ATELIER_JUDGE_MODE_ENV, DEFAULT_JUDGE_MODE)
+        # Normalize the operator-set env value (whitespace/case) so the common
+        # typos resolve instead of 500-ing every request; a genuinely-invalid
+        # value is rejected just below (and at startup by validate_judge_mode_env).
+        mode = _normalize_judge_mode(os.environ.get(ATELIER_JUDGE_MODE_ENV))
 
     if mode not in VALID_JUDGE_MODES:
         raise ValueError(

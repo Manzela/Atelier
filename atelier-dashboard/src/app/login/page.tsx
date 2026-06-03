@@ -11,6 +11,19 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // The local dev-mode auth bypass mints a mock user so the dashboard is usable
+  // without Firebase configured. The HARD guard is `!isFirebaseConfigured`: every
+  // real deploy configures Firebase, so the bypass can never surface in a shipped
+  // build regardless of the clause below. The second clause keeps the bypass
+  // automatic in local `next dev`, and — via an explicit build-time `NEXT_PUBLIC_E2E`
+  // opt-in set ONLY by the dashboard-e2e CI job (never by the deploy workflow) —
+  // lets the production-mode E2E harness exercise the login→authenticated flow under
+  // the real shipped CSP. A genuinely misconfigured prod build (Firebase env vars
+  // missing AND NEXT_PUBLIC_E2E unset) still surfaces a real error, not a fake session.
+  const devBypassAllowed =
+    !isFirebaseConfigured &&
+    (process.env.NODE_ENV !== 'production' || process.env.NEXT_PUBLIC_E2E === '1');
+
   // If already logged in, redirect to home
   useEffect(() => {
     const userStr = localStorage.getItem('user');
@@ -23,8 +36,8 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
-    if (!isFirebaseConfigured) {
-      // Dev Mode Authentication Bypass
+    if (devBypassAllowed) {
+      // Dev Mode Authentication Bypass (local development only — never prod)
       const mockUser = {
         uid: 'dev-user-local',
         email: 'developer@atelier.dev',
@@ -136,12 +149,12 @@ export default function LoginPage() {
               </svg>
               {loading
                 ? 'Authenticating...'
-                : isFirebaseConfigured
-                  ? 'Continue with Google'
-                  : 'Dev Mode Sign In (Bypass)'}
+                : devBypassAllowed
+                  ? 'Dev Mode Sign In (Bypass)'
+                  : 'Continue with Google'}
             </button>
 
-            {!isFirebaseConfigured && (
+            {devBypassAllowed && (
               <p className="text-[11px] text-[var(--g-text-muted)] text-center mt-4 leading-relaxed">
                 Running in Developer Mode. The dashboard will mock client authentication and pass a
                 developer credential to local API server.

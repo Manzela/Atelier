@@ -5,22 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="color-scheme" content="light dark" />
   <title>Atelier — Bench Observatory</title>
-  <meta name="description" content="Bench Observatory — live evaluation metrics, D-O-R-A-V consensus axes, and DPO promotion events for the Atelier autonomous design agent." />
+  <meta name="description" content="Bench Observatory — production telemetry, a controlled A/B against a single-shot baseline, the quality gates that define convergence, and a public benchmark set for the Atelier autonomous design agent. Every figure traces to a real source." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Text:wght@400;500&family=Roboto:wght@300;400;500&family=Roboto+Mono:wght@400;500&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
   <style>
-    /* ── Material Design 3 — Light-first, Google B2C aesthetic ────────────── */
+    /* ── Material Design 3 — Light-first, Google B2C aesthetic ─────────────────
+       Token system, fonts and logo carried over from the prior Observatory so
+       the page stays cohesive with the rest of the Atelier surface. The layout
+       below is deliberately flatter and more legible than the prior version:
+       fewer competing colours, a clearer top-to-bottom reading order, and a
+       target line drawn on every metric that has one. ─────────────────────── */
     :root {
       color-scheme: light dark;
 
-      /* ── Raw palette — light ──────────────────────────────────────────────── */
+      /* Raw palette — light */
       --md-primary-light:              #1a73e8;
       --md-on-primary-light:           #ffffff;
       --md-primary-container-light:    #d3e3fd;
       --md-on-primary-container-light: #062e6f;
       --md-secondary-light:            #5f6368;
-      --md-on-secondary-light:         #ffffff;
       --md-secondary-container-light:  #e8eaed;
       --md-on-secondary-container-light: #3c4043;
       --md-tertiary-light:             #7b1fa2;
@@ -30,6 +34,8 @@
       --md-error-container-light:      #fce8e6;
       --md-on-error-container-light:   #a50e0e;
       --md-positive-light:             #1e8e3e;
+      --md-warn-light:                 #b06000;
+      --md-warn-container-light:       #fef0e3;
 
       --md-bg-light:                        #ffffff;
       --md-surface-light:                   #ffffff;
@@ -43,13 +49,12 @@
       --md-outline-light:                   #80868b;
       --md-outline-variant-light:           #dadce0;
 
-      /* ── Raw palette — dark ──────────────────────────────────────────────── */
+      /* Raw palette — dark */
       --md-primary-dark:              #a8c7fa;
       --md-on-primary-dark:           #062e6f;
       --md-primary-container-dark:    #284290;
       --md-on-primary-container-dark: #d6e3ff;
       --md-secondary-dark:            #bec6dc;
-      --md-on-secondary-dark:         #283041;
       --md-secondary-container-dark:  #3e4759;
       --md-on-secondary-container-dark: #dae2f9;
       --md-tertiary-dark:             #ddbce8;
@@ -59,6 +64,8 @@
       --md-error-container-dark:      #93000a;
       --md-on-error-container-dark:   #ffdad6;
       --md-positive-dark:             #81c995;
+      --md-warn-dark:                 #f5bf66;
+      --md-warn-container-dark:       #4a2e00;
 
       --md-bg-dark:                        #101318;
       --md-surface-dark:                   #101318;
@@ -72,13 +79,12 @@
       --md-outline-dark:                   #8e9099;
       --md-outline-variant-dark:           #44464f;
 
-      /* ── Semantic tokens via light-dark() ─────────────────────────────────── */
+      /* Semantic tokens via light-dark() */
       --md-primary:              light-dark(var(--md-primary-light), var(--md-primary-dark));
       --md-on-primary:           light-dark(var(--md-on-primary-light), var(--md-on-primary-dark));
       --md-primary-container:    light-dark(var(--md-primary-container-light), var(--md-primary-container-dark));
       --md-on-primary-container: light-dark(var(--md-on-primary-container-light), var(--md-on-primary-container-dark));
       --md-secondary:            light-dark(var(--md-secondary-light), var(--md-secondary-dark));
-      --md-on-secondary:         light-dark(var(--md-on-secondary-light), var(--md-on-secondary-dark));
       --md-secondary-container:  light-dark(var(--md-secondary-container-light), var(--md-secondary-container-dark));
       --md-on-secondary-container: light-dark(var(--md-on-secondary-container-light), var(--md-on-secondary-container-dark));
       --md-tertiary:             light-dark(var(--md-tertiary-light), var(--md-tertiary-dark));
@@ -88,6 +94,8 @@
       --md-error-container:      light-dark(var(--md-error-container-light), var(--md-error-container-dark));
       --md-on-error-container:   light-dark(var(--md-on-error-container-light), var(--md-on-error-container-dark));
       --md-positive:             light-dark(var(--md-positive-light), var(--md-positive-dark));
+      --md-warn:                 light-dark(var(--md-warn-light), var(--md-warn-dark));
+      --md-warn-container:       light-dark(var(--md-warn-container-light), var(--md-warn-container-dark));
 
       --md-bg:                        light-dark(var(--md-bg-light), var(--md-bg-dark));
       --md-surface:                   light-dark(var(--md-surface-light), var(--md-surface-dark));
@@ -101,7 +109,7 @@
       --md-outline:                   light-dark(var(--md-outline-light), var(--md-outline-dark));
       --md-outline-variant:           light-dark(var(--md-outline-variant-light), var(--md-outline-variant-dark));
 
-      /* ── Fallback for browsers without light-dark() ──────────────────────── */
+      /* Fallback for browsers without light-dark() */
       @media (prefers-color-scheme: dark) {
         --md-primary: var(--md-primary-dark);
         --md-on-primary: var(--md-on-primary-dark);
@@ -111,8 +119,14 @@
         --md-secondary-container: var(--md-secondary-container-dark);
         --md-on-secondary-container: var(--md-on-secondary-container-dark);
         --md-tertiary: var(--md-tertiary-dark);
+        --md-tertiary-container: var(--md-tertiary-container-dark);
+        --md-on-tertiary-container: var(--md-on-tertiary-container-dark);
         --md-error: var(--md-error-dark);
+        --md-error-container: var(--md-error-container-dark);
+        --md-on-error-container: var(--md-on-error-container-dark);
         --md-positive: var(--md-positive-dark);
+        --md-warn: var(--md-warn-dark);
+        --md-warn-container: var(--md-warn-container-dark);
         --md-bg: var(--md-bg-dark);
         --md-surface: var(--md-surface-dark);
         --md-on-surface: var(--md-on-surface-dark);
@@ -126,7 +140,7 @@
         --md-outline-variant: var(--md-outline-variant-dark);
       }
 
-      /* ── Shape tokens (theme-invariant) ──────────────────────────────────── */
+      /* Shape tokens */
       --md-shape-xs:  4px;
       --md-shape-sm:  8px;
       --md-shape-md:  12px;
@@ -134,21 +148,19 @@
       --md-shape-xl:  28px;
       --md-shape-full: 50px;
 
-      /* ── Motion tokens ───────────────────────────────────────────────────── */
-      --md-ease-emphasized:      cubic-bezier(0.2, 0, 0, 1);
-      --md-ease-emphasized-dec:  cubic-bezier(0.05, 0.7, 0.1, 1);
-      --md-ease-emphasized-acc:  cubic-bezier(0.3, 0, 0.8, 0.15);
-      --md-ease-standard:        cubic-bezier(0.2, 0, 0, 1);
-
+      /* Motion tokens */
+      --md-ease-standard:       cubic-bezier(0.2, 0, 0, 1);
+      --md-ease-emphasized-dec: cubic-bezier(0.05, 0.7, 0.1, 1);
       --md-dur-s2: 100ms;
       --md-dur-s4: 200ms;
-      --md-dur-m2: 300ms;
-      --md-dur-m4: 400ms;
       --md-dur-l2: 500ms;
 
-      /* ── Typography ──────────────────────────────────────────────────────── */
+      /* Typography */
       --font-sans: 'Google Sans Text', 'Roboto', system-ui, sans-serif;
       --font-mono: 'Roboto Mono', monospace;
+
+      /* Layout */
+      --content-max: 1080px;
     }
 
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -161,9 +173,10 @@
       color: var(--md-on-surface);
       min-height: 100vh;
       display: flex;
-      overflow: hidden;
       -webkit-font-smoothing: antialiased;
     }
+
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 
     .material-symbols-outlined {
       font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
@@ -172,7 +185,7 @@
       user-select: none;
     }
 
-    /* ── Navigation Rail ───────────────────────────────────────────────────── */
+    /* ── Navigation rail ───────────────────────────────────────────────────── */
     .nav-rail {
       width: 80px;
       height: 100vh;
@@ -189,12 +202,7 @@
       border-right: 1px solid var(--md-outline-variant);
     }
 
-    .brand-mark {
-      width: 40px;
-      height: 40px;
-      margin-bottom: 20px;
-      flex-shrink: 0;
-    }
+    .brand-mark { width: 40px; height: 40px; margin-bottom: 20px; flex-shrink: 0; }
 
     .nav-item {
       width: 72px;
@@ -219,21 +227,14 @@
       transition: background var(--md-dur-s4) var(--md-ease-standard);
     }
 
-    .nav-item:hover .nav-indicator {
-      background: color-mix(in srgb, var(--md-primary) 8%, transparent 92%);
-    }
-
-    .nav-item.active .nav-indicator {
-      background: var(--md-secondary-container);
-    }
+    .nav-item:hover .nav-indicator { background: color-mix(in srgb, var(--md-primary) 8%, transparent 92%); }
+    .nav-item.active .nav-indicator { background: var(--md-secondary-container); }
 
     .nav-item .material-symbols-outlined {
       font-size: 22px;
       color: var(--md-on-surface-variant);
-      transition: color var(--md-dur-s4) var(--md-ease-standard),
-                  font-variation-settings var(--md-dur-s4) var(--md-ease-standard);
+      transition: color var(--md-dur-s4) var(--md-ease-standard);
     }
-
     .nav-item.active .material-symbols-outlined {
       color: var(--md-on-secondary-container);
       font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 22;
@@ -242,39 +243,26 @@
     .nav-label {
       font-size: 11px;
       font-weight: 500;
-      letter-spacing: 0.03em;
+      letter-spacing: 0.02em;
       color: var(--md-on-surface-variant);
       line-height: 1;
-      transition: color var(--md-dur-s4) var(--md-ease-standard);
+      text-align: center;
     }
+    .nav-item.active .nav-label { color: var(--md-on-surface); }
 
-    .nav-item.active .nav-label {
-      color: var(--md-on-surface);
-    }
+    .nav-divider { width: 40px; height: 1px; background: var(--md-outline-variant); margin: 8px 0; }
 
-    .nav-divider {
-      width: 40px;
-      height: 1px;
-      background: var(--md-outline-variant);
-      margin: 8px 0;
-    }
+    /* ── Main column ───────────────────────────────────────────────────────── */
+    .main { margin-left: 80px; flex: 1; min-width: 0; }
 
-    /* ── Main ──────────────────────────────────────────────────────────────── */
-    .main {
-      margin-left: 80px;
-      flex: 1;
-      overflow-y: auto;
-      height: 100vh;
-      scroll-snap-type: none;
-    }
-
-    /* ── Top App Bar ────────────────────────────────────────────────────────── */
     .app-bar {
-      height: 64px;
-      padding: 0 24px;
+      min-height: 64px;
+      padding: 12px 24px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
       background: var(--md-surface-container-low);
       border-bottom: 1px solid var(--md-outline-variant);
       position: sticky;
@@ -288,20 +276,16 @@
       letter-spacing: 0;
       color: var(--md-on-surface);
     }
+    .app-bar-title span { color: var(--md-on-surface-variant); }
 
-    .app-bar-actions {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .status-chip {
-      height: 32px;
-      padding: 0 12px 0 10px;
+    /* Provenance chip — static, no pulsing "live" dot (would overclaim). */
+    .prov-chip {
+      min-height: 32px;
+      padding: 4px 14px 4px 12px;
       border-radius: var(--md-shape-full);
       background: var(--md-surface-container-high);
       border: 1px solid var(--md-outline-variant);
-      display: flex;
+      display: inline-flex;
       align-items: center;
       gap: 8px;
       font-size: 12px;
@@ -309,453 +293,480 @@
       font-family: var(--font-mono);
       color: var(--md-on-surface-variant);
     }
-
-    .live-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--md-primary);
-      animation: live-pulse 2.4s ease-in-out infinite;
+    .prov-chip .material-symbols-outlined {
+      font-size: 16px;
+      color: var(--md-positive);
+      font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 16;
     }
+    .prov-chip.error { background: var(--md-error-container); border-color: var(--md-error); color: var(--md-on-error-container); }
+    .prov-chip.error .material-symbols-outlined { color: var(--md-error); }
 
-    @keyframes live-pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50%       { opacity: 0.4; transform: scale(0.8); }
-    }
-
-    /* ── Content ────────────────────────────────────────────────────────────── */
+    /* ── Content ───────────────────────────────────────────────────────────── */
     .content {
-      padding: 24px;
+      padding: 28px 24px 80px;
+      max-width: var(--content-max);
+      margin: 0 auto;
       display: flex;
       flex-direction: column;
-      gap: 20px;
-      max-width: 1480px;
+      gap: 40px;
     }
 
-    /* ── Section headers ────────────────────────────────────────────────────── */
-    .section-head {
+    .subtitle {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--md-on-surface-variant);
+      max-width: 70ch;
+    }
+
+    /* ── Section heads ─────────────────────────────────────────────────────── */
+    .section { scroll-margin-top: 80px; }
+
+    .section-head { margin-bottom: 16px; }
+
+    .section-eyebrow {
       display: flex;
       align-items: center;
       gap: 8px;
-      margin-bottom: 12px;
-    }
-
-    .section-head .material-symbols-outlined {
-      font-size: 18px;
-      color: var(--md-primary);
-      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 18;
-    }
-
-    .section-label {
       font-size: 12px;
       font-weight: 500;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: var(--md-on-surface-variant);
+      color: var(--md-primary);
+      margin-bottom: 6px;
+    }
+    .section-eyebrow .material-symbols-outlined {
+      font-size: 18px;
+      font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 18;
     }
 
-    /* ── Cards ──────────────────────────────────────────────────────────────── */
+    .section-title {
+      font-size: 22px;
+      font-weight: 400;
+      letter-spacing: 0;
+      color: var(--md-on-surface);
+    }
+    .section-desc {
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--md-on-surface-variant);
+      margin-top: 6px;
+      max-width: 75ch;
+    }
+
+    /* ── Callout (How to read this) ────────────────────────────────────────── */
+    .callout {
+      display: flex;
+      gap: 14px;
+      padding: 18px 20px;
+      border-radius: var(--md-shape-md);
+      background: var(--md-primary-container);
+      color: var(--md-on-primary-container);
+      border: 1px solid transparent;
+    }
+    .callout .material-symbols-outlined {
+      font-size: 22px;
+      flex-shrink: 0;
+      margin-top: 1px;
+      font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 22;
+    }
+    .callout-body h2 { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+    .callout-body p { font-size: 13px; line-height: 1.65; }
+    .callout-body strong { font-weight: 600; }
+
+    /* ── Cards ─────────────────────────────────────────────────────────────── */
     .card {
-      background: var(--md-surface-container);
+      background: var(--md-surface-container-low);
       border: 1px solid var(--md-outline-variant);
       border-radius: var(--md-shape-md);
       padding: 20px;
-      transition: background var(--md-dur-s4) var(--md-ease-standard),
-                  border-color var(--md-dur-s4) var(--md-ease-standard);
     }
 
-    .card:hover {
-      background: var(--md-surface-container-high);
-    }
-
-    /* ── KPI Row ────────────────────────────────────────────────────────────── */
-    .kpi-row {
+    /* ── KPI grid ──────────────────────────────────────────────────────────── */
+    .kpi-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       gap: 12px;
     }
 
     .kpi-card {
-      background: var(--md-surface-container);
+      background: var(--md-surface-container-low);
       border: 1px solid var(--md-outline-variant);
       border-radius: var(--md-shape-md);
-      padding: 20px;
+      padding: 18px;
       display: flex;
       flex-direction: column;
-      gap: 6px;
-      transition: background var(--md-dur-s4) var(--md-ease-standard);
+      gap: 4px;
     }
-
-    .kpi-card:hover {
-      background: var(--md-surface-container-high);
-    }
-
-    .kpi-card.featured {
-      background: var(--md-primary-container);
-      border-color: transparent;
-    }
-
-    .kpi-card.featured:hover {
-      background: color-mix(in srgb, var(--md-primary-container) 85%, white 15%);
-    }
-
-    .kpi-card.featured .kpi-label { color: var(--md-on-primary-container); }
-    .kpi-card.featured .kpi-value { color: var(--md-on-primary-container); }
-    .kpi-card.featured .kpi-sub   { color: color-mix(in srgb, var(--md-on-primary-container) 70%, transparent 30%); }
-    .kpi-card.featured .kpi-track { background: color-mix(in srgb, var(--md-on-primary-container) 18%, transparent 82%); }
 
     .kpi-label {
       font-size: 11px;
       font-weight: 500;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.05em;
       text-transform: uppercase;
       color: var(--md-on-surface-variant);
     }
 
     .kpi-value {
-      font-size: 38px;
-      font-weight: 300;
-      font-family: var(--font-mono);
-      letter-spacing: -0.02em;
-      line-height: 1;
-      color: var(--md-on-surface);
-    }
-
-    .kpi-sub {
-      font-size: 12px;
-      font-family: var(--font-mono);
-      color: var(--md-on-surface-variant);
-    }
-
-    .kpi-track {
-      height: 3px;
-      background: var(--md-outline-variant);
-      border-radius: 2px;
-      overflow: hidden;
-      margin-top: 6px;
-    }
-
-    .kpi-fill {
-      height: 100%;
-      border-radius: 2px;
-      transition: width var(--md-dur-l2) var(--md-ease-emphasized-dec);
-    }
-
-    /* ── Two-column layout ──────────────────────────────────────────────────── */
-    .two-col {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
-
-    /* ── Score lists ────────────────────────────────────────────────────────── */
-    .score-list {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .score-row-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      margin-bottom: 6px;
-    }
-
-    .score-name {
-      font-size: 13px;
-      font-weight: 400;
-      color: var(--md-on-surface);
-      letter-spacing: 0.01em;
-    }
-
-    .score-num {
-      font-size: 13px;
-      font-weight: 500;
-      font-family: var(--font-mono);
-    }
-
-    .score-track {
-      height: 6px;
-      background: var(--md-surface-container-highest);
-      border-radius: var(--md-shape-full);
-      overflow: hidden;
-    }
-
-    .score-fill {
-      height: 100%;
-      border-radius: var(--md-shape-full);
-      transition: width var(--md-dur-l2) var(--md-ease-emphasized-dec);
-    }
-
-    /* ── D-O-R-A-V Axis grid ───────────────────────────────────────────────── */
-    .axis-grid {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 10px;
-    }
-
-    .axis-card {
-      background: var(--md-surface-container-low);
-      border: 1px solid var(--md-outline-variant);
-      border-radius: var(--md-shape-md);
-      padding: 18px 14px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      transition: background var(--md-dur-s4) var(--md-ease-standard),
-                  border-color var(--md-dur-s4) var(--md-ease-standard),
-                  transform var(--md-dur-s4) var(--md-ease-standard);
-    }
-
-    .axis-card:hover {
-      background: var(--md-surface-container);
-      border-color: var(--md-outline);
-      transform: translateY(-1px);
-    }
-
-    .axis-name {
-      font-size: 10px;
-      font-weight: 500;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--md-on-surface-variant);
-    }
-
-    .axis-value {
       font-size: 34px;
       font-weight: 300;
       font-family: var(--font-mono);
       letter-spacing: -0.02em;
       line-height: 1.1;
+      color: var(--md-on-surface);
+    }
+    .kpi-value .unit { font-size: 18px; color: var(--md-on-surface-variant); }
+
+    .kpi-measure { font-size: 12px; line-height: 1.45; color: var(--md-on-surface-variant); }
+
+    .kpi-target {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 6px;
+      font-size: 11px;
+      font-weight: 500;
+      font-family: var(--font-mono);
+    }
+    .kpi-target .material-symbols-outlined { font-size: 14px; }
+    .kpi-target.pass { color: var(--md-positive); }
+    .kpi-target.fail { color: var(--md-error); }
+    .kpi-target.neutral { color: var(--md-on-surface-variant); }
+
+    /* Mini meter with a target line, used inside KPI cards. */
+    .meter {
+      position: relative;
+      height: 6px;
+      border-radius: var(--md-shape-full);
+      background: var(--md-surface-container-high);
+      overflow: hidden;
+      margin-top: 8px;
+    }
+    .meter-fill {
+      height: 100%;
+      border-radius: var(--md-shape-full);
+      width: 0;
+      transition: width var(--md-dur-l2) var(--md-ease-emphasized-dec);
+    }
+    .meter-bar {
+      position: absolute;
+      top: -2px;
+      bottom: -2px;
+      width: 2px;
+      background: var(--md-on-surface);
+      opacity: 0.55;
     }
 
-    .axis-range {
+    /* ── Distribution strip (the "good vs actual" visual) ──────────────────── */
+    .dist {
+      position: relative;
+      margin-top: 8px;
+      padding: 26px 6px 30px;
+    }
+    .dist-track {
+      position: relative;
+      height: 2px;
+      background: var(--md-outline-variant);
+      border-radius: 2px;
+    }
+    .dist-bar {
+      position: absolute;
+      top: -16px;
+      bottom: -16px;
+      width: 2px;
+      background: var(--md-on-surface);
+      opacity: 0.6;
+    }
+    .dist-bar-label {
+      position: absolute;
+      top: -34px;
+      transform: translateX(-50%);
+      font-size: 10px;
+      font-family: var(--font-mono);
+      white-space: nowrap;
+      color: var(--md-on-surface);
+    }
+    .dist-dot {
+      position: absolute;
+      top: 50%;
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      border: 2px solid var(--md-surface-container-low);
+      transition: left var(--md-dur-l2) var(--md-ease-emphasized-dec);
+    }
+    .dist-scale {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 14px;
       font-size: 10px;
       font-family: var(--font-mono);
       color: var(--md-on-surface-variant);
     }
+    .dist-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-top: 14px;
+      font-size: 12px;
+      color: var(--md-on-surface-variant);
+    }
+    .dist-legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .dist-legend .swatch { width: 11px; height: 11px; border-radius: 50%; }
 
-    .axis-bar {
-      width: 100%;
-      height: 4px;
-      background: var(--md-outline-variant);
-      border-radius: 2px;
+    /* ── A/B comparison ────────────────────────────────────────────────────── */
+    .ab-grid {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr 1fr;
+      gap: 0;
+      border: 1px solid var(--md-outline-variant);
+      border-radius: var(--md-shape-md);
       overflow: hidden;
-      margin-top: 4px;
     }
-
-    .axis-bar-fill {
-      height: 100%;
-      border-radius: 2px;
-      transition: width var(--md-dur-l2) var(--md-ease-emphasized-dec);
-    }
-
-    /* ── DPO Events ─────────────────────────────────────────────────────────── */
-    .event-list {
+    .ab-cell {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--md-outline-variant);
       display: flex;
       flex-direction: column;
       gap: 2px;
-    }
-
-    .event-item {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      padding: 12px 16px;
-      border-radius: var(--md-shape-sm);
-      background: var(--md-surface-container-low);
-      transition: background var(--md-dur-s4) var(--md-ease-standard);
-      cursor: default;
-    }
-
-    .event-item:hover {
-      background: var(--md-surface-container);
-    }
-
-    .event-icon-wrap {
-      width: 40px;
-      height: 40px;
-      border-radius: var(--md-shape-md);
-      display: flex;
-      align-items: center;
       justify-content: center;
-      flex-shrink: 0;
     }
-
-    .event-icon-wrap.promoted {
-      background: color-mix(in srgb, var(--md-primary) 12%, transparent 88%);
-    }
-
-    .event-icon-wrap.rejected {
-      background: color-mix(in srgb, var(--md-error) 12%, transparent 88%);
-    }
-
-    .event-icon-wrap .material-symbols-outlined {
-      font-size: 20px;
-      font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20;
-    }
-
-    .event-icon-wrap.promoted .material-symbols-outlined { color: var(--md-primary); }
-    .event-icon-wrap.rejected .material-symbols-outlined { color: var(--md-error); }
-
-    .event-body { flex: 1; min-width: 0; }
-
-    .event-title {
-      font-size: 13px;
+    .ab-grid > .ab-cell:nth-last-child(-n+3) { border-bottom: none; }
+    .ab-head {
+      background: var(--md-surface-container);
+      font-size: 12px;
       font-weight: 500;
+      letter-spacing: 0.03em;
       color: var(--md-on-surface);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      text-transform: none;
     }
-
-    .event-meta {
-      font-size: 11px;
+    .ab-head.metric-col { color: var(--md-on-surface-variant); text-transform: uppercase; letter-spacing: 0.06em; font-size: 11px; }
+    .ab-metric-name { font-size: 13px; color: var(--md-on-surface); }
+    .ab-metric-note { font-size: 11px; color: var(--md-on-surface-variant); }
+    .ab-num {
+      font-size: 20px;
+      font-weight: 400;
       font-family: var(--font-mono);
-      color: var(--md-on-surface-variant);
-      margin-top: 2px;
-    }
-
-    .event-kappa {
-      font-size: 22px;
-      font-weight: 300;
-      font-family: var(--font-mono);
-      white-space: nowrap;
       letter-spacing: -0.01em;
     }
+    .ab-col-atelier.ab-head { background: var(--md-primary-container); color: var(--md-on-primary-container); }
 
-    /* ── Trajectory Table ───────────────────────────────────────────────────── */
-    .data-table {
-      width: 100%;
-      border-collapse: collapse;
+    /* ── Gate rows ─────────────────────────────────────────────────────────── */
+    .gate-list { display: flex; flex-direction: column; gap: 10px; }
+    .gate-row {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      gap: 16px;
+      padding: 16px;
+      border: 1px solid var(--md-outline-variant);
+      border-radius: var(--md-shape-md);
+      background: var(--md-surface-container-low);
     }
+    .gate-name {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--md-on-surface);
+    }
+    .gate-name .material-symbols-outlined {
+      font-size: 18px;
+      color: var(--md-primary);
+      font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 18;
+    }
+    .gate-key {
+      display: inline-block;
+      margin-top: 6px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--md-on-surface-variant);
+    }
+    .gate-intent { font-size: 13px; line-height: 1.55; color: var(--md-on-surface); }
+    .gate-criterion {
+      margin-top: 8px;
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--md-on-surface-variant);
+      display: flex;
+      gap: 8px;
+    }
+    .gate-criterion .material-symbols-outlined {
+      font-size: 16px;
+      flex-shrink: 0;
+      color: var(--md-on-surface-variant);
+      margin-top: 1px;
+    }
+    .gate-criterion strong { color: var(--md-on-surface); font-weight: 500; }
 
+    /* ── Tables ────────────────────────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; border: 1px solid var(--md-outline-variant); border-radius: var(--md-shape-md); }
+    .data-table { width: 100%; border-collapse: collapse; }
     .data-table th {
       text-align: left;
-      padding: 10px 16px;
+      padding: 12px 16px;
       font-size: 11px;
       font-weight: 500;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.05em;
       text-transform: uppercase;
       color: var(--md-on-surface-variant);
+      background: var(--md-surface-container);
       border-bottom: 1px solid var(--md-outline-variant);
       white-space: nowrap;
     }
-
     .data-table td {
       padding: 11px 16px;
       font-size: 12px;
       font-family: var(--font-mono);
-      border-bottom: 1px solid color-mix(in srgb, var(--md-outline-variant) 40%, transparent 60%);
+      border-bottom: 1px solid color-mix(in srgb, var(--md-outline-variant) 45%, transparent 55%);
       vertical-align: middle;
+      white-space: nowrap;
     }
-
     .data-table tr:last-child td { border-bottom: none; }
+    .data-table .num { text-align: right; }
 
-    .data-table tbody tr {
-      transition: background var(--md-dur-s2) var(--md-ease-standard);
-    }
-
-    .data-table tbody tr:hover td {
-      background: color-mix(in srgb, var(--md-on-surface) 4%, transparent 96%);
-    }
-
-    /* ── Outcome badges (M3 Assist Chip style) ──────────────────────────────── */
+    /* ── Badges ────────────────────────────────────────────────────────────── */
     .badge {
       display: inline-flex;
       align-items: center;
-      height: 24px;
-      padding: 0 10px;
+      gap: 4px;
+      height: 22px;
+      padding: 0 9px;
       border-radius: var(--md-shape-xs);
       font-size: 11px;
       font-weight: 500;
       font-family: var(--font-sans);
-      letter-spacing: 0.01em;
     }
+    .badge .material-symbols-outlined { font-size: 14px; }
+    .badge.accepted { background: color-mix(in srgb, var(--md-positive) 16%, transparent 84%); color: var(--md-positive); }
+    .badge.rejected { background: color-mix(in srgb, var(--md-error) 14%, transparent 86%); color: var(--md-error); }
+    .badge.error    { background: color-mix(in srgb, var(--md-warn) 16%, transparent 84%); color: var(--md-warn); }
+    .badge.neutral  { background: var(--md-surface-container-high); color: var(--md-on-surface-variant); }
 
-    .badge.accepted {
-      background: color-mix(in srgb, var(--md-primary) 12%, transparent 88%);
+    /* ── Empty / pending states ────────────────────────────────────────────── */
+    .empty-state {
+      padding: 36px 24px;
+      text-align: center;
+      color: var(--md-on-surface-variant);
+      border: 1px dashed var(--md-outline-variant);
+      border-radius: var(--md-shape-md);
+      background: var(--md-surface-container-low);
+    }
+    .empty-state .material-symbols-outlined {
+      font-size: 36px;
+      font-variation-settings: 'FILL' 0, 'wght' 200, 'GRAD' 0, 'opsz' 36;
+      display: block;
+      margin: 0 auto 12px;
+      color: var(--md-outline);
+    }
+    .empty-state h3 { font-size: 14px; font-weight: 500; color: var(--md-on-surface); margin-bottom: 6px; }
+    .empty-state p { font-size: 13px; line-height: 1.6; max-width: 52ch; margin: 0 auto; }
+
+    /* ── External link ─────────────────────────────────────────────────────── */
+    a.ext {
       color: var(--md-primary);
+      text-decoration: none;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+    a.ext:hover { text-decoration: underline; }
+    a.ext .material-symbols-outlined { font-size: 15px; }
+
+    /* ── Footer / methodology ──────────────────────────────────────────────── */
+    .method-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+    }
+    .method-block h3 {
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--md-on-surface-variant);
+      margin-bottom: 8px;
+    }
+    .method-block ul { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+    .method-block li { font-size: 13px; line-height: 1.55; color: var(--md-on-surface); }
+    .method-block li code, .footnote code {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      background: var(--md-surface-container);
+      padding: 1px 5px;
+      border-radius: var(--md-shape-xs);
+    }
+    .caveats {
+      margin-top: 4px;
+      padding: 16px 18px;
+      border-radius: var(--md-shape-md);
+      background: var(--md-warn-container);
+      color: light-dark(var(--md-warn-light), var(--md-warn-dark));
+      border: 1px solid color-mix(in srgb, var(--md-warn) 45%, transparent 55%);
+    }
+    .caveats h3 { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+    .caveats .material-symbols-outlined { font-size: 18px; }
+    .caveats ul { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+    .caveats li { font-size: 12.5px; line-height: 1.55; padding-left: 16px; position: relative; }
+    .caveats li::before { content: "—"; position: absolute; left: 0; opacity: 0.7; }
+
+    .footnote {
+      font-size: 12px;
+      line-height: 1.55;
+      color: var(--md-on-surface-variant);
+      margin-top: 12px;
     }
 
-    .badge.rejected {
-      background: color-mix(in srgb, var(--md-error) 12%, transparent 88%);
-      color: var(--md-error);
-    }
-
-    .badge.error {
-      background: color-mix(in srgb, var(--md-tertiary) 12%, transparent 88%);
-      color: var(--md-tertiary);
-    }
-
-    /* ── Skeleton ────────────────────────────────────────────────────────────── */
-    @keyframes shimmer {
-      0%   { background-position: 200% 0; }
-      100% { background-position: -200% 0; }
-    }
-
+    /* ── Skeleton ──────────────────────────────────────────────────────────── */
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
     .skeleton {
-      background: linear-gradient(
-        90deg,
-        var(--md-surface-container)      0%,
-        var(--md-surface-container-high) 50%,
-        var(--md-surface-container)      100%
-      );
+      background: linear-gradient(90deg, var(--md-surface-container) 0%, var(--md-surface-container-high) 50%, var(--md-surface-container) 100%);
       background-size: 200% 100%;
       animation: shimmer 1.4s ease-in-out infinite;
       border-radius: var(--md-shape-xs);
     }
 
-    /* ── Empty state ─────────────────────────────────────────────────────────── */
-    .empty-state {
-      padding: 48px 24px;
-      text-align: center;
-      color: var(--md-on-surface-variant);
+    /* ── Mobile bottom nav ─────────────────────────────────────────────────── */
+    .bottom-nav {
+      display: none;
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: 64px;
+      background: var(--md-surface-container-low);
+      border-top: 1px solid var(--md-outline-variant);
+      align-items: center;
+      justify-content: space-around;
+      z-index: 20;
+      padding: 0 4px;
     }
+    .bottom-nav .nav-item { width: auto; min-width: 52px; padding: 6px 0; }
+    .bottom-nav .nav-indicator { width: 46px; height: 28px; }
 
-    .empty-state .material-symbols-outlined {
-      font-size: 40px;
-      font-variation-settings: 'FILL' 0, 'wght' 200, 'GRAD' 0, 'opsz' 40;
-      display: block;
-      margin-bottom: 12px;
-      color: var(--md-outline);
+    /* ── Responsive ────────────────────────────────────────────────────────── */
+    @media (max-width: 820px) {
+      .ab-grid { grid-template-columns: 1fr; }
+      .ab-cell { border-bottom: 1px solid var(--md-outline-variant); }
+      .ab-grid > .ab-cell:last-child { border-bottom: none; }
+      .ab-head.metric-col { display: none; }
+      .gate-row { grid-template-columns: 1fr; gap: 10px; }
     }
-
-    .empty-state p {
-      font-size: 13px;
-      line-height: 1.7;
-    }
-
-    /* ── Responsive ──────────────────────────────────────────────────────────── */
-    @media (max-width: 1100px) {
-      .axis-grid { grid-template-columns: repeat(3, 1fr); }
-    }
-
-    @media (max-width: 860px) {
-      .two-col { grid-template-columns: 1fr; }
-      .axis-grid { grid-template-columns: repeat(2, 1fr); }
-      .kpi-row  { grid-template-columns: 1fr 1fr; }
-    }
-
     @media (max-width: 600px) {
       .nav-rail { display: none; }
       .bottom-nav { display: flex; }
-      .main { margin-left: 0; padding-bottom: 72px; }
-      .kpi-row { grid-template-columns: 1fr; }
-      .axis-grid { grid-template-columns: 1fr 1fr; }
-      .data-table .col-cost,
-      .data-table .col-model { display: none; }
+      .main { margin-left: 0; }
+      .content { padding-bottom: 88px; }
+      .kpi-grid { grid-template-columns: 1fr; }
+      .data-table .col-opt { display: none; }
     }
 
-    /* ── Focus ────────────────────────────────────────────────────────────── */
+    /* ── Focus ─────────────────────────────────────────────────────────────── */
     :where(a, button, input, [tabindex]):focus-visible {
       outline: 3px solid var(--md-primary);
       outline-offset: 3px;
+      border-radius: var(--md-shape-xs);
     }
 
-    /* ── Reduced motion ───────────────────────────────────────────────────── */
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after {
         animation-duration: 0.01ms !important;
@@ -764,52 +775,35 @@
       }
     }
 
-    /* ── Visually hidden (a11y) ────────────────────────────────────────── */
     .visually-hidden:where(:not(:focus-within, :active)) {
       position: absolute !important;
       clip-path: inset(50%) !important;
       overflow: hidden !important;
-      width: 1px !important;
-      height: 1px !important;
-      margin: -1px !important;
-      padding: 0 !important;
-      border: 0 !important;
+      width: 1px !important; height: 1px !important;
+      margin: -1px !important; padding: 0 !important; border: 0 !important;
       white-space: nowrap !important;
     }
 
-    /* ── Mobile bottom navigation ─────────────────────────────────────── */
-    .bottom-nav {
-      display: none;
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 64px;
-      background: var(--md-surface-container-low);
-      border-top: 1px solid var(--md-outline-variant);
-      align-items: center;
-      justify-content: space-around;
-      z-index: 20;
-      padding: 0 8px;
+    .skip-link {
+      position: absolute;
+      left: 8px; top: -48px;
+      padding: 10px 16px;
+      background: var(--md-primary);
+      color: var(--md-on-primary);
+      border-radius: var(--md-shape-sm);
+      z-index: 100;
+      font-size: 13px;
+      font-weight: 500;
+      transition: top var(--md-dur-s4) var(--md-ease-standard);
     }
-
-    .bottom-nav .nav-item {
-      width: auto;
-      min-width: 56px;
-      padding: 6px 0;
-    }
-
-    .bottom-nav .nav-indicator {
-      width: 48px;
-      height: 28px;
-    }
+    .skip-link:focus { top: 8px; }
   </style>
 </head>
 <body>
+  <a class="skip-link" href="#production">Skip to results</a>
 
-  <!-- Navigation Rail -->
-  <nav class="nav-rail" aria-label="Main navigation">
-    <!-- Atelier wordmark -->
+  <!-- Navigation rail (desktop) -->
+  <nav class="nav-rail" aria-label="Section navigation">
     <svg class="brand-mark" viewBox="0 0 40 40" fill="none" role="img" aria-label="Atelier">
       <rect width="40" height="40" rx="10" fill="var(--md-primary-container)"/>
       <path d="M8 30L16 12L20 22L24 12L32 30" stroke="var(--md-primary)" stroke-width="2.5"
@@ -817,200 +811,218 @@
       <circle cx="20" cy="22" r="2" fill="var(--md-primary)"/>
     </svg>
 
-    <a class="nav-item active" href="#eval" title="Eval" aria-current="page">
-      <div class="nav-indicator">
-        <span class="material-symbols-outlined">monitoring</span>
-      </div>
-      <span class="nav-label">Eval</span>
+    <a class="nav-item active" href="#production" aria-current="true">
+      <span class="nav-indicator"><span class="material-symbols-outlined">database</span></span>
+      <span class="nav-label">Results</span>
     </a>
-
-    <a class="nav-item" href="#criteria" title="Criteria">
-      <div class="nav-indicator">
-        <span class="material-symbols-outlined">psychology</span>
-      </div>
-      <span class="nav-label">Criteria</span>
+    <a class="nav-item" href="#ab">
+      <span class="nav-indicator"><span class="material-symbols-outlined">compare_arrows</span></span>
+      <span class="nav-label">A / B</span>
     </a>
-
-    <a class="nav-item" href="#axes" title="Axes">
-      <div class="nav-indicator">
-        <span class="material-symbols-outlined">radar</span>
-      </div>
-      <span class="nav-label">Axes</span>
+    <a class="nav-item" href="#gates">
+      <span class="nav-indicator"><span class="material-symbols-outlined">verified</span></span>
+      <span class="nav-label">Gates</span>
     </a>
-
+    <a class="nav-item" href="#benchmark">
+      <span class="nav-indicator"><span class="material-symbols-outlined">public</span></span>
+      <span class="nav-label">Bench</span>
+    </a>
     <div class="nav-divider"></div>
-
-    <a class="nav-item" href="#dpo" title="DPO">
-      <div class="nav-indicator">
-        <span class="material-symbols-outlined">model_training</span>
-      </div>
-      <span class="nav-label">DPO</span>
-    </a>
-
-    <a class="nav-item" href="#runs" title="Runs">
-      <div class="nav-indicator">
-        <span class="material-symbols-outlined">table_rows</span>
-      </div>
-      <span class="nav-label">Runs</span>
+    <a class="nav-item" href="#methodology">
+      <span class="nav-indicator"><span class="material-symbols-outlined">science</span></span>
+      <span class="nav-label">Method</span>
     </a>
   </nav>
 
-  <!-- Mobile bottom navigation (M3 Navigation Bar) -->
-  <nav class="bottom-nav" aria-label="Primary navigation (mobile)">
-    <a class="nav-item active" href="#eval" title="Eval" aria-current="page">
-      <div class="nav-indicator">
-        <span class="material-symbols-outlined">monitoring</span>
-      </div>
-      <span class="nav-label">Eval</span>
+  <!-- Mobile bottom nav -->
+  <nav class="bottom-nav" aria-label="Section navigation (mobile)">
+    <a class="nav-item active" href="#production" aria-current="true">
+      <span class="nav-indicator"><span class="material-symbols-outlined">database</span></span>
+      <span class="nav-label">Results</span>
     </a>
-    <a class="nav-item" href="#criteria" title="Criteria">
-      <div class="nav-indicator">
-        <span class="material-symbols-outlined">psychology</span>
-      </div>
-      <span class="nav-label">Criteria</span>
+    <a class="nav-item" href="#ab">
+      <span class="nav-indicator"><span class="material-symbols-outlined">compare_arrows</span></span>
+      <span class="nav-label">A / B</span>
     </a>
-    <a class="nav-item" href="#axes" title="Axes">
-      <div class="nav-indicator">
-        <span class="material-symbols-outlined">radar</span>
-      </div>
-      <span class="nav-label">Axes</span>
+    <a class="nav-item" href="#gates">
+      <span class="nav-indicator"><span class="material-symbols-outlined">verified</span></span>
+      <span class="nav-label">Gates</span>
     </a>
-    <a class="nav-item" href="#dpo" title="DPO">
-      <div class="nav-indicator">
-        <span class="material-symbols-outlined">model_training</span>
-      </div>
-      <span class="nav-label">DPO</span>
+    <a class="nav-item" href="#benchmark">
+      <span class="nav-indicator"><span class="material-symbols-outlined">public</span></span>
+      <span class="nav-label">Bench</span>
     </a>
-    <a class="nav-item" href="#runs" title="Runs">
-      <div class="nav-indicator">
-        <span class="material-symbols-outlined">table_rows</span>
-      </div>
-      <span class="nav-label">Runs</span>
+    <a class="nav-item" href="#methodology">
+      <span class="nav-indicator"><span class="material-symbols-outlined">science</span></span>
+      <span class="nav-label">Method</span>
     </a>
   </nav>
 
-  <!-- Main -->
   <main class="main">
-
-    <!-- Top App Bar -->
     <header class="app-bar">
-      <h1 class="app-bar-title">Bench Observatory</h1>
-      <div class="app-bar-actions">
-        <div class="status-chip" id="run-chip">
-          <div class="live-dot"></div>
-          <span id="run-info">Loading&hellip;</span>
-        </div>
+      <h1 class="app-bar-title">Atelier <span>— Bench Observatory</span></h1>
+      <div class="prov-chip" id="prov-chip" role="status">
+        <span class="material-symbols-outlined" aria-hidden="true">verified</span>
+        <span id="prov-text">Loading&hellip;</span>
       </div>
     </header>
 
     <div class="content">
 
-      <!-- Eval KPIs ─────────────────────────────────────────────────────────── -->
-      <section id="eval" aria-labelledby="eval-lbl">
-        <div class="section-head">
-          <span class="material-symbols-outlined">monitoring</span>
-          <span class="section-label" id="eval-lbl">Eval KPIs</span>
-        </div>
-        <div class="kpi-row" id="kpi-row">
-          <div class="kpi-card skeleton" style="height:116px"></div>
-          <div class="kpi-card skeleton" style="height:116px"></div>
-          <div class="kpi-card skeleton" style="height:116px"></div>
-          <div class="kpi-card skeleton" style="height:116px"></div>
-          <div class="kpi-card skeleton" style="height:116px"></div>
+      <p class="subtitle">
+        Every figure on this page traces to production telemetry, a controlled A/B, or a
+        public benchmark. No synthetic data. Where a result has not been produced yet,
+        the section says so plainly rather than showing a zero as if it were real.
+      </p>
+
+      <!-- How to read this ──────────────────────────────────────────────────── -->
+      <section class="callout" aria-label="How to read this page">
+        <span class="material-symbols-outlined" aria-hidden="true">menu_book</span>
+        <div class="callout-body">
+          <h2>How to read this</h2>
+          <p>
+            Atelier is <strong>gate-first</strong>: each design candidate must clear a fixed
+            sequence of quality gates, and a candidate only <strong>converges</strong> once its
+            composite score reaches <strong>&ge;&nbsp;0.70</strong>. Every metric below is shown
+            against that bar or its stated target, so you can see what <em>good</em> looks like
+            next to the <em>actual</em> result — not a number in isolation.
+          </p>
         </div>
       </section>
 
-      <!-- ADK Criteria + Per-Judge Calibration ──────────────────────────────── -->
-      <div class="two-col" id="criteria">
-        <section aria-labelledby="adk-lbl">
-          <div class="card">
-            <div class="section-head">
-              <span class="material-symbols-outlined">psychology</span>
-              <span class="section-label" id="adk-lbl">ADK Eval Criteria</span>
-            </div>
-            <div class="score-list" id="adk-list">
-              <div class="skeleton" style="height:38px;border-radius:6px"></div>
-              <div class="skeleton" style="height:38px;border-radius:6px;margin-top:4px"></div>
-              <div class="skeleton" style="height:38px;border-radius:6px;margin-top:4px"></div>
-              <div class="skeleton" style="height:38px;border-radius:6px;margin-top:4px"></div>
-              <div class="skeleton" style="height:38px;border-radius:6px;margin-top:4px"></div>
-            </div>
-          </div>
-        </section>
-
-        <section aria-labelledby="judge-lbl">
-          <div class="card">
-            <div class="section-head">
-              <span class="material-symbols-outlined">fact_check</span>
-              <span class="section-label" id="judge-lbl">Per-Judge Calibration</span>
-            </div>
-            <div class="score-list" id="judge-list">
-              <div class="skeleton" style="height:38px;border-radius:6px"></div>
-              <div class="skeleton" style="height:38px;border-radius:6px;margin-top:4px"></div>
-              <div class="skeleton" style="height:38px;border-radius:6px;margin-top:4px"></div>
-              <div class="skeleton" style="height:38px;border-radius:6px;margin-top:4px"></div>
-              <div class="skeleton" style="height:38px;border-radius:6px;margin-top:4px"></div>
-            </div>
-          </div>
-        </section>
-      </div>
-
-      <!-- D-O-R-A-V Axes ────────────────────────────────────────────────────── -->
-      <section id="axes" aria-labelledby="axes-lbl">
+      <!-- 3 · Production results ──────────────────────────────────────────────── -->
+      <section class="section" id="production" aria-labelledby="production-title">
         <div class="section-head">
-          <span class="material-symbols-outlined">radar</span>
-          <span class="section-label" id="axes-lbl">D&#8209;O&#8209;R&#8209;A&#8209;V Composite Axes</span>
+          <div class="section-eyebrow"><span class="material-symbols-outlined" aria-hidden="true">database</span>Production telemetry</div>
+          <h2 class="section-title" id="production-title">Production results</h2>
+          <p class="section-desc">
+            Pulled from the BigQuery trajectory store. Each run produces several candidates;
+            a candidate is accepted only after it clears every gate and converges at composite&nbsp;&ge;&nbsp;0.70.
+          </p>
         </div>
-        <div class="axis-grid" id="axis-grid">
-          <div class="axis-card skeleton" style="height:148px"></div>
-          <div class="axis-card skeleton" style="height:148px"></div>
-          <div class="axis-card skeleton" style="height:148px"></div>
-          <div class="axis-card skeleton" style="height:148px"></div>
-          <div class="axis-card skeleton" style="height:148px"></div>
+
+        <div class="kpi-grid" id="kpi-grid" aria-busy="true">
+          <div class="kpi-card skeleton" style="height:150px"></div>
+          <div class="kpi-card skeleton" style="height:150px"></div>
+          <div class="kpi-card skeleton" style="height:150px"></div>
+          <div class="kpi-card skeleton" style="height:150px"></div>
+          <div class="kpi-card skeleton" style="height:150px"></div>
+          <div class="kpi-card skeleton" style="height:150px"></div>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <div class="section-eyebrow" style="color:var(--md-on-surface-variant);margin-bottom:2px">
+            <span class="material-symbols-outlined" aria-hidden="true">scatter_plot</span>Candidate composite distribution
+          </div>
+          <p class="section-desc" style="margin-top:2px">
+            Each dot is one candidate&rsquo;s composite score. The marked line is the 0.70 convergence bar —
+            this is the &ldquo;good vs actual&rdquo; view: dots at or past the line converged.
+          </p>
+          <div class="dist" id="dist" role="img" aria-label="Distribution of candidate composite scores against the 0.70 convergence bar"></div>
+        </div>
+
+        <h3 class="section-eyebrow" style="color:var(--md-on-surface-variant);margin:24px 0 10px">
+          <span class="material-symbols-outlined" aria-hidden="true">table_rows</span>Recent runs
+        </h3>
+        <div class="table-wrap">
+          <table class="data-table" aria-label="Recent production runs">
+            <thead>
+              <tr>
+                <th scope="col">Trajectory ID</th>
+                <th scope="col" class="num">Composite</th>
+                <th scope="col">Outcome</th>
+                <th scope="col" class="col-opt">Timestamp (UTC)</th>
+              </tr>
+            </thead>
+            <tbody id="runs-tbody">
+              <tr><td colspan="4" style="padding:0"><div class="skeleton" style="height:44px;border-radius:0"></div></td></tr>
+              <tr><td colspan="4" style="padding:0"><div class="skeleton" style="height:44px;border-radius:0"></div></td></tr>
+              <tr><td colspan="4" style="padding:0"><div class="skeleton" style="height:44px;border-radius:0"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="footnote" id="production-footnote"></p>
+      </section>
+
+      <!-- 4 · Atelier vs single-shot baseline ─────────────────────────────────── -->
+      <section class="section" id="ab" aria-labelledby="ab-title">
+        <div class="section-head">
+          <div class="section-eyebrow"><span class="material-symbols-outlined" aria-hidden="true">compare_arrows</span>Controlled A/B</div>
+          <h2 class="section-title" id="ab-title">Atelier vs a single-shot baseline</h2>
+          <p class="section-desc">
+            Same briefs, same gate path. The baseline emits one design with no iteration; Atelier
+            runs the full gate-first pipeline. This isolates the value of the pipeline itself.
+          </p>
+        </div>
+        <div id="ab-body" aria-busy="true">
+          <div class="skeleton" style="height:180px;border-radius:var(--md-shape-md)"></div>
         </div>
       </section>
 
-      <!-- DPO Promotion Events ──────────────────────────────────────────────── -->
-      <section id="dpo" aria-labelledby="dpo-lbl">
+      <!-- 5 · The quality gates ───────────────────────────────────────────────── -->
+      <section class="section" id="gates" aria-labelledby="gates-title">
         <div class="section-head">
-          <span class="material-symbols-outlined">model_training</span>
-          <span class="section-label" id="dpo-lbl">DPO Promotion Events</span>
+          <div class="section-eyebrow"><span class="material-symbols-outlined" aria-hidden="true">verified</span>Definition of good</div>
+          <h2 class="section-title" id="gates-title">The quality gates</h2>
+          <p class="section-desc">
+            These gates define what &ldquo;good&rdquo; means for a candidate. They run fail-closed and in
+            order; a candidate that fails any one of them is rejected. On top of the deterministic gates,
+            a <strong>D&#8209;O&#8209;R&#8209;A&#8209;V</strong> consensus
+            (Design, Originality, Relevance, Accessibility, Visual&#8209;clarity) scores each surviving
+            candidate to produce the composite used for the 0.70 bar.
+          </p>
         </div>
-        <div class="card" style="padding:12px">
-          <div class="event-list" id="dpo-events">
-            <div class="skeleton" style="height:64px;border-radius:8px"></div>
-            <div class="skeleton" style="height:64px;border-radius:8px;margin-top:4px"></div>
-          </div>
+        <div class="gate-list" id="gate-list" aria-busy="true">
+          <div class="skeleton" style="height:96px;border-radius:var(--md-shape-md)"></div>
+          <div class="skeleton" style="height:96px;border-radius:var(--md-shape-md);margin-top:10px"></div>
         </div>
       </section>
 
-      <!-- Trajectory Runs ───────────────────────────────────────────────────── -->
-      <section id="runs" aria-labelledby="runs-lbl">
+      <!-- 6 · External benchmark ──────────────────────────────────────────────── -->
+      <section class="section" id="benchmark" aria-labelledby="benchmark-title">
         <div class="section-head">
-          <span class="material-symbols-outlined">table_rows</span>
-          <span class="section-label" id="runs-lbl">Recent Runs</span>
+          <div class="section-eyebrow"><span class="material-symbols-outlined" aria-hidden="true">public</span>External generalization set</div>
+          <h2 class="section-title" id="benchmark-title">Public benchmark</h2>
+          <p class="section-desc">
+            A held-out, third-party prompt set used to check that Atelier generalizes beyond its own briefs.
+          </p>
         </div>
-        <div class="card" style="padding:0;overflow:hidden">
-          <div style="overflow-x:auto">
-            <table class="data-table" aria-label="Trajectory runs">
-              <thead>
-                <tr>
-                  <th scope="col">Run ID</th>
-                  <th scope="col">Timestamp</th>
-                  <th scope="col">Score</th>
-                  <th scope="col">Outcome</th>
-                  <th scope="col">Latency</th>
-                  <th scope="col" class="col-cost">Cost</th>
-                  <th scope="col" class="col-model">Model</th>
-                </tr>
-              </thead>
-              <tbody id="runs-tbody">
-                <tr><td colspan="7" style="padding:0"><div class="skeleton" style="height:44px;border-radius:0"></div></td></tr>
-                <tr><td colspan="7" style="padding:0"><div class="skeleton" style="height:44px;border-radius:0"></div></td></tr>
-                <tr><td colspan="7" style="padding:0"><div class="skeleton" style="height:44px;border-radius:0"></div></td></tr>
-              </tbody>
-            </table>
+        <div id="benchmark-body" aria-busy="true">
+          <div class="skeleton" style="height:150px;border-radius:var(--md-shape-md)"></div>
+        </div>
+      </section>
+
+      <!-- 7 · Methodology & provenance ────────────────────────────────────────── -->
+      <section class="section" id="methodology" aria-labelledby="methodology-title">
+        <div class="section-head">
+          <div class="section-eyebrow"><span class="material-symbols-outlined" aria-hidden="true">science</span>Transparency</div>
+          <h2 class="section-title" id="methodology-title">Methodology &amp; provenance</h2>
+        </div>
+        <div class="card">
+          <div class="method-grid">
+            <div class="method-block">
+              <h3>Data sources</h3>
+              <ul id="method-sources"></ul>
+            </div>
+            <div class="method-block">
+              <h3>Sample sizes</h3>
+              <ul id="method-samples"></ul>
+            </div>
+            <div class="method-block">
+              <h3>Scope &amp; environment</h3>
+              <ul id="method-scope"></ul>
+            </div>
           </div>
+          <div class="caveats">
+            <h3><span class="material-symbols-outlined" aria-hidden="true">warning</span>Honest caveats</h3>
+            <ul>
+              <li>Production sample is small and early — figures will move as more runs land.</li>
+              <li>The controlled A/B and the WebGen-Bench slice have not been run at scale yet; those sections show a pending state rather than a placeholder number.</li>
+              <li>The official WebGen-Bench metric (a test-agent appearance/functionality score) is <strong>not</strong> reproduced here. Any Atelier slice is scored by Atelier&rsquo;s own gates and labelled as such — it is not comparable to the public leaderboard.</li>
+              <li>Composite scores are produced locally by the D&#8209;O&#8209;R&#8209;A&#8209;V consensus, distinct from the production serving path.</li>
+            </ul>
+          </div>
+          <p class="footnote" id="method-footnote"></p>
         </div>
       </section>
 
@@ -1018,327 +1030,539 @@
   </main>
 
   <script>
-    /* ── XSS-safe HTML escaping ────────────────────────────────────────────── */
-    function escapeHTML(str) {
-      if (str == null) return '';
-      const el = document.createElement('span');
+    "use strict";
+
+    /* XSS-safe text insertion — all dynamic strings pass through here. */
+    function esc(str) {
+      if (str == null) return "";
+      const el = document.createElement("span");
       el.textContent = String(str);
       return el.innerHTML;
     }
 
-    /* ── Badge icon prefixes (WCAG 1.4.1 — not color-only) ────────────────── */
-    const BADGE_ICONS = { accepted: '✓', rejected: '✗', error: '⚠' };
-
-    /* ── Design tokens for JS ──────────────────────────────────────────────── */
     const CSS = getComputedStyle(document.documentElement);
-    const T   = (v) => CSS.getPropertyValue(v).trim();
+    const T = (v) => CSS.getPropertyValue(v).trim();
 
-    /* ── Axis metadata ─────────────────────────────────────────────────────── */
-    const AXES = {
-      brand:          { label: 'Design',          color: T('--md-primary') },
-      originality:    { label: 'Originality',      color: T('--md-tertiary') },
-      relevance:      { label: 'Relevance',        color: T('--md-positive') },
-      accessibility:  { label: 'Accessibility',    color: T('--md-secondary') },
-      visual_clarity: { label: 'Visual Clarity',   color: T('--md-primary-container') },
+    /* Formatting helpers. */
+    const fixed = (v, n = 2) => (typeof v === "number" && isFinite(v) ? v.toFixed(n) : "—");
+    const pct = (v, n = 1) => (typeof v === "number" && isFinite(v) ? (v * 100).toFixed(n) + "%" : "—");
+    const fmtDate = (iso) => {
+      const d = new Date(iso);
+      return isNaN(d) ? "—" : d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+    };
+    const fmtTs = (iso) => {
+      const d = new Date(iso);
+      if (isNaN(d)) return "—";
+      // Render in UTC so the verifiable timestamps match the stored records.
+      return d.toISOString().replace("T", " ").replace(/\.\d+Z$/, "Z");
     };
 
-    const ADK_LABELS = {
-      tool_trajectory_avg_score:          'Tool Trajectory Score',
-      multi_turn_trajectory_quality_v1:   'Multi-Turn Quality v1',
-      rubric_based_instruction_following: 'Instruction Following',
-      rubric_based_groundedness:          'Groundedness',
-      rubric_based_safety:                'Safety',
-    };
-
-    const JUDGE_LABELS = {
-      brand:     'Brand Consistency',
-      copy:      'Copy Quality',
-      motion:    'Motion Design',
-      token:     'Token Efficiency',
-      coherence: 'Overall Coherence',
-    };
-
-    /* ── Score color function ──────────────────────────────────────────────── */
-    function scoreColor(v) {
-      if (v >= 0.85) return T('--md-primary');
-      if (v >= 0.70) return T('--md-positive');
-      if (v >= 0.55) return T('--md-tertiary');
-      return T('--md-error');
+    /* Convergence-aware colour: at/above the 0.70 bar reads positive, below reads error. */
+    function barColor(v, bar) {
+      if (typeof v !== "number" || !isFinite(v)) return T("--md-on-surface-variant");
+      return v >= bar ? T("--md-positive") : T("--md-error");
     }
 
-    /* ── Demo data (rendered when data.json is unavailable) ────────────────── */
-    const DEMO = {
-      schema_version: '1.0',
-      run_id: 'demo-run-2026-05-25',
-      timestamp: new Date().toISOString(),
-      calibration_pass_rate: 0.764,
-      adversarial_pass_rate: 0.681,
-      adk_criteria_scores: {
-        tool_trajectory_avg_score:          0.821,
-        multi_turn_trajectory_quality_v1:   0.793,
-        rubric_based_instruction_following: 0.847,
-        rubric_based_groundedness:          0.768,
-        rubric_based_safety:                0.991,
-      },
-      per_judge_calibration: {
-        brand:     0.831,
-        copy:      0.802,
-        motion:    0.744,
-        token:     0.876,
-        coherence: 0.819,
-      },
-      dpo_promotion_events: [
-        {
-          event_id: 'evt-001',
-          promoted_at: new Date(Date.now() - 8 * 3600000).toISOString(),
-          job_name: 'projects/atelier-build-2026/locations/us-central1/tuningJobs/1001',
-          kappa: 0.821, promoted: true,
-          endpoint: 'projects/atelier-build-2026/locations/us-central1/endpoints/4501',
-        },
-        {
-          event_id: 'evt-002',
-          promoted_at: new Date(Date.now() - 32 * 3600000).toISOString(),
-          job_name: 'projects/atelier-build-2026/locations/us-central1/tuningJobs/998',
-          kappa: 0.631, promoted: false,
-        },
-      ],
-      meta: {
-        generated_at: new Date().toISOString(),
-        pipeline_version: '0.2.0-alpha',
-        environment: 'staging',
-      },
-      summary: {
-        total_trajectories: 247,
-        total_candidates:   741,
-        acceptance_rate:    0.764,
-        avg_composite_score: 0.791,
-        total_cost_usd:     18.42,
-        avg_latency_ms:     3820,
-        p99_latency_ms:     8740,
-      },
-      axes: {
-        brand:          { mean: 0.831, median: 0.848, p5: 0.52, p95: 0.97, count: 247 },
-        originality:    { mean: 0.714, median: 0.729, p5: 0.41, p95: 0.91, count: 247 },
-        relevance:      { mean: 0.893, median: 0.901, p5: 0.71, p95: 0.98, count: 247 },
-        accessibility:  { mean: 0.762, median: 0.778, p5: 0.48, p95: 0.94, count: 247 },
-        visual_clarity: { mean: 0.847, median: 0.862, p5: 0.59, p95: 0.97, count: 247 },
-      },
-      trajectories: Array.from({ length: 24 }, (_, i) => ({
-        trajectory_id:   `traj-${String(i + 1).padStart(4, '0')}-${Math.random().toString(36).slice(2, 7)}`,
-        timestamp:       new Date(Date.now() - i * 3.8 * 60000).toISOString(),
-        composite_score: parseFloat((0.62 + Math.random() * 0.36).toFixed(3)),
-        outcome:         Math.random() > 0.24 ? 'accepted' : Math.random() > 0.5 ? 'rejected' : 'error',
-        cost_usd:        parseFloat((0.09 + Math.random() * 0.21).toFixed(4)),
-        latency_ms:      Math.round(2100 + Math.random() * 6800),
-        model_id:        ['gemini-2.5-flash', 'gemini-3-flash', 'gemini-3-pro'][Math.floor(Math.random() * 3)],
-      })),
-    };
+    function isNoData(section) {
+      return !section || section.status === "no_data";
+    }
 
-    /* ── Helpers ───────────────────────────────────────────────────────────── */
-    const pct   = (v) => (v * 100).toFixed(1) + '%';
-    const mono  = (v) => (typeof v === 'number') ? v.toFixed(3) : v;
-    const dt    = (iso) => new Date(iso).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
+    /* ── Production results ────────────────────────────────────────────────── */
+    function renderProduction(pt) {
+      const grid = document.getElementById("kpi-grid");
+      const footnote = document.getElementById("production-footnote");
 
-    /* ── Render KPIs ───────────────────────────────────────────────────────── */
-    function renderKPIs(data) {
-      const s = data.summary || {};
-      const cards = [
-        {
-          label: 'Calibration Pass Rate',
-          value: pct(data.calibration_pass_rate),
-          raw:   data.calibration_pass_rate,
-          sub:   'Target ≥ 70.0%',
-          featured: data.calibration_pass_rate >= 0.70,
-          color: data.calibration_pass_rate >= 0.70 ? T('--md-primary') : T('--md-error'),
-        },
-        {
-          label: 'Adversarial Pass Rate',
-          value: pct(data.adversarial_pass_rate),
-          raw:   data.adversarial_pass_rate,
-          sub:   'Held-out set',
-          color: scoreColor(data.adversarial_pass_rate),
-        },
-        {
-          label: 'Avg Composite Score',
-          value: mono(s.avg_composite_score || 0),
-          raw:   s.avg_composite_score || 0,
-          sub:   `${s.total_trajectories || 0} trajectories`,
-          color: scoreColor(s.avg_composite_score || 0),
-        },
-        {
-          label: 'Acceptance Rate',
-          value: pct(s.acceptance_rate || 0),
-          raw:   s.acceptance_rate || 0,
-          sub:   `${s.total_candidates || 0} candidates`,
-          color: scoreColor(s.acceptance_rate || 0),
-        },
-        {
-          label: 'Total Cost',
-          value: '$' + (s.total_cost_usd || 0).toFixed(2),
-          raw:   Math.min((s.total_cost_usd || 0) / 5000, 1),
-          sub:   'of $ 5,000 cap',
-          color: T('--md-secondary'),
-        },
+      if (isNoData(pt)) {
+        grid.removeAttribute("aria-busy");
+        grid.style.display = "block";
+        grid.innerHTML = emptyState(
+          "hourglass_empty",
+          "No production runs yet",
+          "Telemetry will appear here once the first runs land in BigQuery."
+        );
+        document.getElementById("dist").innerHTML = "";
+        document.getElementById("runs-tbody").innerHTML =
+          `<tr><td colspan="4">${emptyState("table_rows", "No runs recorded", "Recent runs will list here with verifiable trajectory IDs.")}</td></tr>`;
+        footnote.textContent = "";
+        return;
+      }
+
+      const bar = typeof pt.convergence_bar === "number" ? pt.convergence_bar : 0.70;
+      const cards = [];
+
+      cards.push({
+        label: "Runs",
+        value: String(pt.runs ?? "—"),
+        measure: "Distinct pipeline runs recorded in BigQuery.",
+        target: { kind: "neutral", text: "no target" },
+      });
+      cards.push({
+        label: "Candidates",
+        value: String(pt.candidates ?? "—"),
+        measure: "Design candidates generated across all runs.",
+        target: { kind: "neutral", text: "no target" },
+      });
+      cards.push({
+        label: "Convergence rate",
+        value: pct(pt.acceptance_rate),
+        measure: "Share of candidates accepted after clearing every gate.",
+        meter: { value: pt.acceptance_rate, bar: null, color: scoreColor(pt.acceptance_rate, bar) },
+        target: { kind: "neutral", text: `${pt.accepted ?? "—"} / ${pt.candidates ?? "—"} accepted` },
+      });
+      cards.push({
+        label: "Avg composite (all)",
+        value: fixed(pt.avg_composite_all),
+        measure: "Mean composite across every candidate, converged or not.",
+        meter: { value: pt.avg_composite_all, bar: bar, color: scoreColor(pt.avg_composite_all, bar) },
+        target: targetVs(pt.avg_composite_all, bar),
+      });
+      cards.push({
+        label: "Best per run",
+        value: fixed(pt.max_composite),
+        measure: "Highest composite reached by any candidate.",
+        meter: { value: pt.max_composite, bar: bar, color: scoreColor(pt.max_composite, bar) },
+        target: targetVs(pt.max_composite, bar),
+      });
+      cards.push({
+        label: "Candidates ≥ bar",
+        value: `${pt.at_or_above_bar ?? "—"} / ${pt.candidates ?? "—"}`,
+        measure: `Candidates reaching the ${fixed(bar)} convergence bar.`,
+        target: { kind: "neutral", text: `bar = ${fixed(bar)} composite` },
+      });
+
+      grid.removeAttribute("aria-busy");
+      grid.style.display = "";
+      grid.innerHTML = cards.map(kpiCardHTML).join("");
+
+      // Avg-composite-accepted is real and worth surfacing in the footnote rather than
+      // a card, since it only describes the accepted subset.
+      renderDistribution(pt.composite_distribution || [], bar);
+      renderRuns(pt.recent_runs || [], bar);
+
+      const span = (pt.first_run && pt.last_run)
+        ? `${fmtTs(pt.first_run)} → ${fmtTs(pt.last_run)}`
+        : "—";
+      footnote.innerHTML =
+        `Source: BigQuery <code>atelier-build-2026.atelier_trajectories.trajectory_records</code>. ` +
+        `${esc(String(pt.runs ?? "—"))} runs, ${esc(String(pt.candidates ?? "—"))} candidates ` +
+        `(${esc(span)}). Accepted candidates averaged <strong>${esc(fixed(pt.avg_composite_accepted))}</strong> composite.`;
+    }
+
+    function scoreColor(v, bar) {
+      if (typeof v !== "number" || !isFinite(v)) return T("--md-on-surface-variant");
+      if (v >= bar) return T("--md-positive");
+      if (v >= bar - 0.15) return T("--md-warn");
+      return T("--md-error");
+    }
+
+    function targetVs(v, bar) {
+      if (typeof v !== "number" || !isFinite(v)) return { kind: "neutral", text: `good ≥ ${fixed(bar)}` };
+      return v >= bar
+        ? { kind: "pass", text: `good ≥ ${fixed(bar)} · met` }
+        : { kind: "fail", text: `good ≥ ${fixed(bar)} · below` };
+    }
+
+    function kpiCardHTML(c) {
+      const meter = c.meter
+        ? `<div class="meter">
+             <div class="meter-fill" style="background:${c.meter.color}" data-w="${Math.max(0, Math.min(1, c.meter.value || 0)) * 100}%"></div>
+             ${c.meter.bar != null ? `<div class="meter-bar" style="left:${Math.max(0, Math.min(1, c.meter.bar)) * 100}%"></div>` : ""}
+           </div>`
+        : "";
+      const targetIcon = c.target.kind === "pass" ? "check_circle" : c.target.kind === "fail" ? "cancel" : "remove";
+      return `
+        <div class="kpi-card">
+          <div class="kpi-label">${esc(c.label)}</div>
+          <div class="kpi-value">${esc(c.value)}</div>
+          <div class="kpi-measure">${esc(c.measure)}</div>
+          ${meter}
+          <div class="kpi-target ${c.target.kind}">
+            <span class="material-symbols-outlined" aria-hidden="true">${targetIcon}</span>${esc(c.target.text)}
+          </div>
+        </div>`;
+    }
+
+    function renderDistribution(dist, bar) {
+      const el = document.getElementById("dist");
+      if (!dist.length) { el.innerHTML = `<p class="footnote">No candidate scores to plot.</p>`; return; }
+      const positive = T("--md-positive");
+      const error = T("--md-error");
+      const dots = dist.map((v, i) => {
+        const x = Math.max(0, Math.min(1, v)) * 100;
+        const c = v >= bar ? positive : error;
+        return `<span class="dist-dot" style="left:${x}%;background:${c}" title="candidate ${i + 1}: composite ${fixed(v)}"></span>`;
+      }).join("");
+      el.innerHTML = `
+        <div class="dist-track">
+          <div class="dist-bar" style="left:${bar * 100}%"></div>
+          <div class="dist-bar-label" style="left:${bar * 100}%">bar ${fixed(bar)}</div>
+          ${dots}
+        </div>
+        <div class="dist-scale"><span>0.00</span><span>0.50</span><span>1.00</span></div>
+        <div class="dist-legend">
+          <span><span class="swatch" style="background:${positive}"></span>converged (≥ ${fixed(bar)})</span>
+          <span><span class="swatch" style="background:${error}"></span>below bar</span>
+        </div>`;
+    }
+
+    function renderRuns(runs, bar) {
+      const tbody = document.getElementById("runs-tbody");
+      if (!runs.length) {
+        tbody.innerHTML = `<tr><td colspan="4">${emptyState("table_rows", "No runs recorded", "Recent runs will list here with verifiable trajectory IDs.")}</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = runs.map((r) => {
+        const score = r.composite_score;
+        const outcomeCls = ["accepted", "rejected", "error"].includes(r.outcome) ? r.outcome : "neutral";
+        const outcomeIcon = outcomeCls === "accepted" ? "check" : outcomeCls === "rejected" ? "close" : "warning";
+        return `
+          <tr>
+            <td style="color:var(--md-on-surface-variant)">${esc(r.trajectory_id || "—")}</td>
+            <td class="num" style="color:${barColor(score, bar)};font-weight:500">${esc(fixed(score))}</td>
+            <td><span class="badge ${outcomeCls}"><span class="material-symbols-outlined" aria-hidden="true">${outcomeIcon}</span>${esc(r.outcome || "—")}</span></td>
+            <td class="col-opt" style="color:var(--md-on-surface-variant)">${esc(fmtTs(r.timestamp))}</td>
+          </tr>`;
+      }).join("");
+    }
+
+    /* ── A/B comparison ────────────────────────────────────────────────────── */
+    function renderAB(ab) {
+      const el = document.getElementById("ab-body");
+      el.removeAttribute("aria-busy");
+
+      if (isNoData(ab)) {
+        el.innerHTML = emptyState(
+          "pending",
+          "Controlled A/B is running",
+          (ab && ab.note ? esc(ab.note) + " " : "") +
+            "Atelier-vs-single-shot results will appear here once the run completes. " +
+            "Until then no numbers are shown — a blank comparison would not be honest."
+        );
+        return;
+      }
+
+      const a = ab.atelier || {};
+      const b = ab.baseline || {};
+      const n = ab.n_briefs;
+
+      // Data-driven, honest framing. The local Atelier arm in this harness runs
+      // in a DEGRADED configuration (Stitch design system disabled) and is NOT
+      // representative of production — the Production results above are Atelier's
+      // real signal. Never assert a result the numbers do not support.
+      const baselineConv = b.convergence_rate || 0;
+      const reachClause =
+        baselineConv <= 0
+          ? "do not reach"
+          : baselineConv < 0.5
+            ? "rarely reach"
+            : "do not reliably reach";
+      const headline = `
+        <div class="callout" style="margin-bottom:16px">
+          <span class="material-symbols-outlined" aria-hidden="true">science</span>
+          <div class="callout-body">
+            <h2>What this controlled run shows</h2>
+            <p>Both arms were scored by the identical gate + D-O-R-A-V consensus path on the
+            same briefs. The single-shot baseline produces structurally valid HTML, but its
+            designs ${reachClause} the 0.70 convergence bar on the quality consensus &mdash;
+            single-shot output does not meet the bar Atelier ships against.</p>
+            <p class="footnote" style="margin-top:8px"><strong>Methodology:</strong> the Atelier
+            arm in this local harness runs with the Stitch design system disabled (a degraded
+            configuration) and is <em>not</em> representative of production. Atelier&rsquo;s
+            representative performance is the Production results above. This A/B is shown for
+            transparency, not as a production benchmark.</p>
+          </div>
+        </div>`;
+
+      const rows = [
+        { name: "Mean gate score", note: "higher is better", a: fixed(a.avg_mean_gate_score), b: fixed(b.avg_mean_gate_score), aRaw: a.avg_mean_gate_score, bRaw: b.avg_mean_gate_score, fmt: "num" },
+        { name: "Accessibility pass rate", note: "WCAG AA gate", a: pct(a.a11y_pass_rate), b: pct(b.a11y_pass_rate), aRaw: a.a11y_pass_rate, bRaw: b.a11y_pass_rate, fmt: "pct" },
+        { name: "Convergence rate", note: "reached composite ≥ 0.70", a: pct(a.convergence_rate), b: pct(b.convergence_rate), aRaw: a.convergence_rate, bRaw: b.convergence_rate, fmt: "pct" },
       ];
 
-      document.getElementById('kpi-row').innerHTML = cards.map((c) => `
-        <div class="kpi-card${c.featured ? ' featured' : ''}">
-          <div class="kpi-label">${escapeHTML(c.label)}</div>
-          <div class="kpi-value" style="color:${c.color}">${escapeHTML(c.value)}</div>
-          <div class="kpi-sub">${escapeHTML(c.sub)}</div>
-          <div class="kpi-track">
-            <div class="kpi-fill" style="width:0%;background:${c.color}"
-                 data-w="${(c.raw * 100).toFixed(1)}%"></div>
-          </div>
-        </div>
-      `).join('');
+      const grid = `
+        <div class="ab-grid" role="table" aria-label="Atelier versus single-shot baseline">
+          <div class="ab-cell ab-head metric-col" role="columnheader">Metric</div>
+          <div class="ab-cell ab-head ab-col-atelier" role="columnheader">Atelier</div>
+          <div class="ab-cell ab-head" role="columnheader">Single-shot</div>
+          ${rows.map((r) => {
+            // No winner-highlighting: the local Atelier arm is degraded (see the
+            // methodology note), so colour-coding a "winner" here would mislead.
+            // The numbers are shown plainly; the reader weighs them with the caveat.
+            return `
+              <div class="ab-cell" role="cell">
+                <span class="ab-metric-name">${esc(r.name)}</span>
+                <span class="ab-metric-note">${esc(r.note)}</span>
+              </div>
+              <div class="ab-cell" role="cell"><span class="ab-num">${esc(r.a)}</span></div>
+              <div class="ab-cell" role="cell"><span class="ab-num">${esc(r.b)}</span></div>`;
+          }).join("")}
+        </div>`;
+
+      const perBrief = renderABPerBrief(ab.per_brief || []);
+      const nNote = `<p class="footnote">Sample size: <strong>N&nbsp;=&nbsp;${esc(String(n ?? "—"))}</strong> briefs, identical for both arms. ${ab.note ? esc(ab.note) : ""}</p>`;
+
+      el.innerHTML = headline + grid + perBrief + nNote;
     }
 
-    /* ── Render score list ─────────────────────────────────────────────────── */
-    const FILLS = [T('--md-primary'), T('--md-secondary'), T('--md-tertiary'), T('--md-primary-container'), T('--md-secondary-container')];
-
-    function renderScoreList(elId, scores, labels) {
-      document.getElementById(elId).innerHTML = Object.entries(scores).map(([k, v], i) => `
-        <div>
-          <div class="score-row-head">
-            <span class="score-name">${escapeHTML(labels[k] || k)}</span>
-            <span class="score-num" style="color:${scoreColor(v)}">${mono(v)}</span>
-          </div>
-          <div class="score-track">
-            <div class="score-fill" style="width:0%;background:${FILLS[i % FILLS.length]}"
-                 data-w="${(v * 100).toFixed(1)}%"></div>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    /* ── Render axes ───────────────────────────────────────────────────────── */
-    function renderAxes(axes) {
-      document.getElementById('axis-grid').innerHTML = Object.entries(axes).map(([k, d]) => {
-        const meta = AXES[k] || { label: k, color: T('--md-primary') };
+    function renderABPerBrief(briefs) {
+      if (!briefs.length) return "";
+      const rows = briefs.map((p) => {
+        const converged = p.converged === true;
+        const conv = converged
+          ? `<span class="badge accepted"><span class="material-symbols-outlined" aria-hidden="true">check</span>converged</span>`
+          : `<span class="badge rejected"><span class="material-symbols-outlined" aria-hidden="true">close</span>no</span>`;
+        const failed = Array.isArray(p.baseline_failed_gates) && p.baseline_failed_gates.length
+          ? p.baseline_failed_gates.map((g) => esc(g)).join(", ")
+          : "—";
         return `
-          <div class="axis-card">
-            <div class="axis-name">${escapeHTML(meta.label)}</div>
-            <div class="axis-value" style="color:${meta.color}">${mono(d.mean)}</div>
-            <div class="axis-range">p5&thinsp;${d.p5.toFixed(2)}&ensp;&mdash;&ensp;p95&thinsp;${d.p95.toFixed(2)}</div>
-            <div class="axis-bar">
-              <div class="axis-bar-fill" style="width:0%;background:${meta.color}"
-                   data-w="${(d.mean * 100).toFixed(0)}%"></div>
-            </div>
-          </div>
-        `;
-      }).join('');
+          <tr>
+            <td style="white-space:normal">${esc(p.task || "—")}</td>
+            <td class="col-opt" style="color:var(--md-on-surface-variant)">${esc(p.category || "—")}</td>
+            <td class="col-opt" style="color:var(--md-on-surface-variant)">${esc(p.reference_target || "—")}</td>
+            <td class="num">${esc(fixed(p.atelier_gate_score))}</td>
+            <td>${conv}</td>
+            <td class="num">${esc(fixed(p.baseline_gate_score))}</td>
+            <td style="white-space:normal;color:var(--md-error)">${failed}</td>
+          </tr>`;
+      }).join("");
+      return `
+        <h3 class="section-eyebrow" style="color:var(--md-on-surface-variant);margin:24px 0 10px">
+          <span class="material-symbols-outlined" aria-hidden="true">checklist</span>Per-brief results
+        </h3>
+        <div class="table-wrap">
+          <table class="data-table" aria-label="Per-brief A/B results">
+            <thead>
+              <tr>
+                <th scope="col">Task</th>
+                <th scope="col" class="col-opt">Category</th>
+                <th scope="col" class="col-opt">Reference target</th>
+                <th scope="col" class="num">Atelier</th>
+                <th scope="col">Converged?</th>
+                <th scope="col" class="num">Baseline</th>
+                <th scope="col">Baseline failed gates</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>`;
     }
 
-    /* ── Render DPO events ─────────────────────────────────────────────────── */
-    function renderDPO(events) {
-      const el = document.getElementById('dpo-events');
-      if (!events || !events.length) {
-        el.innerHTML = `
-          <div class="empty-state">
-            <span class="material-symbols-outlined">model_training</span>
-            <p>No promotion events recorded yet.<br>
-               A DPO promotion fires when Cohen&rsquo;s&thinsp;&kappa;&thinsp;&ge;&thinsp;0.70.</p>
-          </div>`;
+    /* ── Quality gates ─────────────────────────────────────────────────────── */
+    function renderGates(gates) {
+      const el = document.getElementById("gate-list");
+      el.removeAttribute("aria-busy");
+      if (!Array.isArray(gates) || !gates.length) {
+        el.innerHTML = emptyState("verified", "Gate definitions unavailable", "The gate set could not be loaded from the data source.");
         return;
       }
-      el.innerHTML = events.map((ev) => {
-        const jobId = escapeHTML(ev.job_name.split('/').pop());
-        const epId  = ev.endpoint ? escapeHTML(ev.endpoint.split('/').pop()) : null;
-        return `
-          <div class="event-item">
-            <div class="event-icon-wrap ${ev.promoted ? 'promoted' : 'rejected'}">
-              <span class="material-symbols-outlined">${ev.promoted ? 'rocket_launch' : 'block'}</span>
+      el.innerHTML = gates.map((g, i) => `
+        <div class="gate-row">
+          <div>
+            <div class="gate-name">
+              <span class="material-symbols-outlined" aria-hidden="true">filter_${Math.min(i + 1, 9)}</span>${esc(g.name || g.key)}
             </div>
-            <div class="event-body">
-              <div class="event-title">Job ${jobId} &mdash; ${ev.promoted ? 'Promoted' : 'Not promoted'}</div>
-              <div class="event-meta">${escapeHTML(dt(ev.promoted_at))}${epId ? ' &middot; endpoint&thinsp;' + epId : ''}</div>
-            </div>
-            <div class="event-kappa"
-                 style="color:${ev.kappa >= 0.7 ? T('--md-primary') : T('--md-error')}">
-              &kappa;&thinsp;${ev.kappa.toFixed(3)}
+            <code class="gate-key">${esc(g.key || "")}</code>
+          </div>
+          <div>
+            <p class="gate-intent">${esc(g.intent || "")}</p>
+            <div class="gate-criterion">
+              <span class="material-symbols-outlined" aria-hidden="true">rule</span>
+              <span><strong>Pass criterion.</strong> ${esc(g.criterion || "")}</span>
             </div>
           </div>
-        `;
-      }).join('');
+        </div>`).join("");
     }
 
-    /* ── Render trajectory table ───────────────────────────────────────────── */
-    function renderRuns(trajectories) {
-      const tbody = document.getElementById('runs-tbody');
-      if (!trajectories || !trajectories.length) {
-        tbody.innerHTML = `<tr><td colspan="7">
-          <div class="empty-state">
-            <span class="material-symbols-outlined">table_rows</span>
-            <p>No trajectory data yet.</p>
-          </div></td></tr>`;
+    /* ── External benchmark ────────────────────────────────────────────────── */
+    function renderBenchmark(b) {
+      const el = document.getElementById("benchmark-body");
+      el.removeAttribute("aria-busy");
+      if (!b) {
+        el.innerHTML = emptyState("public", "Benchmark not configured", "No external benchmark is attached to this build.");
         return;
       }
-      tbody.innerHTML = trajectories.slice(0, 50).map((t) => `
-        <tr>
-          <td style="color:var(--md-on-surface-variant)">${escapeHTML(t.trajectory_id.slice(0, 16))}</td>
-          <td style="color:var(--md-on-surface-variant)">${escapeHTML(dt(t.timestamp))}</td>
-          <td style="color:${scoreColor(t.composite_score)};font-weight:500">${t.composite_score.toFixed(3)}</td>
-          <td>${(() => { const outcomeCls = ['accepted', 'rejected', 'error'].includes(t.outcome) ? t.outcome : 'error'; return `<span class="badge ${outcomeCls}">${BADGE_ICONS[t.outcome] || ''} ${escapeHTML(t.outcome)}</span>`; })()}</td>
-          <td>${t.latency_ms ? (t.latency_ms / 1000).toFixed(1) + ' s' : '—'}</td>
-          <td class="col-cost">$${(t.cost_usd || 0).toFixed(4)}</td>
-          <td class="col-model" style="color:var(--md-on-surface-variant)">${escapeHTML(t.model_id || '—')}</td>
-        </tr>
-      `).join('');
+      const paperUrl = b.paper && b.paper.startsWith("arXiv:")
+        ? `https://arxiv.org/abs/${b.paper.replace("arXiv:", "")}`
+        : (b.paper || "#");
+      const sourceUrl = (b.source && b.source.includes("luzimu"))
+        ? "https://huggingface.co/datasets/luzimu/WebGen-Bench"
+        : null;
+
+      const sliceState = isNoData(b.atelier_slice)
+        ? `<div class="empty-state" style="margin-top:16px;text-align:left">
+             <h3>Atelier slice — not yet run</h3>
+             <p>${esc((b.atelier_slice && b.atelier_slice.note) || "An Atelier-gate-scored slice of this set has not been produced yet.")}</p>
+           </div>`
+        : `<p class="footnote" style="margin-top:16px">Atelier slice status: ${esc((b.atelier_slice && b.atelier_slice.status) || "unknown")}.</p>`;
+
+      el.innerHTML = `
+        <div class="card">
+          <div class="kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
+            <div class="kpi-card">
+              <div class="kpi-label">Benchmark</div>
+              <div class="kpi-value" style="font-size:24px">${esc(b.name || "—")}</div>
+              <div class="kpi-measure">Third-party prompt set, held out from Atelier&rsquo;s own briefs.</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Prompts available</div>
+              <div class="kpi-value">${esc(String(b.n_prompts_available ?? "—"))}</div>
+              <div class="kpi-measure">Prompts in the public set usable as a generalization probe.</div>
+            </div>
+          </div>
+          <p class="section-desc" style="margin-top:16px">
+            Source: ${sourceUrl ? `<a class="ext" href="${sourceUrl}" target="_blank" rel="noopener noreferrer">${esc(b.source)}<span class="material-symbols-outlined" aria-hidden="true">open_in_new</span></a>` : esc(b.source || "—")}
+            &middot; Paper: <a class="ext" href="${esc(paperUrl)}" target="_blank" rel="noopener noreferrer">${esc(b.paper || "—")}<span class="material-symbols-outlined" aria-hidden="true">open_in_new</span></a>
+          </p>
+          <div class="gate-criterion" style="margin-top:12px">
+            <span class="material-symbols-outlined" aria-hidden="true">info</span>
+            <span>The official WebGen-Bench metric is <strong>${esc(b.official_metric || "a test-agent appearance score")}</strong>.
+            It is not reproduced here. Any Atelier slice is scored by Atelier&rsquo;s own gates and is <strong>not</strong> comparable to the public leaderboard.</span>
+          </div>
+          ${sliceState}
+        </div>`;
     }
 
-    /* ── Animate bars (IntersectionObserver triggered) ─────────────────────── */
-    function animateBars(root) {
-      root.querySelectorAll('[data-w]').forEach((el) => {
-        el.style.width = '0%';
-        requestAnimationFrame(() => requestAnimationFrame(() => {
-          el.style.width = el.dataset.w;
-        }));
+    /* ── Methodology ───────────────────────────────────────────────────────── */
+    function renderMethodology(data) {
+      const prov = data.provenance || {};
+      const pt = data.production_telemetry || {};
+      const ab = data.ab_comparison || {};
+      const ext = data.external_benchmark || {};
+
+      const sources = document.getElementById("method-sources");
+      sources.innerHTML = [
+        prov.atelier_source ? `Production telemetry — <code>${esc(prov.atelier_source)}</code>` : null,
+        prov.ab_source ? `Controlled A/B — <code>${esc(prov.ab_source)}</code>` : null,
+        prov.benchmark_source ? `Public benchmark — ${esc(prov.benchmark_source)}` : null,
+      ].filter(Boolean).map((s) => `<li>${s}</li>`).join("") || `<li>Provenance metadata unavailable.</li>`;
+
+      const samples = document.getElementById("method-samples");
+      samples.innerHTML = [
+        `Production: ${esc(String(pt.runs ?? "—"))} runs, ${esc(String(pt.candidates ?? "—"))} candidates`,
+        `Controlled A/B: ${isNoData(ab) ? "not yet run" : esc(String(ab.n_briefs ?? "—")) + " briefs"}`,
+        `WebGen-Bench: ${esc(String(ext.n_prompts_available ?? "—"))} prompts available`,
+      ].map((s) => `<li>${s}</li>`).join("");
+
+      const scope = document.getElementById("method-scope");
+      scope.innerHTML = [
+        `Composite scores are produced <strong>locally</strong> by the D&#8209;O&#8209;R&#8209;A&#8209;V consensus.`,
+        `Production telemetry reflects the live serving path stored in BigQuery.`,
+        `Convergence bar: composite <strong>&ge; ${esc(fixed((data.targets && data.targets.convergence_bar) ?? 0.70))}</strong>.`,
+        `Accessibility target: ${esc((data.targets && data.targets.accessibility) || "WCAG AA")}.`,
+      ].map((s) => `<li>${s}</li>`).join("");
+
+      document.getElementById("method-footnote").innerHTML =
+        `Eval driver: <code>scripts/eval/run_baseline_ab.py</code>. ` +
+        (prov.note ? esc(prov.note) : "");
+    }
+
+    /* ── Shared empty-state markup ─────────────────────────────────────────── */
+    function emptyState(icon, title, body) {
+      return `
+        <div class="empty-state">
+          <span class="material-symbols-outlined" aria-hidden="true">${esc(icon)}</span>
+          <h3>${esc(title)}</h3>
+          <p>${body}</p>
+        </div>`;
+    }
+
+    /* Animate meter/distribution fills once content is in the DOM. */
+    function animate() {
+      document.querySelectorAll("[data-w]").forEach((el) => {
+        const w = el.dataset.w;
+        el.style.width = "0%";
+        requestAnimationFrame(() => requestAnimationFrame(() => { el.style.width = w; }));
       });
     }
 
-    /* ── Main render ───────────────────────────────────────────────────────── */
-    function render(data, isDemo) {
-      const ts   = dt(data.timestamp);
-      const env  = data.meta?.environment || 'staging';
-      const ver  = data.meta?.pipeline_version || '?';
-      document.getElementById('run-info').textContent =
-        `${env} · v${ver} · ${ts}${isDemo ? ' · demo' : ''}`;
-
-      renderKPIs(data);
-      renderScoreList('adk-list',   data.adk_criteria_scores,   ADK_LABELS);
-      renderScoreList('judge-list', data.per_judge_calibration, JUDGE_LABELS);
-      renderAxes(data.axes);
-      renderDPO(data.dpo_promotion_events);
-      renderRuns(data.trajectories);
-
-      requestAnimationFrame(() => requestAnimationFrame(() => animateBars(document)));
+    /* ── Provenance chip + load ────────────────────────────────────────────── */
+    function setProvenanceLoaded(generatedAt) {
+      const chip = document.getElementById("prov-chip");
+      chip.classList.remove("error");
+      const date = fmtDate(generatedAt);
+      document.getElementById("prov-text").textContent = `Real data · BigQuery · updated ${date}`;
     }
 
-    /* ── Load ──────────────────────────────────────────────────────────────── */
+    function setProvenanceError() {
+      const chip = document.getElementById("prov-chip");
+      chip.classList.add("error");
+      chip.querySelector(".material-symbols-outlined").textContent = "cloud_off";
+      document.getElementById("prov-text").textContent = "Data unavailable";
+    }
+
+    function renderAll(data) {
+      setProvenanceLoaded(data.generated_at);
+      renderProduction(data.production_telemetry);
+      renderAB(data.ab_comparison);
+      renderGates(data.gate_axes);
+      renderBenchmark(data.external_benchmark);
+      renderMethodology(data);
+      requestAnimationFrame(() => requestAnimationFrame(animate));
+    }
+
+    /* Honest failure: if data.json cannot be fetched we show empty states and an
+       unmistakable error chip — never fabricated numbers. */
+    function renderUnavailable(reason) {
+      setProvenanceError();
+      const map = {
+        "kpi-grid": () => {
+          const g = document.getElementById("kpi-grid");
+          g.style.display = "block";
+          g.innerHTML = emptyState("cloud_off", "Telemetry unavailable", "Could not load <code>data.json</code>. No figures are shown rather than fabricated ones.");
+        },
+      };
+      const grid = document.getElementById("kpi-grid");
+      grid.removeAttribute("aria-busy");
+      grid.style.display = "block";
+      grid.innerHTML = emptyState("cloud_off", "Data unavailable", `Could not load the published <code>data.json</code> (${esc(reason)}). No figures are shown rather than fabricated ones.`);
+      document.getElementById("dist").innerHTML = "";
+      document.getElementById("runs-tbody").innerHTML =
+        `<tr><td colspan="4">${emptyState("table_rows", "No data", "Recent runs unavailable.")}</td></tr>`;
+      document.getElementById("production-footnote").textContent = "";
+      renderAB(null);
+      renderGates(null);
+      renderBenchmark(null);
+      ["method-sources", "method-samples", "method-scope"].forEach((id) => {
+        document.getElementById(id).innerHTML = `<li>Unavailable — <code>data.json</code> did not load.</li>`;
+      });
+      document.getElementById("method-footnote").textContent = "";
+    }
+
     async function load() {
       try {
-        const resp = await fetch('./data.json');
-        if (!resp.ok) throw new Error('no data.json');
-        render(await resp.json(), false);
-      } catch {
-        render(DEMO, true);
+        const resp = await fetch("./data.json", { cache: "no-store" });
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+        const data = await resp.json();
+        renderAll(data);
+      } catch (err) {
+        // Structured, surfaced failure — no silent swallow, no fabricated fallback.
+        console.error("Bench Observatory: failed to load data.json —", err);
+        renderUnavailable(err && err.message ? err.message : "fetch failed");
       }
     }
 
-    /* ── Navigation Rail active state ──────────────────────────────────────── */
-    document.querySelectorAll('.nav-item').forEach((item) => {
-      item.addEventListener('click', (e) => {
-        document.querySelectorAll('.nav-item').forEach((n) => {
-          n.classList.remove('active');
-          n.removeAttribute('aria-current');
-        });
-        item.classList.add('active');
-        item.setAttribute('aria-current', 'page');
-        const target = document.querySelector(item.getAttribute('href'));
-        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    /* Nav active-state on scroll + click. */
+    (function navWiring() {
+      const items = Array.from(document.querySelectorAll(".nav-item"));
+      const setActive = (id) => items.forEach((it) => {
+        const on = it.getAttribute("href") === "#" + id;
+        it.classList.toggle("active", on);
+        if (on) it.setAttribute("aria-current", "true"); else it.removeAttribute("aria-current");
       });
-    });
+      items.forEach((it) => it.addEventListener("click", () => {
+        const id = it.getAttribute("href").slice(1);
+        setActive(id);
+      }));
+      const sections = ["production", "ab", "gates", "benchmark", "methodology"]
+        .map((id) => document.getElementById(id))
+        .filter(Boolean);
+      if ("IntersectionObserver" in window) {
+        const obs = new IntersectionObserver((entries) => {
+          entries.forEach((e) => { if (e.isIntersecting) setActive(e.target.id); });
+        }, { rootMargin: "-45% 0px -50% 0px", threshold: 0 });
+        sections.forEach((s) => obs.observe(s));
+      }
+    })();
 
     load();
   </script>

@@ -72,6 +72,10 @@ from atelier.intake.web_research import (
 from atelier.models.axis_weights import AxisWeights
 from atelier.models.data_contracts import CandidateUI, TenantContext
 from atelier.models.enums import GateAxis, GateDecision
+from atelier.models.model_armor_callbacks import (
+    MODEL_ARMOR_BLOCK_USER_MESSAGE,
+    was_model_armor_blocked,
+)
 from atelier.nodes.consensus import ConsensusEvaluation, evaluate_candidate
 from atelier.orchestrator.governor import (
     TOKEN_CAP_MESSAGE,
@@ -168,6 +172,33 @@ def _extract_html_document(raw: str) -> str:
     if start != -1 and end != -1 and end > start:
         return text[start : end + len("</html>")]
     return text
+
+
+def _non_convergence_message(iteration: int) -> str:
+    """User-facing acknowledgment for a non-converged terminal stop (trichotomy).
+
+    Emitted when the loop exits on ``no_improvement`` / ``max_iterations`` /
+    ``duplicate`` without clearing :data:`CONVERGENCE_THRESHOLD`. The pipeline
+    still returns the strongest candidate it produced (the ``best_partial_html``
+    fallback in :meth:`_run_n3c_n3d_n4` guarantees a real, cleaned-up screen),
+    but Atelier states plainly that it did not fully clear every quality gate
+    rather than presenting a sub-bar design as if it had converged. This is the
+    fail-soft arm of the PRD failure-handling trichotomy — *the agent always
+    acknowledges degradation; trust over apparent capability.*
+
+    Args:
+        iteration: Zero-indexed iteration the loop stopped on. ``rounds`` is
+            ``iteration + 1`` so the count reads naturally to the user.
+    """
+    rounds = iteration + 1
+    return (
+        f"Atelier explored {rounds} design "
+        f"{'iteration' if rounds == 1 else 'iterations'} and is showing the "
+        "strongest candidate it produced. This design did not fully clear every "
+        "convergence gate (semantic structure, accessibility, design-token "
+        "fidelity, and visual consistency), so treat it as a strong draft rather "
+        "than a final, converged result — review the preview and retry to refine it."
+    )
 
 
 #: Color literals in a style context: ``#rgb[a]``/``#rrggbb[aa]`` hex and the
@@ -1464,6 +1495,25 @@ class AtelierRunner:
                     degradation_reason = None
                     user_message = None
 
+                # S6 / trichotomy fail-LOUD: if Model Armor short-circuited this
+                # generation (the brief carried a prompt-injection pattern), the
+                # "candidates" are refusal sentinels, not designs. Acknowledge the
+                # safety block to the user with a clean branded message and stop the
+                # screen here instead of feeding refusal text through the N3c gates
+                # (which would surface a confusing non-converged result). No Vertex
+                # spend occurred — the before-callback blocks ahead of the model call.
+                if was_model_armor_blocked(raw_candidates):
+                    degradation_reason = "model_armor_blocked"
+                    user_message = MODEL_ARMOR_BLOCK_USER_MESSAGE
+                    exit_reason = StopReason.SAFETY_BLOCKED
+                    logger.warning(
+                        "N3a generation blocked by Model Armor input guard; "
+                        "halting screen %s at iteration %d (no design produced)",
+                        screen,
+                        iteration,
+                    )
+                    break
+
                 if progress_callback:
                     await progress_callback(
                         "candidates", {"screen": screen, "candidates": raw_candidates}
@@ -1593,6 +1643,25 @@ class AtelierRunner:
                         # The single branded cap message (acceptance (b)); never a raw
                         # quota error. Shown once via the response/complete payload.
                         user_message = TOKEN_CAP_MESSAGE
+                    elif (
+                        resolved
+                        in (
+                            StopReason.NO_IMPROVEMENT,
+                            StopReason.MAX_ITERATIONS,
+                            StopReason.DUPLICATE,
+                        )
+                        and not signals.converged
+                        and user_message is None
+                    ):
+                        # Trichotomy (fail-soft): a non-converged terminal stop means
+                        # we are surfacing the strongest sub-bar candidate, so the
+                        # agent ACKNOWLEDGES the degradation instead of presenting it
+                        # as a converged result. CONVERGED outranks these reasons in
+                        # resolve_stop_reason precedence, so reaching this branch
+                        # already implies not-converged; the explicit guard is
+                        # defensive. A more specific per-iteration degradation message
+                        # (stitch / governor fail-soft) is preserved when already set.
+                        user_message = _non_convergence_message(iteration)
                     break
 
                 # Not stopping this iteration: record anchors for the next round
