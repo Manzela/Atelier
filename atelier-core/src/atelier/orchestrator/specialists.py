@@ -152,7 +152,25 @@ _SPECIALISTS: Final[tuple[_SpecialistSpec, ...]] = (
             "HTML/CSS for the requested screen, faithfully realizing the wireframe and "
             "honoring the design tokens and any reference styling. Prefer the Stitch "
             "design tool when available; if it is unavailable, generate accessible, "
-            "semantic HTML/CSS directly. The output must be a single shippable artifact."
+            "semantic HTML/CSS directly. The output must be a single shippable artifact.\n\n"
+            "ACCESSIBILITY IS A HARD GATE (WCAG 2.2 AA, enforced by axe-core — a single "
+            "critical/serious violation rejects the screen). Before emitting, satisfy ALL "
+            "of the following:\n"
+            "- <html> has a lang attribute; the document has exactly one <h1> and a "
+            "logical, non-skipping heading order; wrap content in landmark elements "
+            "(<header>/<nav>/<main>/<footer>).\n"
+            "- Every interactive control has an accessible name: inputs have an associated "
+            "<label> (or aria-label), buttons and links have text content (or aria-label), "
+            'and every ARIA widget — especially role="progressbar", "tab", "dialog", '
+            '"switch" — carries aria-label/aria-labelledby and its required ARIA '
+            "properties (e.g. a progressbar needs aria-valuenow/min/max).\n"
+            '- Every <img> has alt text (alt="" only when purely decorative); icon-only '
+            "buttons have an aria-label.\n"
+            "- Text/background color pairs meet 4.5:1 contrast (3:1 for large text); never "
+            "convey state by color alone.\n"
+            "- All color values are defined as CSS custom properties (design tokens) and "
+            "referenced via var(--token); do not hard-code raw hex/rgb/hsl literals in "
+            "rules, hover/focus states, borders, or shadows."
         ),
         upstream_keys=("wireframe", _WRAI_STATE_KEY),
         uses_stitch=True,
