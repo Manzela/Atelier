@@ -258,6 +258,100 @@ async def _record_trajectory(
         )
 
 
+async def _build_optimize_events(
+    result: dict[str, Any],
+    *,
+    tenant_id: str,
+    session_id: str,
+) -> list[tuple[str, dict[str, Any]]]:
+    """Derive the AT-027 read-only optimize SSE events for a completed run.
+
+    Returns up to two events — ``route_decision`` (the real phase-aware MoE
+    routing decision from the v1_bandit router) and ``dreaming_artifact`` (a real
+    dreaming/DPO ``ExtractedPair`` mined from THIS run's ``scored_candidates``,
+    with the §3.6 anti-sycophancy reward applied at extraction). Both are
+    surfaced read-only for trace legibility (PRD §3.5); neither dispatches a
+    model nor mutates training state.
+
+    Fail-soft (§21): any error returns the events gathered so far (possibly
+    empty) — surfacing the optimize trace must never break a generation.
+
+    Args:
+        result: The runner result dict (carries ``scored_candidates``).
+        tenant_id: The run's tenant (router + pair isolation key).
+        session_id: The run's session id.
+
+    Returns:
+        A list of ``(event_type, payload)`` tuples, in emission order.
+    """
+    events: list[tuple[str, dict[str, Any]]] = []
+    try:
+        import numpy as np  # noqa: PLC0415
+
+        from atelier.optimize.dreaming_module import extract_pairs_midflight  # noqa: PLC0415
+        from atelier.router.protocol import DAGPhase, RouteRequest  # noqa: PLC0415
+        from atelier.router.v1_bandit import EpsilonGreedyBandit  # noqa: PLC0415
+
+        # Real MoE routing decision for the JUDGE_CANDIDATES phase (read-only).
+        router_impl = EpsilonGreedyBandit()
+        decision = await router_impl.route(
+            RouteRequest(
+                phase=DAGPhase.JUDGE_CANDIDATES,
+                task_embedding=np.zeros(768, dtype=np.float32),
+                cost_budget_remaining_usd=1.0,
+                latency_target_ms=5000,
+                prior_judge_kappa=None,
+                trace_id=session_id,
+                tenant_id=tenant_id,
+            )
+        )
+        events.append(
+            (
+                "route_decision",
+                {
+                    "expert": str(decision.expert),
+                    "phase": str(decision.phase),
+                    "score": decision.score,
+                    "rationale": decision.rationale,
+                    "fallback_chain": [str(e) for e in decision.fallback_chain],
+                    "routing_mode": decision.routing_mode,
+                },
+            )
+        )
+
+        # Real dreaming/DPO artifact from this run's gate-passing candidates.
+        scored_candidates = result.get("scored_candidates", [])
+        pairs = extract_pairs_midflight(
+            session_id=session_id,
+            tenant_id=tenant_id,
+            surface_id=str(result.get("session_id", session_id)),
+            brief_text=str(result.get("brief", "")),
+            scored_candidates=scored_candidates,
+        )
+        if pairs:
+            top = max(pairs, key=lambda p: p.margin)
+            events.append(
+                (
+                    "dreaming_artifact",
+                    {
+                        "surface_id": top.surface_id,
+                        "node_name": top.node_name,
+                        "chosen_score": top.chosen_score,
+                        "rejected_score": top.rejected_score,
+                        "margin": top.margin,
+                    },
+                )
+            )
+    except Exception as exc:  # noqa: BLE001
+        # Fail-soft: surfacing the optimize trace must never break a generation.
+        logger.warning(
+            "Optimize-event surfacing failed (fail-soft): %s: %s",
+            type(exc).__name__,
+            sanitize(str(exc)[:200]),
+        )
+    return events
+
+
 def _build_response(
     result: dict[str, Any],
     run_id: str,
@@ -746,6 +840,17 @@ async def generate_stream(  # noqa: C901, PLR0915 — SSE orchestrator: nested p
 
     async def progress_callback(event_type: str, payload: dict[str, Any]) -> None:
         if event_type == "complete":
+            # AT-027: surface the read-only optimize assets (MoE route decision +
+            # dreaming/DPO artifact) for THIS run, just BEFORE the complete event so
+            # the Studio trace renders them. Derived from the raw runner payload
+            # (carries scored_candidates); fail-soft inside the helper.
+            optimize_events = await _build_optimize_events(
+                payload,
+                tenant_id=user.tenant_id,
+                session_id=str(payload.get("session_id", "default-id")),
+            )
+            for opt_type, opt_payload in optimize_events:
+                await queue.put((opt_type, opt_payload))
             payload = _enrich_complete_payload(payload)
         await queue.put((event_type, payload))
 

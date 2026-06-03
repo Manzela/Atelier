@@ -50,11 +50,14 @@ import {
   type PlanData,
   type SpecialistTraceData,
   type ResearchQueryData,
+  type RouteDecisionData,
+  type DreamingArtifactData,
   type StopData,
   type RunVerdict,
 } from '@/lib/api';
 import ApprovalCard from './ApprovalCard';
 import TracePanel from './legibility/TracePanel';
+import OptimizeArtifactCard from './OptimizeArtifactCard';
 import AttributionView from './legibility/AttributionView';
 import StopButton from './legibility/StopButton';
 import {
@@ -541,6 +544,9 @@ export default function StudioClientShell({ id }: { id: string }) {
   // hand-off and one per WRAI research query, accumulated from the SSE stream.
   const [specialistTraces, setSpecialistTraces] = useState<SpecialistTraceData[]>([]);
   const [researchQueries, setResearchQueries] = useState<ResearchQueryData[]>([]);
+  // AT-027: read-only optimize assets surfaced from the run's SSE trace.
+  const [routeDecision, setRouteDecision] = useState<RouteDecisionData | null>(null);
+  const [dreamingArtifact, setDreamingArtifact] = useState<DreamingArtifactData | null>(null);
   // AT-026 (Post / Attribution): the run-oracle verdict from the complete event.
   const [runVerdict, setRunVerdict] = useState<RunVerdict | null>(null);
   // AT-026 (R13 interruption): the session id of THIS run (Stop control target),
@@ -727,6 +733,8 @@ export default function StudioClientShell({ id }: { id: string }) {
     // AT-026: reset the legibility trace + attribution + stop target for the new run
     setSpecialistTraces([]);
     setResearchQueries([]);
+    setRouteDecision(null);
+    setDreamingArtifact(null);
     setRunVerdict(null);
     setSessionId(null);
     // AT-044: reset the design-system panel for the new run
@@ -856,6 +864,16 @@ export default function StudioClientShell({ id }: { id: string }) {
       onResearchQuery: (data: ResearchQueryData) => {
         setResearchQueries((prev) => [...prev, data]);
         addLog('INFO', `Research: ${data.query}`);
+      },
+      // AT-027: surface the run's read-only MoE routing decision.
+      onRouteDecision: (data: RouteDecisionData) => {
+        setRouteDecision(data);
+        addLog('INFO', `Route: ${data.expert} (${data.routing_mode})`);
+      },
+      // AT-027: surface a read-only dreaming/DPO artifact for the run.
+      onDreamingArtifact: (data: DreamingArtifactData) => {
+        setDreamingArtifact(data);
+        addLog('INFO', `DPO pair: margin ${data.margin.toFixed(2)}`);
       },
       // AT-026 (R13): the run halted at the user's request — acknowledge + flip
       // to the stopped state (the agent always acknowledges the interruption).
@@ -1385,6 +1403,16 @@ export default function StudioClientShell({ id }: { id: string }) {
                 specialistTraces.length > 0 ||
                 researchQueries.length > 0) && (
                 <TracePanel specialistTraces={specialistTraces} researchQueries={researchQueries} />
+              )}
+
+              {/* AT-027 (Optimize surfacing): read-only MoE routing decision +
+                  dreaming/DPO artifact for the run. Shown whenever either asset
+                  has arrived; the card itself returns null if both are empty. */}
+              {(routeDecision || dreamingArtifact) && (
+                <OptimizeArtifactCard
+                  routeDecision={routeDecision}
+                  dreamingArtifact={dreamingArtifact}
+                />
               )}
 
               {/* AT-026 (Post / Attribution): the run-oracle verdict — every
