@@ -20,6 +20,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 from atelier.models.enums import (
+    BoardColumnId,
     ConsensusDecision,
     GateAxis,
     GateDecision,
@@ -178,6 +179,66 @@ class CandidateUI(BaseModel):
     artifacts: dict[str, str] = Field(description="{filename: content}")
     a2ui_payload: dict[str, object] | None = None
     schema_version: int = 1
+
+
+# ---------------------------------------------------------------------------
+# Board task-doc (PRD §7A.5 — writer AT-020b, reader AT-041)
+# ---------------------------------------------------------------------------
+
+
+class TaskDocState(BaseModel):
+    """A single Kanban Board task document (PRD §7A.5).
+
+    Persisted at ``tenants/{tenant_id}/projects/{id}/tasks/{task_id}`` (Firestore;
+    writer AT-020b, reader AT-041). A run drives ONE such doc through the exact
+    ordered 6-column set (:class:`~atelier.models.enums.BoardColumnId`) with NO
+    skips. This is the on-the-wire contract: the emitter serializes it to the
+    Firestore doc and the dashboard ``onSnapshot`` reader deserializes it.
+
+    Attributes:
+        task_id: The board card id (the ``{task_id}`` path segment).
+        run_id: The pipeline run this card tracks.
+        columnId: The current Kanban column (the exact ordered 6-set).
+        agentRole: The specialist / role active at this column transition.
+        statusLine: Human-readable progress; for the ``Generating`` column it
+            contains the active ``agentRole`` (U6).
+        rank: LexoRank ordering key (fractional lexical key; §7A.5 glossary).
+        updated_at: Server/emit timestamp; monotonic across transitions.
+        schema_version: Forward-compat version marker.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    # NOTE camelCase field names (columnId/agentRole/statusLine): these are the
+    # EXACT §7A.5 wire keys the dashboard onSnapshot reader (AT-041, a JS/TS
+    # client) matches on. Renaming them to snake_case here would break the cross-
+    # language contract, so the mixed-case names are deliberate (N815 suppressed).
+    task_id: str = Field(min_length=1)
+    run_id: str = Field(min_length=1)
+    columnId: BoardColumnId  # noqa: N815 — §7A.5 wire key (JS reader contract)
+    agentRole: str = Field(min_length=1)  # noqa: N815 — §7A.5 wire key
+    statusLine: str = Field(min_length=1)  # noqa: N815 — §7A.5 wire key
+    rank: str = Field(min_length=1, description="LexoRank ordering key")
+    updated_at: datetime
+    schema_version: int = 1
+
+    def to_firestore_dict(self) -> dict[str, object]:
+        """Serialize to the Firestore doc shape the §7A.5 reader (AT-041) expects.
+
+        Enums are emitted as their string values (the canonical column display
+        names the reader matches on); ``updated_at`` stays a ``datetime`` so the
+        Firestore client stamps it as a native timestamp.
+        """
+        return {
+            "task_id": self.task_id,
+            "run_id": self.run_id,
+            "columnId": self.columnId.value,
+            "agentRole": self.agentRole,
+            "statusLine": self.statusLine,
+            "rank": self.rank,
+            "updated_at": self.updated_at,
+            "schema_version": self.schema_version,
+        }
 
 
 # ---------------------------------------------------------------------------

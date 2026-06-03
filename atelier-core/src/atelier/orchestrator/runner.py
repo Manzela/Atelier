@@ -44,6 +44,7 @@ if TYPE_CHECKING:
 
     from atelier.nodes.llm_judge import JudgeClient
 
+from atelier.board.board_emitter import BoardEmitter
 from atelier.durability.design_system_persister import persist_design_system
 from atelier.durability.usage_counter import UsageCounterStore, get_usage_store
 from atelier.gates.runner import run_gates
@@ -72,7 +73,7 @@ from atelier.intake.web_research import (
 )
 from atelier.models.axis_weights import AxisWeights
 from atelier.models.data_contracts import CandidateUI, TenantContext
-from atelier.models.enums import GateAxis, GateDecision
+from atelier.models.enums import BoardColumnId, GateAxis, GateDecision
 from atelier.models.model_armor_callbacks import (
     MODEL_ARMOR_BLOCK_USER_MESSAGE,
     was_model_armor_blocked,
@@ -635,6 +636,7 @@ class AtelierRunner:
         memory_service: BaseMemoryService | None = None,
         judge_client: JudgeClient | None = None,
         usage_store: UsageCounterStore | None = None,
+        board_emitter: BoardEmitter | None = None,
         max_iterations: int = 3,
     ) -> None:
         """Initialize the runner with a governor, session service, and optional judge client.
@@ -657,6 +659,11 @@ class AtelierRunner:
         self._usage_store = usage_store or get_usage_store()
         self._session_service = session_service or _default_session_service()
         self._memory_service = memory_service or _default_memory_service()
+        # AT-020b: the Board task-doc emitter (writer for §7A.5; reader is AT-041).
+        # Backend auto-selects (in-memory offline/dev, Firestore in production). The
+        # board is an observability surface — every emit is fail-soft, so a board
+        # outage degrades + logs and NEVER crashes the generation run.
+        self._board_emitter = board_emitter or BoardEmitter()
 
         # Auto-wire production Vertex client when a non-heuristic mode is
         # configured via the environment.  Tests inject a fake client to
@@ -688,6 +695,80 @@ class AtelierRunner:
         self._governor._state.user_id = user_id
         self._governor._state.token_cap = self._usage_store.token_cap
         self._governor._state.cumulative_user_tokens = self._usage_store.get_total(user_id)
+
+    # -- AT-020b: Board task-doc lifecycle (writer for §7A.5) -----------------
+
+    def _board_init(
+        self,
+        *,
+        tenant_ctx: TenantContext,
+        task_id: str,
+        run_id: str,
+        agent_role: str,
+        status_line: str,
+    ) -> None:
+        """Create the Board card at the Brief column (fail-soft; never raises).
+
+        The emitter already swallows store errors into a degraded ack; this
+        wrapper additionally guards the (programming-bug) skip path so a board
+        wiring mistake can never crash a real generation run. A degraded ack is
+        logged at debug — the emitter already logged the structured warning.
+        """
+        try:
+            ack = self._board_emitter.initialize_task_doc(
+                tenant_ctx=tenant_ctx,
+                task_id=task_id,
+                run_id=run_id,
+                agent_role=agent_role,
+                status_line=status_line,
+            )
+            if ack.degraded:
+                logger.debug("AT-020b: board init degraded for task %s", task_id)
+        except Exception:  # noqa: BLE001 — board is observability-only, never fatal
+            logger.warning(
+                "AT-020b: board init raised unexpectedly (fail-soft; run continues)",
+                exc_info=True,
+                extra={"task_id": task_id},
+            )
+
+    def _board_transition(
+        self,
+        *,
+        tenant_ctx: TenantContext,
+        task_id: str,
+        column: BoardColumnId,
+        agent_role: str,
+        status_line: str,
+    ) -> None:
+        """Advance the Board card one column (fail-soft; never raises).
+
+        A :class:`~atelier.board.board_emitter.ColumnSkipError` would mean the
+        runner wired a transition out of order — a code bug, not a runtime
+        degradation. We surface it loudly in the log (it must be fixed) but still
+        do NOT propagate it: the board is observability-only and must never crash
+        a paying user's generation run. The state-machine invariant itself is
+        proved by the AT-020b unit tests, where the skip DOES raise.
+        """
+        try:
+            ack = self._board_emitter.transition(
+                tenant_ctx=tenant_ctx,
+                task_id=task_id,
+                column=column,
+                agent_role=agent_role,
+                status_line=status_line,
+            )
+            if ack.degraded:
+                logger.debug(
+                    "AT-020b: board transition to %s degraded for task %s",
+                    column.value,
+                    task_id,
+                )
+        except Exception:  # noqa: BLE001 — board is observability-only, never fatal
+            logger.warning(
+                "AT-020b: board transition raised unexpectedly (fail-soft; run continues)",
+                exc_info=True,
+                extra={"task_id": task_id, "target_column": column.value},
+            )
 
     def _run_n3c_n3d_n4(  # noqa: C901 — the N3c gate / N3d judge / N4 select convergence core
         self,
@@ -1103,6 +1184,17 @@ class AtelierRunner:
             session_id=session_id,
         )
 
+        # AT-020b: open the Board card at the FIRST column (Brief). The session id
+        # is the stable task id — it survives the sign-off halt/resume and is what
+        # AT-041's onSnapshot reader watches. Fail-soft (observability surface).
+        self._board_init(
+            tenant_ctx=tenant_ctx,
+            task_id=session.id,
+            run_id=session.id,
+            agent_role="intake",
+            status_line="Brief frozen; planning the design pipeline",
+        )
+
         if progress_callback:
             plan_data = plan.model_dump() if hasattr(plan, "model_dump") else {}
             plan_data["surfaces"] = getattr(plan, "surfaces", ["landing page"])
@@ -1111,6 +1203,27 @@ class AtelierRunner:
         surfaces = getattr(plan, "surfaces", ["landing page"])
         if not surfaces:
             surfaces = ["landing page"]
+
+        # AT-020b: Brief -> Decompose. The plan has decomposed the brief into the
+        # ordered DDLC specialist plan (ux_research is the first specialist).
+        self._board_transition(
+            tenant_ctx=tenant_ctx,
+            task_id=session.id,
+            column=BoardColumnId.DECOMPOSE,
+            agent_role="ux_research",
+            status_line="Decomposed into the DDLC specialist plan",
+        )
+        # AT-020b: Decompose -> Awaiting Sign-off. Scope is locked; the card now
+        # sits at the human sign-off gate. In the require_signoff path the run
+        # halts here (the card stays at this column until resume); in the auto
+        # path this column is transient (immediately followed by Generating).
+        self._board_transition(
+            tenant_ctx=tenant_ctx,
+            task_id=session.id,
+            column=BoardColumnId.AWAITING_SIGNOFF,
+            agent_role="planner",
+            status_line="Scope locked; awaiting human sign-off",
+        )
 
         # AT-030: run the clarify gate over the enriched plan. The stakes router
         # asks high-stakes/irreversible gaps and silently applies cheap+local cited
@@ -1445,6 +1558,27 @@ class AtelierRunner:
         self._seed_lifetime_counter(user_id)
         self._usage_store.check_circuit_breaker()
         self._governor._check_token_budget()
+
+        # AT-020b: restore Board lane continuity for the resume() path (cold cache
+        # after a sign-off halt) so the Generating transition below is a legal
+        # forward step from Awaiting Sign-off (the column the card was halted at).
+        # No-op on the inline run() path, where the lane is already warm there.
+        self._board_emitter.ensure_lane_at(
+            tenant_ctx=tenant_ctx,
+            task_id=session_id,
+            run_id=session_id,
+            column=BoardColumnId.AWAITING_SIGNOFF,
+        )
+        # AT-020b: Awaiting Sign-off -> Generating. Screens render now; the active
+        # specialist (the UI Designer authors the HTML) rides the statusLine, which
+        # the emitter guarantees carries the agentRole for the Generating column (U6).
+        self._board_transition(
+            tenant_ctx=tenant_ctx,
+            task_id=session_id,
+            column=BoardColumnId.GENERATING,
+            agent_role="ui_design",
+            status_line="rendering the screen",
+        )
 
         # Governed A2UI (ADR-0024) — G6 single-source convergence: the AT-044
         # design-system panel surface is built + gated EXACTLY ONCE per run, at the
@@ -1885,6 +2019,16 @@ class AtelierRunner:
                 "user_message": user_message,
             }
 
+        # AT-020b: Generating -> QA. All surfaces have run their generate -> gate
+        # -> judge loops; the card now reflects the scoring/convergence phase.
+        self._board_transition(
+            tenant_ctx=tenant_ctx,
+            task_id=session_id,
+            column=BoardColumnId.QA,
+            agent_role="judge",
+            status_line="Scoring candidates against the convergence gates",
+        )
+
         # Select the first screen as the default top-level result
         first_screen_name = surfaces[0]
         first_screen_res = screens_results[first_screen_name]
@@ -1983,6 +2127,18 @@ class AtelierRunner:
             plan=plan,
             session_id=session_id,
             converged=bool(first_screen_res.get("converged")),
+        )
+
+        # AT-020b: QA -> Done. The run has reached its terminal state; the card
+        # lands on the final column. The statusLine reflects the convergence
+        # outcome so a non-converged terminal stop is not shown as a clean "Done".
+        _converged = bool(first_screen_res.get("converged"))
+        self._board_transition(
+            tenant_ctx=tenant_ctx,
+            task_id=session_id,
+            column=BoardColumnId.DONE,
+            agent_role="orchestrator",
+            status_line=("Converged" if _converged else "Terminal stop (review and retry)"),
         )
 
         if progress_callback:

@@ -178,12 +178,17 @@ disallow_any_unimported = false
 disable_error_code = ["import-untyped"]
 
 [[tool.mypy.overrides]]
-module = ["atelier.durability.usage_counter", "atelier.durability.design_system_persister"]
+module = [
+    "atelier.durability.usage_counter",
+    "atelier.durability.design_system_persister",
+    "atelier.board.board_emitter",
+]
 # firebase-admin (7.4.0) ships no PEP-561 py.typed marker; the firestore client
-# and google.cloud.firestore.Increment resolve to Any in strict mode (AT-095/AT-053).
+# and google.cloud.firestore.Increment resolve to Any in strict mode (AT-095/AT-053/AT-020b).
 # Mirrors the atelier.auth.* override — suppress the import-untyped false positive
-# on the token-cap store and the AT-053 design-system persister (both use the same
-# untyped firestore client) without relaxing strict checks on their own logic.
+# on the token-cap store, the AT-053 design-system persister, and the AT-020b board
+# emitter (all three use the same untyped firestore client) without relaxing strict
+# checks on their own logic.
 ignore_missing_imports = true
 disallow_any_unimported = false
 disable_error_code = ["import-untyped"]
