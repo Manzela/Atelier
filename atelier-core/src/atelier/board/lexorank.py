@@ -32,8 +32,6 @@ from typing import Final
 #: base-36 digit alphabet; index in this string IS the digit value.
 _ALPHABET: Final[str] = "0123456789abcdefghijklmnopqrstuvwxyz"
 _BASE: Final[int] = len(_ALPHABET)  # 36
-_MIN_DIGIT: Final[str] = _ALPHABET[0]  # "0"
-_MAX_DIGIT: Final[str] = _ALPHABET[-1]  # "z"
 #: A comfortable starting key in the middle of the space so both prepend and
 #: append have room before the string has to grow.
 _INITIAL: Final[str] = "n"  # ALPHABET[23], roughly mid-range

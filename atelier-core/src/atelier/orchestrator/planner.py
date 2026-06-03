@@ -36,8 +36,13 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 if TYPE_CHECKING:
     from atelier.intake.research_findings import ResearchFindings
-    from atelier.models.clarify_models import Gap, OpenQuestion
 
+# One-way value-object import: the clarify-gate models (Gap, OpenQuestion,
+# ProposedDefault) live in atelier.models.clarify_models and are imported here as
+# real top-level names. clarify_models imports NOTHING from planner, so this edge is
+# acyclic (fixes CodeQL py/unsafe-cyclic-import) and PlanStep's typed fields resolve
+# directly without a bottom-of-module model_rebuild.
+from atelier.models.clarify_models import Gap, OpenQuestion, ProposedDefault
 from atelier.models.model_armor_callbacks import (
     model_armor_after_callback,
     model_armor_before_callback,
@@ -75,33 +80,6 @@ _PLANNER_SYSTEM_PROMPT: str = (
     "- reasoning: one sentence explaining your top routing decision\n"
     "Output valid JSON matching PlanStep schema. No other text."
 )
-
-
-class ProposedDefault(BaseModel):
-    """A domain Tier-1 standard the planner proposes applying by default (AT-025).
-
-    Surfaced from :class:`atelier.intake.research_findings.ResearchFindings` so the
-    clarify-gate (AT-030, separate feature) can decide ask-vs-silent. Each carries
-    its full provenance — a default Atelier applies on the user's behalf is always
-    attributable to a cited, trust-scored source (PRD §3.5).
-
-    Attributes:
-        standard_id: The source standard's stable id (e.g. ``"dash-card-cap"``).
-        name: Human-readable source title.
-        rule: The imperative rule text being proposed as a default.
-        citation_url: The authoritative source URL (never empty).
-        trust_score: Trust seed in ``[0.0, 1.0]``.
-        domain: The project-type scope the standard applies to.
-    """
-
-    model_config = ConfigDict(frozen=True)
-
-    standard_id: str
-    name: str
-    rule: str
-    citation_url: str
-    trust_score: float = Field(ge=0.0, le=1.0)
-    domain: str
 
 
 class PlanStep(BaseModel):
@@ -144,9 +122,9 @@ class PlanStep(BaseModel):
     proposed_defaults: list[ProposedDefault] = Field(default_factory=list)
     # AT-030 clarify-gate inputs. ``gaps_detail`` carries the *classified* gaps
     # (the human-readable strings stay in ``gaps`` for the dashboard) so the stakes
-    # router can decide ask-vs-silent. Typed via a forward ref to break the
-    # planner<->clarify_models import cycle; resolved by a ``model_rebuild`` at the
-    # bottom of :mod:`atelier.models.clarify_models` (which imports this module).
+    # router can decide ask-vs-silent. ``Gap`` / ``OpenQuestion`` are real top-level
+    # imports from :mod:`atelier.models.clarify_models` (one-way edge), so these
+    # fields resolve at class-definition time — no model_rebuild needed.
     gaps_detail: list[Gap] = Field(default_factory=list)
     open_questions_detail: list[OpenQuestion] = Field(default_factory=list)
 
@@ -717,20 +695,3 @@ class PlannerAgent:
             extra={"response_length": len(last_text)},
         )
         return last_text
-
-
-# ---------------------------------------------------------------------------
-# Resolve PlanStep's AT-030 forward refs (``gaps_detail: list[Gap]`` /
-# ``open_questions_detail: list[OpenQuestion]``) at module load, so ``PlanStep`` is
-# fully defined the moment THIS module is imported — even when imported directly
-# (e.g. the sign-off gate tests) without first importing clarify_models.
-#
-# clarify_models does NOT import planner at its module top (only under
-# TYPE_CHECKING), so this bottom-of-module import never deadlocks: ``Gap`` /
-# ``OpenQuestion`` are defined before clarify_models reaches its own (local)
-# ``ProposedDefault`` import, which by then is already defined above.
-# ---------------------------------------------------------------------------
-from atelier.models.clarify_models import Gap as _Gap  # noqa: E402
-from atelier.models.clarify_models import OpenQuestion as _OpenQuestion  # noqa: E402
-
-PlanStep.model_rebuild(_types_namespace={"Gap": _Gap, "OpenQuestion": _OpenQuestion})
