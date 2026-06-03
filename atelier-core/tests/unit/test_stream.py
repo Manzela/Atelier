@@ -230,6 +230,49 @@ def test_enrich_complete_payload_dorav_fallback_on_empty_evaluations() -> None:
 
 
 @pytest.mark.unit
+def test_enrich_complete_payload_is_json_serializable_with_pydantic_objects() -> None:
+    """Regression: the runner's complete payload carries pydantic objects (brief,
+    project_context, web_research) that the SSE layer json.dumps. Before the fix,
+    json.dumps(payload) raised TypeError, uncaught by the stream's TimeoutError
+    handler, so the connection closed WITHOUT a 'complete' event and the Studio
+    showed 'Pipeline error' despite a fully converged design. _enrich must coerce
+    those objects to JSON, and the enriched payload must json.dumps cleanly.
+    """
+    import json
+
+    from atelier.api.generate import _enrich_complete_payload
+
+    class _Pydanticish:
+        def __init__(self, d: dict[str, Any]) -> None:
+            self._d = d
+
+        def model_dump(self, mode: str = "json") -> dict[str, Any]:
+            return self._d
+
+    class _Opaque:  # no model_dump -> exercises the json.dumps(default=str) backstop
+        def __repr__(self) -> str:
+            return "<opaque>"
+
+    payload: dict[str, Any] = {
+        "brief": _Pydanticish({"intent": "build a landing page"}),
+        "project_context": _Pydanticish({"design_tokens": {}}),
+        "web_research": _Pydanticish({"findings": []}),
+        "best_candidate": _MINIMAL_HTML,
+        "converged": True,
+        "composite_score": 0.9,
+        "evaluations": [],
+        "extra_object": _Opaque(),
+    }
+    result = _enrich_complete_payload(payload)
+    # The pydantic-ish objects are coerced to plain JSON dicts.
+    assert result["brief"] == {"intent": "build a landing page"}
+    assert result["web_research"] == {"findings": []}
+    # The exact op the SSE generator performs — must not raise (default=str is the
+    # backstop for any residual non-serializable value such as extra_object).
+    json.dumps(result, default=str)
+
+
+@pytest.mark.unit
 def test_enrich_complete_payload_adds_a2ui_payload_from_project_context() -> None:
     """complete payload must carry a non-None A2UI surface built from design tokens.
 

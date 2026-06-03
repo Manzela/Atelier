@@ -73,6 +73,11 @@ COPY --from=deps /app/.venv /app/.venv
 # Copy application code
 COPY atelier-core/src/ /app/atelier-core/src/
 COPY config/ /app/config/
+# The A2A agent card lives OUTSIDE src/; app.py resolves it at
+# /app/atelier-core/agent_card.json and falls back to a degraded stub (missing
+# url/provider/capabilities/skills) when absent. Copy it so /.well-known/agent-card.json
+# serves the full A2A discovery document, not the stub.
+COPY atelier-core/agent_card.json /app/atelier-core/agent_card.json
 
 # Set PATH to use venv. PLAYWRIGHT_BROWSERS_PATH pins the chromium location to a
 # shared, world-readable dir so the non-root appuser can launch it (AT-011).

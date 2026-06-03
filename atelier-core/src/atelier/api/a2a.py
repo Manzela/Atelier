@@ -13,11 +13,14 @@ References:
 from __future__ import annotations
 
 import logging
-from typing import Any
+import os
+from typing import Annotated, Any
 from uuid import uuid4
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, ConfigDict, Field
+
+from atelier.auth.firebase import FirebaseUser, require_auth
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +71,7 @@ def _error_response(
 async def _handle_send_message(
     params: dict[str, Any],
     request_id: str | int | None,
+    user: FirebaseUser,
 ) -> JsonRpcResponse:
     """Handle the ``SendMessage`` A2A v1.0 RPC method.
 
@@ -108,12 +112,21 @@ async def _handle_send_message(
     )
 
     # Run the pipeline synchronously for the hackathon (A2A is not the primary demo path)
+    from atelier.models.data_contracts import TenantContext  # noqa: PLC0415
     from atelier.orchestrator.runner import AtelierRunner  # noqa: PLC0415
 
     runner = AtelierRunner()
+    # Bind the authenticated identity so the governor's per-user token cap
+    # (AT-095) and tenant isolation apply to A2A exactly as to /v1/generate —
+    # otherwise this route would be an ungoverned, quota-bypassing entry point.
+    tenant_ctx = TenantContext(
+        tenant_id=user.tenant_id,
+        user_id=user.uid,
+        project_id=os.environ.get("GOOGLE_CLOUD_PROJECT", "atelier-build-2026"),
+    )
 
     try:
-        pipeline_result = await runner.run(brief_text)
+        pipeline_result = await runner.run(brief_text, tenant_ctx)
         best_candidate = pipeline_result.get("best_candidate")
         composite_score = pipeline_result.get("composite_score", 0.0)
         converged = pipeline_result.get("converged", False)
@@ -152,6 +165,7 @@ async def _handle_send_message(
 async def _handle_get_task(
     params: dict[str, Any],
     request_id: str | int | None,
+    user: FirebaseUser,  # noqa: ARG001  # auth-gated; per-task ownership lands with the task store
 ) -> JsonRpcResponse:
     """Handle the ``GetTask`` A2A v1.0 RPC method.
 
@@ -207,7 +221,10 @@ _METHOD_HANDLERS = {
         "Agent-to-Agent protocol v1.0 JSON-RPC interface. Supports SendMessage and GetTask methods."
     ),
 )
-async def a2a_rpc(request: JsonRpcRequest) -> JsonRpcResponse:
+async def a2a_rpc(
+    request: JsonRpcRequest,
+    user: Annotated[FirebaseUser, Depends(require_auth)],
+) -> JsonRpcResponse:
     """Process an A2A v1.0 JSON-RPC request.
 
     Args:
@@ -232,7 +249,7 @@ async def a2a_rpc(request: JsonRpcRequest) -> JsonRpcResponse:
         )
 
     try:
-        return await handler(request.params, request.id)
+        return await handler(request.params, request.id, user)
     except Exception as exc:
         logger.exception(
             "a2a.rpc.error",
