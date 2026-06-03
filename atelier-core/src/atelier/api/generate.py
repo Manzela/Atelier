@@ -22,8 +22,9 @@ import asyncio
 import json
 import logging
 import os
+import re
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Annotated, Any
+from typing import TYPE_CHECKING, Annotated, Any, Final
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends
@@ -48,6 +49,13 @@ router = APIRouter(prefix="/v1/generate", tags=["pipeline"])
 # the convergence loop honors it at the next iteration top (no model call after).
 stop_router = APIRouter(prefix="/v1/stop", tags=["pipeline"])
 
+# Input-validation barrier for the untrusted ``session_id`` path param (CWE-117,
+# log-injection). A session id is an opaque token; we accept only URL-safe id
+# characters and bound its length. This is an explicit allow-list at the trust
+# boundary (in addition to the sanitize() applied at the log sink) so a hostile id
+# never reaches the logger, the stop controller, or the response body.
+_SESSION_ID_RE: Final = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
+
 
 @stop_router.post(
     "/{session_id}",
@@ -69,6 +77,13 @@ async def stop_run(
     its next iteration, before any model call — so the Stop is a real, enforced halt
     with the no-model-call-after guarantee, not a best-effort cancel.
     """
+    # Validate the untrusted path param at the trust boundary BEFORE it touches the
+    # stop controller, the logger, or the response (CWE-117 log-injection barrier).
+    if not _SESSION_ID_RE.fullmatch(session_id):
+        from fastapi import HTTPException  # noqa: PLC0415
+
+        raise HTTPException(status_code=400, detail="Invalid session_id format.")
+
     from atelier.orchestrator.stop_controller import request_stop  # noqa: PLC0415
 
     request_stop(session_id)

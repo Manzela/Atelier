@@ -53,12 +53,12 @@ from typing import TYPE_CHECKING, Any
 from google.adk.tools.long_running_tool import LongRunningFunctionTool
 from google.adk.tools.tool_context import ToolContext  # noqa: TC002 — ADK signature introspection
 
-from atelier.models.clarify_models import ClarifyBatch, Gap, OpenQuestion
-from atelier.orchestrator.planner import PlanStep, ProposedDefault
+from atelier.models.clarify_models import ClarifyBatch, Gap, OpenQuestion, ProposedDefault
 
 if TYPE_CHECKING:
     from atelier.intake.research_findings import ResearchFindings
     from atelier.models.acceptance import AcceptanceCriteria
+    from atelier.orchestrator.planner import PlanStep
 
 logger = logging.getLogger(__name__)
 

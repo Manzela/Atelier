@@ -47,9 +47,41 @@ logger = logging.getLogger(__name__)
 _PROJECT: Final[str] = os.environ.get("GOOGLE_CLOUD_PROJECT", "atelier-build-2026")
 _DPO_PAIRS_TABLE: Final[str] = f"{_PROJECT}.atelier_trajectories.dpo_pairs"
 _TRAJECTORY_TABLE: Final[str] = f"{_PROJECT}.atelier_trajectories.trajectory_records"
-_CALIBRATION_SEED_PATH: Final[Path] = (
-    Path(__file__).resolve().parents[6] / "atelier-eval" / "datasets" / "calibration-seed-v0.jsonl"
-)
+
+# Relative location of the calibration seed from the repo/workspace root, shared by
+# the resolver and the import-safe fallback below.
+_SEED_RELPATH: Final[tuple[str, ...]] = ("atelier-eval", "datasets", "calibration-seed-v0.jsonl")
+
+
+def _resolve_calibration_seed_path() -> Path:
+    """Locate ``atelier-eval/datasets/calibration-seed-v0.jsonl`` without ever raising.
+
+    The seed lives at the repo root, but this module loads from two very different
+    depths: the deep worktree checkout (``…/.worktrees/<name>/atelier-core/src/
+    atelier/optimize/dreaming_module.py`` — ``parents[6]`` reaches the root) and the
+    shallow container layout (``/app/atelier/optimize/dreaming_module.py`` — fewer
+    than 6 parents, so a fixed ``parents[6]`` index raises ``IndexError`` at IMPORT
+    time). To be depth-agnostic we walk up the resolved parents and return the first
+    one that actually contains the seed.
+
+    If no ancestor contains it (e.g. a slim container image that ships without the
+    eval datasets), we fall back to the best-guess repo-relative path WITHOUT
+    raising — the import must always succeed. :func:`load_calibration_seed` still
+    raises ``FileNotFoundError`` at call time when the file is genuinely absent.
+    """
+    here = Path(__file__).resolve()
+    for parent in here.parents:
+        candidate = parent.joinpath(*_SEED_RELPATH)
+        if candidate.exists():
+            return candidate
+    # No ancestor carries the seed. Return a deterministic best-guess path (relative
+    # to a plausible repo root) so the constant stays a real ``Path``; the consumer
+    # surfaces the missing-file error at call time, not at import.
+    best_guess_root = here.parents[min(6, len(here.parents) - 1)]
+    return best_guess_root.joinpath(*_SEED_RELPATH)
+
+
+_CALIBRATION_SEED_PATH: Final[Path] = _resolve_calibration_seed_path()
 
 # Minimum margin for a pair to be useful DPO training signal.
 # Below this the chosen/rejected distinction is too noisy.

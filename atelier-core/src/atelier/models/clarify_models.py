@@ -1,16 +1,19 @@
-"""AT-030 clarify-gate value objects — Gap, OpenQuestion, ClarifyBatch.
+"""AT-030 clarify-gate value objects — Gap, OpenQuestion, ProposedDefault, ClarifyBatch.
 
-AT-025 already owns the *data* the planner carries on :class:`PlanStep`
+AT-025 owns the *data* the planner carries on :class:`PlanStep`
 (``open_questions``, ``gaps``, ``proposed_defaults`` with the
-:class:`atelier.orchestrator.planner.ProposedDefault` record). AT-030 owns the
-*decision logic* that turns an under-specified brief into a single, batched
-clarify event. These models are the typed inputs/outputs of that logic:
+:class:`ProposedDefault` record). AT-030 owns the *decision logic* that turns an
+under-specified brief into a single, batched clarify event. These models are the
+typed inputs/outputs of that logic:
 
     - :class:`Gap` — one detected coverage gap, classified by the three axes the
       stakes router reads (reversibility, blast_radius, stakes) plus optional
       cited-default provenance for the silent-default path.
     - :class:`OpenQuestion` — a user-facing ask the router emits when a gap is
       too high-stakes/irreversible/global to default silently.
+    - :class:`ProposedDefault` — a cited, trust-scored domain Tier-1 standard the
+      planner proposes applying by default (AT-025). Defined here so the value
+      object flows one-way ``clarify_models → planner`` (no import cycle).
     - :class:`ClarifyBatch` — the single batched emission (PRD §3.5, R15: ask
       once, batched, never drip-fed). Carries the asks AND the cited silent
       defaults so the surface renders one coherent clarify panel.
@@ -24,12 +27,9 @@ omitted), R15 (single batched authoring surface).
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Literal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
-
-if TYPE_CHECKING:
-    from atelier.orchestrator.planner import ProposedDefault
 
 #: The three classification axes the stakes router reads off a :class:`Gap`.
 Reversibility = Literal["cheap", "costly"]
@@ -108,6 +108,38 @@ class OpenQuestion(BaseModel):
     dimension: str
 
 
+class ProposedDefault(BaseModel):
+    """A domain Tier-1 standard the planner proposes applying by default (AT-025).
+
+    Surfaced from :class:`atelier.intake.research_findings.ResearchFindings` so the
+    clarify-gate (AT-030) can decide ask-vs-silent. Each carries its full
+    provenance — a default Atelier applies on the user's behalf is always
+    attributable to a cited, trust-scored source (PRD §3.5).
+
+    Defined here (not in :mod:`atelier.orchestrator.planner`) so the value object
+    flows one-way ``clarify_models → planner``: planner imports it as a real
+    top-level name, clarify_models imports nothing from planner. This keeps the
+    two modules acyclic (CodeQL ``py/unsafe-cyclic-import``).
+
+    Attributes:
+        standard_id: The source standard's stable id (e.g. ``"dash-card-cap"``).
+        name: Human-readable source title.
+        rule: The imperative rule text being proposed as a default.
+        citation_url: The authoritative source URL (never empty).
+        trust_score: Trust seed in ``[0.0, 1.0]``.
+        domain: The project-type scope the standard applies to.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    standard_id: str
+    name: str
+    rule: str
+    citation_url: str
+    trust_score: float = Field(ge=0.0, le=1.0)
+    domain: str
+
+
 class ClarifyBatch(BaseModel):
     """The single batched clarify emission (R15: ask once, never drip-fed).
 
@@ -133,18 +165,3 @@ class ClarifyBatch(BaseModel):
     def is_empty(self) -> bool:
         """True when there is nothing to ask and nothing to propose."""
         return not self.open_questions and not self.proposed_defaults
-
-
-# ---------------------------------------------------------------------------
-# Resolve the planner<->clarify_models forward refs without a hard import cycle.
-#
-# This module does NOT import planner at module top (only under TYPE_CHECKING), so
-# importing it never triggers planner. ``ClarifyBatch.proposed_defaults`` refers to
-# planner's ``ProposedDefault`` by forward ref; we resolve it here with a local
-# runtime import — at this point ``ProposedDefault`` is already defined in planner
-# regardless of which module the interpreter loaded first (planner defines it before
-# its own bottom-of-module rebuild imports ``Gap``/``OpenQuestion`` from here).
-# ---------------------------------------------------------------------------
-from atelier.orchestrator.planner import ProposedDefault  # noqa: E402
-
-ClarifyBatch.model_rebuild(_types_namespace={"ProposedDefault": ProposedDefault})

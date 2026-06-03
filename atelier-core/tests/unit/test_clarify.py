@@ -40,10 +40,9 @@ from atelier.gates.clarify import (
 from atelier.intake.research_findings import ResearchFindings
 from atelier.intake.standards_extractor import load_standards_pack
 from atelier.models.acceptance import AcceptanceCriteria
-from atelier.models.clarify_models import Gap, OpenQuestion
+from atelier.models.clarify_models import Gap, OpenQuestion, ProposedDefault
 from atelier.orchestrator.planner import (
     PlanStep,
-    ProposedDefault,
     assess_specification,
 )
 
