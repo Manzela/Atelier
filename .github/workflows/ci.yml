@@ -413,7 +413,12 @@ jobs:
         # smoke — it silently breaks every authenticated request. Import the
         # auth-critical modules explicitly so the image's dependency set can not
         # drift from atelier-core/pyproject.toml unnoticed.
-        run: docker run --rm atelier-api:ci python -c "import firebase_admin; import atelier.api.app; print('auth-critical deps import OK')"
+        #
+        # FIREBASE_PROJECT_ID is supplied because the image bakes
+        # ATELIER_ENV=production and atelier.auth.firebase fails loud at import
+        # if the project id is unset outside development (M-8) — the same env the
+        # real Cloud Run service provides; here it only needs to be non-empty.
+        run: docker run --rm -e FIREBASE_PROJECT_ID=ci-smoke atelier-api:ci python -c "import firebase_admin; import atelier.api.app; print('auth-critical deps import OK')"
       - name: Start the container
         run: |
           docker run -d --name atelier-api-ci \
