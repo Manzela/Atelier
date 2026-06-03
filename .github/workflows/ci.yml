@@ -295,6 +295,18 @@ jobs:
         a2ui_flag: ['off', 'on']
     env:
       NEXT_PUBLIC_A2UI_RENDER: ${{ matrix.a2ui_flag == 'on' && '1' || '0' }}
+      # The mocked Playwright suite intercepts **/v1/generate/stream. Point the
+      # build's API origin at the dashboard's own origin (localhost:3000) so the
+      # fetch is same-origin and permitted by the REAL shipped production CSP
+      # (connect-src 'self'), rather than the localhost:8000 default the policy
+      # intentionally blocks. This exercises the production CSP unmodified — the
+      # mock fulfils the request, the request just has to be allowed to leave.
+      NEXT_PUBLIC_API_URL: http://localhost:3000
+      # CI-only opt-in (NEVER set in the deploy workflow) that re-enables the
+      # dev-mode login bypass under this production-mode build so the
+      # login→authenticated flow stays covered. Hard-guarded by !isFirebaseConfigured,
+      # so it cannot affect a real deploy (which always configures Firebase).
+      NEXT_PUBLIC_E2E: '1'
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6

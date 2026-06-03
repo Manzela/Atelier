@@ -12,12 +12,17 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
 
   // The local dev-mode auth bypass mints a mock user so the dashboard is usable
-  // without Firebase configured. It must NEVER reach a production build — gating
-  // it on NODE_ENV (statically eliminated by the bundler in prod) guarantees the
-  // mock credential and the "Dev Mode" affordance cannot appear in production,
-  // even if the Firebase env vars are somehow missing at build time. A
-  // misconfigured prod build then surfaces a real error, not a fake session.
-  const devBypassAllowed = !isFirebaseConfigured && process.env.NODE_ENV !== 'production';
+  // without Firebase configured. The HARD guard is `!isFirebaseConfigured`: every
+  // real deploy configures Firebase, so the bypass can never surface in a shipped
+  // build regardless of the clause below. The second clause keeps the bypass
+  // automatic in local `next dev`, and — via an explicit build-time `NEXT_PUBLIC_E2E`
+  // opt-in set ONLY by the dashboard-e2e CI job (never by the deploy workflow) —
+  // lets the production-mode E2E harness exercise the login→authenticated flow under
+  // the real shipped CSP. A genuinely misconfigured prod build (Firebase env vars
+  // missing AND NEXT_PUBLIC_E2E unset) still surfaces a real error, not a fake session.
+  const devBypassAllowed =
+    !isFirebaseConfigured &&
+    (process.env.NODE_ENV !== 'production' || process.env.NEXT_PUBLIC_E2E === '1');
 
   // If already logged in, redirect to home
   useEffect(() => {
