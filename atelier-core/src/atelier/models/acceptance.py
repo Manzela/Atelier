@@ -33,6 +33,13 @@ class AcceptanceCriteria(BaseModel):
     required_token_groups: list[str] = Field(default_factory=list)
     brand_constraints: BrandConstraints = Field(default_factory=BrandConstraints)
     handoff_artifacts: list[str] = Field(default_factory=list)
+    # AT-030: domain standards the user CONFIRMED at the clarify gate (each value
+    # is a ``standard_id``). Confirming a proposed default writes its id here;
+    # overriding removes it. The run-oracle (``verify_run``) records one
+    # attribution criterion per confirmed standard with ``source='standard:<id>'``
+    # so the §14 view shows which defaults the user accepted. Empty by default, so
+    # every pre-AT-030 caller and the existing oracle path are unchanged.
+    confirmed_standards: list[str] = Field(default_factory=list)
     schema_version: int = 1
 
 

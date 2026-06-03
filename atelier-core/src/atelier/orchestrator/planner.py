@@ -20,14 +20,23 @@ ADR Reference: 0007 (worktree discipline)
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Literal
 
+# <no_unverified_apis>: google-adk pinned >=2.1.0,<3 (pyproject.toml §G4). Verified
+# against the installed wheel (google.adk.__version__ == "2.1.0") that the LlmAgent
+# symbol imported below resolves to class google.adk.agents.llm_agent.LlmAgent.
+# Per the verified project override (§24), the clarify gate is EVENT-DRIVEN and does
+# NOT use google.adk.agents.LoopAgent (which exists in 2.1.0 but is deliberately
+# avoided): a fixed-round loop would re-ask on every turn; uncertainty-gating fires
+# the clarify event at most twice per surface (AT-030 <=2-events/surface cap).
 from google.adk.agents import LlmAgent
 from google.genai import types as genai_types
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 if TYPE_CHECKING:
     from atelier.intake.research_findings import ResearchFindings
+    from atelier.models.clarify_models import Gap, OpenQuestion
 
 from atelier.models.model_armor_callbacks import (
     model_armor_after_callback,
@@ -133,6 +142,13 @@ class PlanStep(BaseModel):
     open_questions: list[str] = Field(default_factory=list)
     gaps: list[str] = Field(default_factory=list)
     proposed_defaults: list[ProposedDefault] = Field(default_factory=list)
+    # AT-030 clarify-gate inputs. ``gaps_detail`` carries the *classified* gaps
+    # (the human-readable strings stay in ``gaps`` for the dashboard) so the stakes
+    # router can decide ask-vs-silent. Typed via a forward ref to break the
+    # planner<->clarify_models import cycle; resolved by a ``model_rebuild`` at the
+    # bottom of :mod:`atelier.models.clarify_models` (which imports this module).
+    gaps_detail: list[Gap] = Field(default_factory=list)
+    open_questions_detail: list[OpenQuestion] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def weights_sum_to_one(self) -> PlanStep:
@@ -185,6 +201,398 @@ class PlanStep(BaseModel):
                 "proceeding with applicable standards only."
             )
         return self.model_copy(update={"proposed_defaults": proposed, "gaps": gaps})
+
+    def with_clarify_assessment(
+        self,
+        assessment: SpecAssessment,
+        findings: ResearchFindings,
+    ) -> PlanStep:
+        """Return a copy enriched with the AT-030 clarify assessment.
+
+        A CLEAR brief (low ambiguity, no unsafe gaps) is left untouched: no
+        questions, no proposed defaults — the gate stays silent (acceptance A). An
+        UNDER-SPECIFIED brief in a recognizable domain surfaces the domain's
+        Tier-1 standards as cited proposed defaults *and* records the classified
+        gaps the clarify gate routes (acceptance B). The ask-vs-silent decision
+        itself lives in :func:`atelier.gates.clarify.clarify_gate`; this method
+        only populates the data the gate consumes.
+
+        Emission rule (PRD §3.5): surface a clarify batch iff the brief is
+        ambiguous on >=2 dimensions OR carries an unsafe gap (safety dimension
+        weak, or an irreversible/global decision). A clear brief satisfies
+        neither and is returned unchanged.
+
+        Args:
+            assessment: The 6-dimension :class:`SpecAssessment`.
+            findings: The frozen :class:`ResearchFindings` (domain standards).
+
+        Returns:
+            A new PlanStep carrying ``gaps_detail`` (classified) + ``proposed_defaults``
+            (cited) when a clarify is warranted, else an unchanged copy.
+        """
+        if not assessment.warrants_clarify():
+            # Clear brief: keep the gate silent. We still preserve any defaults a
+            # prior ``with_research`` populated, but emit no new clarify data.
+            return self.model_copy(update={"gaps_detail": [], "open_questions_detail": []})
+
+        gaps = assessment.to_gaps(findings)
+        # Proposed defaults are the cited domain standards (highest-trust first),
+        # the same provenance AT-025 surfaces — the clarify gate routes per-gap.
+        proposed = [
+            ProposedDefault(
+                standard_id=s.standard_id,
+                name=s.name,
+                rule=s.rule,
+                citation_url=s.citation_url,
+                trust_score=s.trust_score,
+                domain=s.domain,
+            )
+            for s in findings.proposed_defaults()
+        ]
+        return self.model_copy(update={"gaps_detail": gaps, "proposed_defaults": proposed})
+
+
+# ---------------------------------------------------------------------------
+# AT-030 — specification assessment (the 6-dimension uncertainty model)
+# ---------------------------------------------------------------------------
+
+#: The six dimensions a brief is scored on. A score is in ``[0.0, 1.0]`` where
+#: 1.0 == fully specified / unambiguous and 0.0 == absent. The dimensions are the
+#: minimal coordinate system a downstream design agent needs to NOT railroad:
+#: what to build, how we'll know it's done, how much, under what limits, for whom,
+#: and what must never break.
+_ASSESSMENT_DIMENSIONS: tuple[str, ...] = (
+    "objective",
+    "done_criteria",
+    "scope",
+    "constraints",
+    "environment",
+    "safety",
+)
+
+#: A dimension scoring below this is considered "ambiguous" for the >=2-dimension
+#: emission rule.
+_AMBIGUOUS_DIMENSION_THRESHOLD = 0.5
+
+#: Minimum number of ambiguous dimensions that, on its own, warrants a clarify
+#: batch (an unsafe gap also warrants one regardless of this count). Two is the
+#: floor: a single soft gap is silently defaulted; two means the brief is
+#: genuinely under-specified.
+_MIN_AMBIGUOUS_FOR_CLARIFY = 2
+
+#: Lexical signals per dimension. Presence of ANY signal lifts the dimension's
+#: score; this is a general heuristic (not test-specific hard-coding) over the
+#: vocabulary a design brief uses to specify each coordinate. Lowercased substring
+#: match. The lists are deliberately broad so they generalize across briefs.
+_DIMENSION_SIGNALS: dict[str, tuple[str, ...]] = {
+    # What is being built — a concrete noun/component or explicit verb of intent.
+    "objective": (
+        "button",
+        "form",
+        "page",
+        "dashboard",
+        "card",
+        "modal",
+        "nav",
+        "menu",
+        "hero",
+        "table",
+        "chart",
+        "checkout",
+        "cart",
+        "landing",
+        "screen",
+        "component",
+        "build",
+        "create",
+        "design",
+        "make a",
+        "build a",
+    ),
+    # How we'll know it's done — success metrics / acceptance signals.
+    "done_criteria": (
+        "success",
+        "done when",
+        "acceptance",
+        "metric",
+        "kpi",
+        "conversion",
+        "goal",
+        "target",
+        "must show",
+        "should show",
+        "convert",
+        "complete",
+        "pass",
+        "score",
+        "threshold",
+        "submits",
+        "confirmation message",
+        "success message",
+    ),
+    # How much / which surfaces — scope enumeration.
+    "scope": (
+        "single",
+        "one ",
+        "only",
+        "page",
+        "pages",
+        "screen",
+        "screens",
+        "surface",
+        "section",
+        "just a",
+        "just the",
+        "campaign",
+        "set of",
+        "each",
+        "per ",
+        "cards",
+        "count",
+    ),
+    # Under what limits — technical/brand constraints.
+    "constraints": (
+        "stack",
+        "html",
+        "css",
+        "react",
+        "vue",
+        "svelte",
+        "tailwind",
+        "vanilla",
+        "brand",
+        "palette",
+        "color",
+        "font",
+        "typeface",
+        "register",
+        "brutalist",
+        "minimal",
+        "apple",
+        "monochrome",
+        "grid",
+        "style",
+        "must not",
+        "forbidden",
+        "constraint",
+        "budget",
+        "limit",
+    ),
+    # For whom / where — audience + context.
+    "environment": (
+        "audience",
+        "user",
+        "users",
+        "desktop",
+        "mobile",
+        "tablet",
+        "responsive",
+        "for ",
+        "context",
+        "internal",
+        "external",
+        "customer",
+        "operator",
+        "admin",
+        "viewport",
+        "device",
+        "marketing",
+        "enterprise",
+    ),
+    # What must never break — destructive/irreversible ops acknowledged.
+    "safety": (
+        "no destructive",
+        "not destructive",
+        "irreversible",
+        "reversible",
+        "performs no",
+        "read-only",
+        "read only",
+        "safe",
+        "no irreversible",
+        "non-destructive",
+        "wcag",
+        "accessible",
+        "accessibility",
+        "compliance",
+        "privacy",
+        "auth",
+        "security",
+        "no data",
+        "without deleting",
+    ),
+}
+
+#: Tokens that, when present in a brief, signal a HIGH-STAKES / irreversible
+#: decision is in play that the brief did NOT pin down — the router must ASK these,
+#: never silently default (fail-closed; PRD §3.5 / failure trichotomy fail-loud).
+_HIGH_STAKES_SIGNALS: tuple[str, ...] = (
+    "payment",
+    "checkout",
+    "delete",
+    "purchase",
+    "charge",
+    "billing",
+    "transfer",
+    "auth",
+    "login",
+    "sign in",
+    "sign-in",
+    "password",
+    "pii",
+    "personal data",
+    "irreversible",
+    "destructive",
+    "legal",
+    "consent",
+    "gdpr",
+    "refund",
+)
+
+#: A brief shorter than this (in words) is treated as scope-ambiguous regardless
+#: of lexical hits — three words cannot specify six dimensions.
+_TERSE_WORD_FLOOR = 8
+
+
+@dataclass(frozen=True)
+class SpecAssessment:
+    """The 6-dimension specification assessment of a brief (AT-030).
+
+    Attributes:
+        dimension_scores: Per-dimension specificity in ``[0.0, 1.0]``.
+        ambiguity_score: ``1 - mean(dimension_scores)`` — the headline uncertainty.
+        unsafe_gaps: Dimensions/decisions that are high-stakes or irreversible and
+            were NOT pinned down by the brief (always asked, never defaulted).
+        ambiguous_dimensions: Dimensions scoring below the ambiguity threshold.
+    """
+
+    dimension_scores: dict[str, float]
+    ambiguity_score: float
+    unsafe_gaps: list[str] = field(default_factory=list)
+    ambiguous_dimensions: list[str] = field(default_factory=list)
+
+    def warrants_clarify(self) -> bool:
+        """Emit a clarify batch iff >=2 dimensions ambiguous OR an unsafe gap exists.
+
+        This is the gate's emission predicate (PRD §3.5): a clear brief (0-1
+        ambiguous dimensions, no unsafe gap) is NOT interrupted; an under-specified
+        or high-stakes brief is.
+        """
+        return len(self.ambiguous_dimensions) >= _MIN_AMBIGUOUS_FOR_CLARIFY or bool(
+            self.unsafe_gaps
+        )
+
+    def to_gaps(self, findings: ResearchFindings) -> list[Gap]:
+        """Classify each ambiguous dimension into a routable :class:`Gap`.
+
+        High-stakes / irreversible / global dimensions (anything in
+        ``unsafe_gaps``, or the ``safety`` dimension) are classified
+        costly/global/high so the router ASKS them. Cheap, local, low-stakes
+        dimensions are bound to the domain's strongest applicable standard (when
+        one exists) so the router can silently default WITH a citation.
+        """
+        from atelier.models.clarify_models import Gap  # noqa: PLC0415 — cycle break
+
+        # Strongest cited domain standard available as a default anchor.
+        domain_defaults = findings.proposed_defaults()
+        gaps: list[Gap] = []
+        for dim in self.ambiguous_dimensions:
+            is_unsafe = dim in self.unsafe_gaps or dim == "safety"
+            if is_unsafe:
+                gaps.append(
+                    Gap(
+                        decision_id=f"{dim}-unspecified",
+                        dimension=dim,
+                        description=(
+                            f"The brief does not pin down the '{dim}' dimension, "
+                            "and the decision is high-stakes or irreversible."
+                        ),
+                        reversibility="costly",
+                        blast_radius="global",
+                        stakes="high",
+                    )
+                )
+                continue
+            # Cheap + local: bind to a cited domain standard when one exists.
+            anchor = domain_defaults[0] if domain_defaults else None
+            if anchor is not None:
+                gaps.append(
+                    Gap(
+                        decision_id=anchor.standard_id,
+                        dimension=dim,
+                        description=(
+                            f"The brief leaves the '{dim}' dimension to a default; "
+                            f"applying the domain standard '{anchor.name}'."
+                        ),
+                        reversibility="cheap",
+                        blast_radius="local",
+                        stakes="low",
+                        recommended_value=anchor.rule,
+                        citation_url=anchor.citation_url,
+                        rationale=anchor.rule,
+                    )
+                )
+                # Consume the anchor so distinct dimensions bind distinct standards
+                # where the pack has them (avoids proposing the same default twice).
+                domain_defaults = domain_defaults[1:] or domain_defaults
+        return gaps
+
+
+def assess_specification(brief_text: str) -> SpecAssessment:
+    """Score a brief on the six specification dimensions (AT-030 core).
+
+    A general lexical-coverage model (NOT test-specific hard-coding): each
+    dimension's score is the fraction of independent signals present, with a terse
+    brief (< :data:`_TERSE_WORD_FLOOR` words) floored toward ambiguous because a
+    handful of words cannot specify six coordinates. The ``safety`` dimension is
+    additionally driven to an unsafe gap whenever a high-stakes token
+    (payment/auth/delete/...) appears WITHOUT an explicit safety acknowledgment —
+    the fail-closed bias: a consequential, unconfirmed decision is always asked.
+
+    Args:
+        brief_text: The raw brief text.
+
+    Returns:
+        A frozen :class:`SpecAssessment`.
+    """
+    lowered = brief_text.lower()
+    word_count = len(brief_text.split())
+    terse = word_count < _TERSE_WORD_FLOOR
+
+    dimension_scores: dict[str, float] = {}
+    for dim in _ASSESSMENT_DIMENSIONS:
+        signals = _DIMENSION_SIGNALS[dim]
+        hits = sum(1 for sig in signals if sig in lowered)
+        # Saturating coverage: two distinct signals already make a dimension
+        # "specified". A single hit is partial; zero hits is absent.
+        score = min(1.0, hits / 2.0)
+        if terse:
+            # A terse brief can't have meaningfully specified a dimension even if a
+            # keyword coincidentally matched — cap each dimension at "partial".
+            score = min(score, 0.5)
+        dimension_scores[dim] = round(score, 3)
+
+    # Safety fail-closed override: a high-stakes token with no explicit safety
+    # acknowledgment forces the safety dimension low and flags an unsafe gap.
+    high_stakes_present = any(tok in lowered for tok in _HIGH_STAKES_SIGNALS)
+    safety_acknowledged = dimension_scores["safety"] >= _AMBIGUOUS_DIMENSION_THRESHOLD
+    unsafe_gaps: list[str] = []
+    if high_stakes_present and not safety_acknowledged:
+        dimension_scores["safety"] = min(dimension_scores["safety"], 0.2)
+        unsafe_gaps.append("safety")
+
+    ambiguous_dimensions = [
+        dim for dim, score in dimension_scores.items() if score < _AMBIGUOUS_DIMENSION_THRESHOLD
+    ]
+    mean_score = sum(dimension_scores.values()) / len(dimension_scores)
+    ambiguity_score = round(1.0 - mean_score, 3)
+
+    return SpecAssessment(
+        dimension_scores=dimension_scores,
+        ambiguity_score=ambiguity_score,
+        unsafe_gaps=unsafe_gaps,
+        ambiguous_dimensions=ambiguous_dimensions,
+    )
 
 
 class PlannerAgent:
@@ -309,3 +717,20 @@ class PlannerAgent:
             extra={"response_length": len(last_text)},
         )
         return last_text
+
+
+# ---------------------------------------------------------------------------
+# Resolve PlanStep's AT-030 forward refs (``gaps_detail: list[Gap]`` /
+# ``open_questions_detail: list[OpenQuestion]``) at module load, so ``PlanStep`` is
+# fully defined the moment THIS module is imported — even when imported directly
+# (e.g. the sign-off gate tests) without first importing clarify_models.
+#
+# clarify_models does NOT import planner at its module top (only under
+# TYPE_CHECKING), so this bottom-of-module import never deadlocks: ``Gap`` /
+# ``OpenQuestion`` are defined before clarify_models reaches its own (local)
+# ``ProposedDefault`` import, which by then is already defined above.
+# ---------------------------------------------------------------------------
+from atelier.models.clarify_models import Gap as _Gap  # noqa: E402
+from atelier.models.clarify_models import OpenQuestion as _OpenQuestion  # noqa: E402
+
+PlanStep.model_rebuild(_types_namespace={"Gap": _Gap, "OpenQuestion": _OpenQuestion})

@@ -961,6 +961,15 @@ class AtelierRunner:
             reference_urls=list(getattr(brief, "reference_artifacts", []) or []),
         )
         plan = plan.with_research(research_findings)
+        # AT-030 clarify gate (decision layer on AT-025 data): assess the brief on
+        # the six specification dimensions and classify the gaps the gate routes.
+        # A clear brief leaves the plan unchanged (no questions, no new defaults); an
+        # under-specified or high-stakes brief gets ``gaps_detail`` populated so the
+        # stakes router can ask-vs-silent-default at emission time (in ``run``).
+        from atelier.orchestrator.planner import assess_specification  # noqa: PLC0415
+
+        assessment = assess_specification(brief_text)
+        plan = plan.with_clarify_assessment(assessment, research_findings)
         logger.info(
             "AT-025: research synthesized",
             extra={
@@ -969,6 +978,8 @@ class AtelierRunner:
                 "proposed_defaults": len(plan.proposed_defaults),
                 "armor_verdict": research_findings.armor_verdict.value,
                 "reference_palette": len(research_findings.reference_extract.palette),
+                "clarify_ambiguity": assessment.ambiguity_score,
+                "clarify_gaps": len(plan.gaps_detail),
             },
         )
 
@@ -980,6 +991,49 @@ class AtelierRunner:
             STAGE_N2_SOURCE_RESOLVE, tokens=STAGE_TOKEN_ATTRIBUTION
         )
         return brief, project_ctx, wrai_report, plan
+
+    async def _emit_clarify(
+        self,
+        *,
+        plan: PlanStep,
+        surfaces: list[str],
+        progress_callback: Callable[[str, dict[str, Any]], Any],
+    ) -> None:
+        """AT-030: run the clarify gate and surface its single batched event.
+
+        Routes the plan's classified gaps (ask high-stakes/irreversible; silently
+        apply cheap+local cited defaults) into one :class:`ClarifyBatch` and emits
+        it as a ``clarify`` progress event — but only when the gate is non-silent
+        (a clear brief emits nothing). Fail-soft: a clarify failure must never
+        break generation, so any error degrades to "no clarify event" with a
+        logged warning (the gate is an aid, not a hard gate here).
+        """
+        from atelier.gates.clarify import clarify_gate  # noqa: PLC0415
+        from atelier.models.acceptance import AcceptanceCriteria  # noqa: PLC0415
+
+        try:
+            acceptance = AcceptanceCriteria(
+                run_id="clarify-preview",
+                brief_sha256="0" * 64,
+                required_surfaces=list(surfaces),
+            )
+            emitted: list[Any] = []
+            clarify_gate(
+                plan=plan,
+                acceptance=acceptance,
+                research_findings=None,
+                emit=emitted.append,
+            )
+            for batch in emitted:
+                await progress_callback("clarify", batch.model_dump(mode="json"))
+        except Exception:  # noqa: BLE001
+            # Fail-soft: the clarify event is an anti-railroad aid, not a hard gate
+            # in the non-signoff path. A failure here must not block generation.
+            logger.warning(
+                "AT-030 clarify gate failed; proceeding without a clarify event",
+                exc_info=True,
+                extra={"surfaces": surfaces},
+            )
 
     async def run(
         self,
@@ -1056,6 +1110,18 @@ class AtelierRunner:
         surfaces = getattr(plan, "surfaces", ["landing page"])
         if not surfaces:
             surfaces = ["landing page"]
+
+        # AT-030: run the clarify gate over the enriched plan. The stakes router
+        # asks high-stakes/irreversible gaps and silently applies cheap+local cited
+        # defaults; ONE batched event is surfaced (never drip-fed). A clear brief
+        # emits nothing. The batch feeds the §14 clarify panel; confirmed defaults
+        # are written into ACCEPTANCE at sign-off via ``apply_clarify_answers``.
+        if progress_callback:
+            await self._emit_clarify(
+                plan=plan,
+                surfaces=surfaces,
+                progress_callback=progress_callback,
+            )
 
         # AT-031 (PRD §1 / §16 / R5): fail-closed human sign-off gate. After the plan
         # and scope are locked and BEFORE the screen loop (N3a), halt for an explicit
