@@ -82,6 +82,31 @@ class SurfaceType(StrEnum):
 
 
 # ---------------------------------------------------------------------------
+# Board / Kanban Enums (PRD §7A.5 — writer AT-020b, reader AT-041)
+# ---------------------------------------------------------------------------
+
+
+class BoardColumnId(StrEnum):
+    """The ordered, exact Kanban column set for the Board task-doc (PRD §7A.5).
+
+    A run drives ONE ``tenants/{tenant_id}/projects/{id}/tasks/{task_id}`` doc
+    through these six columns **in declaration order, with NO skips**. The
+    string values are the canonical display names the dashboard reader (AT-041)
+    matches on, so they are the prose labels from the PRD — not machine-mangled
+    identifiers. Declaration order IS the legal transition order; the emitter
+    derives the forward-only state machine from :data:`__members__` so the order
+    is single-sourced here (changing a column means changing this enum).
+    """
+
+    BRIEF = "Brief"
+    DECOMPOSE = "Decompose"
+    AWAITING_SIGNOFF = "Awaiting Sign-off"
+    GENERATING = "Generating"
+    QA = "QA"
+    DONE = "Done"
+
+
+# ---------------------------------------------------------------------------
 # Pipeline Gate Enums (N3c deterministic gates)
 # ---------------------------------------------------------------------------
 
