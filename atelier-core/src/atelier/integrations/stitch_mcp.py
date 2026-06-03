@@ -22,12 +22,16 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import structlog
-from google.adk.tools.mcp_tool.mcp_session_manager import SseConnectionParams
+from google.adk.tools.mcp_tool.mcp_session_manager import StreamableHTTPConnectionParams
 from google.adk.tools.mcp_tool.mcp_toolset import McpToolset
 from google.cloud import secretmanager
+
+if TYPE_CHECKING:
+    from google.adk.agents.readonly_context import ReadonlyContext
+    from google.adk.tools.base_tool import BaseTool
 
 logger = structlog.get_logger("atelier.stitch")
 
@@ -293,10 +297,43 @@ def get_design_system_for_register(visual_register: str) -> StitchDesignSystemSp
 _SECRET_NAME = "projects/atelier-build-2026/secrets/atelier-geap-api-key/versions/latest"  # noqa: S105
 
 
+def _mint_adc_access_token() -> str | None:
+    """Mint a fresh OAuth access token via ADC / Workload Identity, or None.
+
+    Stitch MCP accepts the runtime service account's ``cloud-platform`` token.
+    Minting per call yields a fresh, auto-refreshed ~1h token, so the MCP session
+    no longer 401s mid-run on the expiry of a static stored credential. Returns
+    None (not raising) when ADC is unavailable, so the caller can fall back.
+    """
+    try:
+        import google.auth  # noqa: PLC0415
+        import google.auth.transport.requests  # noqa: PLC0415
+
+        creds, _ = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
+        creds.refresh(google.auth.transport.requests.Request())
+        token = getattr(creds, "token", None)
+        return str(token) if token else None
+    except Exception as exc:  # noqa: BLE001 — fall back to Secret Manager below
+        logger.warning("stitch.adc_token_mint_failed", error_type=type(exc).__name__)
+        return None
+
+
 def _get_api_key() -> str:
-    """Retrieve the API key from GCP Secret Manager."""
-    if "STITCH_API_KEY" in os.environ:
+    """Return a bearer credential for the Stitch MCP endpoint.
+
+    Resolution order:
+      1. ``STITCH_API_KEY`` env — explicit override (a durable key or tests).
+      2. A freshly-minted ADC OAuth token (the durable, auto-refreshing path).
+      3. Secret Manager (``atelier-geap-api-key``) — legacy fallback. NOTE: the
+         stored value is a *short-lived* OAuth token that expires; preferring the
+         ADC mint above is what fixes the mid-run 401 that zeroed out generation.
+    """
+    if os.environ.get("STITCH_API_KEY"):
         return os.environ["STITCH_API_KEY"]
+
+    token = _mint_adc_access_token()
+    if token:
+        return token
 
     try:
         client = secretmanager.SecretManagerServiceClient()
@@ -314,15 +351,56 @@ def _get_api_key() -> str:
         raise
 
 
+def _strip_tool_output_schemas(tools: list[BaseTool]) -> list[BaseTool]:
+    """Drop each MCP tool's ``outputSchema`` so Vertex accepts the declaration.
+
+    ADK forwards an MCP tool's ``outputSchema`` as ``response_json_schema`` on the
+    Gemini ``FunctionDeclaration`` it builds. At least one Stitch tool
+    (``upload_design_md``) carries an output schema Vertex rejects with
+    ``400 INVALID_ARGUMENT`` — and because all tool declarations ship in a single
+    request, that one bad declaration fails the *entire* generation call (every
+    candidate, every retry), not just that tool. The response schema is purely
+    informational for function calling, so it is dropped for every tool; the model
+    can still call all 14 Stitch tools. Input schemas are Vertex-compatible (their
+    ``$ref``/``$defs`` resolve in ``parameters_json_schema`` mode) and left intact.
+    """
+    for tool in tools:
+        mcp_tool = getattr(tool, "_mcp_tool", None)
+        if mcp_tool is not None and getattr(mcp_tool, "outputSchema", None) is not None:
+            mcp_tool.outputSchema = None
+    return tools
+
+
+class _VertexSafeMcpToolset(McpToolset):
+    """``McpToolset`` that makes MCP tool declarations safe for Vertex generation.
+
+    See :func:`_strip_tool_output_schemas` for the failure this prevents.
+    """
+
+    async def get_tools(self, readonly_context: ReadonlyContext | None = None) -> list[BaseTool]:
+        return _strip_tool_output_schemas(await super().get_tools(readonly_context))
+
+
 def get_stitch_mcp_toolset() -> McpToolset:
-    """Returns an ADK MCPToolset configured for Stitch MCP."""
+    """Returns an ADK MCPToolset configured for Stitch MCP.
+
+    The Stitch endpoint (``stitch.googleapis.com/mcp``) is a stateless
+    Streamable HTTP MCP server — it answers ``initialize`` with a plain
+    ``application/json`` body and advertises no ``mcp-session-id``. It must be
+    reached with ``StreamableHTTPConnectionParams``; the earlier
+    ``SseConnectionParams`` opened an SSE stream the server never speaks, so the
+    handshake died with "unhandled errors in a TaskGroup", ADK retried it for
+    tens of minutes, and every generation silently fell back to direct mode
+    without the Stitch design tools. The bounded ``timeout`` (default 5s) keeps a
+    genuine outage fail-fast instead of hanging the convergence loop.
+    """
     api_key = _get_api_key()
 
-    connection_params = SseConnectionParams(
+    connection_params = StreamableHTTPConnectionParams(
         url="https://stitch.googleapis.com/mcp", headers={"Authorization": f"Bearer {api_key}"}
     )
 
-    return McpToolset(connection_params=connection_params, tool_name_prefix="stitch_")
+    return _VertexSafeMcpToolset(connection_params=connection_params, tool_name_prefix="stitch_")
 
 
 def try_get_stitch_mcp_toolset() -> tuple[McpToolset | None, StitchDegradationInfo]:
@@ -336,7 +414,24 @@ def try_get_stitch_mcp_toolset() -> tuple[McpToolset | None, StitchDegradationIn
 
     Per FIX-3: degradation is surfaced via structlog.warning and propagated
     to the caller for session metadata injection.
+
+    Stitch is a managed external dependency whose access credential
+    (``atelier-geap-api-key``) is a short-lived OAuth token: when it expires the
+    MCP session 401s *mid-run*, the ``generate_screen_from_text`` tool vanishes,
+    and N3a fails closed with zero candidates — a worse outcome than not using
+    Stitch at all. ``ATELIER_STITCH_ENABLED`` is the operator kill-switch: set it
+    to a falsey value to skip Stitch entirely and have the UI Designer generate
+    HTML directly (reliable, no token lifecycle). Disabled is a configured mode,
+    not a degradation, so it does not raise the "Stitch unavailable" notice.
     """
+    if os.getenv("ATELIER_STITCH_ENABLED", "true").lower() not in ("1", "true", "yes"):
+        logger.info("stitch.disabled_by_config", fallback_mode="direct_generation")
+        return None, StitchDegradationInfo(
+            is_degraded=False,
+            reason="Stitch disabled via ATELIER_STITCH_ENABLED; generating directly.",
+            fallback_mode="direct_generation",
+        )
+
     try:
         toolset = get_stitch_mcp_toolset()
         return toolset, StitchDegradationInfo(

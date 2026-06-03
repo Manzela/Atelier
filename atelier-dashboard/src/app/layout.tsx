@@ -14,9 +14,9 @@ const robotoMono = Roboto_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Stitch - Design with AI',
+  title: 'Atelier — Autonomous Design Agent',
   description:
-    'Stitch generates UIs for mobile and web applications, making design ideation fast and easy.',
+    'Atelier generates production-ready, accessible UIs from a brief through a deterministic-gate-first multi-agent pipeline on Gemini and Vertex AI.',
 };
 
 export default function RootLayout({

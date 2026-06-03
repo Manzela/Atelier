@@ -115,46 +115,57 @@ class TrajectoryRecord:
         return (self.ended_at - self.started_at).total_seconds() * 1000
 
     def to_bq_row(self) -> dict[str, Any]:
-        """Serialize to a BigQuery-compatible row dictionary.
+        """Serialize to a row matching the ``trajectory_records`` event schema.
 
-        Returns:
-            Dictionary matching the ``trajectory_records`` table schema.
+        The table is the generic event schema shared with ``session_events``
+        (``session_id, tenant_id, node_name, phase, expert_id, occurred_at,
+        payload JSON, embedding FLOAT[]``). The full per-run detail is carried in
+        the JSON ``payload``. The previous row used a wide schema (``ts``,
+        ``ended_at``, ``steps_json`` ...) the table does not have, so every
+        ``insert_rows_json`` failed with "no such field: ts" and no trajectory —
+        and therefore no DPO training data — was ever recorded.
         """
-        return {
+        payload = {
             "trajectory_id": str(self.trajectory_id),
-            "tenant_id": self.tenant_id,
             "project_id": self.project_id,
             "surface_id": str(self.surface_id),
-            "session_id": self.session_id,
             "campaign_id": self.campaign_id,
             "candidate_id": str(self.candidate_id),
             "iteration": self.iteration,
-            "ts": self.started_at.isoformat(),
+            "started_at": self.started_at.isoformat(),
             "ended_at": self.ended_at.isoformat(),
             "outcome": self.outcome,
             "composite_score": self.composite_score,
-            "steps_json": json.dumps(
-                [
-                    {
-                        "step_name": s.step_name,
-                        "step_index": s.step_index,
-                        "started_at": s.started_at.isoformat(),
-                        "ended_at": s.ended_at.isoformat(),
-                        "model_id": s.model_id,
-                        "input_tokens": s.input_tokens,
-                        "output_tokens": s.output_tokens,
-                        "cost_usd": s.cost_usd,
-                    }
-                    for s in self.steps
-                ]
-            ),
-            "gate_results_json": json.dumps(self.gate_results),
-            "judge_votes_json": json.dumps(self.judge_votes),
+            "steps": [
+                {
+                    "step_name": s.step_name,
+                    "step_index": s.step_index,
+                    "started_at": s.started_at.isoformat(),
+                    "ended_at": s.ended_at.isoformat(),
+                    "model_id": s.model_id,
+                    "input_tokens": s.input_tokens,
+                    "output_tokens": s.output_tokens,
+                    "cost_usd": s.cost_usd,
+                }
+                for s in self.steps
+            ],
+            "gate_results": self.gate_results,
+            "judge_votes": self.judge_votes,
             "total_cost_usd": self.total_cost_usd,
             "total_input_tokens": self.total_input_tokens,
             "total_output_tokens": self.total_output_tokens,
             "latency_ms": self.latency_ms,
             "error_message": self.error_message,
+        }
+        return {
+            "session_id": self.session_id,
+            "tenant_id": self.tenant_id,
+            "node_name": "pipeline_trajectory",
+            "phase": self.outcome,
+            "expert_id": str(self.candidate_id),
+            "occurred_at": self.started_at.isoformat(),
+            "payload": json.dumps(payload),
+            "embedding": [],
         }
 
 

@@ -280,6 +280,28 @@ class TestStubGates:
         )
         assert check_visual_diff_stub(standard).decision is GateDecision.PASS
 
+    def test_visual_diff_scores_by_structural_coverage_not_uniformity(self) -> None:
+        """The heuristic rewards broad structural-tag coverage, not a uniform
+        tag distribution. A landmark-rich page must out-score a div/p-only page,
+        and natural div/p frequency must not be penalised (the prior cosine-to-
+        uniform golden wrongly rejected realistic pages — the convergence blocker).
+        """
+        rich = _make_candidate(
+            {
+                "index.html": (
+                    "<html><header><nav>n</nav></header><main><section><article>"
+                    "<h1>A</h1><h2>B</h2><p>x</p><p>y</p><p>z</p><button>Go</button>"
+                    "<input/><img alt=''/></article></section></main><footer>f</footer></html>"
+                )
+            }
+        )
+        thin = _make_candidate(
+            {"index.html": "<html><body><div><div><p>just text</p></div></div></body></html>"}
+        )
+        assert check_visual_diff_stub(rich).score > check_visual_diff_stub(thin).score
+        assert check_visual_diff_stub(rich).decision is GateDecision.PASS
+        assert check_visual_diff_stub(thin).decision is GateDecision.REJECT
+
     def test_stubs_reject_empty_artifacts(self) -> None:
         """AT-010 (G2 fix): empty artifacts must REJECT at score 0, never PASS.
 

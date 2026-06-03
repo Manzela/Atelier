@@ -102,7 +102,7 @@ export default function StitchClientShell() {
               <Menu size={20} className="text-[var(--g-text-muted)]" />
             </button>
             <span className="ml-3 font-medium text-[15px] tracking-wide text-white">
-              {sidebarMode === 'stitch' ? 'Stitch BETA' : 'GCP Console'}
+              {sidebarMode === 'stitch' ? 'Atelier Studio' : 'GCP Console'}
             </span>
           </div>
 
@@ -201,7 +201,7 @@ export default function StitchClientShell() {
               transition={{ delay: 0.1, duration: 0.6, ease: 'easeOut' }}
               className="text-[44px] sm:text-[56px] font-medium mb-10 text-center text-white"
             >
-              Welcome to Stitch.
+              Welcome to Atelier.
             </m.h1>
 
             <m.div

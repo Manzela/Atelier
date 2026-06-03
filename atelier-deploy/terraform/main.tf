@@ -137,6 +137,11 @@ resource "google_cloud_run_v2_service" "api" {
   template {
     service_account = google_service_account.api.email
 
+    # A full DAG generation runs well past Cloud Run's 300s default request
+    # timeout (ensemble generation + D-O-R-A-V judging + convergence loop), so
+    # synchronous /v1/generate would be severed mid-run without this.
+    timeout = "${var.api_request_timeout_seconds}s"
+
     scaling {
       min_instance_count = var.api_min_instances
       max_instance_count = var.api_max_instances
@@ -208,6 +213,14 @@ resource "google_cloud_run_v2_service" "api" {
       env {
         name  = "GOOGLE_CLOUD_LOCATION"
         value = var.region
+      }
+
+      # Route google-genai / ADK through Vertex AI (ADC / Workload Identity)
+      # rather than Google AI Studio. Without this the client defaults to AI
+      # Studio and every model call fails with "No API key was provided".
+      env {
+        name  = "GOOGLE_GENAI_USE_VERTEXAI"
+        value = "true"
       }
 
       # The Vertex session/memory services bind to the Agent Engine deployed by

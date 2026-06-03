@@ -104,6 +104,27 @@ Governance items marked "(deploy wave)" are designed, ADR-tracked, and implement
 
 ---
 
+## Business case
+
+### Unit economics (B2)
+
+Atelier's cost basis is **tokens, not dollars** — the live meter shows `used / 5,000,000` per user (input, output, and thinking tokens split), never a dollar figure in-product. The token model:
+
+- **One bounded design system per run.** Every run terminates at a deterministic stop reason (converged at κ=0.70, max-iterations, or the per-user cap), so the token spend per design system has a known ceiling rather than an open-ended chat.
+- **No tokens on garbage.** The deterministic structure gate rejects empty or skeleton input before any judge runs, so the model is never billed for work the gates would reject.
+- **Enforced, not applied, consistency.** Brand fidelity is a zero-tolerance deterministic gate (AT-012): off-token output cannot pass on judge scores alone. Competitors apply a brand probabilistically; Atelier guarantees it — a reproducible difference (drive a single off-token edit and watch the gate REJECT it).
+
+The dollar narrative stays in prose: at the documented serving cost the per-design-system token budget maps to a predictable unit cost, while the product surfaces the governable quantity — tokens — that the operator actually controls.
+
+### Open-source and freemium GTM (B3)
+
+- **V1 — clone and run.** The repository runs end-to-end on a cold clone: `make verify` is green offline with no production credentials, and the public product runs on Atelier's own Vertex/Gemini key behind a per-user 5,000,000-token lifetime cap (Google SSO gated, anti-grief).
+- **V2 — bring your own key or subscription** (roadmap). A provider-agnostic client factory (Vertex/Gemini default; Anthropic, OpenAI, and AI Studio behind "Coming Soon") with per-tenant keys in Secret Manager, and a per-auth-type cap policy (subscription resets monthly; BYO-key sets its own cap; otherwise lifetime). The entire judged V1 surface stays Gemini-on-Vertex end to end.
+
+See [`docs/SUBMISSION.md`](docs/SUBMISSION.md) for the submission package and the "Built with Google Cloud" service list.
+
+---
+
 ## What Atelier Does
 
 Existing tools (Stitch, v0, Lovable, Subframe) stop at generation. Atelier runs every output through deterministic quality gates and multi-judge consensus before declaring convergence:

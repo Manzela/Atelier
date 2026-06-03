@@ -97,36 +97,40 @@ class TestTrajectoryRecord:
         assert record.outcome == "accepted"
         assert record.composite_score == PASS_SCORE
 
-    def test_to_bq_row_has_required_fields(self) -> None:
+    def test_to_bq_row_matches_event_table_schema(self) -> None:
+        # Must match the actual trajectory_records columns, not a wide schema —
+        # any extra/renamed key (the old "ts"/"ended_at"/"steps_json") makes
+        # insert_rows_json fail with "no such field".
         record = _make_trajectory()
         row = record.to_bq_row()
-        required_keys = {
-            "trajectory_id",
-            "tenant_id",
-            "project_id",
-            "surface_id",
+        assert set(row.keys()) == {
             "session_id",
-            "campaign_id",
-            "candidate_id",
-            "iteration",
-            "ts",
-            "ended_at",
-            "outcome",
-            "composite_score",
-            "steps_json",
-            "gate_results_json",
-            "judge_votes_json",
-            "total_cost_usd",
-            "total_input_tokens",
-            "total_output_tokens",
+            "tenant_id",
+            "node_name",
+            "phase",
+            "expert_id",
+            "occurred_at",
+            "payload",
+            "embedding",
         }
-        assert required_keys.issubset(set(row.keys()))
+        # REQUIRED columns are present and non-empty.
+        for col in ("session_id", "tenant_id", "node_name", "phase", "occurred_at"):
+            assert row[col]
+        assert isinstance(row["embedding"], list)
 
-    def test_to_bq_row_steps_json_is_string(self) -> None:
+    def test_to_bq_row_payload_carries_full_detail_as_json(self) -> None:
+        import json
+
         record = _make_trajectory()
         row = record.to_bq_row()
-        assert isinstance(row["steps_json"], str)
-        assert "n3a_generator" in row["steps_json"]
+        assert isinstance(row["payload"], str)
+        payload = json.loads(row["payload"])
+        # The rich per-run detail survives in the JSON payload.
+        assert payload["outcome"] == record.outcome
+        assert payload["composite_score"] == record.composite_score
+        assert any(s["step_name"] == "n3a_generator" for s in payload["steps"])
+        assert "gate_results" in payload
+        assert row["phase"] == record.outcome
 
     def test_frozen(self) -> None:
         record = _make_trajectory()

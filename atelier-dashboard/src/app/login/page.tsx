@@ -89,10 +89,10 @@ export default function LoginPage() {
               transition={{ delay: 0.2, type: 'spring', bounce: 0.5 }}
               className="w-14 h-14 rounded-2xl bg-[var(--g-primary-blue)] flex items-center justify-center mb-6 shadow-[0_0_24px_rgba(26,115,232,0.4)]"
             >
-              <span className="text-2xl font-bold text-white">S</span>
+              <span className="text-2xl font-bold text-white">A</span>
             </m.div>
             <h1 id="login-title" className="text-3xl font-medium tracking-tight text-white mb-3">
-              Welcome to Stitch
+              Welcome to Atelier
             </h1>
             <p className="text-[15px] text-[var(--g-text-muted)] text-center">
               Design rapidly with Autonomous AI

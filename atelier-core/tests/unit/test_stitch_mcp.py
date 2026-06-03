@@ -105,3 +105,157 @@ class TestVisualRegisterMapping:
     def test_whitespace_trimmed(self) -> None:
         spec = get_design_system_for_register("  startup  ")
         assert spec.headline_font == StitchFont.SPACE_GROTESK
+
+
+@pytest.mark.unit
+class TestStitchMcpTransport:
+    """Lock the MCP transport for the Stitch toolset.
+
+    Regression guard: ``stitch.googleapis.com/mcp`` is a stateless Streamable
+    HTTP server. It was previously reached with ``SseConnectionParams``, whose
+    SSE handshake the server never answers — ADK then retried for tens of
+    minutes and every generation silently fell back to direct mode without the
+    Stitch design tools. The toolset must use ``StreamableHTTPConnectionParams``.
+    """
+
+    def test_toolset_uses_streamable_http_transport(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        # Avoid a Secret Manager call — _get_api_key short-circuits on this env.
+        monkeypatch.setenv("STITCH_API_KEY", "fake-key-for-test")
+
+        from atelier.integrations.stitch_mcp import get_stitch_mcp_toolset
+        from google.adk.tools.mcp_tool.mcp_session_manager import (
+            StreamableHTTPConnectionParams,
+        )
+
+        toolset = get_stitch_mcp_toolset()
+        params = toolset._connection_params
+
+        # Streamable HTTP, not SSE — the type itself is the regression guard
+        # (SseConnectionParams and StreamableHTTPConnectionParams are disjoint).
+        assert type(params).__name__ == "StreamableHTTPConnectionParams"
+        assert isinstance(params, StreamableHTTPConnectionParams)
+        assert params.url == "https://stitch.googleapis.com/mcp"
+        assert params.headers is not None
+        assert params.headers["Authorization"] == "Bearer fake-key-for-test"
+
+    def test_toolset_is_vertex_safe_subclass(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("STITCH_API_KEY", "fake-key-for-test")
+        from atelier.integrations.stitch_mcp import _VertexSafeMcpToolset, get_stitch_mcp_toolset
+
+        assert isinstance(get_stitch_mcp_toolset(), _VertexSafeMcpToolset)
+
+    def test_disabled_by_config_returns_no_toolset_without_degrading(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The kill-switch: Stitch off → direct generation, not a degradation.
+
+        The GEAP credential is a short-lived OAuth token; when it expires the MCP
+        session 401s mid-run and N3a fails with zero candidates. Operators set
+        ATELIER_STITCH_ENABLED=false to skip Stitch entirely — a configured mode,
+        so is_degraded stays False (no "Stitch unavailable" notice fired).
+        """
+        from atelier.integrations.stitch_mcp import try_get_stitch_mcp_toolset
+
+        monkeypatch.setenv("ATELIER_STITCH_ENABLED", "false")
+        toolset, info = try_get_stitch_mcp_toolset()
+
+        assert toolset is None
+        assert info.is_degraded is False
+        assert info.fallback_mode == "direct_generation"
+
+    def test_enabled_by_default(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        # No ATELIER_STITCH_ENABLED set → Stitch is attempted (construction path).
+        monkeypatch.delenv("ATELIER_STITCH_ENABLED", raising=False)
+        monkeypatch.setenv("STITCH_API_KEY", "fake-key-for-test")
+        from atelier.integrations.stitch_mcp import try_get_stitch_mcp_toolset
+
+        toolset, info = try_get_stitch_mcp_toolset()
+        # Construction succeeds with a fake key (connection is lazy), so a toolset
+        # is returned and it is not the disabled-by-config path.
+        assert toolset is not None
+        assert "disabled" not in info.reason.lower()
+
+
+@pytest.mark.unit
+class TestStitchCredentialResolution:
+    """Bearer credential order: STITCH_API_KEY > fresh ADC token > Secret Manager.
+
+    The Secret-Manager value is a short-lived OAuth token that 401s on expiry;
+    preferring a freshly-minted ADC token (which Stitch accepts) is what keeps
+    the MCP session alive across runs.
+    """
+
+    def test_env_key_takes_precedence(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        import atelier.integrations.stitch_mcp as sm
+
+        monkeypatch.setenv("STITCH_API_KEY", "explicit-key")
+        # ADC must not even be consulted when an explicit key is present.
+        monkeypatch.setattr(
+            sm, "_mint_adc_access_token", lambda: pytest.fail("ADC should not be called")
+        )
+        assert sm._get_api_key() == "explicit-key"
+
+    def test_adc_token_used_when_no_env_key(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        import atelier.integrations.stitch_mcp as sm
+
+        monkeypatch.delenv("STITCH_API_KEY", raising=False)
+        monkeypatch.setattr(sm, "_mint_adc_access_token", lambda: "fresh-adc-token")
+        assert sm._get_api_key() == "fresh-adc-token"
+
+    def test_falls_back_to_secret_manager_when_adc_unavailable(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import atelier.integrations.stitch_mcp as sm
+
+        monkeypatch.delenv("STITCH_API_KEY", raising=False)
+        monkeypatch.setattr(sm, "_mint_adc_access_token", lambda: None)
+
+        class _Payload:
+            data = b"secret-manager-token"
+
+        class _Resp:
+            payload = _Payload()
+
+        class _Client:
+            def access_secret_version(self, request: object) -> _Resp:
+                return _Resp()
+
+        monkeypatch.setattr(sm.secretmanager, "SecretManagerServiceClient", _Client)
+        assert sm._get_api_key() == "secret-manager-token"
+
+
+@pytest.mark.unit
+class TestStripToolOutputSchemas:
+    """Vertex rejects some MCP outputSchemas forwarded as response_json_schema.
+
+    Regression guard for the N3a 400 INVALID_ARGUMENT: once the transport fix let
+    Stitch actually connect, ADK began forwarding each tool's outputSchema as the
+    FunctionDeclaration response schema, and Stitch's upload_design_md output
+    schema failed the whole generation request. The toolset must null every MCP
+    outputSchema before ADK builds declarations.
+    """
+
+    def test_strips_output_schema_and_preserves_input(self) -> None:
+        import mcp.types as mt
+        from atelier.integrations.stitch_mcp import _strip_tool_output_schemas
+
+        class _FakeTool:
+            def __init__(self, mcp_tool: mt.Tool) -> None:
+                self._mcp_tool = mcp_tool
+
+        with_out = _FakeTool(
+            mt.Tool(
+                name="upload",
+                inputSchema={"type": "object", "properties": {"a": {"type": "string"}}},
+                outputSchema={"type": "object", "properties": {"ok": {"type": "boolean"}}},
+            )
+        )
+        without_out = _FakeTool(mt.Tool(name="clean", inputSchema={"type": "object"}))
+
+        result = _strip_tool_output_schemas([with_out, without_out])  # type: ignore[list-item]
+
+        assert with_out._mcp_tool.outputSchema is None
+        assert without_out._mcp_tool.outputSchema is None
+        # Input schemas are untouched (they are Vertex-compatible as-is).
+        assert with_out._mcp_tool.inputSchema["properties"] == {"a": {"type": "string"}}
+        assert result == [with_out, without_out]

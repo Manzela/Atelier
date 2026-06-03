@@ -53,15 +53,21 @@ variable "api_max_instances" {
 }
 
 variable "api_memory" {
-  description = "Memory limit per API instance"
+  description = "Memory limit per API instance. The API bakes in chromium and runs the axe-core a11y gate (N3c) in-process; below ~2Gi chromium OOMs and every candidate fails the gate. 4Gi leaves headroom for ADK + concurrent generations."
   type        = string
-  default     = "1Gi"
+  default     = "4Gi"
 }
 
 variable "api_cpu" {
-  description = "CPU limit per API instance"
+  description = "CPU limit per API instance. Cloud Run requires >=2 vCPU for >4Gi memory; 2 also speeds chromium rendering during the a11y gate."
   type        = string
-  default     = "1"
+  default     = "2"
+}
+
+variable "api_request_timeout_seconds" {
+  description = "Cloud Run request timeout. A full DAG generation (N1->N3a ensemble + D-O-R-A-V judging + convergence iterations) exceeds the 300s default; set to the 3600s maximum so synchronous /v1/generate calls are not severed mid-run."
+  type        = number
+  default     = 3600
 }
 
 variable "agent_engine_id" {
@@ -98,6 +104,23 @@ variable "auth_domain" {
   description = "Custom auth domain for Identity Platform"
   type        = string
   default     = "auth.atelier.autonomous-agent.dev"
+}
+
+variable "custom_domain" {
+  description = "Custom domain for the Atelier dashboard, authorized for Firebase SSO OAuth redirects (AT-083). Must match the domain served by the ALB (dns.tf / alb.tf)."
+  type        = string
+  default     = "atelier.autonomous-agent.dev"
+
+  validation {
+    condition     = can(regex("^[a-z0-9][a-z0-9.-]+[a-z0-9]$", var.custom_domain))
+    error_message = "custom_domain must be a valid domain name (lowercase, no protocol prefix)."
+  }
+}
+
+variable "additional_authorized_domains" {
+  description = "Extra domains authorized for Firebase Auth OAuth redirects beyond the defaults + custom_domain (e.g. a Cloud Run *.run.app staging dashboard host). Because google_identity_platform_config replaces the whole list, staging domains must be declared here to survive an apply."
+  type        = list(string)
+  default     = []
 }
 
 # --- Networking ---

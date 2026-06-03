@@ -100,7 +100,7 @@ class FixerAgent:
 
         if consensus:
             prompt += "\nConsensus Scores:\n"
-            for axis, vote in consensus.per_axis_scores.items():
+            for axis, vote in consensus.votes.items():
                 prompt += f"- {axis.value}: {vote.score:.2f} ({vote.reasoning})\n"
 
         try:

@@ -24,7 +24,6 @@ See Also:
 
 from datetime import datetime
 from enum import StrEnum
-from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -115,7 +114,10 @@ class IntakeAnswer(BaseModel):
 
     question_id: str
     answer_text: str
-    answer_value: Any | None = None
+    # A concrete type, not ``Any``: ``Any`` serializes to an empty JSON schema
+    # ({} with no "type"), which Vertex controlled-generation rejects. Structured
+    # extractions are carried as a string (JSON-encoded when non-scalar).
+    answer_value: str | None = None
     visual_option_selected: str | None = None
     schema_version: int = 1
 
