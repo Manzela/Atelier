@@ -31,16 +31,20 @@ larger prompt.
 - **Governed autonomy.** A per-user lifetime token cap is enforced server-side
   before any model call; a live token meter shows used-versus-remaining with the
   thinking-token split; the agent always acknowledges degradation rather than
-  failing silently. Model Armor guards every model call against injection.
+  failing silently. A Model Armor injection-guard callback wraps every model
+  call, active when its template is configured.
 - **Human-in-the-loop by design.** The pipeline halts at sign-off and resumes
   only on approval; a non-destructive stop preserves a checkpoint.
 
-Atelier runs end-to-end on Google's managed stack: Google ADK orchestrates the
-agents, Gemini on Vertex AI serves them, Cloud Run hosts the API and dashboard,
-Vertex Agent Engine is the managed deploy target for the agent runtime, Vertex
-Sessions and Memory Bank back session and long-term state in production, Model
-Armor guards every model call, and Firestore, Cloud Armor, and Certificate
-Manager carry the product.
+Atelier runs on Google's managed stack. The live deployment uses Google ADK to
+orchestrate the agents, Gemini on Vertex AI to serve them, Cloud Run to host the
+API and the Studio, Firebase Authentication for Google sign-on, Firebase Hosting
+for the public Bench Observatory, and BigQuery for the trajectory and
+DPO-preference tables behind the data flywheel. The codebase additionally
+integrates Vertex Agent Engine, Vertex Sessions and Memory Bank, Model Armor, and
+a Firestore-backed token cap as configuration-selectable backends — wired and
+tested, intended for a fuller production posture and left off for this lean demo
+deployment.
 
 Every claim is reproducible. `make verify` runs the hermetic offline suite,
 including a byte-identical golden trajectory across repeated runs; `make replay`
@@ -60,20 +64,29 @@ live off-token rejection. Nothing in the judged path is mocked.
 
 ## Built with Google Cloud
 
-Atelier is built end-to-end on Google Cloud (region `us-central1`):
+Atelier is built end-to-end on Google Cloud (region `us-central1`).
+
+In the live deployment:
 
 - Google Agent Development Kit (ADK) — agent orchestration
-- Gemini on Vertex AI — model serving
-- Vertex AI Agent Engine — managed agent deploy target (the agent runtime)
-- Vertex AI Sessions + Memory Bank — session and long-term memory persistence
-- Model Armor — prompt-injection and output safety
-- Cloud Run — API and dashboard hosting
-- Cloud Load Balancing + Cloud Armor — public ingress and edge protection
-- Certificate Manager + Cloud DNS — managed certificate and custom domain
-- Firestore — state, board, and per-user token-cap counters
+- Gemini on Vertex AI — model serving (`GOOGLE_GENAI_USE_VERTEXAI`)
+- Cloud Run — API and Studio hosting (the agent runtime)
+- Cloud Build + Artifact Registry — container build and image storage
 - Firebase Authentication — Google single sign-on
-- BigQuery — trajectory storage for the data flywheel
-- Cloud Trace + Cloud Logging — observability
+- Firebase Hosting — the public Bench Observatory (managed TLS)
+- BigQuery — trajectory, DPO-pair, calibration, and cost-ledger tables for the data flywheel
+- Cloud Logging — structured request and pipeline logs (native to Cloud Run)
+
+Integrated in code and Terraform, configuration-selectable, and not enabled in
+this demo deployment:
+
+- Vertex AI Agent Engine — managed agent-runtime deploy target
+- Vertex AI Sessions + Memory Bank — session and long-term memory persistence
+- Model Armor — prompt-injection and output safety on every model call
+- Firestore — per-user token-cap persistence
+- Cloud Load Balancing + Cloud Armor and Certificate Manager + Cloud DNS — the
+  custom-domain ingress design; the live custom domain is currently served via
+  Firebase Hosting with Cloudflare DNS
 
 ## Pre-filing checklist
 
