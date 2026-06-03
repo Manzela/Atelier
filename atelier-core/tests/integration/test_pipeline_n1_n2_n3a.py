@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from atelier.intake.brief_parser import BriefParserAgent
 from atelier.intake.source_resolver import ProjectContext
+from atelier.models.design_system import DesignSystemRecord
 from atelier.orchestrator.runner import AtelierRunner
 
 
@@ -50,9 +51,16 @@ async def test_end_to_end_pipeline_n1_n2_n3a() -> None:
         patch(
             "atelier.intake.source_resolver.pull_design_tokens", new_callable=AsyncMock
         ) as mock_tokens,
+        # AT-053 (c8b49ce) rewrote source_resolver_agent: memory-bank priors are
+        # now derived from the tenant's PERSISTED design system via
+        # load_tenant_design_system + serialize_priors, NOT the old standalone
+        # pull_memory_bank_priors (which the agent no longer calls). We patch the
+        # seam the agent actually reaches today and return a real DesignSystemRecord
+        # so the genuine auto-apply path (serialize_priors) runs end-to-end.
         patch(
-            "atelier.intake.source_resolver.pull_memory_bank_priors", new_callable=AsyncMock
-        ) as mock_priors,
+            "atelier.intake.source_resolver.load_tenant_design_system",
+            new_callable=AsyncMock,
+        ) as mock_persisted_system,
         patch("atelier.orchestrator.runner.Runner") as mock_runner_cls,
     ):
         # N1 mock
@@ -60,7 +68,11 @@ async def test_end_to_end_pipeline_n1_n2_n3a() -> None:
 
         # N2 mock
         mock_tokens.return_value = {"primary_color": "#ffffff"}
-        mock_priors.return_value = ["fake-prior"]
+        mock_persisted_system.return_value = DesignSystemRecord(
+            tenant_id="t1",
+            run_id="prior-run",
+            tokens={"primary_color": "#ffffff"},
+        )
 
         # N3a mock — Runner instance with run_async
         mock_runner_instance = mock_runner_cls.return_value
@@ -84,7 +96,12 @@ async def test_end_to_end_pipeline_n1_n2_n3a() -> None:
         # N2 Validation
         assert isinstance(result["project_context"], ProjectContext)
         assert result["project_context"].design_tokens["primary_color"] == "#ffffff"
-        assert "fake-prior" in result["project_context"].memory_bank_priors
+        # AT-053 auto-apply: the persisted system is serialized into priors, the
+        # first of which is the tenant-scoped provenance marker.
+        priors = result["project_context"].memory_bank_priors
+        assert any("Persisted design system for tenant t1" in p for p in priors)
+        # The persisted authorized token set is also threaded for the AT-012 gate.
+        assert result["project_context"].persisted_design_tokens == {"primary_color": "#ffffff"}
 
         # N3a Validation
         assert len(result["candidates"]) == 3
