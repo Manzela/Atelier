@@ -36,6 +36,7 @@ import {
   X,
   Palette,
   WifiOff,
+  Square,
 } from 'lucide-react';
 import {
   runGenerationStream,
@@ -47,8 +48,15 @@ import {
   type TokenDeltaData,
   type A2uiMessage,
   type PlanData,
+  type SpecialistTraceData,
+  type ResearchQueryData,
+  type StopData,
+  type RunVerdict,
 } from '@/lib/api';
 import ApprovalCard from './ApprovalCard';
+import TracePanel from './legibility/TracePanel';
+import AttributionView from './legibility/AttributionView';
+import StopButton from './legibility/StopButton';
 import {
   subscribeSignoff,
   submitApproval,
@@ -482,7 +490,14 @@ export default function StudioClientShell({ id }: { id: string }) {
   const { user, initRef } = useClientAuth();
 
   const [status, setStatus] = useState<
-    'idle' | 'generating' | 'awaiting-signoff' | 'converged' | 'degraded' | 'error' | 'cap-reached'
+    | 'idle'
+    | 'generating'
+    | 'awaiting-signoff'
+    | 'converged'
+    | 'degraded'
+    | 'error'
+    | 'cap-reached'
+    | 'stopped'
   >('idle');
   // AT-042: the locked pre-sign-off plan surfaced by the ApprovalCard. Captured
   // from the `plan` SSE event when it carries sign-off-relevant content (cited
@@ -522,6 +537,15 @@ export default function StudioClientShell({ id }: { id: string }) {
   const [tokenUsage, setTokenUsage] = useState<TokenDeltaData | null>(null);
   // AT-096: soft-warn dismissal — once dismissed, stays dismissed for the session
   const [softWarnDismissed, setSoftWarnDismissed] = useState(false);
+  // AT-026 (legibility): the live agent trace — one entry per DDLC specialist
+  // hand-off and one per WRAI research query, accumulated from the SSE stream.
+  const [specialistTraces, setSpecialistTraces] = useState<SpecialistTraceData[]>([]);
+  const [researchQueries, setResearchQueries] = useState<ResearchQueryData[]>([]);
+  // AT-026 (Post / Attribution): the run-oracle verdict from the complete event.
+  const [runVerdict, setRunVerdict] = useState<RunVerdict | null>(null);
+  // AT-026 (R13 interruption): the session id of THIS run (Stop control target),
+  // captured from the plan/screen_start/complete events.
+  const [sessionId, setSessionId] = useState<string | null>(null);
   // AT-044: the active design system (from the converged design, else the default),
   // plus the panel's live edits. The effective system layers edits + per-group
   // scales over the base, and feeds both the panel rows and the iframe srcDoc.
@@ -700,6 +724,11 @@ export default function StudioClientShell({ id }: { id: string }) {
     setSignoffSubmitting(false);
     setIterationScores([]); // AT-093: reset per-iteration scorecard on each new run
     setCompetitorBeatVisible(true); // AT-090: show beat again on each new run
+    // AT-026: reset the legibility trace + attribution + stop target for the new run
+    setSpecialistTraces([]);
+    setResearchQueries([]);
+    setRunVerdict(null);
+    setSessionId(null);
     // AT-044: reset the design-system panel for the new run
     setBaseDesignSystem(null);
     setTokenEdits({});
@@ -716,6 +745,8 @@ export default function StudioClientShell({ id }: { id: string }) {
     const callbacks: StreamCallbacks = {
       onPlan: (data) => {
         addLog('INFO', `Plan received: ${data.surfaces?.join(', ') || 'N/A'}`);
+        // AT-026: capture the run id so the Stop control can address THIS run.
+        if (data.session_id) setSessionId(data.session_id);
         // AT-042: a plan that carries sign-off-relevant scope (cited defaults or
         // the est-tokens/WCAG/specialist fields) HALTS for human sign-off before
         // any screen generation. A legacy minimal plan (surfaces only) keeps the
@@ -736,6 +767,9 @@ export default function StudioClientShell({ id }: { id: string }) {
       },
       onScreenStart: (data) => {
         addLog('INFO', `Generating screen: ${data.screen}`);
+        // AT-026: the screen_start event also carries the session id (the Stop
+        // target) — capture it in case the plan event was minimal.
+        if (data.session_id) setSessionId(data.session_id);
       },
       onIterationStart: (data) => {
         addLog('INFO', `Iteration #${data.iteration} started`);
@@ -761,6 +795,9 @@ export default function StudioClientShell({ id }: { id: string }) {
         if (data.best_html) setConvergedHtml(data.best_html);
         if (data.dorav) setDorav(data.dorav);
         if (data.nielsen) setNielsen(data.nielsen);
+        // AT-026 (Post): the run-oracle verdict (criterion -> verdict + evidence).
+        if (data.run_verdict !== undefined) setRunVerdict(data.run_verdict ?? null);
+        if (data.session_id) setSessionId(data.session_id);
         // AT-044: the design's own system if it carries one, else the default.
         setBaseDesignSystem(data.tokens ?? DEFAULT_DESIGN_SYSTEM);
         // ADR-0024 / P0.4: capture the Governed A2UI surface if the backend
@@ -809,6 +846,23 @@ export default function StudioClientShell({ id }: { id: string }) {
         setTokenUsage(data);
         const delta = data.input + data.output + data.thinking;
         addLog('INFO', `Tokens: +${delta} (Σ ${data.cumulative_user_tokens}/${TOKEN_CAP})`);
+      },
+      // AT-026 (Mid): append each DDLC specialist hand-off to the live trace.
+      onSpecialistTrace: (data: SpecialistTraceData) => {
+        setSpecialistTraces((prev) => [...prev, data]);
+        addLog('INFO', `Specialist ${data.role}: ${data.summary.slice(0, 60)}`);
+      },
+      // AT-026 (Mid): append each WRAI research query to the live trace.
+      onResearchQuery: (data: ResearchQueryData) => {
+        setResearchQueries((prev) => [...prev, data]);
+        addLog('INFO', `Research: ${data.query}`);
+      },
+      // AT-026 (R13): the run halted at the user's request — acknowledge + flip
+      // to the stopped state (the agent always acknowledges the interruption).
+      onStop: (data: StopData) => {
+        if (data.session_id) setSessionId(data.session_id);
+        addLog('WARN', `Stopped at iteration ${data.iteration + 1} — checkpoint saved.`);
+        setStatus('stopped');
       },
     };
 
@@ -862,6 +916,18 @@ export default function StudioClientShell({ id }: { id: string }) {
             <div className="px-3 py-1.5 text-xs text-gray-400 border border-[var(--g-outline)] rounded-md bg-black/20 flex items-center gap-2">
               Model: <span className="text-white font-medium">Gemini 2.5 Pro</span>
             </div>
+            {/* AT-026 (R13): the user Stop control — only while a run is in flight. */}
+            {status === 'generating' && (
+              <StopButton
+                sessionId={sessionId}
+                token={user.token}
+                stopped={false}
+                onStopRequested={() =>
+                  addLog('INFO', 'Stop requested — halting at next iteration…')
+                }
+                onStopFailed={(msg) => addLog('ERROR', `Stop failed: ${msg}`)}
+              />
+            )}
             <button
               onClick={startGeneration}
               disabled={status === 'generating' || status === 'cap-reached'}
@@ -1133,6 +1199,29 @@ export default function StudioClientShell({ id }: { id: string }) {
               )}
 
               {/* \u2500\u2500 Cap-reached state \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */}
+              {status === 'stopped' && (
+                <div
+                  data-testid="state-stopped"
+                  role="status"
+                  aria-live="polite"
+                  className="w-full h-full flex flex-col items-center justify-center bg-gray-50 gap-4 px-8"
+                >
+                  <Square size={40} className="text-red-400 fill-current" aria-hidden="true" />
+                  <h2 className="text-lg font-semibold text-gray-700">Generation stopped</h2>
+                  <p className="text-sm text-gray-600 text-center max-w-xs">
+                    You stopped this run. Progress was checkpointed before the next model call
+                    &mdash; no further tokens were spent. Run again to start a fresh design.
+                  </p>
+                  <button
+                    onClick={startGeneration}
+                    className="mt-2 flex items-center gap-2 bg-[var(--g-primary-blue)] hover:bg-[var(--g-primary-blue-hover)] text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                  >
+                    <RotateCcw size={14} aria-hidden="true" />
+                    Run again
+                  </button>
+                </div>
+              )}
+
               {status === 'cap-reached' && (
                 <div
                   data-testid="state-cap-reached"
@@ -1288,6 +1377,24 @@ export default function StudioClientShell({ id }: { id: string }) {
                   })}
                 </div>
               </div>
+
+              {/* AT-026 (Mid legibility): live agent trace — specialist hand-offs +
+                  research queries + D-O-R-A-V tooltips. Shown while generating and
+                  whenever any trace has arrived (so it persists after convergence). */}
+              {(status === 'generating' ||
+                specialistTraces.length > 0 ||
+                researchQueries.length > 0) && (
+                <TracePanel specialistTraces={specialistTraces} researchQueries={researchQueries} />
+              )}
+
+              {/* AT-026 (Post / Attribution): the run-oracle verdict — every
+                  acceptance criterion -> verdict + evidence. Shown on a terminal
+                  outcome (converged / degraded / stopped) once a run has produced a
+                  verdict; "Amend & regenerate" re-enters the loop. */}
+              {(status === 'converged' || status === 'degraded' || status === 'stopped') &&
+                (runVerdict !== null || convergedHtml) && (
+                  <AttributionView runVerdict={runVerdict} onAmend={startGeneration} />
+                )}
 
               {/* AT-096: Live Token Meter */}
               <div className="h-px bg-[var(--g-outline)] my-4" />

@@ -42,6 +42,12 @@ class StopReason(StrEnum):
     #: signal resolution — so it is intentionally absent from _PRECEDENCE / the
     #: StopSignals-driven resolve map below.
     SAFETY_BLOCKED = "safety_blocked"
+    #: User-initiated Stop (AT-026 / R13). Set DIRECTLY by the cooperative stop
+    #: controller check at the TOP of an iteration, before any model call — so a
+    #: stopped run issues no model call after the Stop. Like SAFETY_BLOCKED it is a
+    #: direct, fail-loud terminal stop and is intentionally absent from _PRECEDENCE
+    #: / the StopSignals-driven resolve map (it is not a convergence signal).
+    STOPPED = "stopped"
 
 
 #: Highest precedence first.
