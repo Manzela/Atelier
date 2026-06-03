@@ -39,6 +39,24 @@ _DEFAULT_PROJECT: str = os.environ.get("GOOGLE_CLOUD_PROJECT", "atelier-build-20
 _TRAJECTORY_TABLE: str = f"{_DEFAULT_PROJECT}.atelier_trajectories.trajectory_records"
 
 
+def _make_bq_client() -> Any:
+    """Construct a BigQuery client, or return None if the SDK is unavailable.
+
+    Extracted so callers (and the AT-027 evaluate endpoint, which writes the
+    rows this module reads) share one client factory that is trivially
+    patchable in tests. Returns None — not raising — when the optional
+    ``google-cloud-bigquery`` extra is not installed, so the replay endpoint
+    degrades to 404 (fail-soft, PRD §21) rather than 500.
+    """
+    try:
+        from google.cloud import bigquery  # noqa: PLC0415  # type: ignore[attr-defined]
+    except ImportError:
+        logger.warning("BigQuery SDK not installed; replay unavailable")
+        return None
+    project = os.environ.get("GOOGLE_CLOUD_PROJECT", "atelier-build-2026")
+    return bigquery.Client(project=project)
+
+
 # ---------------------------------------------------------------------------
 # Response models
 # ---------------------------------------------------------------------------
@@ -87,6 +105,42 @@ class GateScore(BaseModel):
     reasoning: str
 
 
+class RouteDecisionView(BaseModel):
+    """Read-only view of a MoE ``RouteDecision`` (AT-027).
+
+    Surfaces the router's phase-aware expert choice for trace legibility.
+    Mirrors ``atelier.router.protocol.RouteDecision`` fields that are safe to
+    expose (no internal ``span_attrs`` mutation surface beyond a flat map).
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    expert: str
+    phase: str
+    score: float
+    rationale: str
+    fallback_chain: list[str] = []
+    routing_mode: str
+
+
+class DreamingArtifactView(BaseModel):
+    """Read-only view of a dreaming / DPO ``ExtractedPair`` (AT-027).
+
+    Surfaces one preference pair the dreaming module would feed the DPO
+    flywheel — the chosen vs rejected candidate and the margin between them.
+    The ``chosen_score`` already reflects the anti-sycophancy reward rule
+    (§3.6) applied at extraction time.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    surface_id: str
+    node_name: str
+    chosen_score: float
+    rejected_score: float
+    margin: float
+
+
 class SessionReplayPayload(BaseModel):
     """Full replay payload for a session."""
 
@@ -105,6 +159,10 @@ class SessionReplayPayload(BaseModel):
     spans: list[SpanNode] = []
     memory_recalls: list[MemoryRecall] = []
     gate_scores: list[GateScore] = []
+
+    # AT-027: read-only optimize-asset surfaces threaded through the trace.
+    route_decisions: list[RouteDecisionView] = []
+    dreaming_artifacts: list[DreamingArtifactView] = []
 
     total_cost_usd: float = 0.0
     total_input_tokens: int = 0
@@ -150,6 +208,87 @@ def _build_spans(rows: list[dict[str, Any]]) -> list[SpanNode]:
             )
         )
     return spans
+
+
+def _build_route_decisions(rows: list[dict[str, Any]]) -> list[RouteDecisionView]:
+    """Hydrate read-only RouteDecisionView objects from trajectory rows (AT-027).
+
+    Each row may carry a ``route_decisions_json`` column: a JSON array of
+    route-decision dicts written by the /v1/evaluate endpoint. Malformed or
+    absent columns are skipped silently (fail-soft — the optimize surface is
+    additive and must never break a replay).
+
+    Args:
+        rows: List of BQ row dictionaries (ordered by ts ASC).
+
+    Returns:
+        Flattened list of RouteDecisionView across all rows, in row order.
+    """
+    out: list[RouteDecisionView] = []
+    for row in rows:
+        raw = row.get("route_decisions_json")
+        if not raw:
+            continue
+        try:
+            parsed = json.loads(raw) if isinstance(raw, str) else raw
+        except (json.JSONDecodeError, TypeError):
+            continue
+        if not isinstance(parsed, list):
+            continue
+        for d in parsed:
+            if not isinstance(d, dict) or "expert" not in d:
+                continue
+            chain = d.get("fallback_chain", [])
+            out.append(
+                RouteDecisionView(
+                    expert=str(d["expert"]),
+                    phase=str(d.get("phase", "")),
+                    score=float(d.get("score", 0.0)),
+                    rationale=str(d.get("rationale", "")),
+                    fallback_chain=[str(e) for e in chain] if isinstance(chain, list) else [],
+                    routing_mode=str(d.get("routing_mode", "")),
+                )
+            )
+    return out
+
+
+def _build_dreaming_artifacts(rows: list[dict[str, Any]]) -> list[DreamingArtifactView]:
+    """Hydrate read-only DreamingArtifactView objects from trajectory rows (AT-027).
+
+    Each row may carry a ``dreaming_artifacts_json`` column: a JSON array of
+    DPO-pair dicts written by the /v1/evaluate endpoint. Malformed or absent
+    columns are skipped (fail-soft).
+
+    Args:
+        rows: List of BQ row dictionaries (ordered by ts ASC).
+
+    Returns:
+        Flattened list of DreamingArtifactView across all rows, in row order.
+    """
+    out: list[DreamingArtifactView] = []
+    for row in rows:
+        raw = row.get("dreaming_artifacts_json")
+        if not raw:
+            continue
+        try:
+            parsed = json.loads(raw) if isinstance(raw, str) else raw
+        except (json.JSONDecodeError, TypeError):
+            continue
+        if not isinstance(parsed, list):
+            continue
+        for d in parsed:
+            if not isinstance(d, dict) or "surface_id" not in d:
+                continue
+            out.append(
+                DreamingArtifactView(
+                    surface_id=str(d["surface_id"]),
+                    node_name=str(d.get("node_name", "")),
+                    chosen_score=float(d.get("chosen_score", 0.0)),
+                    rejected_score=float(d.get("rejected_score", 0.0)),
+                    margin=float(d.get("margin", 0.0)),
+                )
+            )
+    return out
 
 
 def _build_gate_scores(judge_votes_json_raw: str) -> list[GateScore]:
@@ -240,12 +379,10 @@ async def _load_session_replay(
         logger.warning("BigQuery SDK not installed; replay unavailable")
         return None
 
-    client = bq_client
+    client = bq_client if bq_client is not None else _make_bq_client()
+    if client is None:
+        return None
     try:
-        if client is None:
-            project = os.environ.get("GOOGLE_CLOUD_PROJECT", "atelier-build-2026")
-            client = bigquery.Client(project=project)
-
         # Parameterised WHERE — column names match TrajectoryRecord.to_bq_row()
         where = "WHERE session_id = @session_id"
         params: list[Any] = [
@@ -309,6 +446,10 @@ def _assemble_payload(
     # Column name: "judge_votes_json" — matches TrajectoryRecord.to_bq_row().
     gate_scores = _build_gate_scores(str(last.get("judge_votes_json", "[]")))
 
+    # AT-027: read-only optimize-asset surfaces (MoE routing + dreaming/DPO).
+    route_decisions = _build_route_decisions(rows)
+    dreaming_artifacts = _build_dreaming_artifacts(rows)
+
     total_cost = sum(float(r.get("total_cost_usd", 0.0)) for r in rows)
     total_in = sum(int(r.get("total_input_tokens", 0)) for r in rows)
     total_out = sum(int(r.get("total_output_tokens", 0)) for r in rows)
@@ -326,6 +467,8 @@ def _assemble_payload(
         spans=spans,
         memory_recalls=[],  # Memory Bank recalls are a separate query surface
         gate_scores=gate_scores,
+        route_decisions=route_decisions,
+        dreaming_artifacts=dreaming_artifacts,
         total_cost_usd=total_cost,
         total_input_tokens=total_in,
         total_output_tokens=total_out,

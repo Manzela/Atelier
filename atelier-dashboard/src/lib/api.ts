@@ -86,6 +86,36 @@ export interface ResearchQueryData {
 }
 
 /**
+ * AT-027 (Optimize surfacing): one read-only MoE routing decision, surfaced for
+ * trace legibility. Mirrors `atelier-core` `RouteDecision` (router/protocol.py):
+ * the phase-aware expert the bandit router selected, its score/rationale, and
+ * the fallback chain. Read-only — the product shows the router's reasoning, it
+ * does not let the user change it.
+ */
+export interface RouteDecisionData {
+  expert: string;
+  phase: string;
+  score: number;
+  rationale: string;
+  fallback_chain: string[];
+  routing_mode: string;
+}
+
+/**
+ * AT-027 (Optimize surfacing): one read-only dreaming/DPO preference pair,
+ * surfaced for trace legibility. Mirrors `atelier-core` `ExtractedPair`
+ * (optimize/dreaming_module.py): the chosen vs rejected candidate scores and
+ * the margin. `chosen_score` already reflects the §3.6 anti-sycophancy reward.
+ */
+export interface DreamingArtifactData {
+  surface_id: string;
+  node_name: string;
+  chosen_score: number;
+  rejected_score: number;
+  margin: number;
+}
+
+/**
  * AT-026 (R13 interruption): emitted when a user Stop is honored. The run halted
  * within one iteration BEFORE its next model call and a durable checkpoint was
  * persisted (resume continues from it).
@@ -318,6 +348,10 @@ export interface StreamCallbacks {
   onSpecialistTrace?: (data: SpecialistTraceData) => void;
   /** AT-026: fired once per WRAI research query with its top citation (Mid legibility) */
   onResearchQuery?: (data: ResearchQueryData) => void;
+  /** AT-027: fired with the read-only MoE routing decision for the run (Optimize surfacing) */
+  onRouteDecision?: (data: RouteDecisionData) => void;
+  /** AT-027: fired with a read-only dreaming/DPO artifact for the run (Optimize surfacing) */
+  onDreamingArtifact?: (data: DreamingArtifactData) => void;
   /** AT-026: fired when a user Stop is honored (R13 interruption) */
   onStop?: (data: StopData) => void;
 }
@@ -463,6 +497,12 @@ function triggerCallback(event: string, data: Record<string, unknown>, callbacks
       break;
     case 'research_query':
       callbacks.onResearchQuery?.(data as unknown as ResearchQueryData);
+      break;
+    case 'route_decision':
+      callbacks.onRouteDecision?.(data as unknown as RouteDecisionData);
+      break;
+    case 'dreaming_artifact':
+      callbacks.onDreamingArtifact?.(data as unknown as DreamingArtifactData);
       break;
     case 'stop':
       callbacks.onStop?.(data as unknown as StopData);

@@ -1,5 +1,10 @@
 import { defineConfig, devices } from '@playwright/test';
 
+// PORT is overridable so the suite can run against a server on a free port when
+// 3000 is occupied by another worktree's build. Defaults to 3000 (CI/default).
+const PORT = process.env.PLAYWRIGHT_PORT || '3000';
+const BASE_URL = `http://localhost:${PORT}`;
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
@@ -16,15 +21,15 @@ export default defineConfig({
   },
 
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: BASE_URL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'on-first-retry',
   },
 
   webServer: {
-    command: 'npm run build && npm run start',
-    url: 'http://localhost:3000',
+    command: `npm run build && npm run start -- -p ${PORT}`,
+    url: BASE_URL,
     timeout: 180_000,
     reuseExistingServer: !process.env.CI,
   },

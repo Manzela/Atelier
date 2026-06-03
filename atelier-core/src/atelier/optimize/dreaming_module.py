@@ -34,6 +34,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -53,6 +54,76 @@ _CALIBRATION_SEED_PATH: Final[Path] = (
 # Minimum margin for a pair to be useful DPO training signal.
 # Below this the chosen/rejected distinction is too noisy.
 MIN_MARGIN: Final[float] = 0.12
+
+
+# ---------------------------------------------------------------------------
+# Anti-sycophancy reward rule (PRD §3.6)
+# ---------------------------------------------------------------------------
+# Personalization must never be allowed to drift sycophantic: a preferred
+# ("chosen") response that *praises* without *justifying* the praise is exactly
+# the signal a naive DPO loop would reinforce into flattery. We down-weight such
+# a chosen_score so an unjustified-praise candidate cannot dominate a pair and
+# bias the tuned model toward agreement-for-agreement's-sake.
+#
+# The rule is intentionally a SOFT heuristic (0.5x multiplier, logged for
+# tuning) rather than a hard reject — it nudges the training signal, it does not
+# silently drop data. Justification is satisfied by any of: an explicit reason
+# marker ("because" / "reason" / "rationale"), a standard reference ("standard"
+# / "WCAG" / "spec" / "guideline"), or an evidence marker ("measured" / "score"
+# / "contrast").
+_PRAISE_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"\b(looks good|great|excellent|amazing|perfect|fantastic|love it)\b",
+    re.IGNORECASE,
+)
+_JUSTIFICATION_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"\b(because|reason|rationale|standard|wcag|spec|guideline|"
+    r"measured|score|contrast|ratio|criteria|evidence)\b",
+    re.IGNORECASE,
+)
+# Soft penalty applied to an unjustified-praise chosen_score.
+ANTI_SYCOPHANCY_PENALTY: Final[float] = 0.5
+
+
+def apply_anti_sycophancy_reward(
+    *,
+    chosen_response: str,
+    chosen_score: float,
+) -> float:
+    """Down-weight a chosen_score that praises without justification (§3.6).
+
+    This is the anti-sycophancy rule for the DPO/dreaming reward. If the
+    ``chosen_response`` contains praise language ("looks good", "great",
+    "excellent", ...) but NO nearby justification ("because", "WCAG",
+    "standard", a measured score, ...), its reward is multiplied by
+    :data:`ANTI_SYCOPHANCY_PENALTY` (0.5x). Justified praise is untouched, and
+    responses that contain no praise at all are untouched.
+
+    The function is pure and deterministic — it is the single source of truth
+    for the rule and is unit-tested directly (no model call, no I/O).
+
+    Args:
+        chosen_response: The preferred candidate's text (HTML / copy / critique).
+        chosen_score: The candidate's raw composite/consensus score.
+
+    Returns:
+        The (possibly penalised) score. Never increases the score.
+    """
+    praises = bool(_PRAISE_PATTERN.search(chosen_response))
+    if not praises:
+        return chosen_score
+    justified = bool(_JUSTIFICATION_PATTERN.search(chosen_response))
+    if justified:
+        return chosen_score
+    penalised = chosen_score * ANTI_SYCOPHANCY_PENALTY
+    logger.info(
+        "Anti-sycophancy penalty applied to DPO chosen_score",
+        extra={
+            "original_score": chosen_score,
+            "penalised_score": penalised,
+            "rule": "praise_without_justification",
+        },
+    )
+    return penalised
 
 
 # ---------------------------------------------------------------------------
@@ -167,7 +238,15 @@ def extract_pairs_midflight(
 
     # Form pairs: best vs each loser
     scored.sort(key=lambda x: x[1], reverse=True)
-    chosen_html, chosen_score = scored[0]
+    chosen_html, chosen_raw_score = scored[0]
+
+    # Anti-sycophancy (§3.6): the chosen candidate's reward is down-weighted if
+    # it praises without justification, so a flattering-but-unjustified winner
+    # cannot bias the DPO signal toward sycophancy.
+    chosen_score = apply_anti_sycophancy_reward(
+        chosen_response=chosen_html,
+        chosen_score=chosen_raw_score,
+    )
 
     for rejected_html, rejected_score in scored[1:]:
         margin = chosen_score - rejected_score
