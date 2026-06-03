@@ -36,6 +36,12 @@ class StopReason(StrEnum):
     NO_IMPROVEMENT = "no_improvement"
     DUPLICATE = "duplicate"
     GOVERNOR_FAIL_SOFT = "governor_fail_soft"
+    #: Fail-loud safety stop: Model Armor short-circuited generation because the
+    #: brief carried a prompt-injection pattern. Detected DIRECTLY at the model
+    #: boundary (the runner inspects the generated candidates), never produced by
+    #: signal resolution — so it is intentionally absent from _PRECEDENCE / the
+    #: StopSignals-driven resolve map below.
+    SAFETY_BLOCKED = "safety_blocked"
 
 
 #: Highest precedence first.
