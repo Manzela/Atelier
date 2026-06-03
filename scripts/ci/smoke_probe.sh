@@ -48,10 +48,14 @@ echo "[smoke] probing ${BASE_URL}"
 probe_status "/health" "200" "Cloud Run health"
 probe_status "/" "200" "dashboard root (served unauthenticated)"
 probe_status "/.well-known/agent-card.json" "200" "A2A agent card"
-probe_status "/openapi.json" "200" "OpenAPI schema"
-probe_contains "/openapi.json" "/v1/generate" "generate route advertised"
-probe_contains "/openapi.json" "/v1/replay" "replay route advertised"
-probe_contains "/openapi.json" "/v1/dream" "dream route advertised"
+# S9 hardening (ADR-0026): the OpenAPI schema is intentionally NOT served in
+# production — publishing a paid, authenticated API's full route/parameter surface
+# is an information-disclosure risk with no end-user benefit. Assert the gate is
+# ACTIVE (404) rather than re-exposing the schema; this fails CLOSED if a future
+# build regresses the gating. /v1 route liveness + real convergence are verified by
+# the authenticated AT-110 production-readiness walkthrough (POST /v1/generate ->
+# GET /v1/replay/{session_id} asserting converged==true), not by the schema.
+probe_status "/openapi.json" "404" "OpenAPI schema is prod-gated (ADR-0026)"
 
 if [ "${fail}" -ne 0 ]; then
   echo "[smoke] FAILED - one or more probes did not pass" >&2
