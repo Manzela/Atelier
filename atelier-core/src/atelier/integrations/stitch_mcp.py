@@ -381,7 +381,24 @@ def try_get_stitch_mcp_toolset() -> tuple[McpToolset | None, StitchDegradationIn
 
     Per FIX-3: degradation is surfaced via structlog.warning and propagated
     to the caller for session metadata injection.
+
+    Stitch is a managed external dependency whose access credential
+    (``atelier-geap-api-key``) is a short-lived OAuth token: when it expires the
+    MCP session 401s *mid-run*, the ``generate_screen_from_text`` tool vanishes,
+    and N3a fails closed with zero candidates — a worse outcome than not using
+    Stitch at all. ``ATELIER_STITCH_ENABLED`` is the operator kill-switch: set it
+    to a falsey value to skip Stitch entirely and have the UI Designer generate
+    HTML directly (reliable, no token lifecycle). Disabled is a configured mode,
+    not a degradation, so it does not raise the "Stitch unavailable" notice.
     """
+    if os.getenv("ATELIER_STITCH_ENABLED", "true").lower() not in ("1", "true", "yes"):
+        logger.info("stitch.disabled_by_config", fallback_mode="direct_generation")
+        return None, StitchDegradationInfo(
+            is_degraded=False,
+            reason="Stitch disabled via ATELIER_STITCH_ENABLED; generating directly.",
+            fallback_mode="direct_generation",
+        )
+
     try:
         toolset = get_stitch_mcp_toolset()
         return toolset, StitchDegradationInfo(

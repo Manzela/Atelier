@@ -144,6 +144,37 @@ class TestStitchMcpTransport:
 
         assert isinstance(get_stitch_mcp_toolset(), _VertexSafeMcpToolset)
 
+    def test_disabled_by_config_returns_no_toolset_without_degrading(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The kill-switch: Stitch off → direct generation, not a degradation.
+
+        The GEAP credential is a short-lived OAuth token; when it expires the MCP
+        session 401s mid-run and N3a fails with zero candidates. Operators set
+        ATELIER_STITCH_ENABLED=false to skip Stitch entirely — a configured mode,
+        so is_degraded stays False (no "Stitch unavailable" notice fired).
+        """
+        from atelier.integrations.stitch_mcp import try_get_stitch_mcp_toolset
+
+        monkeypatch.setenv("ATELIER_STITCH_ENABLED", "false")
+        toolset, info = try_get_stitch_mcp_toolset()
+
+        assert toolset is None
+        assert info.is_degraded is False
+        assert info.fallback_mode == "direct_generation"
+
+    def test_enabled_by_default(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        # No ATELIER_STITCH_ENABLED set → Stitch is attempted (construction path).
+        monkeypatch.delenv("ATELIER_STITCH_ENABLED", raising=False)
+        monkeypatch.setenv("STITCH_API_KEY", "fake-key-for-test")
+        from atelier.integrations.stitch_mcp import try_get_stitch_mcp_toolset
+
+        toolset, info = try_get_stitch_mcp_toolset()
+        # Construction succeeds with a fake key (connection is lazy), so a toolset
+        # is returned and it is not the disabled-by-config path.
+        assert toolset is not None
+        assert "disabled" not in info.reason.lower()
+
 
 @pytest.mark.unit
 class TestStripToolOutputSchemas:
