@@ -249,30 +249,6 @@
       font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 18;
     }
 
-    /* Demo button */
-    .demo-btn {
-      height: 40px;
-      padding: 0 16px;
-      border-radius: var(--md-shape-full);
-      background: transparent;
-      border: 1px solid var(--md-outline-variant);
-      color: var(--md-on-surface-variant);
-      font-family: var(--font-sans);
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      white-space: nowrap;
-      transition: background var(--md-dur-s4) var(--md-ease-standard),
-                  color     var(--md-dur-s4) var(--md-ease-standard),
-                  border-color var(--md-dur-s4) var(--md-ease-standard);
-    }
-
-    .demo-btn:hover {
-      background: var(--md-surface-container);
-      color: var(--md-on-surface);
-      border-color: var(--md-outline);
-    }
-
     /* ── Layout ──────────────────────────────────────────────────────────────── */
     .layout {
       display: grid;
@@ -747,9 +723,6 @@
       Load
     </button>
 
-    <button class="demo-btn" id="demo-btn" aria-label="Load demo replay">
-      Demo
-    </button>
   </header>
 
   <!-- Layout ──────────────────────────────────────────────────────────────── -->
@@ -769,7 +742,6 @@
           <div class="empty-state">
             <span class="material-symbols-outlined">account_tree</span>
             <p>Enter a session ID and press Load<br>to visualise the execution trace.</p>
-            <p class="hint">Or click Demo to preview with synthetic data.</p>
           </div>
         </div>
       </div>
@@ -867,105 +839,6 @@
       if (ms < 1000) return `${ms.toFixed(0)} ms`;
       return `${(ms / 1000).toFixed(2)} s`;
     }
-
-    /* ── Demo data ─────────────────────────────────────────────────────────── */
-    const now = Date.now();
-
-    const DEMO = {
-      session_id:       'demo-session-2026-05-25-a4f9c',
-      tenant_id:        'tenant-abc',
-      project_id:       'proj-ux-dashboard',
-      started_at:       new Date(now - 14200).toISOString(),
-      ended_at:         new Date(now).toISOString(),
-      outcome:          'accepted',
-      composite_score:  0.841,
-      total_cost_usd:   0.1482,
-      total_input_tokens:  3847,
-      total_output_tokens: 2103,
-      candidate_count:  3,
-      iteration:        2,
-      spans: [
-        {
-          span_id: 's-001', parent_span_id: null,
-          node_name: 'N1.brief_parser',
-          started_at: new Date(now - 14200).toISOString(),
-          ended_at:   new Date(now - 12800).toISOString(),
-          duration_ms: 1400, model_id: 'gemini-3-flash',
-          input_tokens: 420, output_tokens: 310, cost_usd: 0.0021, status: 'ok',
-        },
-        {
-          span_id: 's-002', parent_span_id: null,
-          node_name: 'N14.wrai',
-          started_at: new Date(now - 12800).toISOString(),
-          ended_at:   new Date(now - 11200).toISOString(),
-          duration_ms: 1600, model_id: null,
-          input_tokens: 0, output_tokens: 0, cost_usd: 0, status: 'ok',
-        },
-        {
-          span_id: 's-003', parent_span_id: null,
-          node_name: 'N2.source_resolver',
-          started_at: new Date(now - 11200).toISOString(),
-          ended_at:   new Date(now - 9800).toISOString(),
-          duration_ms: 1400, model_id: 'gemini-3-flash',
-          input_tokens: 680, output_tokens: 290, cost_usd: 0.0028, status: 'ok',
-        },
-        {
-          span_id: 's-004', parent_span_id: null,
-          node_name: 'N3a.generator_ensemble',
-          started_at: new Date(now - 9800).toISOString(),
-          ended_at:   new Date(now - 4100).toISOString(),
-          duration_ms: 5700, model_id: 'gemini-3-pro',
-          input_tokens: 1840, output_tokens: 1280, cost_usd: 0.1204, status: 'ok',
-        },
-        {
-          span_id: 's-005', parent_span_id: 's-004',
-          node_name: 'N3a.Generator_1',
-          started_at: new Date(now - 9800).toISOString(),
-          ended_at:   new Date(now - 6200).toISOString(),
-          duration_ms: 3600, model_id: 'gemini-3-pro',
-          input_tokens: 620, output_tokens: 440, cost_usd: 0.0402, status: 'ok',
-        },
-        {
-          span_id: 's-006', parent_span_id: 's-004',
-          node_name: 'N3a.Generator_2',
-          started_at: new Date(now - 9800).toISOString(),
-          ended_at:   new Date(now - 5800).toISOString(),
-          duration_ms: 4000, model_id: 'gemini-3-pro',
-          input_tokens: 620, output_tokens: 440, cost_usd: 0.0402, status: 'ok',
-        },
-        {
-          span_id: 's-007', parent_span_id: null,
-          node_name: 'N5.judge',
-          started_at: new Date(now - 4100).toISOString(),
-          ended_at:   new Date(now - 1200).toISOString(),
-          duration_ms: 2900, model_id: 'gemini-3-pro',
-          input_tokens: 907, output_tokens: 523, cost_usd: 0.0229, status: 'ok',
-        },
-      ],
-      memory_recalls: [
-        {
-          tier: 'semantic',
-          query_text: 'dashboard design patterns enterprise SaaS',
-          passage: 'Enterprise SaaS dashboards prioritise data density with clear typographic hierarchy. Use condensed typefaces for numeric KPIs and maintain a 4-column grid.',
-          similarity: 0.892,
-          source_event_ids: ['evt-0091'],
-        },
-        {
-          tier: 'procedural',
-          query_text: 'brand consistency blue palette corporate',
-          passage: 'Apply the primary brand hue at 12% opacity for container backgrounds. Reserve full-saturation primary for interactive affordances and status indicators only.',
-          similarity: 0.811,
-          source_event_ids: ['evt-0044'],
-        },
-      ],
-      gate_scores: [
-        { axis: 'brand',          score: 0.883, confidence_low: 0.84, confidence_high: 0.92, judge_model: 'gemini-3-pro', reasoning: 'Strong alignment with brand palette; minor inconsistency in icon weight.' },
-        { axis: 'originality',    score: 0.762, confidence_low: 0.71, confidence_high: 0.81, judge_model: 'gemini-3-pro', reasoning: 'Competent layout; lacks novel structural element above baseline.' },
-        { axis: 'relevance',      score: 0.921, confidence_low: 0.89, confidence_high: 0.95, judge_model: 'gemini-3-pro', reasoning: 'Addresses all brief requirements; information hierarchy is clear.' },
-        { axis: 'accessibility',  score: 0.798, confidence_low: 0.75, confidence_high: 0.84, judge_model: 'gemini-3-pro', reasoning: 'Contrast ratios meet AA; interactive targets meet 44dp minimum.' },
-        { axis: 'visual_clarity', score: 0.847, confidence_low: 0.80, confidence_high: 0.89, judge_model: 'gemini-3-pro', reasoning: 'Clean whitespace; minimal chart junk; legend placement optimal.' },
-      ],
-    };
 
     /* ── Snackbar ──────────────────────────────────────────────────────────── */
     let snackTimer;
@@ -1213,11 +1086,6 @@
       }
     });
 
-    document.getElementById('demo-btn').addEventListener('click', () => {
-      document.getElementById('session-input').value = DEMO.session_id;
-      render(DEMO);
-      showSnack('Demo session loaded.');
-    });
   </script>
 </body>
 </html>

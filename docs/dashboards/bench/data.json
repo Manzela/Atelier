@@ -1,0 +1,153 @@
+{
+  "schema_version": "2.0",
+  "generated_at": "2026-06-03T14:03:29.602012+00:00",
+  "provenance": {
+    "atelier_source": "BigQuery atelier-build-2026.atelier_trajectories.trajectory_records",
+    "ab_source": "scripts/eval/run_baseline_ab.py (Atelier vs single-shot, identical gate path)",
+    "benchmark_source": "luzimu/WebGen-Bench (arXiv:2505.03733)",
+    "note": "Every figure traces to one of these sources. No demo or synthetic data."
+  },
+  "production_telemetry": {
+    "runs": 3,
+    "candidates": 7,
+    "accepted": 3,
+    "acceptance_rate": 0.42857142857142855,
+    "avg_composite_all": 0.6642857142857144,
+    "avg_composite_accepted": 0.9233333333333333,
+    "max_composite": 0.98,
+    "at_or_above_bar": 5,
+    "convergence_bar": 0.7,
+    "composite_distribution": [0.92, 0.9, 0.93, 0.92, 0.0, 0.98, 0.0],
+    "total_cost_usd": 0.0,
+    "total_tokens": 0,
+    "first_run": "2026-06-03T06:07:45.793390+00:00",
+    "last_run": "2026-06-03T11:08:26.137921+00:00",
+    "recent_runs": [
+      {
+        "trajectory_id": "dd79b2f2-8105-4531",
+        "session_id": "ca67ce16-570b-42b0",
+        "composite_score": 0.92,
+        "outcome": "accepted",
+        "timestamp": "2026-06-03T11:08:26.137921+00:00"
+      },
+      {
+        "trajectory_id": "20dde1a7-8331-4d6c",
+        "session_id": "ca67ce16-570b-42b0",
+        "composite_score": 0.9,
+        "outcome": "rejected",
+        "timestamp": "2026-06-03T11:08:26.137921+00:00"
+      },
+      {
+        "trajectory_id": "9d65fa61-e9b7-4897",
+        "session_id": "ca67ce16-570b-42b0",
+        "composite_score": 0.93,
+        "outcome": "accepted",
+        "timestamp": "2026-06-03T11:08:26.137921+00:00"
+      },
+      {
+        "trajectory_id": "54950bc0-bfe0-4ca2",
+        "session_id": "74dbc469-e805-4b27",
+        "composite_score": 0.92,
+        "outcome": "accepted",
+        "timestamp": "2026-06-03T08:37:14.606237+00:00"
+      },
+      {
+        "trajectory_id": "c3e71986-5b83-461a",
+        "session_id": "cbd96138-2374-4255",
+        "composite_score": 0.0,
+        "outcome": "rejected",
+        "timestamp": "2026-06-03T06:07:45.793390+00:00"
+      },
+      {
+        "trajectory_id": "05a8f71a-860c-4c30",
+        "session_id": "cbd96138-2374-4255",
+        "composite_score": 0.98,
+        "outcome": "rejected",
+        "timestamp": "2026-06-03T06:07:45.793390+00:00"
+      },
+      {
+        "trajectory_id": "2a0b2918-f699-40e3",
+        "session_id": "cbd96138-2374-4255",
+        "composite_score": 0.0,
+        "outcome": "rejected",
+        "timestamp": "2026-06-03T06:07:45.793390+00:00"
+      }
+    ]
+  },
+  "ab_comparison": {
+    "status": "complete",
+    "n_briefs": 1,
+    "brief_set": "calibration-seed-v0",
+    "model": "gemini-2.5-pro",
+    "generated_at": "2026-06-03T13:50:06.727764+00:00",
+    "atelier": {
+      "avg_mean_gate_score": 84.7,
+      "a11y_pass_rate": 0.0,
+      "convergence_rate": 0.0
+    },
+    "baseline": {
+      "avg_mean_gate_score": 88.5,
+      "a11y_pass_rate": 1.0,
+      "convergence_rate": 0.0
+    },
+    "per_brief": [
+      {
+        "task_id": "cs-001",
+        "category": "dashboard",
+        "reference_score": 0.86,
+        "atelier": {
+          "composite_score": 0.0,
+          "converged": false,
+          "mean_gate_score": 84.7,
+          "failed_gates": ["axe"]
+        },
+        "baseline": {
+          "composite_score": 0.3867,
+          "mean_gate_score": 88.5,
+          "failed_gates": []
+        }
+      }
+    ]
+  },
+  "gate_axes": [
+    {
+      "key": "semantic-html",
+      "name": "Semantic HTML",
+      "intent": "Document is a real, well-formed HTML5 page with landmark elements.",
+      "criterion": "Valid <!doctype> + semantic landmarks (header/main/section)."
+    },
+    {
+      "key": "token-fidelity",
+      "name": "Design-token fidelity",
+      "intent": "Every colour resolves to a declared design token \u2014 no raw literals.",
+      "criterion": "Zero-tolerance: one undeclared colour literal rejects the candidate."
+    },
+    {
+      "key": "axe",
+      "name": "Accessibility (axe-core)",
+      "intent": "No critical/serious accessibility violations (contrast, labels, ARIA).",
+      "criterion": "Fail-closed on any axe-core critical/serious impact (WCAG AA aligned)."
+    },
+    {
+      "key": "visual-diff",
+      "name": "Visual consistency",
+      "intent": "Rendered layout is structurally coherent, not a broken/empty frame.",
+      "criterion": "Structure floor + visual regression check."
+    }
+  ],
+  "external_benchmark": {
+    "name": "WebGen-Bench",
+    "source": "luzimu/WebGen-Bench (HuggingFace)",
+    "paper": "arXiv:2505.03733",
+    "n_prompts_available": 101,
+    "official_metric": "test-agent appearance/functionality score (not reproduced here)",
+    "atelier_slice": {
+      "status": "no_data",
+      "note": "Atelier-gate-scored slice not yet run."
+    }
+  },
+  "targets": {
+    "convergence_bar": 0.7,
+    "accessibility": "WCAG AA (axe-core critical/serious = reject)"
+  }
+}

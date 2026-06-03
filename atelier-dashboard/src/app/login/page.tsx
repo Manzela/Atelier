@@ -11,6 +11,14 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // The local dev-mode auth bypass mints a mock user so the dashboard is usable
+  // without Firebase configured. It must NEVER reach a production build — gating
+  // it on NODE_ENV (statically eliminated by the bundler in prod) guarantees the
+  // mock credential and the "Dev Mode" affordance cannot appear in production,
+  // even if the Firebase env vars are somehow missing at build time. A
+  // misconfigured prod build then surfaces a real error, not a fake session.
+  const devBypassAllowed = !isFirebaseConfigured && process.env.NODE_ENV !== 'production';
+
   // If already logged in, redirect to home
   useEffect(() => {
     const userStr = localStorage.getItem('user');
@@ -23,8 +31,8 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
-    if (!isFirebaseConfigured) {
-      // Dev Mode Authentication Bypass
+    if (devBypassAllowed) {
+      // Dev Mode Authentication Bypass (local development only — never prod)
       const mockUser = {
         uid: 'dev-user-local',
         email: 'developer@atelier.dev',
@@ -136,12 +144,12 @@ export default function LoginPage() {
               </svg>
               {loading
                 ? 'Authenticating...'
-                : isFirebaseConfigured
-                  ? 'Continue with Google'
-                  : 'Dev Mode Sign In (Bypass)'}
+                : devBypassAllowed
+                  ? 'Dev Mode Sign In (Bypass)'
+                  : 'Continue with Google'}
             </button>
 
-            {!isFirebaseConfigured && (
+            {devBypassAllowed && (
               <p className="text-[11px] text-[var(--g-text-muted)] text-center mt-4 leading-relaxed">
                 Running in Developer Mode. The dashboard will mock client authentication and pass a
                 developer credential to local API server.
