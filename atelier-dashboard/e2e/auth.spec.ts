@@ -15,7 +15,7 @@ test.describe('Authentication Guard', () => {
 
   test('login page renders correctly', async ({ page }) => {
     await page.goto('/login');
-    await expect(page.getByRole('heading', { level: 1 })).toContainText('Welcome to Stitch');
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Welcome to Atelier');
     await expect(page.locator('#google-signin-btn')).toBeVisible();
   });
 

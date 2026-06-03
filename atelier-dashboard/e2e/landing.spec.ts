@@ -1,9 +1,9 @@
 import { test, expect, MOCK_USER } from './fixtures';
 
-test.describe('Landing Page (Stitch Shell)', () => {
+test.describe('Landing Page (Studio Shell)', () => {
   test('renders the Welcome heading', async ({ authenticatedPage: page }) => {
     await page.goto('/');
-    await expect(page.getByRole('heading', { level: 1 })).toContainText('Welcome to Stitch.');
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Welcome to Atelier.');
   });
 
   test('renders user initials from session', async ({ authenticatedPage: page }) => {
@@ -16,9 +16,9 @@ test.describe('Landing Page (Stitch Shell)', () => {
     await expect(page.getByTitle(MOCK_USER.email)).toContainText(initials);
   });
 
-  test('sidebar starts in Stitch mode with project tabs', async ({ authenticatedPage: page }) => {
+  test('sidebar starts in Studio mode with project tabs', async ({ authenticatedPage: page }) => {
     await page.goto('/');
-    await expect(page.getByText('Stitch BETA')).toBeVisible();
+    await expect(page.getByText('Atelier Studio')).toBeVisible();
     await expect(page.getByText('My projects')).toBeVisible();
     await expect(page.getByText('Last 30 days')).toBeVisible();
   });
@@ -32,12 +32,12 @@ test.describe('Landing Page (Stitch Shell)', () => {
     await expect(page.getByText('Model Registry')).toBeVisible();
   });
 
-  test('sidebar toggles back to Stitch mode', async ({ authenticatedPage: page }) => {
+  test('sidebar toggles back to Studio mode', async ({ authenticatedPage: page }) => {
     await page.goto('/');
     await page.getByLabel('Toggle sidebar mode').click();
     await expect(page.getByText('GCP Console')).toBeVisible();
     await page.getByLabel('Toggle sidebar mode').click();
-    await expect(page.getByText('Stitch BETA')).toBeVisible();
+    await expect(page.getByText('Atelier Studio')).toBeVisible();
   });
 
   test('prompt box is interactive and expands on focus', async ({ authenticatedPage: page }) => {
