@@ -1,0 +1,129 @@
+{
+  "pack": "cross-cutting",
+  "scope": "global",
+  "version": "2026-05-31.seed",
+  "note": "Always-on substrate every project type inherits. Lighthouse is a LAB PROXY, not the CWV pass condition: the SLO is field data at p75 (CrUX); fresh pages have no field data, so gate on Lighthouse-lab INP/TBT/LCP/CLS as the best pre-deploy oracle while recording the p75 thresholds as the SLO. INP replaced FID on 2024-03-12. WRAI refreshes by append-and-supersede on id, never delete.",
+  "standards": [
+    {
+      "id": "wcag-2.4.11",
+      "rule": "A focused component must not be entirely hidden by author content such as sticky headers or footers.",
+      "check": "judge",
+      "threshold": "AA",
+      "source_url": "https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum.html",
+      "source_title": "WCAG 2.2 SC 2.4.11 Focus Not Obscured (Minimum)",
+      "trust": 1.0,
+      "year": 2023,
+      "scope": "global"
+    },
+    {
+      "id": "wcag-2.5.8",
+      "rule": "Pointer targets are at least 24x24 CSS px, or have equivalent spacing or an alternative control.",
+      "check": "gate-axis:axe",
+      "threshold": "24px",
+      "source_url": "https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html",
+      "source_title": "WCAG 2.2 SC 2.5.8 Target Size (Minimum)",
+      "trust": 1.0,
+      "year": 2023,
+      "scope": "global"
+    },
+    {
+      "id": "wcag-3.3.8",
+      "rule": "Authentication must not rely on a cognitive-function test (recall, transcription) without an accessible alternative.",
+      "check": "judge",
+      "threshold": "AA",
+      "source_url": "https://www.w3.org/WAI/WCAG22/Understanding/accessible-authentication-minimum.html",
+      "source_title": "WCAG 2.2 SC 3.3.8 Accessible Authentication (Minimum)",
+      "trust": 1.0,
+      "year": 2023,
+      "scope": "global"
+    },
+    {
+      "id": "wcag-3.3.7",
+      "rule": "Information the user already entered in the same process is auto-populated or selectable, not re-entered (unless essential).",
+      "check": "judge",
+      "threshold": "A",
+      "source_url": "https://www.w3.org/WAI/WCAG22/Understanding/redundant-entry.html",
+      "source_title": "WCAG 2.2 SC 3.3.7 Redundant Entry",
+      "trust": 1.0,
+      "year": 2023,
+      "scope": "global"
+    },
+    {
+      "id": "wcag-1.4.3",
+      "rule": "Text contrast is at least 4.5:1, or 3:1 for large text (>=24px, or >=18.66px bold).",
+      "check": "gate-axis:axe",
+      "threshold": "4.5:1 / 3:1",
+      "source_url": "https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html",
+      "source_title": "WCAG SC 1.4.3 Contrast (Minimum)",
+      "trust": 1.0,
+      "year": 2008,
+      "scope": "global"
+    },
+    {
+      "id": "wcag-1.4.11",
+      "rule": "UI components and meaningful graphics have at least 3:1 contrast against adjacent colors.",
+      "check": "gate-axis:axe",
+      "threshold": "3:1",
+      "source_url": "https://www.w3.org/WAI/WCAG21/Understanding/non-text-contrast.html",
+      "source_title": "WCAG SC 1.4.11 Non-text Contrast",
+      "trust": 1.0,
+      "year": 2018,
+      "scope": "global"
+    },
+    {
+      "id": "wcag-1.4.1",
+      "rule": "Color is never the sole means of conveying information, indicating action, or distinguishing an element.",
+      "check": "gate-axis:axe",
+      "threshold": "A",
+      "source_url": "https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html",
+      "source_title": "WCAG SC 1.4.1 Use of Color",
+      "trust": 1.0,
+      "year": 2008,
+      "scope": "global"
+    },
+    {
+      "id": "cwv-lcp",
+      "rule": "Largest Contentful Paint <=2.5s at p75 (field). Prioritize the LCP element: no lazy-load, preload it, set explicit dimensions.",
+      "check": "gate-axis:lighthouse-lab",
+      "threshold": "<=2.5s p75",
+      "source_url": "https://web.dev/articles/lcp",
+      "source_title": "Core Web Vitals: LCP",
+      "trust": 1.0,
+      "year": 2024,
+      "scope": "global"
+    },
+    {
+      "id": "cwv-inp",
+      "rule": "Interaction to Next Paint <=200ms at p75 (field). INP replaced FID 2024-03-12; gate the lab proxy on Lighthouse INP/TBT.",
+      "check": "gate-axis:lighthouse-lab",
+      "threshold": "<=200ms p75",
+      "source_url": "https://web.dev/articles/inp",
+      "source_title": "Core Web Vitals: INP (replaced FID, Mar 2024)",
+      "trust": 1.0,
+      "year": 2024,
+      "scope": "global"
+    },
+    {
+      "id": "cwv-cls",
+      "rule": "Cumulative Layout Shift <=0.1 at p75 (field). Reserve space for media and dynamically injected content.",
+      "check": "gate-axis:lighthouse-lab",
+      "threshold": "<=0.1 p75",
+      "source_url": "https://web.dev/articles/cls",
+      "source_title": "Core Web Vitals: CLS",
+      "trust": 1.0,
+      "year": 2024,
+      "scope": "global"
+    },
+    {
+      "id": "dtcg-stable",
+      "rule": "Emit DTCG-stable (2025.10): $value+$type required, .tokens.json, media type application/design-tokens+json, composite types and $extensions preserved on round-trip.",
+      "check": "gate-axis:token-fidelity",
+      "threshold": "2025.10",
+      "source_url": "https://www.w3.org/community/design-tokens/2025/10/28/design-tokens-specification-reaches-first-stable-version/",
+      "source_title": "DTCG Format Module first stable 2025.10 (pin to stable, NOT the live drafts URL)",
+      "trust": 1.0,
+      "year": 2025,
+      "scope": "global"
+    }
+  ]
+}

@@ -1,0 +1,85 @@
+{
+  "pack": "fintech-trust",
+  "scope": "fintech",
+  "version": "2026-05-31.seed",
+  "note": "Project-scoped. Trust/disclosure patterns expected of consumer-finance UIs. Jurisdiction-specific regulation (PSD3/PSR, Consumer Duty, US state law) is confirmed by WRAI per-tenant, NEVER hard-coded — it is geography-bound and changes faster than any seed. Most rows route to the judge (copy/coherence).",
+  "standards": [
+    {
+      "id": "fintech-fee-disclosure",
+      "rule": "Disclose fees and total cost at the decision point; the confirmation screen shows the full amount before commit.",
+      "check": "judge",
+      "threshold": null,
+      "source_url": "https://www.eleken.co/blog-posts/fintech-ux-best-practices",
+      "source_title": "Fintech UX: fee transparency at point of decision",
+      "trust": 0.8,
+      "year": 2025,
+      "scope": "fintech"
+    },
+    {
+      "id": "fintech-plain-disclosure",
+      "rule": "Use plain-language consent and disclosure; replace legalese with an expandable, readable explanation.",
+      "check": "judge",
+      "threshold": null,
+      "source_url": "https://wsa.design/news/top-10-fintech-ux-design-best-practices-for-2026",
+      "source_title": "Fintech UX 2026: plain-language disclosure",
+      "trust": 0.8,
+      "year": 2026,
+      "scope": "fintech"
+    },
+    {
+      "id": "fintech-progressive",
+      "rule": "Progressive disclosure: lead with one primary number (e.g. balance) and reveal detail on intent.",
+      "check": "judge",
+      "threshold": null,
+      "source_url": "https://www.nngroup.com/articles/progressive-disclosure/",
+      "source_title": "NN/g Progressive Disclosure (fintech application)",
+      "trust": 0.85,
+      "year": 2024,
+      "scope": "fintech"
+    },
+    {
+      "id": "fintech-friction-right",
+      "rule": "Friction-right security: visible confirmation plus a receipt for money movement; never a silent success.",
+      "check": "judge",
+      "threshold": null,
+      "source_url": "https://www.eleken.co/blog-posts/fintech-ux-best-practices",
+      "source_title": "Fintech UX: confirmation + receipt for money movement",
+      "trust": 0.8,
+      "year": 2025,
+      "scope": "fintech"
+    },
+    {
+      "id": "fintech-honest-outage",
+      "rule": "Honest failure/outage status messaging (DORA, applies Jan 2025) — mirrors the agent always-acknowledge-degradation rule.",
+      "check": "judge",
+      "threshold": null,
+      "source_url": "https://wsa.design/news/top-10-fintech-ux-design-best-practices-for-2026",
+      "source_title": "DORA-era outage communication expectations",
+      "trust": 0.75,
+      "year": 2025,
+      "scope": "fintech"
+    },
+    {
+      "id": "fintech-accessible-auth",
+      "rule": "No cognitive-test-only login (cross-cutting WCAG 3.3.8 Accessible Authentication).",
+      "check": "judge",
+      "threshold": "AA",
+      "source_url": "https://www.w3.org/WAI/WCAG22/Understanding/accessible-authentication-minimum.html",
+      "source_title": "WCAG 2.2 SC 3.3.8 (applied to fintech auth)",
+      "trust": 0.95,
+      "year": 2023,
+      "scope": "fintech"
+    },
+    {
+      "id": "fintech-jurisdiction-flag",
+      "rule": "Jurisdiction-specific regulation (PSD3/PSR, Consumer Duty, US state) MUST be confirmed by WRAI per-tenant, never hard-coded.",
+      "check": "manual",
+      "threshold": null,
+      "source_url": "https://wsa.design/news/top-10-fintech-ux-design-best-practices-for-2026",
+      "source_title": "Geography-bound fintech regulation (WRAI-confirmed per tenant)",
+      "trust": 0.7,
+      "year": 2026,
+      "scope": "fintech"
+    }
+  ]
+}

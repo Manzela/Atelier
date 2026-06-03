@@ -1,0 +1,74 @@
+{
+  "pack": "ecommerce-checkout",
+  "scope": "ecommerce-checkout",
+  "version": "2026-05-31.seed",
+  "note": "Project-scoped. Loads only when the BriefSpec project-type is a checkout/commerce flow. Highest-leverage, empirically-tested checkout standards (Baymard large-N). Most are detectable in generated HTML, so they map to the deterministic gate; the rest route to the judge.",
+  "standards": [
+    {
+      "id": "checkout-min-fields",
+      "rule": "Request only strictly-needed fields; never ask for cardholder name if it is derivable or unnecessary.",
+      "check": "judge",
+      "threshold": null,
+      "source_url": "https://baymard.com/research/checkout-usability",
+      "source_title": "Baymard Checkout Usability (field minimization)",
+      "trust": 0.95,
+      "year": 2025,
+      "scope": "ecommerce-checkout"
+    },
+    {
+      "id": "checkout-card-sequence",
+      "rule": "Card-field order is number, then expiry, then CVC, with name last or removed; never name-first.",
+      "check": "judge",
+      "threshold": null,
+      "source_url": "https://baymard.com/blog/credit-card-fields-best-practices",
+      "source_title": "Baymard credit-card field best practices",
+      "trust": 0.95,
+      "year": 2025,
+      "scope": "ecommerce-checkout"
+    },
+    {
+      "id": "checkout-autocomplete",
+      "rule": "Every field carries the correct HTML autocomplete token (cc-number, cc-exp, postal-code, email) and input type/inputmode for a numeric keypad.",
+      "check": "gate-axis:axe",
+      "threshold": null,
+      "source_url": "https://evilmartians.com/chronicles/payment-form-best-coding-practices-that-dont-drop-sales",
+      "source_title": "Payment form coding best practices (autocomplete/inputmode)",
+      "trust": 0.9,
+      "year": 2024,
+      "scope": "ecommerce-checkout"
+    },
+    {
+      "id": "checkout-guest",
+      "rule": "Offer guest checkout; never force account creation before purchase.",
+      "check": "manual",
+      "threshold": null,
+      "source_url": "https://baymard.com/research/checkout-usability",
+      "source_title": "Baymard Checkout Usability (guest checkout)",
+      "trust": 0.95,
+      "year": 2025,
+      "scope": "ecommerce-checkout"
+    },
+    {
+      "id": "checkout-inline-validation",
+      "rule": "Validate fields inline in real time, with specific error text placed adjacent to the field.",
+      "check": "judge",
+      "threshold": null,
+      "source_url": "https://baymard.com/research/checkout-usability",
+      "source_title": "Baymard Checkout Usability (inline validation)",
+      "trust": 0.95,
+      "year": 2025,
+      "scope": "ecommerce-checkout"
+    },
+    {
+      "id": "checkout-persist",
+      "rule": "Persist and pre-fill values the user already entered earlier in the flow (cross-cutting WCAG 3.3.7 Redundant Entry).",
+      "check": "judge",
+      "threshold": null,
+      "source_url": "https://www.w3.org/WAI/WCAG22/Understanding/redundant-entry.html",
+      "source_title": "WCAG 2.2 SC 3.3.7 Redundant Entry (applied to checkout)",
+      "trust": 0.95,
+      "year": 2023,
+      "scope": "ecommerce-checkout"
+    }
+  ]
+}

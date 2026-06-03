@@ -115,12 +115,24 @@ def _request_text(llm_request: LlmRequest) -> str:
     return "\n".join(chunks)
 
 
-def _first_injection_hit(text: str) -> str | None:
-    """Return the first matching injection pattern, or ``None`` if the text is clean."""
+def detect_injection(text: str) -> str | None:
+    """Return the first matching injection pattern in ``text``, or ``None`` if clean.
+
+    The public, reusable form of the model-boundary scan. The WRAI research path
+    (AT-025, R8) calls this to set its ``armor_verdict`` *before* dispatching a
+    grounding query, so a brief carrying an injection imperative is acknowledged
+    as blocked and skipped — without crashing or blocking intake. Returning the
+    matched pattern (not just a bool) lets callers log *which* marker fired.
+    """
     for pattern in _COMPILED:
         if pattern.search(text):
             return pattern.pattern
     return None
+
+
+def _first_injection_hit(text: str) -> str | None:
+    """Backward-compatible private alias for :func:`detect_injection`."""
+    return detect_injection(text)
 
 
 def model_armor_before_callback(
