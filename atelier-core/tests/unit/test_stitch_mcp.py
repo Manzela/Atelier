@@ -177,6 +177,54 @@ class TestStitchMcpTransport:
 
 
 @pytest.mark.unit
+class TestStitchCredentialResolution:
+    """Bearer credential order: STITCH_API_KEY > fresh ADC token > Secret Manager.
+
+    The Secret-Manager value is a short-lived OAuth token that 401s on expiry;
+    preferring a freshly-minted ADC token (which Stitch accepts) is what keeps
+    the MCP session alive across runs.
+    """
+
+    def test_env_key_takes_precedence(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        import atelier.integrations.stitch_mcp as sm
+
+        monkeypatch.setenv("STITCH_API_KEY", "explicit-key")
+        # ADC must not even be consulted when an explicit key is present.
+        monkeypatch.setattr(
+            sm, "_mint_adc_access_token", lambda: pytest.fail("ADC should not be called")
+        )
+        assert sm._get_api_key() == "explicit-key"
+
+    def test_adc_token_used_when_no_env_key(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        import atelier.integrations.stitch_mcp as sm
+
+        monkeypatch.delenv("STITCH_API_KEY", raising=False)
+        monkeypatch.setattr(sm, "_mint_adc_access_token", lambda: "fresh-adc-token")
+        assert sm._get_api_key() == "fresh-adc-token"
+
+    def test_falls_back_to_secret_manager_when_adc_unavailable(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import atelier.integrations.stitch_mcp as sm
+
+        monkeypatch.delenv("STITCH_API_KEY", raising=False)
+        monkeypatch.setattr(sm, "_mint_adc_access_token", lambda: None)
+
+        class _Payload:
+            data = b"secret-manager-token"
+
+        class _Resp:
+            payload = _Payload()
+
+        class _Client:
+            def access_secret_version(self, request: object) -> _Resp:
+                return _Resp()
+
+        monkeypatch.setattr(sm.secretmanager, "SecretManagerServiceClient", _Client)
+        assert sm._get_api_key() == "secret-manager-token"
+
+
+@pytest.mark.unit
 class TestStripToolOutputSchemas:
     """Vertex rejects some MCP outputSchemas forwarded as response_json_schema.
 

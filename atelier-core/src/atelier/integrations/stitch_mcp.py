@@ -297,10 +297,43 @@ def get_design_system_for_register(visual_register: str) -> StitchDesignSystemSp
 _SECRET_NAME = "projects/atelier-build-2026/secrets/atelier-geap-api-key/versions/latest"  # noqa: S105
 
 
+def _mint_adc_access_token() -> str | None:
+    """Mint a fresh OAuth access token via ADC / Workload Identity, or None.
+
+    Stitch MCP accepts the runtime service account's ``cloud-platform`` token.
+    Minting per call yields a fresh, auto-refreshed ~1h token, so the MCP session
+    no longer 401s mid-run on the expiry of a static stored credential. Returns
+    None (not raising) when ADC is unavailable, so the caller can fall back.
+    """
+    try:
+        import google.auth  # noqa: PLC0415
+        import google.auth.transport.requests  # noqa: PLC0415
+
+        creds, _ = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
+        creds.refresh(google.auth.transport.requests.Request())
+        token = getattr(creds, "token", None)
+        return str(token) if token else None
+    except Exception as exc:  # noqa: BLE001 — fall back to Secret Manager below
+        logger.warning("stitch.adc_token_mint_failed", error_type=type(exc).__name__)
+        return None
+
+
 def _get_api_key() -> str:
-    """Retrieve the API key from GCP Secret Manager."""
-    if "STITCH_API_KEY" in os.environ:
+    """Return a bearer credential for the Stitch MCP endpoint.
+
+    Resolution order:
+      1. ``STITCH_API_KEY`` env — explicit override (a durable key or tests).
+      2. A freshly-minted ADC OAuth token (the durable, auto-refreshing path).
+      3. Secret Manager (``atelier-geap-api-key``) — legacy fallback. NOTE: the
+         stored value is a *short-lived* OAuth token that expires; preferring the
+         ADC mint above is what fixes the mid-run 401 that zeroed out generation.
+    """
+    if os.environ.get("STITCH_API_KEY"):
         return os.environ["STITCH_API_KEY"]
+
+    token = _mint_adc_access_token()
+    if token:
+        return token
 
     try:
         client = secretmanager.SecretManagerServiceClient()
