@@ -42,6 +42,43 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/v1/generate", tags=["pipeline"])
 
+# AT-026 (R13): the user-initiated Stop. Separate router so the path is the clean
+# ``POST /v1/stop/{session_id}`` the legibility UI calls. Authenticated — only the
+# run's owner may halt it. The handler arms the in-process cooperative stop flag;
+# the convergence loop honors it at the next iteration top (no model call after).
+stop_router = APIRouter(prefix="/v1/stop", tags=["pipeline"])
+
+
+@stop_router.post(
+    "/{session_id}",
+    summary="Stop an in-flight generation run",
+    description=(
+        "Requests a cooperative Stop for the given run. The convergence loop halts "
+        "within one iteration BEFORE its next model call (no model call after Stop, "
+        "R13), persists a durable checkpoint, and emits a `stop` SSE event. Resume "
+        "continues from the checkpoint. Requires authentication."
+    ),
+)
+async def stop_run(
+    session_id: str,
+    user: Annotated[FirebaseUser, Depends(require_auth)],
+) -> dict[str, str]:
+    """Arm a cooperative Stop for ``session_id`` (AT-026 / R13).
+
+    The flag is honored by :class:`AtelierRunner`'s convergence loop at the top of
+    its next iteration, before any model call — so the Stop is a real, enforced halt
+    with the no-model-call-after guarantee, not a best-effort cancel.
+    """
+    from atelier.orchestrator.stop_controller import request_stop  # noqa: PLC0415
+
+    request_stop(session_id)
+    logger.info(
+        "atelier.generate.stop_requested",
+        extra={"session_id": sanitize(session_id), "uid": sanitize(user.uid)},
+    )
+    return {"status": "stop_requested", "session_id": session_id}
+
+
 _PROJECT: str = os.environ.get("GOOGLE_CLOUD_PROJECT", "atelier-build-2026")
 # Upper bound on per-run candidate trajectory records emitted for the DPO data
 # flywheel. The N3a node is now the DDLC specialist SequentialAgent (AT-020), not
@@ -582,7 +619,98 @@ def _enrich_complete_payload(payload: dict[str, Any]) -> dict[str, Any]:
             )
     enriched["nielsen"] = nielsen_list
 
+    # ------------------------------------------------------------------
+    # run_verdict: the AT-007 run-completion oracle output (AT-026 Post /
+    # Attribution). Every ACCEPTANCE.json criterion -> verdict + evidence, the
+    # data source for the §14 Attribution view. Computed deterministically at the
+    # API boundary from the converged surfaces (the oracle recomputes from
+    # artifacts; it never trusts the agent-written converged/composite — G2).
+    # Fail-soft: an oracle error degrades to a null verdict (the Attribution view
+    # renders "unavailable") rather than breaking the SSE stream.
+    # ------------------------------------------------------------------
+    enriched["run_verdict"] = _build_run_verdict(payload)
+
     return enriched
+
+
+def _build_run_verdict(payload: dict[str, Any]) -> dict[str, Any] | None:
+    """Compute the AT-007 ``verify_run`` verdict for the AT-026 Attribution panel.
+
+    Derives an ``AcceptanceCriteria`` from the runner payload (run id, brief hash,
+    the converged surface set, the convergence threshold, and any user-confirmed
+    domain standards) and the final ``{surface: CandidateUI}`` map from each screen's
+    best candidate HTML, then runs the deterministic oracle. Returns the serialized
+    ``RunVerdict`` (``complete`` + per-criterion verdict + evidence + provenance), or
+    ``None`` on any error so the frontend renders an honest "unavailable" Attribution
+    state instead of the SSE stream crashing (R8 fail-soft).
+    """
+    import hashlib  # noqa: PLC0415
+    from uuid import uuid4 as _uuid4  # noqa: PLC0415
+
+    from atelier.models.acceptance import AcceptanceCriteria, BrandConstraints  # noqa: PLC0415
+    from atelier.models.data_contracts import CandidateUI  # noqa: PLC0415
+    from atelier.oracle.verify_run import verify_run  # noqa: PLC0415
+    from atelier.orchestrator.runner import CONVERGENCE_THRESHOLD  # noqa: PLC0415
+
+    try:
+        screens = payload.get("screens")
+        if not isinstance(screens, dict) or not screens:
+            # No per-surface results (e.g. a degraded early-exit) — fall back to the
+            # single best_html so the Post panel still has a criterion map.
+            best = payload.get("best_candidate")
+            best_html = best if isinstance(best, str) else ""
+            if not best_html.strip():
+                return None
+            screens = {"design": {"best_candidate": best_html}}
+
+        required_surfaces = list(screens.keys())
+        surfaces: dict[str, CandidateUI] = {}
+        for name, res in screens.items():
+            html = res.get("best_candidate") if isinstance(res, dict) else None
+            surfaces[name] = CandidateUI(
+                candidate_id=_uuid4(),
+                surface_id=_uuid4(),
+                iteration=0,
+                artifacts={"index.html": html if isinstance(html, str) else ""},
+            )
+
+        # brief_sha256: bind the verdict to the exact brief that produced it. The
+        # enriched payload carries the brief as a dumped dict; hash its intent.
+        brief_obj = payload.get("brief")
+        brief_seed = ""
+        if isinstance(brief_obj, dict):
+            brief_seed = str(brief_obj.get("intent", ""))
+        brief_sha256 = hashlib.sha256(brief_seed.encode("utf-8")).hexdigest()
+
+        # confirmed_standards: the AT-030 cited defaults the user accepted at sign-off
+        # (each recorded as an honored attribution criterion). The plan carries them;
+        # absent on legacy paths.
+        plan = payload.get("plan")
+        confirmed: list[str] = []
+        forbidden: list[str] = []
+        if isinstance(plan, dict):
+            for d in plan.get("proposed_defaults", []) or []:
+                if isinstance(d, dict) and d.get("standard_id"):
+                    confirmed.append(str(d["standard_id"]))
+
+        acceptance = AcceptanceCriteria(
+            run_id=str(payload.get("session_id", "")),
+            brief_sha256=brief_sha256,
+            required_surfaces=required_surfaces,
+            min_composite=CONVERGENCE_THRESHOLD,
+            confirmed_standards=confirmed,
+            brand_constraints=BrandConstraints(forbidden_colors=forbidden),
+        )
+        verdict = verify_run(acceptance, surfaces)
+        return verdict.model_dump(mode="json")
+    except Exception:  # noqa: BLE001
+        # Fail-soft: the Attribution panel must never break the SSE stream. Log +
+        # return None so the frontend renders the honest "unavailable" state.
+        logger.warning(
+            "atelier.generate.stream.run_verdict_failed (fail-soft)",
+            exc_info=True,
+        )
+        return None
 
 
 @router.post(

@@ -327,9 +327,11 @@ def create_app() -> FastAPI:  # noqa: C901, PLR0915 — handler-registration fac
     from atelier.api.a2a import router as a2a_router  # noqa: PLC0415
     from atelier.api.dream import router as dream_router  # noqa: PLC0415
     from atelier.api.generate import router as generate_router  # noqa: PLC0415
+    from atelier.api.generate import stop_router  # noqa: PLC0415
     from atelier.api.replay import router as replay_router  # noqa: PLC0415
 
     application.include_router(generate_router)
+    application.include_router(stop_router)  # AT-026 (R13): POST /v1/stop/{session_id}
     application.include_router(replay_router)
     application.include_router(dream_router)
     application.include_router(a2a_router)

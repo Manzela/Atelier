@@ -28,6 +28,12 @@ export interface ProposedDefault {
  */
 export interface PlanData {
   surfaces: string[];
+  /**
+   * AT-026: the run/session id this plan belongs to. Surfaced on the `plan` SSE
+   * event so the legibility UI (and the Stop control) can address THIS run — the
+   * Stop endpoint is keyed on session_id and the loop honors it per-session.
+   */
+  session_id?: string;
   /** Estimated total token budget for the run (rendered on the ApprovalCard). */
   est_tokens?: number;
   /** WCAG conformance target the run will gate against (e.g. "AA"). */
@@ -50,6 +56,70 @@ export interface PlanData {
 
 export interface ScreenStartData {
   screen: string;
+  /** AT-026: the session id, so the Stop control can address this run. */
+  session_id?: string;
+}
+
+/**
+ * AT-026 (Mid legibility): one trace event per DDLC specialist as it hands off.
+ * `role` is the specialist's ADK agent author (ux_research, ia_flows, wireframe,
+ * ui_design, interaction_spec, tokens); `summary` is a length-capped digest of
+ * its contribution so the user sees WHAT each specialist produced, in real time.
+ */
+export interface SpecialistTraceData {
+  screen: string;
+  iteration: number;
+  role: string;
+  summary: string;
+}
+
+/**
+ * AT-026 (Mid legibility): one trace event per WRAI research query, with the top
+ * citation for that query — the grounded provenance of what Atelier looked up.
+ */
+export interface ResearchQueryData {
+  query: string;
+  result_count: number;
+  top_citation: string;
+  top_title: string;
+  trust_score: number;
+}
+
+/**
+ * AT-026 (R13 interruption): emitted when a user Stop is honored. The run halted
+ * within one iteration BEFORE its next model call and a durable checkpoint was
+ * persisted (resume continues from it).
+ */
+export interface StopData {
+  screen: string;
+  iteration: number;
+  session_id: string;
+  checkpointed: boolean;
+}
+
+/**
+ * AT-026 (Post / Attribution): one acceptance criterion's verdict. Mirrors
+ * `atelier-core` `CriterionVerdict` (the `verify_run` oracle output): every
+ * ACCEPTANCE.json criterion -> verdict + evidence + provenance source.
+ */
+export interface CriterionVerdict {
+  criterion_id: string;
+  kind: string;
+  target: string;
+  /** "user" | "standard:<standard_id>" — the provenance of the criterion. */
+  source: string;
+  verdict: boolean;
+  evidence_ref: string;
+}
+
+/**
+ * AT-026 (Post / Attribution): the aggregate run-oracle verdict. `complete` is
+ * true iff every criterion verdict holds. Mirrors `atelier-core` `RunVerdict`.
+ */
+export interface RunVerdict {
+  complete: boolean;
+  criteria: CriterionVerdict[];
+  composite_by_surface: Record<string, number>;
 }
 
 export interface IterationStartData {
@@ -148,6 +218,14 @@ export interface CompleteData {
   composite_score?: number;
   dorav?: DoravScores;
   nielsen?: NielsenHeuristic[];
+  /** AT-026: the run/session id, for replay + the Stop control. */
+  session_id?: string;
+  /**
+   * AT-026 (Post / Attribution): the AT-007 run-oracle verdict — every acceptance
+   * criterion mapped to a verdict + evidence. Null on legacy/degraded paths where
+   * the oracle could not run (the Attribution view renders an honest "unavailable").
+   */
+  run_verdict?: RunVerdict | null;
   /** Set to true when the pipeline converged but quality fell below threshold */
   degraded?: boolean;
   /** Human-readable reason for degradation — forwarded to the DegradedState component */
@@ -236,6 +314,12 @@ export interface StreamCallbacks {
   onIterationScore?: (data: IterationScoreData) => void;
   /** AT-096: fired on each token_delta SSE event with cumulative per-user token counts */
   onTokenDelta?: (data: TokenDeltaData) => void;
+  /** AT-026: fired once per DDLC specialist as it hands off (Mid legibility trace) */
+  onSpecialistTrace?: (data: SpecialistTraceData) => void;
+  /** AT-026: fired once per WRAI research query with its top citation (Mid legibility) */
+  onResearchQuery?: (data: ResearchQueryData) => void;
+  /** AT-026: fired when a user Stop is honored (R13 interruption) */
+  onStop?: (data: StopData) => void;
 }
 
 export const getApiUrl = () => {
@@ -374,7 +458,37 @@ function triggerCallback(event: string, data: Record<string, unknown>, callbacks
     case 'token_delta':
       callbacks.onTokenDelta?.(data as unknown as TokenDeltaData);
       break;
+    case 'specialist_trace':
+      callbacks.onSpecialistTrace?.(data as unknown as SpecialistTraceData);
+      break;
+    case 'research_query':
+      callbacks.onResearchQuery?.(data as unknown as ResearchQueryData);
+      break;
+    case 'stop':
+      callbacks.onStop?.(data as unknown as StopData);
+      break;
     default:
       console.log(`Unhandled SSE event: ${event}`, data);
+  }
+}
+
+/**
+ * AT-026 (R13): request a cooperative Stop of an in-flight run. The backend arms
+ * the per-session stop flag; the convergence loop halts within one iteration
+ * BEFORE its next model call (no model call after Stop), persists a checkpoint,
+ * and emits a `stop` SSE event. Returns true on a 2xx, false otherwise — the
+ * caller acknowledges a failed Stop rather than silently assuming it landed.
+ */
+export async function requestStopRun(sessionId: string, token: string | null): Promise<boolean> {
+  const url = `${getApiUrl()}/v1/stop/${encodeURIComponent(sessionId)}`;
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  try {
+    const response = await fetch(url, { method: 'POST', headers });
+    return response.ok;
+  } catch {
+    return false;
   }
 }

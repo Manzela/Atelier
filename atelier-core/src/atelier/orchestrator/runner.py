@@ -86,6 +86,7 @@ from atelier.orchestrator.governor import (
 )
 from atelier.orchestrator.planner import PlanStep
 from atelier.orchestrator.specialists import create_specialist_pipeline
+from atelier.orchestrator.stop_controller import clear_stop, is_stop_requested
 from atelier.orchestrator.stop_reason import (
     StopReason,
     StopSignals,
@@ -588,6 +589,26 @@ def _build_iteration_dorav(
     return {**dorav, "failing_axis": failing_axis}
 
 
+#: Max characters of a specialist's output surfaced in its legibility trace summary.
+_TRACE_SUMMARY_CHARS: int = 200
+
+
+def _trace_summary(texts: list[Any]) -> str:
+    """One-line, length-capped summary of a specialist's output (AT-026 trace).
+
+    Joins the event's text parts, collapses whitespace, and truncates to
+    :data:`_TRACE_SUMMARY_CHARS` so the legibility trace shows WHAT each specialist
+    contributed without dumping a full HTML document into the event stream. Non-text
+    parts (the fallback raw-event shape) are stringified defensively. Always returns a
+    non-empty string when any text is present so the trace is never a blank ping.
+    """
+    joined = " ".join(str(t) for t in texts if t).strip()
+    collapsed = re.sub(r"\s+", " ", joined)
+    if len(collapsed) <= _TRACE_SUMMARY_CHARS:
+        return collapsed or "(no output)"
+    return collapsed[:_TRACE_SUMMARY_CHARS].rstrip() + "…"
+
+
 def _default_session_service() -> BaseSessionService:
     """Create the default session service from ``SESSION_BACKEND`` (B4, AT-080).
 
@@ -982,6 +1003,7 @@ class AtelierRunner:
         self,
         brief_text: str,  # used for trajectory metadata
         tenant_ctx: TenantContext,
+        progress_callback: Callable[[str, dict[str, Any]], Any] | None = None,
     ) -> tuple[Any, Any, WebResearchReport, Any]:
         """Execute N1 (Brief Parser), N0 (Planner), WRAI (conditional), and N2 (Source Resolver).
 
@@ -1028,6 +1050,12 @@ class AtelierRunner:
         # N14 WRAI: conditional on plan.should_run_wrai
         if plan.should_run_wrai:
             wrai_report = await research_brief(brief_text)
+            # AT-026 (Mid legibility): surface ONE research_query trace event per
+            # WRAI query — the grounded provenance of what Atelier looked up, with
+            # the top citation per query so the user can verify. Fail-soft: a trace
+            # emission failure must never break intake (R8).
+            if progress_callback:
+                await self._emit_research_queries(wrai_report, progress_callback)
         else:
             logger.info("N14 WRAI: skipped per PlannerAgent (should_run_wrai=False)")
             wrai_report = WebResearchReport(results=[])
@@ -1073,6 +1101,63 @@ class AtelierRunner:
             STAGE_N2_SOURCE_RESOLVE, tokens=STAGE_TOKEN_ATTRIBUTION
         )
         return brief, project_ctx, wrai_report, plan
+
+    async def _emit_research_queries(
+        self,
+        wrai_report: WebResearchReport,
+        progress_callback: Callable[[str, dict[str, Any]], Any],
+    ) -> None:
+        """AT-026 (Mid): emit ONE ``research_query`` trace event per WRAI query.
+
+        The Mid-legibility bar requires ">= 1 trace event per research query". The
+        WRAI report carries ``total_queries`` (queries dispatched) and ``results``
+        (scored, query-tagged). We group results by their ``query`` and emit one
+        event per distinct query that produced a surfaced result, then top up to
+        ``total_queries`` with bare-query events for any query that returned nothing
+        (so every dispatched query is legible, not just the ones that hit). Each
+        event carries the top citation for that query so the provenance is
+        verifiable. Fail-soft: any emission error degrades to a logged warning and
+        intake proceeds (R8) — the trace is an aid, never a hard gate.
+        """
+        try:
+            by_query: dict[str, list[WebResearchResult]] = {}
+            for result in wrai_report.results:
+                by_query.setdefault(result.query, []).append(result)
+
+            emitted = 0
+            for query, hits in by_query.items():
+                top = max(hits, key=lambda r: r.trust_score)
+                await progress_callback(
+                    "research_query",
+                    {
+                        "query": query,
+                        "result_count": len(hits),
+                        "top_citation": top.url,
+                        "top_title": top.title,
+                        "trust_score": top.trust_score,
+                    },
+                )
+                emitted += 1
+
+            # Top up: every DISPATCHED query is legible even when it returned no
+            # surfaced result (so the count matches total_queries the user sees).
+            for i in range(emitted, wrai_report.total_queries):
+                await progress_callback(
+                    "research_query",
+                    {
+                        "query": f"research query {i + 1}",
+                        "result_count": 0,
+                        "top_citation": "",
+                        "top_title": "",
+                        "trust_score": 0.0,
+                    },
+                )
+        except Exception:  # noqa: BLE001
+            # Fail-soft (R8): a research trace failure must never break intake.
+            logger.warning(
+                "AT-026: research_query trace emission failed; proceeding",
+                exc_info=True,
+            )
 
     async def _emit_clarify(
         self,
@@ -1173,7 +1258,9 @@ class AtelierRunner:
         self._seed_lifetime_counter(user_id)
         self._governor._check_token_budget()
 
-        brief, project_ctx, wrai_report, plan = await self._run_n1_n2(brief_text, tenant_ctx)
+        brief, project_ctx, wrai_report, plan = await self._run_n1_n2(
+            brief_text, tenant_ctx, progress_callback=progress_callback
+        )
 
         # Create a session via the injected session service (B4)
         session_id = str(uuid.uuid4())
@@ -1198,6 +1285,10 @@ class AtelierRunner:
         if progress_callback:
             plan_data = plan.model_dump() if hasattr(plan, "model_dump") else {}
             plan_data["surfaces"] = getattr(plan, "surfaces", ["landing page"])
+            # AT-026: surface the session id on the plan event so the legibility UI
+            # (and the Stop control) can address THIS run — the Stop endpoint is
+            # keyed on session_id and the loop honors it per-session.
+            plan_data["session_id"] = session.id
             await progress_callback("plan", plan_data)
 
         surfaces = getattr(plan, "surfaces", ["landing page"])
@@ -1360,6 +1451,57 @@ class AtelierRunner:
         # append_event applies the delta to the passed session in ADK >=2.0; mirror it
         # defensively so callers reading session.state in-process do not depend on that.
         session.state.update(state_delta)
+
+    async def _persist_stop_checkpoint(
+        self,
+        *,
+        brief: BriefSpec,
+        project_ctx: ProjectContext,
+        wrai_report: WebResearchReport,
+        plan: PlanStep,
+        surfaces: list[str],
+        session_id: str,
+        brief_text: str,
+        user_id: str,
+    ) -> None:
+        """AT-026 / R13: persist an in-flight Stop checkpoint so resume can continue.
+
+        Serializes the (immutable) pre-N3a outputs + the per-stage accumulators into
+        ``session.state`` under the same ``CHECKPOINT_KEY`` the sign-off halt uses,
+        and marks the session ``AWAITING_SIGNOFF`` so a subsequent confirmed
+        :meth:`resume` re-enters the surface loop from the checkpoint (N1/N2 are NOT
+        re-run — their completed-stage deltas stay 0). Reuses the exact serialization
+        + durable ``state_delta`` path proven by AT-031, so the Stop and the sign-off
+        halt share one recovery surface. Fail-soft on a session read miss: a Stop
+        whose session vanished is logged, not crashed (the loop still halts).
+        """
+        checkpoint = _serialize_checkpoint(
+            brief=brief,
+            project_ctx=project_ctx,
+            wrai_report=wrai_report,
+            plan=plan,
+            surfaces=surfaces,
+            session_id=session_id,
+            brief_text=brief_text,
+            stage_call_counts=self._governor._state.stage_call_counts,
+            stage_token_counts=self._governor._state.stage_token_counts,
+        )
+        session = await self._session_service.get_session(
+            app_name=_APP_NAME,
+            user_id=user_id,
+            session_id=session_id,
+        )
+        if session is None:
+            logger.warning(
+                "AT-026: Stop checkpoint skipped — session %s not found (loop still halts)",
+                session_id,
+            )
+            return
+        await self._persist_signoff_state(
+            session=session,
+            status=STATUS_AWAITING,
+            checkpoint=checkpoint,
+        )
 
     async def resume(
         self,
@@ -1595,7 +1737,10 @@ class AtelierRunner:
 
         for idx, screen in enumerate(surfaces):
             if progress_callback:
-                await progress_callback("screen_start", {"screen": screen, "index": idx})
+                await progress_callback(
+                    "screen_start",
+                    {"screen": screen, "index": idx, "session_id": session_id},
+                )
 
             # Initialize convergence state for this screen.
             # R4: build the immutable anchor once; re-inject it (never accumulate)
@@ -1624,6 +1769,49 @@ class AtelierRunner:
                     await progress_callback(
                         "iteration_start", {"screen": screen, "iteration": iteration}
                     )
+
+                # AT-026 / R13 (trust-critical interruption): honor a user Stop at
+                # the TOP of the iteration, BEFORE any model call. Because this check
+                # precedes N3a's generation, a Stop set at this boundary halts within
+                # this one iteration and issues NO model call afterward — the
+                # security guarantee the AT-003 LiveCallGuard counter proves (0 model
+                # calls after Stop). On Stop we persist a durable checkpoint (so a
+                # resume continues from N1/N2 without re-running them), emit a `stop`
+                # event so the UI acknowledges the halt, and break the loop.
+                if is_stop_requested(session_id):
+                    await self._persist_stop_checkpoint(
+                        brief=brief,
+                        project_ctx=project_ctx,
+                        wrai_report=wrai_report,
+                        plan=plan,
+                        surfaces=surfaces,
+                        session_id=session_id,
+                        brief_text=brief_text,
+                        user_id=user_id,
+                    )
+                    clear_stop(session_id)
+                    exit_reason = StopReason.STOPPED
+                    user_message = (
+                        "Generation was stopped at your request. Progress up to this "
+                        "iteration is checkpointed — resume to continue."
+                    )
+                    logger.info(
+                        "AT-026: user Stop honored for screen %s at iteration %d "
+                        "(no model call after Stop)",
+                        screen,
+                        iteration,
+                    )
+                    if progress_callback:
+                        await progress_callback(
+                            "stop",
+                            {
+                                "screen": screen,
+                                "iteration": iteration,
+                                "session_id": session_id,
+                                "checkpointed": True,
+                            },
+                        )
+                    break
 
                 if self._governor._state.is_over_token_cap():
                     # AT-095 graceful in-flight stop: the previous iteration's
@@ -1657,6 +1845,8 @@ class AtelierRunner:
                 # deterministic estimate when the offline model surface reports none.
                 async def _run_ensemble(
                     prompt: str = generator_prompt,
+                    screen: str = screen,
+                    iteration: int = iteration,
                 ) -> tuple[list[Any], bool, tuple[int, int, int]]:
                     pipeline, stitch_degradation = create_specialist_pipeline()
                     adk_runner = Runner(
@@ -1668,6 +1858,13 @@ class AtelierRunner:
 
                     candidates: list[Any] = []
                     usage_in = usage_out = usage_think = 0
+                    # AT-026 (Mid): emit ONE specialist_trace event per distinct DDLC
+                    # specialist as its ADK event streams. ``Event.author`` is the
+                    # agent name (the specialist that just handed off), so the first
+                    # event from each author makes that specialist's contribution
+                    # legible in real time (< 1s). Deduped per run so the SequentialAgent's
+                    # multi-event authors surface exactly once.
+                    traced_authors: set[str] = set()
                     async for event in adk_runner.run_async(
                         user_id=user_id,
                         session_id=session_id,
@@ -1676,11 +1873,30 @@ class AtelierRunner:
                             parts=[genai_types.Part(text=prompt)],
                         ),
                     ):
-                        candidates.extend(_extract_text_from_event(event))
+                        texts = _extract_text_from_event(event)
+                        candidates.extend(texts)
                         ein, eout, ethink = _usage_from_event(event)
                         usage_in += ein
                         usage_out += eout
                         usage_think += ethink
+
+                        author = getattr(event, "author", None)
+                        if (
+                            progress_callback
+                            and isinstance(author, str)
+                            and author
+                            and author not in traced_authors
+                        ):
+                            traced_authors.add(author)
+                            await progress_callback(
+                                "specialist_trace",
+                                {
+                                    "screen": screen,
+                                    "iteration": iteration,
+                                    "role": author,
+                                    "summary": _trace_summary(texts),
+                                },
+                            )
 
                     if usage_in + usage_out + usage_think == 0:
                         usage_in, usage_out, usage_think = _estimate_tokens(prompt, candidates)
