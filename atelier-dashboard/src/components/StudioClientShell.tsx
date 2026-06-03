@@ -35,6 +35,7 @@ import {
   RotateCcw,
   X,
   Palette,
+  WifiOff,
 } from 'lucide-react';
 import {
   runGenerationStream,
@@ -124,6 +125,38 @@ type DoravAxisKey = (typeof DORAV_AXES)[number]['key'];
 
 /** AT-096: Per-user lifetime token cap (5 million tokens). */
 const TOKEN_CAP = 5_000_000;
+
+/**
+ * AT-094 (R9): the one branded cap-stop string. Byte-identical to the backend
+ * constant `atelier-core/src/atelier/orchestrator/governor.py::TOKEN_CAP_MESSAGE`
+ * (PRD §13.2). The live API emits it as the `cap_reached` event `detail`; this
+ * local copy is the fail-soft fallback when no server detail is present, so the
+ * user always sees the exact branded stop — never a paraphrase. If the backend
+ * constant changes, change this in lockstep (the two must not drift).
+ */
+const TOKEN_CAP_MESSAGE =
+  "You've reached this account's usage limit. Contact administrator to continue.";
+
+/**
+ * AT-094 (R9): live offline detection. Returns `true` whenever the browser
+ * reports no network connectivity (`navigator.onLine === false`). Subscribes to
+ * the real `online`/`offline` window events so the shell re-renders on transition
+ * — not a hard-coded toggle. SSR-safe: assumes online until the client mounts.
+ */
+function useOnlineStatus(): boolean {
+  const [isOffline, setIsOffline] = React.useState(false);
+  React.useEffect(() => {
+    const sync = () => setIsOffline(!navigator.onLine);
+    sync(); // reconcile against the actual state at mount
+    window.addEventListener('online', sync);
+    window.addEventListener('offline', sync);
+    return () => {
+      window.removeEventListener('online', sync);
+      window.removeEventListener('offline', sync);
+    };
+  }, []);
+  return isOffline;
+}
 
 /**
  * AT-093: Animated per-axis score bar using framer-motion spring.
@@ -442,6 +475,11 @@ export default function StudioClientShell({ id }: { id: string }) {
   const [status, setStatus] = useState<
     'idle' | 'generating' | 'converged' | 'degraded' | 'error' | 'cap-reached'
   >('idle');
+  // AT-094 (R9): live network status. Offline is a transient, self-acknowledged
+  // degradation: it overrides the idle/empty canvas with a skeleton + banner,
+  // but NEVER masks an in-flight run (would lose context) nor the fail-loud
+  // cap-reached stop (the user must see the cap, not a transient offline notice).
+  const isOffline = useOnlineStatus();
   const [logs, setLogs] = useState<{ id: number; time: string; level: string; msg: string }[]>([]);
   const [convergedHtml, setConvergedHtml] = useState<string>('');
   const [dorav, setDorav] = useState<DoravScores | null>(null);
@@ -549,6 +587,13 @@ export default function StudioClientShell({ id }: { id: string }) {
 
   const startGeneration = () => {
     if (status === 'generating' || status === 'cap-reached' || !user) return;
+    // AT-094 (R9): fail-fast when offline — do not open a request that cannot
+    // succeed. Acknowledge the degradation (log) and surface the offline state;
+    // the `online` event will clear it back to a generatable canvas.
+    if (!navigator.onLine) {
+      addLog('WARN', 'Offline — generation deferred until the connection is restored.');
+      return;
+    }
     setStatus('generating');
     setLogs([]);
     setIterationScores([]); // AT-093: reset per-iteration scorecard on each new run
@@ -623,7 +668,10 @@ export default function StudioClientShell({ id }: { id: string }) {
         setStatus('error');
       },
       onCapReached: (data: CapReachedData) => {
-        const detail = data.detail || 'Token cap reached. Please wait before running again.';
+        // AT-094 (R9): prefer the server's branded stop, else the SPEC-EXACT
+        // constant (PRD §13.2). Never a paraphrase — the cap message is one of
+        // the few user-facing strings the spec pins byte-for-byte.
+        const detail = data.detail || TOKEN_CAP_MESSAGE;
         setCapReachedDetail(detail);
         addLog('ERROR', `Token cap reached: ${detail}`);
         setStatus('cap-reached');
@@ -649,6 +697,14 @@ export default function StudioClientShell({ id }: { id: string }) {
   };
 
   if (!user) return <div ref={initRef} />;
+
+  // AT-094 (R9): the offline acknowledgement owns the canvas ONLY when there is
+  // no usable on-screen content to protect — i.e. the idle/empty canvas or a
+  // pipeline error. It deliberately does NOT replace already-produced output
+  // (`converged`/`degraded`): that iframe is a static, network-independent
+  // srcDoc, so a transient network blip must not destroy completed work. It also
+  // yields to an in-flight `generating` run and the fail-loud `cap-reached` stop.
+  const showOffline = isOffline && (status === 'idle' || status === 'error');
 
   return (
     <LazyMotion features={domAnimation}>
@@ -796,7 +852,52 @@ export default function StudioClientShell({ id }: { id: string }) {
               className="shrink-0 h-[768px] bg-white rounded-lg shadow-2xl overflow-hidden border border-gray-200 cursor-grab active:cursor-grabbing origin-center"
             >
               {/* \u2500\u2500 Empty (idle) state \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */}
-              {status === 'idle' && (
+              {/* Offline state (AT-094 / R9) — skeleton + acknowledgement banner. */}
+              {showOffline && (
+                <div data-testid="state-offline" className="w-full h-full relative bg-gray-50">
+                  {/* Skeleton: muted placeholder blocks pulse under the banner so the
+                      surface reads as "waiting for connection", not broken/empty. */}
+                  <div
+                    aria-hidden="true"
+                    className="absolute inset-0 flex flex-col gap-4 px-8 pt-24 pb-8 motion-safe:animate-pulse"
+                  >
+                    <div className="h-7 w-2/5 rounded bg-gray-200" />
+                    <div className="h-40 w-full rounded-lg bg-gray-200" />
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="h-24 rounded-lg bg-gray-200" />
+                      <div className="h-24 rounded-lg bg-gray-200" />
+                      <div className="h-24 rounded-lg bg-gray-200" />
+                    </div>
+                    <div className="h-4 w-3/4 rounded bg-gray-200" />
+                    <div className="h-4 w-1/2 rounded bg-gray-200" />
+                  </div>
+                  {/* Acknowledgement banner — the agent always acknowledges degradation
+                      (PRD §21 trichotomy). Offline is transient/self-healing: announced
+                      politely, clears automatically when the connection returns. */}
+                  <div
+                    role="status"
+                    aria-live="polite"
+                    className="absolute top-0 left-0 right-0 flex items-start gap-3 bg-slate-100 border-b-2 border-slate-400 px-4 py-3"
+                  >
+                    <WifiOff
+                      size={20}
+                      className="text-slate-600 mt-0.5 shrink-0"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <h2 className="text-sm font-semibold text-slate-800">
+                        No connection &mdash; waiting to reconnect
+                      </h2>
+                      <p className="text-xs text-slate-600 mt-0.5">
+                        Your connection was lost. Generation is paused; it resumes automatically
+                        once you&apos;re back online.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {status === 'idle' && !showOffline && (
                 <div
                   data-testid="state-empty"
                   className="w-full h-full flex flex-col items-center justify-center bg-gray-50 gap-4 px-8"
@@ -880,7 +981,7 @@ export default function StudioClientShell({ id }: { id: string }) {
               )}
 
               {/* \u2500\u2500 Error state \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */}
-              {status === 'error' && (
+              {status === 'error' && !showOffline && (
                 <div
                   data-testid="state-error"
                   role="alert"
@@ -911,13 +1012,11 @@ export default function StudioClientShell({ id }: { id: string }) {
                 >
                   <ZapOff size={40} className="text-orange-400" aria-hidden="true" />
                   <h2 className="text-lg font-semibold text-orange-700">Token cap reached</h2>
+                  {/* AT-094 (R9): the SPEC-EXACT stop string (PRD §13.2). The live
+                      backend sends it as `capReachedDetail`; the constant is the
+                      byte-identical fail-soft fallback — never a paraphrase. */}
                   <p className="text-sm text-gray-600 text-center max-w-xs">
-                    {capReachedDetail ||
-                      "You've reached your token cap for this session. Please wait before running another generation."}
-                  </p>
-                  <p className="text-xs text-gray-600 text-center max-w-xs">
-                    Token limits reset periodically. Contact your administrator if you need a higher
-                    limit.
+                    {capReachedDetail || TOKEN_CAP_MESSAGE}
                   </p>
                 </div>
               )}
