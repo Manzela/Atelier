@@ -255,7 +255,9 @@ class UsageCounterStore:
             with _MEMORY_LOCK:
                 rec = _MEMORY.get(uid)
                 if rec is None:
-                    return UsageSnapshot(uid, 0, 0, 0, 0)
+                    return UsageSnapshot(
+                        uid=uid, total_tokens=0, input_tokens=0, output_tokens=0, thinking_tokens=0
+                    )
                 return UsageSnapshot(
                     uid,
                     rec.total_tokens,
@@ -279,7 +281,9 @@ class UsageCounterStore:
             )
             raise GovernorUsageUnavailable(uid=uid, reason="read_failed") from exc
         if not snap.exists:
-            return UsageSnapshot(uid, 0, 0, 0, 0)
+            return UsageSnapshot(
+                uid=uid, total_tokens=0, input_tokens=0, output_tokens=0, thinking_tokens=0
+            )
         data = snap.to_dict() or {}
         # Guard the parse: a non-int stored value (a server bug, a console edit, a
         # pre-rules migrated doc) is a data-integrity fault -> fail CLOSED, never a
@@ -339,6 +343,14 @@ class UsageCounterStore:
                     rec.tier_flash_tokens += delta
                 elif tier_field == "tier_flash_lite_tokens":
                     rec.tier_flash_lite_tokens += delta
+                elif tier_field is not None:
+                    # Unknown tier: log structured error so new tiers surface immediately.
+                    # total_tokens is already incremented above; the tier bucket is lost
+                    # for this delta — structured error allows ops to catch the gap.
+                    logger.error(
+                        "Unknown tier_field in memory backend — delta not attributed to any tier bucket.",
+                        extra={"tier_field": tier_field, "delta": delta, "uid": uid},
+                    )
                 new_total = rec.total_tokens
             # AT-097: feed the fleet-wide breaker window AFTER the per-uid commit
             # (outside _MEMORY_LOCK — _record_global_tokens takes _GLOBAL_LOCK only,

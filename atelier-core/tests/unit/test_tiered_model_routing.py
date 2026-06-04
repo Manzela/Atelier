@@ -249,3 +249,42 @@ def test_usage_store_add_without_model_id_no_tier_fields() -> None:
     assert snap.tier_pro_tokens == 0
     assert snap.tier_flash_tokens == 0
     assert snap.tier_flash_lite_tokens == 0
+
+
+def test_per_tier_keys_match_tier_token_caps() -> None:
+    """per_tier() keys must equal TIER_TOKEN_CAPS keys — guards against rename drift."""
+    store = UsageCounterStore(backend="memory")
+    uid = "key-match-user"
+    snap = store.snapshot(uid)
+    assert set(snap.per_tier().keys()) == set(TIER_TOKEN_CAPS.keys())
+
+
+def test_is_over_token_cap_tier_over_cap_cumulative_under() -> None:
+    """is_over_token_cap() must fire when a tier bucket is over cap but cumulative is under."""
+    state = GovernorState(token_cap=TIER_TOKEN_CAPS["pro"] + 1)  # cumulative cap > pro tier cap
+    pro_cap = TIER_TOKEN_CAPS["pro"]
+    state.add_user_tokens(input_tokens=pro_cap, model_id="gemini-2.5-pro")
+    # cumulative_user_tokens == pro_cap, token_cap == pro_cap + 1 → cumulative is under
+    # but per_tier_tokens['pro'] == pro_cap == TIER_TOKEN_CAPS['pro'] → exceeded_tier() fires
+    assert state.cumulative_user_tokens < state.token_cap
+    assert state.exceeded_tier() == "pro"
+    assert state.is_over_token_cap()
+
+
+def test_is_over_token_cap_mixed_attribution_cumulative_wins() -> None:
+    """Cumulative check fires even when per-tier buckets are under their individual caps.
+
+    Scenario: legacy tokens (no model_id) push cumulative to the aggregate cap.
+    A subsequent tiered call adds flash tokens. cumulative >= token_cap must still
+    trigger the cap even though flash bucket is far under the 15M flash cap.
+    """
+    state = GovernorState(token_cap=100)
+    # Legacy: no model_id — cumulative only, no tier bucket
+    state.add_user_tokens(input_tokens=99)
+    assert not state.is_over_token_cap()
+    # Tiered: adds 1 token to flash bucket; cumulative becomes 100 == token_cap
+    state.add_user_tokens(input_tokens=1, model_id="gemini-2.5-flash")
+    assert state.cumulative_user_tokens == 100
+    assert state.per_tier_tokens.get("flash", 0) == 1  # flash << 15M cap
+    # Aggregate cap fires via cumulative path
+    assert state.is_over_token_cap()

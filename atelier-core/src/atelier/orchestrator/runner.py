@@ -1822,14 +1822,25 @@ class AtelierRunner:
                     # completed unit pushed cumulative usage to the cap. Stop cleanly
                     # BEFORE starting another (expensive) generation — finish-the-unit,
                     # then a single branded message (never a raw quota error or hang).
+                    _exceeded = self._governor._state.exceeded_tier()
                     logger.warning(
                         "Convergence loop graceful stop: per-user token cap reached.",
                         extra={
                             "user_id": user_id,
                             "cumulative_user_tokens": self._governor._state.cumulative_user_tokens,
                             "token_cap": self._governor._state.token_cap,
+                            "exceeded_tier": _exceeded,
                         },
                     )
+                    if progress_callback:
+                        await progress_callback(
+                            "degraded",
+                            {
+                                "mode": "cap",
+                                "message": TOKEN_CAP_MESSAGE,
+                                "exceeded_tier": _exceeded,
+                            },
+                        )
                     exit_reason = StopReason.TOKEN_CAP_EXHAUSTED
                     user_message = TOKEN_CAP_MESSAGE
                     break
@@ -2141,6 +2152,16 @@ class AtelierRunner:
                         # The single branded cap message (acceptance (b)); never a raw
                         # quota error. Shown once via the response/complete payload.
                         user_message = TOKEN_CAP_MESSAGE
+                        _exceeded = self._governor._state.exceeded_tier()
+                        if progress_callback:
+                            await progress_callback(
+                                "degraded",
+                                {
+                                    "mode": "cap",
+                                    "message": TOKEN_CAP_MESSAGE,
+                                    "exceeded_tier": _exceeded,
+                                },
+                            )
                     elif (
                         resolved
                         in (
