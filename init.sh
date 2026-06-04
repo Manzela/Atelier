@@ -97,7 +97,8 @@ if ! command -v pre-commit >/dev/null 2>&1; then
 fi
 pre-commit install
 pre-commit install --hook-type commit-msg # for commitlint
-log "  ✓ pre-commit hooks installed (run-on-commit + commit-msg)"
+pre-commit install --hook-type pre-push   # for pytest-fast
+log "  ✓ pre-commit hooks installed (run-on-commit + commit-msg + pre-push)"
 
 # ─── 5. Python dependencies ─────────────────────────────────────────────────
 log "Installing Python dependencies..."

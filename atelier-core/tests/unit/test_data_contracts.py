@@ -35,7 +35,7 @@ from pydantic import ValidationError
 # Expected enum counts (from PRD §9 — documented explicitly to satisfy PLR2004)
 # ---------------------------------------------------------------------------
 
-EXPECTED_GATE_AXES = 7
+EXPECTED_GATE_AXES = 8
 EXPECTED_JUDGE_AXES = 5
 EXPECTED_MUTATION_OPS = 6
 

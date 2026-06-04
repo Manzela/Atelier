@@ -101,7 +101,7 @@ logger = logging.getLogger(__name__)
 # N3c gate axes — all 6 run
 _N3C_GATE_AXES: list[GateAxis] = [
     GateAxis.SEMANTIC_HTML,
-    GateAxis.LIGHTHOUSE_PERF,
+    GateAxis.CSS_VALIDITY,
     GateAxis.TOKEN_FIDELITY,
     GateAxis.LIGHTHOUSE_A11Y,
     GateAxis.AXE,
@@ -795,11 +795,12 @@ class AtelierRunner:
                 extra={"task_id": task_id, "target_column": column.value},
             )
 
-    def _run_n3c_n3d_n4(  # noqa: C901 — the N3c gate / N3d judge / N4 select convergence core
+    def _run_n3c_n3d_n4(  # noqa: C901, PLR0915 — the N3c gate / N3d judge / N4 select convergence core
         self,
         raw_candidates: list[Any],
         brief_text: str,  # noqa: ARG002
         iteration: int = 0,
+        tenant_ctx: TenantContext | None = None,
     ) -> dict[str, Any]:
         """Execute N3c (deterministic gates) → N3d (consensus) → N4 (final pick).
 
@@ -897,6 +898,24 @@ class AtelierRunner:
                 continue
 
             candidates_passed_gates += 1
+
+            from atelier.durability.screenshot_helper import (  # noqa: PLC0415
+                capture_and_upload_screenshot,
+            )
+
+            tenant_id = tenant_ctx.tenant_id if tenant_ctx else "default"
+            screenshot_url = capture_and_upload_screenshot(
+                tenant_id=tenant_id,
+                candidate_id=str(candidate.candidate_id),
+                html=html_content,
+            )
+            if screenshot_url:
+                candidate.artifacts["screenshot.png"] = screenshot_url
+                logger.info(
+                    "Closed-loop QA: captured candidate screenshot and uploaded to GCS: %s",
+                    screenshot_url,
+                )
+
             passing.append((candidate, html_content))
 
         # N3d: D-O-R-A-V consensus over every gate-passing candidate. The
@@ -2024,7 +2043,7 @@ class AtelierRunner:
 
                 # N3c → N3d → N4: gate filtering + consensus evaluation + best-pick
                 convergence_result = self._run_n3c_n3d_n4(
-                    raw_candidates, brief_text, iteration=iteration
+                    raw_candidates, brief_text, iteration=iteration, tenant_ctx=tenant_ctx
                 )
                 # AT-097: charge N3d (D-O-R-A-V judge) token spend to the user's
                 # lifetime counter too — not just N3a. Mirrors the N3a attribution
@@ -2223,7 +2242,10 @@ class AtelierRunner:
                         target_gate_outcomes = []
 
                     directive = await fixer.fix(
-                        gate_outcomes=target_gate_outcomes, consensus=best_consensus
+                        gate_outcomes=target_gate_outcomes,
+                        consensus=best_consensus,
+                        memory_service=self._memory_service,
+                        tenant_id=tenant_ctx.tenant_id,
                     )
 
                     if progress_callback:

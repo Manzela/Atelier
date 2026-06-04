@@ -27,9 +27,17 @@ logger = logging.getLogger(__name__)
 # Constants
 # ---------------------------------------------------------------------------
 
-SCRUBBER_CONFIG_PATH: Final[Path] = (
-    Path(__file__).resolve().parents[4] / "config" / "scrubber-patterns.yaml"
-)
+
+def _resolve_scrubber_config_path() -> Path:
+    curr = Path(__file__).resolve()
+    for parent in [curr, *list(curr.parents)]:
+        candidate = parent / "config" / "scrubber-patterns.yaml"
+        if candidate.exists():
+            return candidate
+    return curr.parents[4] / "config" / "scrubber-patterns.yaml"
+
+
+SCRUBBER_CONFIG_PATH: Final[Path] = _resolve_scrubber_config_path()
 
 REDACTED_PLACEHOLDER: Final[str] = "[REDACTED]"
 
@@ -196,7 +204,7 @@ class PiiScrubSpanProcessor:
         if not hasattr(span, "attributes") or span.attributes is None:
             return
 
-        for key, value in span.attributes.items():
+        for key, value in list(span.attributes.items()):
             if isinstance(value, str):
                 scrubbed = self._config.scrub(value)
                 if scrubbed != value:

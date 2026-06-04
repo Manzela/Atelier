@@ -194,6 +194,11 @@ disallow_any_unimported = false
 disable_error_code = ["import-untyped"]
 
 [[tool.mypy.overrides]]
+module = "atelier.durability.kms_helper"
+warn_unused_ignores = false
+disallow_any_unimported = false
+
+[[tool.mypy.overrides]]
 module = "atelier.gates.axe_core"
 # axe-playwright-python (0.1.7) ships no PEP-561 py.typed marker, so Axe() and
 # .run() resolve to Any in strict mode (AT-011). playwright itself IS typed.
@@ -323,6 +328,10 @@ ignore_missing_imports = true
 # attr-defined. Suppress at the google.cloud namespace level.
 [[tool.mypy.overrides]]
 module = ["google.cloud", "google.cloud.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["firebase_admin", "firebase_admin.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]

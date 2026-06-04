@@ -34,15 +34,14 @@ from atelier.models.enums import GateAxis, GateDecision
 # ---------------------------------------------------------------------------
 
 #: Mapping from :class:`GateAxis` to the corresponding deterministic gate
-#: function. CSS validity rides on the LIGHTHOUSE_PERF axis (until a dedicated
-#: axis exists), so a request for that axis runs the CSS-validity gate.
+#: function. CSS validity is evaluated under the dedicated CSS_VALIDITY axis.
 #:
 #: The RESPONSIVE axis is intentionally absent from this table: v1.0 implementation does
 #: not ship a responsive-design gate (browser rendering required). Requests
 #: for unsupported axes are reported in :attr:`GateRunResult.unsupported_axes`.
 _AXIS_TO_GATE: dict[GateAxis, Callable[[CandidateUI], GateOutcome]] = {
     GateAxis.SEMANTIC_HTML: check_semantic_html,
-    GateAxis.LIGHTHOUSE_PERF: check_css_validity,
+    GateAxis.CSS_VALIDITY: check_css_validity,
     GateAxis.TOKEN_FIDELITY: check_token_fidelity,
     GateAxis.LIGHTHOUSE_A11Y: check_lighthouse_stub,
     GateAxis.AXE: check_axe,  # AT-011: real axe-core (was check_axe_stub; stub is the fail-soft proxy)

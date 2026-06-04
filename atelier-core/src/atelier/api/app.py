@@ -136,8 +136,21 @@ def create_app() -> FastAPI:  # noqa: C901, PLR0915 — handler-registration fac
     # --- CORS (restrictive, multi-origin) ---
     # Supports comma-separated origins for staging + production domains.
     # Default: localhost for development.
+    # F-06 hardening: reject wildcard and non-URL origins outside development.
     raw_origins = os.getenv("ATELIER_DASHBOARD_ORIGIN", "http://localhost:5173")
     allowed_origins = [o.strip() for o in raw_origins.split(",") if o.strip()]
+    if not _is_dev:
+        for origin in allowed_origins:
+            if origin == "*":
+                raise RuntimeError(
+                    "ATELIER_DASHBOARD_ORIGIN='*' is forbidden outside development. "
+                    "Set explicit dashboard origin(s) and restart."
+                )
+            if not origin.startswith(("http://", "https://")):
+                raise RuntimeError(
+                    f"ATELIER_DASHBOARD_ORIGIN contains non-URL origin: {origin!r}. "
+                    "Origins must start with http:// or https://."
+                )
     application.add_middleware(
         CORSMiddleware,
         allow_origins=allowed_origins,

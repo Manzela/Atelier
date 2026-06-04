@@ -65,6 +65,8 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Protocol
 
+import structlog
+
 if TYPE_CHECKING:
     # CandidateUI is only used in type annotations on the JudgeClient
     # Protocol and LLMJudge.evaluate signature; gating it behind
@@ -77,6 +79,8 @@ from atelier.models.model_registry import JUDGE_MODEL_CONFIG, ModelSpec
 # consensus directly) so that this module can be imported in any order
 # relative to atelier.nodes.consensus without NameError.
 from atelier.nodes._types import _JudgeScore
+
+logger = structlog.get_logger(__name__)
 
 # _AXIS_SCORERS is NOT imported at module level — doing so would create a
 # circular dependency because consensus imports _resolve_axis_scorers from
@@ -318,6 +322,7 @@ class JudgeClient(Protocol):
         temperature: float,
         max_output_tokens: int,
         timeout_s: float,
+        screenshot_url: str | None = None,
     ) -> LLMJudgeResponse:
         """Issue a single LLM call and return the raw response envelope.
 
@@ -565,14 +570,21 @@ class LLMJudge:
             user_prompt = self.user_template.format(
                 artifacts=_format_artifacts(candidate.artifacts),
             )
-            response = self._client.generate(
-                model_id=spec.model_id,
-                system_prompt=self.system_prompt,
-                user_prompt=user_prompt,
-                temperature=spec.temperature,
-                max_output_tokens=spec.max_output_tokens,
-                timeout_s=DEFAULT_JUDGE_TIMEOUT_S,
-            )
+            import inspect  # noqa: PLC0415
+
+            sig = inspect.signature(self._client.generate)
+            kwargs: dict[str, Any] = {
+                "model_id": spec.model_id,
+                "system_prompt": self.system_prompt,
+                "user_prompt": user_prompt,
+                "temperature": spec.temperature,
+                "max_output_tokens": spec.max_output_tokens,
+                "timeout_s": DEFAULT_JUDGE_TIMEOUT_S,
+            }
+            if "screenshot_url" in sig.parameters:
+                kwargs["screenshot_url"] = candidate.artifacts.get("screenshot.png")
+
+            response = self._client.generate(**kwargs)
             score, reasoning, evidence = extract_score_from_response(response)
             ci = compute_bayesian_ci(score, response.avg_logprob)
         except Exception as exc:  # noqa: BLE001
@@ -882,6 +894,7 @@ class VertexAIJudgeClient:
         temperature: float,
         max_output_tokens: int,
         timeout_s: float,
+        screenshot_url: str | None = None,
     ) -> LLMJudgeResponse:
         """Issue one Vertex AI Gemini call and wrap the response.
 
@@ -945,8 +958,23 @@ class VertexAIJudgeClient:
         # should wrap the entire score() call in asyncio.to_thread() at the
         # call-site to avoid head-of-line blocking. This method stays sync
         # for backwards compatibility with the existing test suite.
+        contents: list[Any] = [user_prompt]
+        if screenshot_url and screenshot_url.startswith("gs://"):
+            try:
+                img_part = generative_models.Part.from_uri(
+                    mime_type="image/png", uri=screenshot_url
+                )
+                contents.append(img_part)
+                logger.info("Vertex AI: attached GCS image Part", uri=screenshot_url)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    "Failed to load image Part from GCS URI: %s (fail-soft)",
+                    exc,
+                    uri=screenshot_url,
+                )
+
         response = model.generate_content(
-            user_prompt,
+            contents,
             generation_config=generation_config,
         )
 

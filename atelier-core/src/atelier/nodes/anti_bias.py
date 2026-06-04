@@ -159,6 +159,8 @@ def detect_dominance(weights: AxisWeights) -> tuple[str | None, str | None]:
         'brand'
     """
     normalized = weights.normalized()
+    if not normalized:
+        return None, None
     name, weight = max(normalized.items(), key=itemgetter(1))
     if weight > DOMINANCE_THRESHOLD:
         warning = (

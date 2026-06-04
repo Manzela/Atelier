@@ -60,6 +60,11 @@ _INJECTION_PATTERNS: tuple[str, ...] = (
     r"disregard\s+(?:all\s+)?(?:the\s+)?(?:previous|prior|above|earlier)\s+instructions",
     r"reveal\s+(?:your\s+)?system\s+prompt",
     r"override\s+(?:your\s+)?system\s+prompt",
+    r"forget\s+(?:all\s+)?your\s+instructions",
+    r"you\s+are\s+now\s+(?:a|an)\s+unrestricted",
+    r"bypass\s+(?:your\s+)?(?:safety\s+)?(?:filters|guardrails|guidelines|policies)",
+    r"ignore\s+(?:your\s+)?(?:safety\s+)?(?:filters|guardrails|guidelines|policies)",
+    r"developer\s+mode\s+enabled",
 )
 
 _COMPILED: tuple[re.Pattern[str], ...] = tuple(

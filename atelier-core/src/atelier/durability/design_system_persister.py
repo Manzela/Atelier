@@ -282,7 +282,32 @@ class DesignSystemPersister:
         doc_ref = self._doc_ref(record.tenant_id, record.run_id)
         # Stamp the canonical Firestore path back onto the record for provenance.
         stamped = record.model_copy(update={"firestore_doc_path": doc_ref.path})
-        doc_ref.set(stamped.to_firestore_dict())
+
+        # Encrypt payload using Cloud KMS per-tenant key (if enabled)
+        from atelier.durability.kms_helper import encrypt_payload  # noqa: PLC0415
+
+        plain_bytes = stamped.model_dump_json().encode("utf-8")
+        try:
+            ciphertext = encrypt_payload(record.tenant_id, plain_bytes)
+        except Exception:
+            logger.exception("KMS encryption failed — failing closed for write security")
+            raise
+
+        if ciphertext is not None:
+            import base64  # noqa: PLC0415
+
+            data = {
+                "encrypted_payload": base64.b64encode(ciphertext).decode("utf-8"),
+                "is_encrypted": True,
+                "tenant_id": record.tenant_id,
+                "run_id": record.run_id,
+                "created_at": record.created_at.isoformat(),
+                "schema_version": record.schema_version,
+            }
+        else:
+            data = stamped.to_firestore_dict()
+
+        doc_ref.set(data)
         # Update the per-tenant CURRENT pointer (last-write-wins) so load() reads
         # the latest system without a query/order-by.
         self._current_pointer_ref(record.tenant_id).set({"current_run_id": record.run_id})
@@ -298,6 +323,24 @@ class DesignSystemPersister:
         if not snap.exists:
             return None
         data = snap.to_dict() or {}
+
+        # Decrypt payload using Cloud KMS per-tenant key (if encrypted)
+        if data.get("is_encrypted"):
+            import base64  # noqa: PLC0415
+
+            from atelier.durability.kms_helper import decrypt_payload  # noqa: PLC0415
+
+            try:
+                ciphertext = base64.b64decode(data["encrypted_payload"])
+                plain_bytes = decrypt_payload(tenant_id, ciphertext)
+            except Exception:
+                logger.exception("KMS decryption failed — failing closed for read security")
+                raise
+
+            if plain_bytes is None:
+                raise ValueError("Failed to decrypt tenant data payload.")
+            return DesignSystemRecord.model_validate_json(plain_bytes.decode("utf-8"))
+
         return DesignSystemRecord.from_firestore_dict(data)
 
     # -- vertex memory bank (online substrate, AT-080) -----------------------

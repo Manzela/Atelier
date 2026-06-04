@@ -336,7 +336,7 @@ class TestRunAllGates:
         axes = [o.axis for o in outcomes]
         assert axes == [
             GateAxis.SEMANTIC_HTML,
-            GateAxis.LIGHTHOUSE_PERF,
+            GateAxis.CSS_VALIDITY,
             GateAxis.TOKEN_FIDELITY,
             GateAxis.LIGHTHOUSE_A11Y,
             GateAxis.AXE,

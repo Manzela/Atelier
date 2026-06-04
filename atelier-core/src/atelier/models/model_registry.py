@@ -164,10 +164,37 @@ TASK_MODEL_ROUTING: Final[dict[TaskType, str]] = {
 }
 
 
+def fetch_calibrated_model_from_remote_config(task_type: TaskType) -> str | None:
+    """Fetch the latest model ID for the given task from Firebase Remote Config.
+
+    Fail-soft: returns None if Firebase is not initialized, Remote Config is
+    unavailable, or parameter is not present.
+    """
+    try:
+        from firebase_admin import remote_config  # noqa: PLC0415
+
+        from atelier.auth.firebase import _init_firebase  # noqa: PLC0415
+
+        _init_firebase()
+        # Fetch the active template from Firebase Remote Config
+        template = remote_config.get_template()
+        param_name = f"model_routing_{task_type.value}"
+        if param_name in template.parameters:
+            val = template.parameters[param_name].default_value
+            if isinstance(val, str):
+                cleaned = val.strip()
+                if cleaned:
+                    return cleaned
+    except Exception:  # noqa: BLE001, S110
+        # Fail-soft: ignore failures to connect or verify
+        pass
+    return None
+
+
 def calibrate_model(task_type: TaskType) -> str:
     """Return the optimal model ID for the given pipeline task.
 
-    In production: resolves from :data:`TASK_MODEL_ROUTING`.
+    In production: resolves from Remote Config (fail-soft to :data:`TASK_MODEL_ROUTING`).
     In hermetic test environments: ``GEMINI_MODEL_ID`` env var overrides ALL
     calibrated models so tests can inject a single mock model without needing
     to patch every specialist separately.
@@ -181,6 +208,12 @@ def calibrate_model(task_type: TaskType) -> str:
     override = os.environ.get("GEMINI_MODEL_ID")
     if override and override.strip():
         return override.strip()
+
+    # Dynamic routing override via Remote Config
+    remote_model_id = fetch_calibrated_model_from_remote_config(task_type)
+    if remote_model_id:
+        return remote_model_id
+
     return TASK_MODEL_ROUTING[task_type]
 
 

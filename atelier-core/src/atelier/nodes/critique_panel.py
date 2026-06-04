@@ -69,7 +69,7 @@ if TYPE_CHECKING:
 #: The N3c deterministic gate battery the panel floor runs (PRD §6.3 N3c).
 PANEL_GATE_AXES: Final[tuple[GateAxis, ...]] = (
     GateAxis.SEMANTIC_HTML,
-    GateAxis.LIGHTHOUSE_PERF,
+    GateAxis.CSS_VALIDITY,
     GateAxis.TOKEN_FIDELITY,
     GateAxis.LIGHTHOUSE_A11Y,
     GateAxis.AXE,

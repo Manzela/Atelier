@@ -99,6 +99,15 @@ class TestDetectDominance:
         assert dominant is None
         assert warning is None
 
+    def test_empty_normalized_weights_returns_none(self) -> None:
+        class EmptyAxisWeights(AxisWeights):
+            def normalized(self) -> dict[str, float]:
+                return {}
+
+        dominant, warning = detect_dominance(EmptyAxisWeights())
+        assert dominant is None
+        assert warning is None
+
     def test_zero_weights_fallback_has_no_dominance(self) -> None:
         weights = AxisWeights(
             brand=0.0,

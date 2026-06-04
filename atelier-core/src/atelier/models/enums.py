@@ -125,6 +125,7 @@ class GateAxis(StrEnum):
     SEMANTIC_HTML = "semantic-html"
     VISUAL_DIFF = "visual-diff"
     RESPONSIVE = "responsive"
+    CSS_VALIDITY = "css-validity"
 
 
 class GateDecision(StrEnum):

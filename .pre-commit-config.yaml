@@ -62,6 +62,10 @@ repos:
           - firebase-admin>=7.4,<8 # needed for atelier.auth.firebase import resolution
           - google-cloud-bigquery>=3.25,<4 # google.cloud.bigquery namespace resolution (generate/replay/dreaming)
           - google-cloud-firestore>=2.18,<3 # AT-095 token-cap store (google.cloud.firestore)
+          - google-cloud-kms>=3.0.0,<4
+          - google-cloud-storage>=3.10,<4
+          - playwright>=1.49,<2
+          - cryptography>=42.0,<45
 
   # ─── Python: pytest fast subset (<10s) ────────────────────────────────────
   - repo: local
@@ -119,11 +123,15 @@ repos:
       - id: shfmt
         args: ['-i', '2', '-ci', '-w']
 
-  # ─── Prettier (TS/JS/JSX/TSX/JSON/MD) ──────────────────────────────────────
-  - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v4.0.0-alpha.8
+  # ─── Prettier (TS/JS/JSX/TSX/JSON/MD) ──────────────────────────────────
+  # F-10: mirrors-prettier is archived; using a local hook with the project's
+  # own prettier installation (from package.json / npm ci).
+  - repo: local
     hooks:
       - id: prettier
+        name: prettier
+        entry: npx prettier --write --ignore-unknown
+        language: system
         files: '\.(js|jsx|ts|tsx|json|yml|yaml|md)$'
         exclude: |
           (?x)^(

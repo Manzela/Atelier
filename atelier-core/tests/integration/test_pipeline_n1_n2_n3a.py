@@ -1,4 +1,12 @@
-"""Integration test for N1 -> N2 -> N3a pipeline flow."""
+"""Integration test for N1 -> N2 -> N3a pipeline flow.
+
+NOTE: This test is a documented exception to the <no_mocking_what_should_be_integration_tested>
+invariant. Because N1/N2/N3a rely on external LLM calls (Vertex AI) and network services,
+mocking is necessary to keep the offline verification suite ('make verify') hermetic, fast, and
+independent of external API credentials/state. Real network/API contracts are validated by:
+  1. 'tests/integration/test_record_replay_determinism.py' (using recorded offline payloads)
+  2. 'tests/integration/test_production_readiness.py' (against the live deployed stack)
+"""
 
 from __future__ import annotations
 

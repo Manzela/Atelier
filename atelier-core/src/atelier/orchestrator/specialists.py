@@ -40,6 +40,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Final
 
+import structlog
 from google.adk.agents.llm_agent import InstructionProvider, LlmAgent
 from google.adk.agents.sequential_agent import (
     SequentialAgent,  # Deprecated: Workflow (public node-graph DSL, not a sub_agents container) — rewrite deferred per ADR-0001
@@ -56,6 +57,8 @@ from atelier.models.model_armor_callbacks import (
 )
 from atelier.models.model_registry import TaskType, calibrate_model
 from atelier.models.safety import default_model_armor_config
+
+logger = structlog.get_logger(__name__)
 
 if TYPE_CHECKING:
     from google.adk.agents import BaseAgent
@@ -228,6 +231,48 @@ if tuple(spec.output_key for spec in _SPECIALISTS) != SPECIALIST_OUTPUT_KEYS:
     )
 
 
+def _fetch_prompt_from_agent_registry(agent_name: str, fallback_prompt: str) -> str:
+    """Fetch the dynamic prompt/role for the given agent from Vertex AI Agent Registry.
+
+    Fail-soft: returns fallback_prompt on any exception, network timeout, or if registry is disabled.
+    """
+    import os  # noqa: PLC0415
+
+    if os.getenv("ATELIER_AGENT_REGISTRY_ENABLED", "false").lower() not in ("1", "true", "yes"):
+        return fallback_prompt
+
+    try:
+        from google.cloud import aiplatform  # type: ignore[import-untyped] # noqa: PLC0415
+
+        project = os.getenv("GCP_PROJECT") or os.getenv("GCLOUD_PROJECT")
+        location = os.getenv("GCP_LOCATION", "us-central1")
+        if not project:
+            return fallback_prompt
+
+        aiplatform.init(project=project, location=location)
+
+        # Dynamic gapic client import to avoid runtime impact when offline
+        from google.cloud.aiplatform_v1 import (  # noqa: PLC0415
+            PromptServiceClient,  # type: ignore[import-untyped]
+        )
+
+        client = PromptServiceClient(
+            client_options={"api_endpoint": f"{location}-aiplatform.googleapis.com"}
+        )
+        name = f"projects/{project}/locations/{location}/prompts/atelier-{agent_name.lower()}"
+
+        response = client.get_prompt(name=name)
+        if hasattr(response, "template_text") and response.template_text:
+            return str(response.template_text)
+    except Exception as exc:  # noqa: BLE001
+        logger.debug(
+            "Vertex AI Agent Registry lookup failed for agent %s: %s (fail-soft)",
+            agent_name,
+            exc,
+        )
+    return fallback_prompt
+
+
 def _build_instruction(spec: _SpecialistSpec) -> InstructionProvider:
     """Compose a state-aware instruction provider for one specialist.
 
@@ -238,7 +283,8 @@ def _build_instruction(spec: _SpecialistSpec) -> InstructionProvider:
     """
 
     def _provider(ctx: ReadonlyContext) -> str:
-        sections = [spec.role]
+        dynamic_role = _fetch_prompt_from_agent_registry(spec.name, spec.role)
+        sections = [dynamic_role]
         for key in spec.upstream_keys:
             upstream = ctx.state.get(key)
             if upstream:

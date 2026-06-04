@@ -72,6 +72,7 @@ dependencies = [
     # Docs: https://cloud.google.com/python/docs/reference/storage/latest
     "google-cloud-storage>=3.10,<4",
     "google-cloud-secret-manager>=2.20,<3",
+    "google-cloud-kms>=3.0.0,<4",
     # Authentication — Firebase Admin SDK for Google SSO + JWT verification.
     # Version 7.4.0 is the latest stable release (2026-04-09, Apache-2.0).
     # Used by atelier.auth.firebase for FastAPI middleware. Provides local

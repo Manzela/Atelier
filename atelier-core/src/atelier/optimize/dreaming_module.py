@@ -466,6 +466,9 @@ def evaluate_kappa_against_calibration(
         )
 
     # κ = fraction passing their quality gate (production definition)
+    # NOTE: While named "kappa" (κ) in the codebase for historical/PRD alignment,
+    # this metric is technically a calibration pass-rate (percentage of tasks exceeding
+    # their quality gate threshold), rather than inter-rater reliability Cohen's/Fleiss' kappa.
     if not results:
         return 0.0, results
     kappa = sum(1 for r in results if r.passed) / len(results)

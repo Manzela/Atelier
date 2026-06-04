@@ -6,7 +6,7 @@ Analyzes gate failures and consensus scores to emit prompt mutations and fixes.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from google.adk.agents import LlmAgent
 from google.genai import types as genai_types
@@ -90,16 +90,43 @@ class FixerAgent:
         self,
         gate_outcomes: list[GateOutcome],
         consensus: ConsensusEvaluation | None,
+        memory_service: Any = None,
+        tenant_id: str = "default",
     ) -> FixerDirective:
         """Analyze failures and propose a fix.
 
         Args:
             gate_outcomes: List of gate outcomes from N3c.
             consensus: Consensus result from N3d (can be None).
+            memory_service: Injected HierarchicalMemory backend.
+            tenant_id: Active tenant identifier.
 
         Returns:
             A FixerDirective. On LLM failure, returns a fail-soft no-op directive.
         """
+        # Query similar resolutions from the Incident Diagnostic Memory Bank
+        similar_resolutions = []
+        incident_id = None
+        memory_bank = None
+        if memory_service:
+            from uuid import uuid4  # noqa: PLC0415
+
+            from atelier.durability.incident_memory import IncidentMemoryBank  # noqa: PLC0415
+
+            incident_id = str(uuid4())
+            memory_bank = IncidentMemoryBank(memory_service)
+            await memory_bank.record_incident(
+                tenant_id=tenant_id,
+                incident_id=incident_id,
+                gate_outcomes=gate_outcomes,
+                consensus=consensus,
+            )
+            similar_resolutions = await memory_bank.query_similar_resolutions(
+                tenant_id=tenant_id,
+                gate_outcomes=gate_outcomes,
+                consensus=consensus,
+            )
+
         # Build prompt
         prompt = "Gate Outcomes:\n"
         for o in gate_outcomes:
@@ -110,11 +137,18 @@ class FixerAgent:
             for axis, vote in consensus.votes.items():
                 prompt += f"- {axis.value}: {vote.score:.2f} ({vote.reasoning})\n"
 
+        if similar_resolutions:
+            prompt += "\n--- SIMILAR HISTORICAL SOLUTIONS ---\n"
+            for idx, res in enumerate(similar_resolutions, 1):
+                prompt += f"Solution {idx}:\n{res}\n"
+
         try:
             result = await self._call_llm(prompt)
-            if isinstance(result, FixerDirective):
-                return result
-            return FixerDirective.model_validate_json(result)
+            directive = (
+                result
+                if isinstance(result, FixerDirective)
+                else FixerDirective.model_validate_json(result)
+            )
         except Exception as e:  # noqa: BLE001
             # Fail-soft fallback
             self._governor._state.record_step("fixer_failed")
@@ -130,6 +164,23 @@ class FixerAgent:
                 ],
                 reasoning="Fail-soft fallback due to LLM error.",
             )
+        else:
+            # Record resolution in the memory bank
+            if memory_bank and incident_id:
+                import json  # noqa: PLC0415
+
+                res_delta = json.dumps(
+                    {
+                        "mutations": [m.value for m in directive.mutations],
+                        "amendments": directive.prompt_amendments,
+                    }
+                )
+                await memory_bank.record_resolution(
+                    tenant_id=tenant_id,
+                    incident_id=incident_id,
+                    resolution_delta=res_delta,
+                )
+            return directive
 
     async def _call_llm(self, text: str) -> str | FixerDirective:
         """Execute the LlmAgent via ADK Runner.

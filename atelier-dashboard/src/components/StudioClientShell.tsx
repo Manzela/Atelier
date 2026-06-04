@@ -57,6 +57,7 @@ import {
 } from '@/lib/api';
 import ApprovalCard from './ApprovalCard';
 import TracePanel from './legibility/TracePanel';
+import TopologyGraph from './legibility/TopologyGraph';
 import OptimizeArtifactCard from './OptimizeArtifactCard';
 import AttributionView from './legibility/AttributionView';
 import StopButton from './legibility/StopButton';
@@ -1402,7 +1403,16 @@ export default function StudioClientShell({ id }: { id: string }) {
               {(status === 'generating' ||
                 specialistTraces.length > 0 ||
                 researchQueries.length > 0) && (
-                <TracePanel specialistTraces={specialistTraces} researchQueries={researchQueries} />
+                <>
+                  <TopologyGraph
+                    specialistTraces={specialistTraces}
+                    error={status === 'error' ? 'Pipeline error' : null}
+                  />
+                  <TracePanel
+                    specialistTraces={specialistTraces}
+                    researchQueries={researchQueries}
+                  />
+                </>
               )}
 
               {/* AT-027 (Optimize surfacing): read-only MoE routing decision +

@@ -324,8 +324,8 @@ def check_css_validity(candidate: CandidateUI) -> GateOutcome:
 
     Returns:
         A :class:`GateOutcome` with:
-            * ``axis`` = :attr:`GateAxis.LIGHTHOUSE_PERF` (CSS validity sits
-              under the performance gate axis until a dedicated axis exists)
+            * ``axis`` = :attr:`GateAxis.CSS_VALIDITY` (CSS validity sits
+              under the dedicated CSS validity gate axis)
             * ``score`` = ``100.0`` on PASS, ``0.0`` on REJECT
             * ``decision`` = PASS if all CSS files are syntactically valid,
               else REJECT
@@ -337,7 +337,7 @@ def check_css_validity(candidate: CandidateUI) -> GateOutcome:
     if not css_files:
         return GateOutcome(
             candidate_id=candidate.candidate_id,
-            axis=GateAxis.LIGHTHOUSE_PERF,
+            axis=GateAxis.CSS_VALIDITY,
             decision=GateDecision.PASS,
             score=100.0,
             diagnostic="No CSS artifacts present; nothing to validate.",
@@ -364,14 +364,14 @@ def check_css_validity(candidate: CandidateUI) -> GateOutcome:
     if errors:
         return GateOutcome(
             candidate_id=candidate.candidate_id,
-            axis=GateAxis.LIGHTHOUSE_PERF,
+            axis=GateAxis.CSS_VALIDITY,
             decision=GateDecision.REJECT,
             score=0.0,
             diagnostic="CSS validation errors: " + "; ".join(errors[:5]),
         )
     return GateOutcome(
         candidate_id=candidate.candidate_id,
-        axis=GateAxis.LIGHTHOUSE_PERF,
+        axis=GateAxis.CSS_VALIDITY,
         decision=GateDecision.PASS,
         score=100.0,
         diagnostic=f"CSS valid across {len(css_files)} file(s); braces balanced, no empty rulesets.",
