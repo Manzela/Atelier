@@ -18,13 +18,6 @@
       "public": "docs/dashboards",
       "cleanUrls": true,
       "trailingSlash": false,
-      "redirects": [
-        {
-          "source": "/login",
-          "destination": "/auth",
-          "type": 301
-        }
-      ],
       "ignore": [
         "firebase.json",
         "**/.git/**",
@@ -81,6 +74,41 @@
           "source": "/api/**",
           "run": {
             "serviceId": "atelier-api-staging",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/studio/**",
+          "run": {
+            "serviceId": "atelier-dashboard",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/board/**",
+          "run": {
+            "serviceId": "atelier-dashboard",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/login",
+          "run": {
+            "serviceId": "atelier-dashboard",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/_next/**",
+          "run": {
+            "serviceId": "atelier-dashboard",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/",
+          "run": {
+            "serviceId": "atelier-dashboard",
             "region": "us-central1"
           }
         }
@@ -91,13 +119,6 @@
       "public": "docs/dashboards",
       "cleanUrls": true,
       "trailingSlash": false,
-      "redirects": [
-        {
-          "source": "/login",
-          "destination": "/auth",
-          "type": 301
-        }
-      ],
       "ignore": [
         "firebase.json",
         "**/.git/**",
@@ -154,6 +175,41 @@
           "source": "/api/**",
           "run": {
             "serviceId": "atelier-api-staging",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/studio/**",
+          "run": {
+            "serviceId": "atelier-dashboard",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/board/**",
+          "run": {
+            "serviceId": "atelier-dashboard",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/login",
+          "run": {
+            "serviceId": "atelier-dashboard",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/_next/**",
+          "run": {
+            "serviceId": "atelier-dashboard",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/",
+          "run": {
+            "serviceId": "atelier-dashboard",
             "region": "us-central1"
           }
         }

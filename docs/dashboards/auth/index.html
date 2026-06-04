@@ -375,16 +375,31 @@
         sessionStorage.setItem('atelier_id_token', idToken);
         sessionStorage.setItem('atelier_user_name', user.displayName || '');
         sessionStorage.setItem('atelier_user_email', user.email || '');
-        const rawRedirect = new URLSearchParams(window.location.search).get('redirect') || '../bench/';
+
+        // Sync with Next.js app localStorage session format to handle cached redirects cleanly
+        try {
+          const userPayload = {
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName,
+            token: idToken,
+            tenant_id: 't1',
+          };
+          localStorage.setItem('user', JSON.stringify(userPayload));
+        } catch (e) {
+          console.error('Failed to sync user session to localStorage:', e);
+        }
+
+        const rawRedirect = new URLSearchParams(window.location.search).get('redirect') || '/';
         // Prevent open redirect — WHATWG URL constructor validates origin
-        let redirect = '../bench/';
+        let redirect = '/';
         try {
           const parsed = new URL(rawRedirect, window.location.origin);
           if (parsed.origin === window.location.origin) {
             redirect = parsed.pathname + parsed.search + parsed.hash;
           }
         } catch {
-          // Invalid URL — fall through to default '../bench/'
+          // Invalid URL — fall through to default '/'
         }
         window.location.replace(redirect);
       }
