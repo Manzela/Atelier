@@ -18,13 +18,18 @@ Hard caps (from architectural invariants):
     STALL_TIMEOUT_SECONDS = 300 # 5 minutes without progress → fail-soft
 
 Usage governance (AT-095, PRD §13.2 / G14 / G16):
-    The legacy per-RUN USD budget cap (``budget_cap_usd`` / ``_check_budget`` /
-    ``GovernorBudgetExceeded``) is **removed, not extended** — it reset every
-    ``run()`` and was therefore bypassable, a token-burn abuse hole on a public
-    paid endpoint. The sole V1 cap is the **per-user lifetime token cap**: the
-    governor pre-flight rejects (fail-loud) once the user's cumulative token
-    count reaches ``token_cap``; the cumulative count is persisted across runs
-    by :mod:`atelier.durability.usage_counter`.
+    The legacy per-RUN USD budget cap is removed — it reset every ``run()`` and
+    was bypassable. The V1 caps are **per-user lifetime token caps per model
+    tier** (proactive calibration per model_registry.TIER_TOKEN_CAPS):
+
+        gemini-2.5-pro       ->  5_000_000 tokens (planning, originality judging)
+        gemini-2.5-flash     -> 15_000_000 tokens (generation, visual judges)
+        gemini-2.5-flash-lite -> 60_000_000 tokens (extraction, copy, accessibility)
+
+    GovernorState tracks a ``per_tier_tokens`` accumulator alongside the legacy
+    ``cumulative_user_tokens`` (aggregate for reporting). ``_check_token_budget``
+    fails-loud if ANY tier exceeds its cap. The caps are persisted across runs by
+    :mod:`atelier.durability.usage_counter` (per-tier Firestore fields).
 """
 
 from __future__ import annotations
@@ -36,6 +41,7 @@ from collections import deque
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Final, TypeVar
 
+from atelier.models.model_registry import TIER_TOKEN_CAPS, model_tier_for_id
 from atelier.runtime.failure import FailureMode
 
 if TYPE_CHECKING:
@@ -49,8 +55,10 @@ STALL_TIMEOUT_SECONDS: Final[float] = 300.0
 BACKOFF_BASE_SECONDS: Final[float] = 1.0
 BACKOFF_MAX_SECONDS: Final[float] = 32.0
 
-#: The single fixed V1 usage cap: per-Firebase-uid lifetime token total.
-TOKEN_CAP_DEFAULT: Final[int] = 5_000_000
+#: Legacy single-cap fallback — used only when no tier is tracked (e.g. unit
+#: tests that call add_user_tokens without a model_id).  Production code always
+#: passes model_id so per-tier caps from TIER_TOKEN_CAPS are checked instead.
+TOKEN_CAP_DEFAULT: Final[int] = TIER_TOKEN_CAPS["pro"]
 
 #: The one branded, non-error message shown when a user reaches the cap (PRD
 #: §13.2). Used identically by the graceful in-run stop and the 402 response so
@@ -99,6 +107,7 @@ class GovernorTokenCapExceeded(Exception):  # noqa: N818 — domain terminology
         session_id: str | None = None,
         client_ip: str | None = None,
         which_cap: str = "per_user_lifetime",
+        exceeded_tier: str | None = None,
     ) -> None:
         self.uid = uid
         self.used_tokens = used_tokens
@@ -106,8 +115,11 @@ class GovernorTokenCapExceeded(Exception):  # noqa: N818 — domain terminology
         self.session_id = session_id
         self.client_ip = client_ip
         self.which_cap = which_cap
+        self.exceeded_tier = exceeded_tier
+        tier_suffix = f" (tier={exceeded_tier})" if exceeded_tier else ""
         super().__init__(
-            f"Token cap reached ({which_cap}): {used_tokens} >= {cap_tokens} for uid={uid}"
+            f"Token cap reached ({which_cap}){tier_suffix}: "
+            f"{used_tokens} >= {cap_tokens} for uid={uid}"
         )
 
 
@@ -199,16 +211,18 @@ class GovernorState:
     retry_count: int = 0
     last_step_time: float = field(default_factory=time.monotonic)
     step_history: deque[str] = field(default_factory=lambda: deque(maxlen=MAX_LOOP_ITERATIONS))
-    # AT-095 per-user lifetime token cap. ``user_id`` identifies whose cap this
+    # AT-095 per-user lifetime token cap.  ``user_id`` identifies whose cap this
     # is; ``cumulative_user_tokens`` is seeded at run start from the persisted
     # Firestore counter (so it spans runs) and grows as tokens are consumed.
+    # ``token_cap`` is the legacy single-cap used only when no tier data exists.
     user_id: str | None = None
     cumulative_user_tokens: int = 0
     token_cap: int = TOKEN_CAP_DEFAULT
-    # AT-031 per-stage accumulators. Keyed by stable stage id (e.g. "n1_brief_parse",
-    # "n2_source_resolve", "n3a_specialist_pipeline"). These are the durability oracle
-    # for the sign-off resume path: completed-stage counts must show delta 0 across a
-    # halt/crash/resume cycle, and the post-signoff token delta must be > 0.
+    # Per-tier token accumulators (tiered caps per user.spec).
+    # Keyed by tier string ("pro", "flash", "flash_lite") matching TIER_TOKEN_CAPS.
+    # Seeded at run start from UsageCounterStore.snapshot_tier() for each tier.
+    per_tier_tokens: dict[str, int] = field(default_factory=dict)
+    # AT-031 per-stage accumulators. Keyed by stable stage id.
     stage_call_counts: dict[str, int] = field(default_factory=dict)
     stage_token_counts: dict[str, int] = field(default_factory=dict)
 
@@ -234,22 +248,50 @@ class GovernorState:
         input_tokens: int = 0,
         output_tokens: int = 0,
         thinking_tokens: int = 0,
+        model_id: str | None = None,
     ) -> int:
-        """Add a token delta (input + output + thinking) to the lifetime total.
+        """Add a token delta to the lifetime total, attributed to the model tier.
 
-        Returns the new cumulative total. Negative deltas are rejected — the
-        counter only grows (defends against a tampered delta lowering usage
-        below the cap).
+        Updates both the aggregate ``cumulative_user_tokens`` (for reporting)
+        and the per-tier ``per_tier_tokens`` accumulator (for tiered cap checks).
+
+        Args:
+            input_tokens: Input token count for this call.
+            output_tokens: Output token count for this call.
+            thinking_tokens: Thinking/reasoning token count for this call.
+            model_id: Vertex AI model ID used for this call.  Passed to
+                :func:`model_tier_for_id` to derive the tier key.  When absent
+                the delta is added to the aggregate only (no per-tier check fires
+                on the unknown tier — conservative safe path).
+
+        Returns:
+            The new cumulative total across all tiers.
         """
         if input_tokens < 0 or output_tokens < 0 or thinking_tokens < 0:
             raise ValueError("token deltas must be non-negative")
-        self.cumulative_user_tokens += input_tokens + output_tokens + thinking_tokens
+        delta = input_tokens + output_tokens + thinking_tokens
+        self.cumulative_user_tokens += delta
+        if model_id is not None:
+            tier = model_tier_for_id(model_id)
+            self.per_tier_tokens[tier] = self.per_tier_tokens.get(tier, 0) + delta
         return self.cumulative_user_tokens
+
+    def exceeded_tier(self) -> str | None:
+        """Return the first tier that has reached its cap, or None if all are under.
+
+        Checked in priority order: Pro (smallest cap) → Flash → Flash-Lite.
+        Returns the tier string so the caller can surface which cap was hit.
+        """
+        for tier in ("pro", "flash", "flash_lite"):
+            cap = TIER_TOKEN_CAPS.get(tier, TOKEN_CAP_DEFAULT)
+            used = self.per_tier_tokens.get(tier, 0)
+            if used >= cap:
+                return tier
+        return None
 
     def is_loop(self) -> bool:
         if len(self.step_history) < MAX_LOOP_ITERATIONS:
             return False
-        # A loop is if all items in the history are exactly the same
         first = self.step_history[0]
         return all(s == first for s in self.step_history)
 
@@ -257,8 +299,17 @@ class GovernorState:
         return (time.monotonic() - self.last_step_time) > STALL_TIMEOUT_SECONDS
 
     def is_over_token_cap(self) -> bool:
-        """True once the user's cumulative lifetime tokens reach the cap."""
-        return self.cumulative_user_tokens >= self.token_cap
+        """True if any per-tier cap is reached, or the aggregate fallback cap is reached.
+
+        Always checks the cumulative aggregate first: when legacy callers omit
+        ``model_id`` the tokens only appear in ``cumulative_user_tokens``, not in
+        any tier bucket.  A user who exhausted the Pro cap via non-attributed calls
+        must still be stopped even if their per-tier buckets are all zero or still
+        under cap.  Per-tier enforcement is additive on top of the aggregate check.
+        """
+        if self.cumulative_user_tokens >= self.token_cap:
+            return True
+        return self.exceeded_tier() is not None
 
 
 T = TypeVar("T")
@@ -359,7 +410,34 @@ class MetacognitiveGovernor:
                     return None
 
     def _check_token_budget(self) -> None:
-        """Raises GovernorTokenCapExceeded (FAIL_LOUD) if at/over the lifetime cap."""
+        """Raises GovernorTokenCapExceeded (FAIL_LOUD) if at/over any tier cap.
+
+        When per-tier data is present, checks each tier against TIER_TOKEN_CAPS
+        and raises with the exact exceeded tier in the exception.  Falls back to
+        the legacy aggregate check when no tier data exists.
+        """
+        exceeded = self._state.exceeded_tier()
+        if exceeded is not None:
+            tier_cap = TIER_TOKEN_CAPS.get(exceeded, TOKEN_CAP_DEFAULT)
+            used = self._state.per_tier_tokens.get(exceeded, 0)
+            logger.error(
+                "atelier.governor.tier_cap_exceeded",
+                extra={
+                    "uid": self._state.user_id,
+                    "exceeded_tier": exceeded,
+                    "used": used,
+                    "cap": tier_cap,
+                    "cumulative": self._state.cumulative_user_tokens,
+                },
+            )
+            raise GovernorTokenCapExceeded(
+                uid=self._state.user_id,
+                used_tokens=used,
+                cap_tokens=tier_cap,
+                which_cap=f"per_user_lifetime_{exceeded}",
+                exceeded_tier=exceeded,
+            )
+        # Legacy fallback: no per-tier data (older code path or test without model_id).
         if self._state.is_over_token_cap():
             raise GovernorTokenCapExceeded(
                 uid=self._state.user_id,

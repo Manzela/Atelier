@@ -54,7 +54,7 @@ from atelier.models.model_armor_callbacks import (
     model_armor_after_callback,
     model_armor_before_callback,
 )
-from atelier.models.model_registry import resolve_model_id
+from atelier.models.model_registry import TaskType, calibrate_model
 from atelier.models.safety import default_model_armor_config
 
 if TYPE_CHECKING:
@@ -89,6 +89,10 @@ class _SpecialistSpec:
         output_key: Session-state key this specialist writes its result to.
         description: ADK agent-card description (observability / routing).
         role: The senior-design-partner role brief (the static instruction core).
+        task_type: The :class:`TaskType` used to resolve the calibrated model via
+            :func:`calibrate_model`.  This is the per-specialist model routing
+            hook — Pro for high-complexity tasks, Flash for generation, Flash-Lite
+            for cheap extraction.
         upstream_keys: State keys this specialist folds into its instruction when
             present (its hand-off inputs from earlier specialists / WRAI).
         uses_stitch: Whether this specialist receives the Stitch MCP toolset.
@@ -98,6 +102,7 @@ class _SpecialistSpec:
     output_key: str
     description: str
     role: str
+    task_type: TaskType = TaskType.UI_DESIGN
     upstream_keys: tuple[str, ...] = field(default_factory=tuple)
     uses_stitch: bool = False
 
@@ -106,6 +111,7 @@ _SPECIALISTS: Final[tuple[_SpecialistSpec, ...]] = (
     _SpecialistSpec(
         name="UXResearcher",
         output_key="ux_research",
+        task_type=TaskType.UX_RESEARCH,  # Flash
         description="Synthesizes users, jobs-to-be-done, and UX success criteria from the brief and WRAI findings.",
         role=(
             "You are the UX Researcher on a senior design team. From the signed-off "
@@ -120,6 +126,7 @@ _SPECIALISTS: Final[tuple[_SpecialistSpec, ...]] = (
     _SpecialistSpec(
         name="IAFlowDesigner",
         output_key="ia_flows",
+        task_type=TaskType.IA_FLOW,  # Flash
         description="Defines the information architecture, navigation model, and primary user flows.",
         role=(
             "You are the Information Architect. Using the UX research, define the "
@@ -133,6 +140,7 @@ _SPECIALISTS: Final[tuple[_SpecialistSpec, ...]] = (
     _SpecialistSpec(
         name="Wireframer",
         output_key="wireframe",
+        task_type=TaskType.WIREFRAME,  # Flash
         description="Produces low-fidelity structural layouts (semantic regions, hierarchy) per screen.",
         role=(
             "You are the Wireframer. Translate the information architecture into a "
@@ -146,6 +154,7 @@ _SPECIALISTS: Final[tuple[_SpecialistSpec, ...]] = (
     _SpecialistSpec(
         name="UIDesigner",
         output_key="ui_design",
+        task_type=TaskType.UI_DESIGN,  # Flash
         description="Generates the high-fidelity, self-contained HTML/CSS for the screen (Stitch-first).",
         role=(
             "You are the UI Designer. Produce the high-fidelity, self-contained "
@@ -178,6 +187,7 @@ _SPECIALISTS: Final[tuple[_SpecialistSpec, ...]] = (
     _SpecialistSpec(
         name="InteractionDesigner",
         output_key="interaction_spec",
+        task_type=TaskType.INTERACTION,  # Flash
         description="Specifies component states, transitions, and keyboard/ARIA interaction behavior.",
         role=(
             "You are the Interaction Designer. For the UI design, specify the "
@@ -196,6 +206,7 @@ _SPECIALISTS: Final[tuple[_SpecialistSpec, ...]] = (
     _SpecialistSpec(
         name="TokenGenerator",
         output_key="tokens",
+        task_type=TaskType.TOKEN_GEN,  # Flash-Lite (extraction task)
         description="Extracts the design into a DTCG-shaped, semantically-named design-token set.",
         role=(
             "You are the Token Generator. Extract the design decisions in the UI "
@@ -247,20 +258,33 @@ def create_specialist_pipeline(
     session state (:data:`SPECIALIST_OUTPUT_KEYS`). Only the UI Designer holds the
     Stitch MCP toolset; degradation is surfaced to the caller (AG-06 / FIX-3).
 
+    Model calibration: when ``model`` is None (production), each specialist is
+    assigned its optimal model tier via :func:`calibrate_model` (Pro for
+    high-complexity reasoning, Flash for generation, Flash-Lite for cheap
+    extraction).  When ``model`` is provided (hermetic tests), that single model
+    overrides all specialists so the test harness injects one mock uniformly.
+
     Args:
         model: Override the served model — a Vertex model id (str) or, for
-            hermetic tests, a ``BaseLlm`` instance. Defaults to the pinned served
-            id from :func:`resolve_model_id` (AT-024).
+            hermetic tests, a ``BaseLlm`` instance. ``None`` enables per-task
+            calibration via :func:`calibrate_model`.
 
     Returns:
         ``(SequentialAgent, StitchDegradationInfo)`` — the pipeline plus the
         Stitch degradation state for session metadata.
     """
-    resolved_model: str | BaseLlm = resolve_model_id() if model is None else model
     stitch_toolset, degradation = try_get_stitch_mcp_toolset()
 
     sub_agents: list[BaseAgent] = []
     for spec in _SPECIALISTS:
+        # Per-specialist calibrated model: Flash for generation, Flash-Lite for
+        # cheap extraction, Pro only where quality gap is measurable.
+        # Test harness injects a uniform mock via the `model` override.
+        if model is None:
+            resolved_model: str | BaseLlm = calibrate_model(spec.task_type)
+        else:
+            resolved_model = model
+
         toolsets: Sequence[BaseToolset] = (
             [stitch_toolset] if spec.uses_stitch and stitch_toolset is not None else []
         )

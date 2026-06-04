@@ -44,6 +44,10 @@ _DEFAULT_PROJECT = "atelier-build-2026"
 _DEFAULT_LOCATION = "us-central1"
 _DEFAULT_DISPLAY_NAME = "atelier-planner-engine"
 _DEFAULT_DESCRIPTION = "Atelier hybrid-runtime planner agent"
+# Staging bucket pre-created in the project (atelier-build-2026-agent-staging).
+# Required by vertexai.agent_engines.create() to upload agent artifacts before
+# the Agent Engine runtime downloads and serves them.
+_DEFAULT_STAGING_BUCKET = "gs://atelier-build-2026-agent-staging"
 
 
 class AgentEngineDeployError(RuntimeError):
@@ -88,6 +92,7 @@ def resolve_config() -> dict[str, str]:
         "location": os.getenv("GOOGLE_CLOUD_LOCATION", _DEFAULT_LOCATION),
         "display_name": os.getenv("ATELIER_AGENT_NAME", _DEFAULT_DISPLAY_NAME),
         "description": os.getenv("ATELIER_AGENT_DESCRIPTION", _DEFAULT_DESCRIPTION),
+        "staging_bucket": os.getenv("ATELIER_STAGING_BUCKET", _DEFAULT_STAGING_BUCKET),
     }
 
 
@@ -121,7 +126,11 @@ def deploy_agent_engine() -> str:
         config["location"],
         adk_version,
     )
-    vertexai.init(project=config["project"], location=config["location"])
+    vertexai.init(
+        project=config["project"],
+        location=config["location"],
+        staging_bucket=config["staging_bucket"],
+    )
 
     app = AdkApp(agent=PlannerAgent().llm, enable_tracing=True)
 
