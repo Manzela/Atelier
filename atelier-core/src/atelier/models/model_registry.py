@@ -179,8 +179,8 @@ def calibrate_model(task_type: TaskType) -> str:
         A Vertex AI model ID string ready to pass to ``LlmAgent(model=...)``.
     """
     override = os.environ.get("GEMINI_MODEL_ID")
-    if override:
-        return override
+    if override and override.strip():
+        return override.strip()
     return TASK_MODEL_ROUTING[task_type]
 
 
