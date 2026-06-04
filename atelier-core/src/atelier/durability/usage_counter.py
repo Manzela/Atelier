@@ -1,35 +1,37 @@
 """Per-user lifetime token-usage counter — AT-095 (PRD §13.2 / G14 / G16).
 
-The sole V1 usage cap is a **per-Firebase-uid lifetime 5,000,000-token** hard
-cap. Unlike the retired per-run USD governor (which reset every ``run()`` and
-was therefore bypassable by starting a new run on our paid key — a token-burn
-abuse hole), this counter is **cumulative and persisted across runs** in
-Firestore at ``users/{uid}/usage/lifetime`` (the path AT-084's rules already
-make owner-only).
+Per-tier lifetime caps (user.spec, enforced by MetacognitiveGovernor):
+    gemini-2.5-pro        ->  5_000_000 tokens
+    gemini-2.5-flash      -> 15_000_000 tokens
+    gemini-2.5-flash-lite -> 60_000_000 tokens
 
 Tokens counted = ``input + output + thoughts`` (thinking tokens, from Vertex
 ``usage_metadata.thoughts_token_count`` per G15). Writes are **atomic**
 (``firestore.Increment``) so concurrent runs / device-sync cannot double-count
 or lose updates.
 
+Firestore schema (additive — backwards-compatible with the pre-tiering doc):
+
+    users/{uid}/usage/lifetime:
+        total_tokens: int          # aggregate across all tiers
+        input_tokens: int
+        output_tokens: int
+        thinking_tokens: int
+        tier_pro_tokens: int       # tokens charged to gemini-2.5-pro
+        tier_flash_tokens: int     # tokens charged to gemini-2.5-flash
+        tier_flash_lite_tokens: int  # tokens charged to gemini-2.5-flash-lite
+
 Backend selection (mirrors the SessionService env-selection, PRD §11):
 
 * **Firestore** — production / any environment with Application Default
   Credentials and ``firebase-admin`` available.
 * **In-memory** — local development and the hermetic test lane
-  (``FIREBASE_DISABLE_AUTH=true`` or ``ATELIER_ENV=development``). A
-  **process-wide** dict keyed by uid, so the counter persists across
-  ``AtelierRunner`` instances within a process — this is what makes the
-  cross-run durability assertion (AT-095 acceptance (e)) and the byte-stable
-  ``make verify`` token meter (§13.3) work without live Firestore.
+  (``FIREBASE_DISABLE_AUTH=true`` or ``ATELIER_ENV=development``).
 
-A persistent-store read/write failure in a real environment is **not** a cap
-breach (the breach itself is fail-loud and lives in the governor); it is a
-transient infrastructure fault. Per the failure trichotomy this counter
-**fails closed** on a hard persistence error (a usage cap is a security
-control on a paid endpoint — availability must not be bought by dropping the
-guard). The fleet-wide token circuit-breaker that bounds aggregate burn across
-all users — the third orthogonal limit of PRD §13.2 — is
+A persistent-store read/write failure in a real environment fails CLOSED (a
+usage cap is a security control on a paid endpoint). The fleet-wide token
+circuit-breaker that bounds aggregate burn across all users — the third
+orthogonal limit of PRD §13.2 — is
 :meth:`UsageCounterStore.check_circuit_breaker` (AT-097).
 """
 
@@ -43,6 +45,7 @@ from collections import deque
 from dataclasses import dataclass, field
 from typing import Any, Final, Protocol
 
+from atelier.models.model_registry import TIER_TOKEN_CAPS, model_tier_for_id
 from atelier.orchestrator.governor import (
     GovernorCircuitBreakerOpen,
     GovernorRateLimitExceeded,
@@ -51,9 +54,10 @@ from atelier.orchestrator.governor import (
 
 logger = logging.getLogger(__name__)
 
-#: The single fixed V1 cap. Operator-open thresholds (global circuit-breaker,
-#: request-rate limit) live in AT-097; only this per-user lifetime cap is fixed.
-TOKEN_CAP_DEFAULT: Final[int] = 5_000_000
+#: Legacy aggregate cap for the UsageCounterStore constructor.  In production
+#: the governor checks per-tier caps from TIER_TOKEN_CAPS; this value is used
+#: only by tests that construct a store without specifying tier caps.
+TOKEN_CAP_DEFAULT: Final[int] = TIER_TOKEN_CAPS["pro"]
 
 #: Firestore document path for a user's lifetime counter (AT-084 owner-only rules).
 _USAGE_COLLECTION: Final[str] = "usage"
@@ -97,6 +101,18 @@ class UsageSnapshot:
     input_tokens: int
     output_tokens: int
     thinking_tokens: int
+    # Per-tier totals (0 for tiers not yet seen).
+    tier_pro_tokens: int = 0
+    tier_flash_tokens: int = 0
+    tier_flash_lite_tokens: int = 0
+
+    def per_tier(self) -> dict[str, int]:
+        """Return a tier-keyed dict matching TIER_TOKEN_CAPS keys."""
+        return {
+            "pro": self.tier_pro_tokens,
+            "flash": self.tier_flash_tokens,
+            "flash_lite": self.tier_flash_lite_tokens,
+        }
 
 
 class _Clock(Protocol):
@@ -109,6 +125,9 @@ class _MemoryRecord:
     input_tokens: int = 0
     output_tokens: int = 0
     thinking_tokens: int = 0
+    tier_pro_tokens: int = 0
+    tier_flash_tokens: int = 0
+    tier_flash_lite_tokens: int = 0
     request_times: list[float] = field(default_factory=list)
 
 
@@ -225,8 +244,13 @@ class UsageCounterStore:
         """Return the user's cumulative lifetime token count (0 if none yet)."""
         return self.snapshot(uid).total_tokens
 
+    @staticmethod
+    def _tier_field(tier: str) -> str:
+        """Map a tier key to its Firestore field name."""
+        return f"tier_{tier}_tokens"
+
     def snapshot(self, uid: str) -> UsageSnapshot:
-        """Return the full cumulative breakdown for ``uid``."""
+        """Return the full cumulative breakdown for ``uid``, including per-tier counts."""
         if self._backend == "memory":
             with _MEMORY_LOCK:
                 rec = _MEMORY.get(uid)
@@ -238,6 +262,9 @@ class UsageCounterStore:
                     rec.input_tokens,
                     rec.output_tokens,
                     rec.thinking_tokens,
+                    tier_pro_tokens=rec.tier_pro_tokens,
+                    tier_flash_tokens=rec.tier_flash_tokens,
+                    tier_flash_lite_tokens=rec.tier_flash_lite_tokens,
                 )
         # Firestore: fail CLOSED on a hard read error OR a corrupt (non-coercible)
         # counter value — but as GovernorUsageUnavailable (a transient/retryable
@@ -264,6 +291,9 @@ class UsageCounterStore:
                 int(data.get("input_tokens", 0) or 0),
                 int(data.get("output_tokens", 0) or 0),
                 int(data.get("thinking_tokens", 0) or 0),
+                tier_pro_tokens=int(data.get("tier_pro_tokens", 0) or 0),
+                tier_flash_tokens=int(data.get("tier_flash_tokens", 0) or 0),
+                tier_flash_lite_tokens=int(data.get("tier_flash_lite_tokens", 0) or 0),
             )
         except (ValueError, TypeError) as exc:
             logger.error(  # noqa: TRY400
@@ -279,8 +309,14 @@ class UsageCounterStore:
         input_tokens: int = 0,
         output_tokens: int = 0,
         thinking_tokens: int = 0,
+        model_id: str | None = None,
     ) -> int:
         """Atomically add a token delta to ``uid``'s counter; return the new total.
+
+        When ``model_id`` is provided, the delta is also charged to the
+        appropriate per-tier field (``tier_pro_tokens``, ``tier_flash_tokens``,
+        or ``tier_flash_lite_tokens``) so the governor can enforce tiered caps
+        across runs.
 
         Negative deltas are rejected (a counter only grows) — defends against a
         bug or tampered delta silently lowering usage below the cap.
@@ -288,6 +324,7 @@ class UsageCounterStore:
         if input_tokens < 0 or output_tokens < 0 or thinking_tokens < 0:
             raise ValueError("token deltas must be non-negative")
         delta = input_tokens + output_tokens + thinking_tokens
+        tier_field = self._tier_field(model_tier_for_id(model_id)) if model_id else None
 
         if self._backend == "memory":
             with _MEMORY_LOCK:
@@ -296,6 +333,12 @@ class UsageCounterStore:
                 rec.output_tokens += output_tokens
                 rec.thinking_tokens += thinking_tokens
                 rec.total_tokens += delta
+                if tier_field == "tier_pro_tokens":
+                    rec.tier_pro_tokens += delta
+                elif tier_field == "tier_flash_tokens":
+                    rec.tier_flash_tokens += delta
+                elif tier_field == "tier_flash_lite_tokens":
+                    rec.tier_flash_lite_tokens += delta
                 new_total = rec.total_tokens
             # AT-097: feed the fleet-wide breaker window AFTER the per-uid commit
             # (outside _MEMORY_LOCK — _record_global_tokens takes _GLOBAL_LOCK only,
@@ -305,17 +348,18 @@ class UsageCounterStore:
 
         from google.cloud import firestore as gfs  # noqa: PLC0415
 
+        doc_update: dict[str, object] = {
+            "total_tokens": gfs.Increment(delta),
+            "input_tokens": gfs.Increment(input_tokens),
+            "output_tokens": gfs.Increment(output_tokens),
+            "thinking_tokens": gfs.Increment(thinking_tokens),
+            "updated_at": gfs.SERVER_TIMESTAMP,
+        }
+        if tier_field is not None:
+            doc_update[tier_field] = gfs.Increment(delta)
+
         try:
-            self._doc_ref(uid).set(
-                {
-                    "total_tokens": gfs.Increment(delta),
-                    "input_tokens": gfs.Increment(input_tokens),
-                    "output_tokens": gfs.Increment(output_tokens),
-                    "thinking_tokens": gfs.Increment(thinking_tokens),
-                    "updated_at": gfs.SERVER_TIMESTAMP,
-                },
-                merge=True,
-            )
+            self._doc_ref(uid).set(doc_update, merge=True)
         except Exception as exc:
             logger.error(  # noqa: TRY400
                 "atelier.usage.write_failed",
@@ -325,11 +369,6 @@ class UsageCounterStore:
         # AT-097: record toward the fleet-wide breaker only after the charge
         # COMMITTED above (a failed write raised; we never record phantom tokens).
         self._record_global_tokens(delta)
-        # The increment COMMITTED above (the charge is persisted). A post-write
-        # read is only to return the fresh total; if it fails we must NOT
-        # manufacture a deny for an already-successful charge — return a
-        # best-effort value and log degraded. (The runner ignores this return and
-        # reads the authoritative cumulative from governor state.)
         try:
             return self.get_total(uid)
         except GovernorUsageUnavailable:

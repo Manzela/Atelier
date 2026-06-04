@@ -1,8 +1,11 @@
 """AT-024 model-pin: registry/planner/web_research return the pinned served id.
 
 The served Gemini model is pinned to ``GEMINI_MODEL_ID`` (env) or the GA default
-``gemini-2.5-pro`` (PRD §22 D5 / G13). Verifies the single source of truth
-(`resolve_model_id`) and that every consumer resolves to it, with env override.
+``gemini-2.5-pro`` (PRD §22 D5 / G13). Tiered routing (tiered-model-routing-token-caps)
+assigns Flash and Flash-Lite to cheaper tasks; Pro remains the default for the
+planner + high-complexity judges. ``ALL_MODEL_IDS`` now covers all three calibrated
+model IDs. The ``resolve_model_id()`` shim still returns the Pro default for
+backwards-compat call sites (planner, agent-engine deploy, web_research grounding).
 """
 
 from __future__ import annotations
@@ -17,6 +20,8 @@ from atelier.models import model_registry
 from atelier.models.model_registry import (
     ALL_MODEL_IDS,
     DEFAULT_GEMINI_MODEL_ID,
+    GEMINI_FLASH_LITE_MODEL_ID,
+    GEMINI_FLASH_MODEL_ID,
     resolve_model_id,
 )
 from atelier.orchestrator.planner import PlannerAgent
@@ -35,9 +40,21 @@ def test_env_override_honored(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.unit
-def test_registry_specs_all_pinned() -> None:
-    """Every ModelSpec model_id collapses to the single served id (acceptance)."""
-    assert frozenset({resolve_model_id()}) == ALL_MODEL_IDS
+def test_registry_specs_use_calibrated_tier_ids() -> None:
+    """ALL_MODEL_IDS covers the three calibrated tier IDs (Pro, Flash, Flash-Lite).
+
+    Tiered routing replaces the old single-model invariant (AT-024 amendment):
+    each task routes to its optimal tier for cost-efficiency while Pro remains
+    the default for planning and high-complexity judging.
+    """
+    expected = frozenset(
+        {
+            DEFAULT_GEMINI_MODEL_ID,
+            GEMINI_FLASH_MODEL_ID,
+            GEMINI_FLASH_LITE_MODEL_ID,
+        }
+    )
+    assert expected == ALL_MODEL_IDS
 
 
 @pytest.mark.unit

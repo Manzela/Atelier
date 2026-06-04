@@ -715,7 +715,11 @@ class AtelierRunner:
         """
         self._governor._state.user_id = user_id
         self._governor._state.token_cap = self._usage_store.token_cap
-        self._governor._state.cumulative_user_tokens = self._usage_store.get_total(user_id)
+        # Seed aggregate total (for reporting / legacy checks).
+        snap = self._usage_store.snapshot(user_id)
+        self._governor._state.cumulative_user_tokens = snap.total_tokens
+        # Seed per-tier accumulators so cap checks span runs (AT-095 acceptance (e)).
+        self._governor._state.per_tier_tokens = snap.per_tier()
 
     # -- AT-020b: Board task-doc lifecycle (writer for §7A.5) -----------------
 
@@ -1937,14 +1941,23 @@ class AtelierRunner:
                 # counter, persist them (atomic, spans runs), and emit a token_delta so
                 # the Studio meter ticks live (§13.3). input + output + thinking.
                 tok_in, tok_out, tok_think = token_usage
+                # N3a dominant tier: Flash (UIDesigner + UX/IA/Wireframe specialists).
+                # Token-Lite tasks (TokenGenerator) run on Flash-Lite but their share
+                # is small; attributing the whole N3a batch to Flash is conservative
+                # (Flash cap 15M > Flash-Lite cap 60M, so this never over-counts).
+                n3a_model_id = "gemini-2.5-flash"
                 self._governor._state.add_user_tokens(
-                    input_tokens=tok_in, output_tokens=tok_out, thinking_tokens=tok_think
+                    input_tokens=tok_in,
+                    output_tokens=tok_out,
+                    thinking_tokens=tok_think,
+                    model_id=n3a_model_id,
                 )
                 self._usage_store.add(
                     user_id,
                     input_tokens=tok_in,
                     output_tokens=tok_out,
                     thinking_tokens=tok_think,
+                    model_id=n3a_model_id,
                 )
                 if progress_callback:
                     await progress_callback(
@@ -2011,16 +2024,22 @@ class AtelierRunner:
                 judge_out = int(convergence_result.get("judge_output_tokens", 0))
                 judge_think = int(convergence_result.get("judge_thinking_tokens", 0))
                 if judge_in or judge_out or judge_think:
+                    # N3d judge mix: Originality=Pro, Design/Relevance/Visual=Flash,
+                    # Accessibility=Flash-Lite. Attribute to Pro (most restrictive cap)
+                    # so the 5M Pro guard is the conservative check on judge spend.
+                    n3d_model_id = "gemini-2.5-pro"
                     self._governor._state.add_user_tokens(
                         input_tokens=judge_in,
                         output_tokens=judge_out,
                         thinking_tokens=judge_think,
+                        model_id=n3d_model_id,
                     )
                     self._usage_store.add(
                         user_id,
                         input_tokens=judge_in,
                         output_tokens=judge_out,
                         thinking_tokens=judge_think,
+                        model_id=n3d_model_id,
                     )
                     if progress_callback:
                         await progress_callback(
