@@ -1,1 +1,12 @@
-[]
+[
+  {
+    "verdict": "auto-REJECTED",
+    "reasons": [
+      "files_touched_sha['atelier-core/src/atelier/api/app.py']: claimed=8eaa3eb4078b..., re-computed=657702422093...",
+      "files_touched_sha['atelier-core/src/atelier/durability/design_system_persister.py']: claimed=30ae5822090d..., re-computed=37a04a0cc7b4...",
+      "files_touched_sha['atelier-core/src/atelier/models/enums.py']: claimed=478bf533f94c..., re-computed=2852c5b0e340...",
+      "files_touched_sha['atelier-core/src/atelier/models/model_armor_callbacks.py']: claimed=a4f2e840c57b..., re-computed=67259b251488...",
+      "files_touched_sha['atelier-core/tests/integration/test_pipeline_n1_n2_n3a.py']: claimed=d8bfcf91b805..., re-computed=85858bd799ea..."
+    ]
+  }
+]
