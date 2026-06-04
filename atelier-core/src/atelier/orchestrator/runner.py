@@ -659,6 +659,10 @@ class AtelierRunner:
         usage_store: UsageCounterStore | None = None,
         board_emitter: BoardEmitter | None = None,
         max_iterations: int = 3,
+        model: str | None = None,
+        temperature: float | None = None,
+        top_k: int | None = None,
+        max_tokens: int | None = None,
     ) -> None:
         """Initialize the runner with a governor, session service, and optional judge client.
 
@@ -704,6 +708,10 @@ class AtelierRunner:
         else:
             self._judge_client = None
         self._max_iterations = max_iterations
+        self._custom_model = model
+        self._custom_temperature = temperature
+        self._custom_top_k = top_k
+        self._custom_max_tokens = max_tokens
 
     def _seed_lifetime_counter(self, user_id: str) -> None:
         """AT-095: bind the governor's token-cap state to ``user_id`` and seed the
@@ -1882,7 +1890,12 @@ class AtelierRunner:
                     screen: str = screen,
                     iteration: int = iteration,
                 ) -> tuple[list[Any], bool, tuple[int, int, int]]:
-                    pipeline, stitch_degradation = create_specialist_pipeline()
+                    pipeline, stitch_degradation = create_specialist_pipeline(
+                        model=self._custom_model,
+                        temperature=self._custom_temperature,
+                        top_k=self._custom_top_k,
+                        max_tokens=self._custom_max_tokens,
+                    )
                     adk_runner = Runner(
                         agent=pipeline,
                         session_service=self._session_service,

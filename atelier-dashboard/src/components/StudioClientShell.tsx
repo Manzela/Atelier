@@ -493,6 +493,19 @@ export default function StudioClientShell({ id }: { id: string }) {
   const [maxTokens, setMaxTokens] = useState(4096);
   const { user, initRef } = useClientAuth();
 
+  const [selectedModel, setSelectedModel] = useState('gemini-2.5-pro');
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const modelParam = params.get('model');
+      if (modelParam) {
+        setSelectedModel(modelParam);
+      }
+    }
+  }, []);
+
   const [status, setStatus] = useState<
     | 'idle'
     | 'generating'
@@ -521,6 +534,95 @@ export default function StudioClientShell({ id }: { id: string }) {
   const isOffline = useOnlineStatus();
   const [logs, setLogs] = useState<{ id: number; time: string; level: string; msg: string }[]>([]);
   const [convergedHtml, setConvergedHtml] = useState<string>('');
+
+  interface Layer {
+    id: string;
+    name: string;
+  }
+
+  const layers = useMemo<Layer[]>(() => {
+    if (typeof window === 'undefined' || !convergedHtml) {
+      return [];
+    }
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(convergedHtml, 'text/html');
+      const elements = doc.querySelectorAll('header, section, footer, [id]');
+      const found: Layer[] = [];
+      const seenIds = new Set<string>();
+
+      elements.forEach((el, index) => {
+        let id = el.getAttribute('id');
+        let name = '';
+
+        const tag = el.tagName.toLowerCase();
+        if (tag === 'header') {
+          name = 'Header Section';
+        } else if (tag === 'footer') {
+          name = 'Footer Section';
+        } else {
+          const classes = el.getAttribute('class') || '';
+          if (classes.includes('hero')) name = 'Hero Section';
+          else if (classes.includes('features')) name = 'Features Section';
+          else if (classes.includes('testimonials')) name = 'Testimonials';
+          else if (classes.includes('pricing')) name = 'Pricing Section';
+          else if (classes.includes('contact')) name = 'Contact Section';
+          else if (id) {
+            name = id.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+          }
+        }
+
+        if (!name) {
+          if (tag === 'section') {
+            name = `Section ${found.filter((f) => f.name.startsWith('Section')).length + 1}`;
+          } else {
+            return;
+          }
+        }
+
+        if (!id) {
+          id = `section-layer-${index}`;
+        }
+
+        if (!seenIds.has(id)) {
+          seenIds.add(id);
+          found.push({ id, name });
+        }
+      });
+
+      return found;
+    } catch (e) {
+      console.error('Failed to parse layers from HTML:', e);
+      return [];
+    }
+  }, [convergedHtml]);
+
+  const handleLayerClick = (layer: Layer, index: number) => {
+    if (!iframeRef.current) return;
+    try {
+      const iframeDoc =
+        iframeRef.current.contentDocument || iframeRef.current.contentWindow?.document;
+      if (!iframeDoc) return;
+
+      let targetEl = null;
+      if (layer.id && !layer.id.startsWith('section-layer-')) {
+        targetEl = iframeDoc.getElementById(layer.id);
+      }
+      if (!targetEl) {
+        const elements = iframeDoc.querySelectorAll('header, section, footer, [id]');
+        if (elements[index]) {
+          targetEl = elements[index];
+        }
+      }
+
+      if (targetEl) {
+        targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    } catch (e) {
+      console.error('Failed to scroll to layer inside iframe:', e);
+    }
+  };
+
   const [dorav, setDorav] = useState<DoravScores | null>(null);
   const [nielsen, setNielsen] = useState<NielsenHeuristic[]>([]);
   // AT-093: per-iteration scorecard state — updated on each iteration_score SSE event
@@ -885,7 +987,12 @@ export default function StudioClientShell({ id }: { id: string }) {
       },
     };
 
-    runGenerationStream(brief, user.token, callbacks);
+    runGenerationStream(brief, user.token, callbacks, {
+      model: selectedModel,
+      temperature,
+      top_k: topK,
+      max_tokens: maxTokens,
+    });
   };
 
   if (!user) return <div ref={initRef} />;
@@ -932,8 +1039,24 @@ export default function StudioClientShell({ id }: { id: string }) {
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="px-3 py-1.5 text-xs text-gray-400 border border-[var(--g-outline)] rounded-md bg-black/20 flex items-center gap-2">
-              Model: <span className="text-white font-medium">Gemini 2.5 Pro</span>
+            <div className="relative flex items-center">
+              <select
+                value={selectedModel}
+                onChange={(e) => setSelectedModel(e.target.value)}
+                className="appearance-none bg-black/20 border border-[var(--g-outline)] rounded-md px-3 py-1.5 pr-8 text-xs text-white font-medium focus:outline-none focus:ring-1 focus:ring-[var(--g-primary-blue)] cursor-pointer"
+                aria-label="Select Model"
+              >
+                <option value="gemini-2.5-pro" className="bg-[#1e1f22] text-white">
+                  Gemini 2.5 Pro
+                </option>
+                <option value="gemini-2.5-flash" className="bg-[#1e1f22] text-white">
+                  Gemini 2.5 Flash
+                </option>
+              </select>
+              <ChevronDown
+                size={12}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+              />
             </div>
             {/* AT-026 (R13): the user Stop control — only while a run is in flight. */}
             {status === 'generating' && (
@@ -972,19 +1095,23 @@ export default function StudioClientShell({ id }: { id: string }) {
               </span>
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-1">
-              {['Hero Section', 'Feature Grid', 'Testimonials', 'Pricing Table', 'Footer'].map(
-                (layer, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-[var(--g-surface-hover)] text-xs text-gray-400 cursor-pointer group transition-colors"
-                  >
-                    <Box
-                      size={14}
-                      className="text-gray-500 group-hover:text-[var(--g-info)] transition-colors"
-                    />
-                    <span className="truncate">{layer}</span>
-                  </div>
-                )
+              {layers.map((layer, i) => (
+                <div
+                  key={i}
+                  onClick={() => handleLayerClick(layer, i)}
+                  className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-[var(--g-surface-hover)] text-xs text-gray-400 cursor-pointer group transition-colors"
+                >
+                  <Box
+                    size={14}
+                    className="text-gray-500 group-hover:text-[var(--g-info)] transition-colors"
+                  />
+                  <span className="truncate">{layer.name}</span>
+                </div>
+              ))}
+              {layers.length === 0 && (
+                <div className="p-3 text-xs text-gray-500 italic text-center">
+                  No layers generated
+                </div>
               )}
             </div>
           </aside>
@@ -1149,23 +1276,25 @@ export default function StudioClientShell({ id }: { id: string }) {
                 </div>
               )}
 
-              {/* \u2500\u2500 Converged state \u2014 render iframe \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */}
+              {/* ── Converged state — render iframe ──────────────────── */}
               {status === 'converged' && convergedHtml && (
                 <iframe
-                  sandbox="allow-scripts"
+                  ref={iframeRef}
+                  sandbox="allow-scripts allow-same-origin"
                   srcDoc={effectiveSrcDoc}
                   title="Converged design output"
                   className="w-full h-full border-0"
                 />
               )}
 
-              {/* \u2500\u2500 Degraded state \u2014 show output + degradation banner \u2500\u2500\u2500 */}
+              {/* ── Degraded state — show output + degradation banner ── */}
               {status === 'degraded' && (
                 <div data-testid="state-degraded" className="w-full h-full relative">
                   {/* Still render the best available output behind the banner */}
                   {convergedHtml && (
                     <iframe
-                      sandbox="allow-scripts"
+                      ref={iframeRef}
+                      sandbox="allow-scripts allow-same-origin"
                       srcDoc={effectiveSrcDoc}
                       title="Degraded design output"
                       className="w-full h-full border-0"

@@ -121,6 +121,22 @@ class GenerateRequest(BaseModel):
         default=None,
         description="Path to DESIGN.md or 'infer'. If omitted, tokens are auto-parsed.",
     )
+    model: str | None = Field(
+        default=None,
+        description="Custom model override for the UI Generator.",
+    )
+    temperature: float | None = Field(
+        default=None,
+        description="Sampling temperature parameter.",
+    )
+    top_k: int | None = Field(
+        default=None,
+        description="Top-k sampling parameter.",
+    )
+    max_tokens: int | None = Field(
+        default=None,
+        description="Maximum tokens to generate.",
+    )
     # AT-095: the per-request USD budget knob is removed. Usage is governed solely
     # by the per-user lifetime 5M-token cap (server-side); there is no dollar budget.
 
@@ -193,6 +209,10 @@ async def _run_pipeline(
     brief: str,
     user: FirebaseUser,
     design_system_source: str | None,  # noqa: ARG001 — reserved; passed to runner when source resolution is wired
+    model: str | None = None,
+    temperature: float | None = None,
+    top_k: int | None = None,
+    max_tokens: int | None = None,
 ) -> dict[str, Any]:
     """Execute the full Atelier pipeline and return the raw result dict."""
     from atelier.models.data_contracts import TenantContext  # noqa: PLC0415
@@ -205,7 +225,12 @@ async def _run_pipeline(
     )
 
     # AT-095: no per-run budget — usage is governed by the per-user lifetime token cap.
-    runner = AtelierRunner()
+    runner = AtelierRunner(
+        model=model,
+        temperature=temperature,
+        top_k=top_k,
+        max_tokens=max_tokens,
+    )
     return await runner.run(brief, tenant_ctx)
 
 
@@ -417,8 +442,8 @@ def _build_response(
         stitch_degraded=result.get("stitch_degraded", False),
         degradation_reason=result.get("degradation_reason"),
         user_message=result.get("user_message"),
-        tokens_used=int(result.get("tokens_used", 0)),
-        token_cap=int(result.get("token_cap", TOKEN_CAP_DEFAULT)),
+        tokens_used=int(result.get("tokens_used") or 0),
+        token_cap=int(result.get("token_cap") or TOKEN_CAP_DEFAULT),
         candidates=candidate_summaries,
         started_at=started_at,
         completed_at=datetime.now(tz=UTC).isoformat(),
@@ -499,6 +524,10 @@ async def generate(
         brief=request.brief,
         user=user,
         design_system_source=request.design_system_source,
+        model=request.model,
+        temperature=request.temperature,
+        top_k=request.top_k,
+        max_tokens=request.max_tokens,
     )
 
     # Persist trajectory (fail-soft — never raises)
@@ -889,7 +918,12 @@ async def generate_stream(  # noqa: C901, PLR0915 — SSE orchestrator: nested p
         )
 
         # AT-095: no per-run budget — usage governed by the per-user lifetime token cap.
-        runner = AtelierRunner()
+        runner = AtelierRunner(
+            model=request.model,
+            temperature=request.temperature,
+            top_k=request.top_k,
+            max_tokens=request.max_tokens,
+        )
         try:
             result = await runner.run(
                 request.brief, tenant_ctx, progress_callback=progress_callback

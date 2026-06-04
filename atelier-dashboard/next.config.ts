@@ -27,7 +27,7 @@ const scriptSrc = [
 const connectSrc = [
   "connect-src 'self'",
   'https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com',
-  'https://*.run.app https://*.autonomous-agent.dev https://accounts.google.com',
+  'https://*.run.app https://*.us-central1.run.app https://*.autonomous-agent.dev https://accounts.google.com',
   'wss://*.firebaseio.com',
   isDev ? 'http://localhost:*' : '',
 ]

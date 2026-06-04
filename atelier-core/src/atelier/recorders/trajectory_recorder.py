@@ -24,6 +24,7 @@ import time
 import uuid
 from typing import Any, Protocol
 
+# pyrefly: ignore [missing-import]
 from atelier.nodes.trajectory import (
     TrajectoryRecord,  # noqa: TC001  # runtime: buffer ops + to_bq_row()
 )

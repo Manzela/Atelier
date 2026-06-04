@@ -40,6 +40,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Final
 
+# pyrefly: ignore [missing-import]
 from atelier.utils.log_sanitizer import sanitize
 
 logger = logging.getLogger(__name__)
@@ -526,6 +527,7 @@ def run_dreaming_module(
 
     # Step 1: Mine pairs from BQ
     try:
+        # pyrefly: ignore [missing-import]
         from atelier.optimize.generator_tuner import (  # noqa: PLC0415
             MIN_PAIRS_FOR_TUNING,
             GeneratorTuner,
@@ -634,6 +636,7 @@ def compute_and_promote(
 
     # κ gate passed — promote the model
     try:
+        # pyrefly: ignore [missing-import]
         from atelier.optimize.generator_tuner import GeneratorTuner  # noqa: PLC0415
 
         tuner = GeneratorTuner(project=_PROJECT)

@@ -295,7 +295,11 @@ def _build_instruction(spec: _SpecialistSpec) -> InstructionProvider:
 
 
 def create_specialist_pipeline(
-    *, model: str | BaseLlm | None = None
+    *,
+    model: str | BaseLlm | None = None,
+    temperature: float | None = None,
+    top_k: int | None = None,
+    max_tokens: int | None = None,
 ) -> tuple[SequentialAgent, StitchDegradationInfo]:  # type: ignore[no-any-unimported]
     """Build the DDLC role-specialist ``SequentialAgent`` (N3a) — AT-020.
 
@@ -314,6 +318,9 @@ def create_specialist_pipeline(
         model: Override the served model — a Vertex model id (str) or, for
             hermetic tests, a ``BaseLlm`` instance. ``None`` enables per-task
             calibration via :func:`calibrate_model`.
+        temperature: Optional temperature override.
+        top_k: Optional top_k override.
+        max_tokens: Optional max output tokens override.
 
     Returns:
         ``(SequentialAgent, StitchDegradationInfo)`` — the pipeline plus the
@@ -334,6 +341,17 @@ def create_specialist_pipeline(
         toolsets: Sequence[BaseToolset] = (
             [stitch_toolset] if spec.uses_stitch and stitch_toolset is not None else []
         )
+
+        config_args = {
+            "model_armor_config": default_model_armor_config(),
+        }
+        if temperature is not None:
+            config_args["temperature"] = temperature
+        if top_k is not None:
+            config_args["top_k"] = top_k
+        if max_tokens is not None:
+            config_args["max_output_tokens"] = max_tokens
+
         sub_agents.append(
             LlmAgent(
                 name=spec.name,
@@ -344,9 +362,7 @@ def create_specialist_pipeline(
                 before_model_callback=model_armor_before_callback,
                 after_model_callback=model_armor_after_callback,
                 tools=list(toolsets),
-                generate_content_config=genai_types.GenerateContentConfig(
-                    model_armor_config=default_model_armor_config(),
-                ),
+                generate_content_config=genai_types.GenerateContentConfig(**config_args),
             )
         )
 

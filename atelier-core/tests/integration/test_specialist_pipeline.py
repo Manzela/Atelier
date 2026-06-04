@@ -83,7 +83,7 @@ class _FakeLlm(BaseLlm):
         )
 
 
-def _degraded_stitch() -> tuple[None, StitchDegradationInfo]:
+def _degraded_stitch(*args: Any, **kwargs: Any) -> tuple[None, StitchDegradationInfo]:
     """Force the Stitch-unavailable fallback: no toolset, degradation acknowledged."""
     return None, StitchDegradationInfo(
         is_degraded=True,

@@ -50,6 +50,7 @@ import time
 from dataclasses import dataclass
 from typing import Final
 
+# pyrefly: ignore [missing-import]
 from atelier.router.protocol import (
     DAGPhase,
     ExpertID,

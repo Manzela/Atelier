@@ -111,7 +111,7 @@ class _FakeN3aRunner:
         }
 
 
-def _degraded_stitch() -> tuple[None, Any]:
+def _degraded_stitch(*args: Any, **kwargs: Any) -> tuple[None, Any]:
     from atelier.integrations.stitch_mcp import StitchDegradationInfo
 
     return None, StitchDegradationInfo(

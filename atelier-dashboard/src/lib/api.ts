@@ -363,7 +363,13 @@ export const getApiUrl = () => {
 export async function runGenerationStream(
   brief: string,
   token: string | null,
-  callbacks: StreamCallbacks
+  callbacks: StreamCallbacks,
+  settings?: {
+    model?: string | null;
+    temperature?: number | null;
+    top_k?: number | null;
+    max_tokens?: number | null;
+  }
 ): Promise<void> {
   const url = `${getApiUrl()}/v1/generate/stream`;
 
@@ -378,7 +384,10 @@ export async function runGenerationStream(
     const response = await fetch(url, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ brief }),
+      body: JSON.stringify({
+        brief,
+        ...(settings || {}),
+      }),
     });
 
     if (!response.ok) {
