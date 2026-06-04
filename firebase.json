@@ -64,6 +64,20 @@
       ],
       "rewrites": [
         {
+          "source": "/health",
+          "run": {
+            "serviceId": "atelier-api-staging",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/.well-known/agent-card.json",
+          "run": {
+            "serviceId": "atelier-api-staging",
+            "region": "us-central1"
+          }
+        },
+        {
           "source": "/api/**",
           "run": {
             "serviceId": "atelier-api-staging",
@@ -122,6 +136,20 @@
         }
       ],
       "rewrites": [
+        {
+          "source": "/health",
+          "run": {
+            "serviceId": "atelier-api-staging",
+            "region": "us-central1"
+          }
+        },
+        {
+          "source": "/.well-known/agent-card.json",
+          "run": {
+            "serviceId": "atelier-api-staging",
+            "region": "us-central1"
+          }
+        },
         {
           "source": "/api/**",
           "run": {
