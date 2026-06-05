@@ -55,25 +55,37 @@
           "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
         }
       ],
+      "redirects": [
+        {
+          "source": "/auth",
+          "destination": "/login",
+          "type": 302
+        },
+        {
+          "source": "/docs/limits",
+          "destination": "/docs#governance",
+          "type": 301
+        }
+      ],
       "rewrites": [
         {
           "source": "/health",
           "run": {
-            "serviceId": "atelier-api-staging",
+            "serviceId": "atelier-api-production",
             "region": "us-central1"
           }
         },
         {
           "source": "/.well-known/agent-card.json",
           "run": {
-            "serviceId": "atelier-api-staging",
+            "serviceId": "atelier-api-production",
             "region": "us-central1"
           }
         },
         {
           "source": "/api/**",
           "run": {
-            "serviceId": "atelier-api-staging",
+            "serviceId": "atelier-api-production",
             "region": "us-central1"
           }
         },
@@ -154,6 +166,18 @@
         {
           "source": "**/*.html",
           "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+        }
+      ],
+      "redirects": [
+        {
+          "source": "/auth",
+          "destination": "/login",
+          "type": 302
+        },
+        {
+          "source": "/docs/limits",
+          "destination": "/docs#governance",
+          "type": 301
         }
       ],
       "rewrites": [
