@@ -19,8 +19,27 @@ env:
   NODE_VERSION: '22.13.0'
 
 jobs:
+  check-secrets:
+    name: Check for GCP Secrets
+    runs-on: ubuntu-latest
+    outputs:
+      has_secrets: ${{ steps.check.outputs.has_secrets }}
+    steps:
+      - id: check
+        env:
+          WIF: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          KEY: ${{ secrets.GCP_SA_KEY }} # pragma: allowlist secret
+        run: | # pragma: allowlist secret
+          if [ -n "$WIF" ] || [ -n "$KEY" ]; then
+            echo "has_secrets=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_secrets=false" >> "$GITHUB_OUTPUT"
+          fi
+
   deploy-staging:
     name: Deploy to Staging
+    needs: check-secrets
+    if: needs.check-secrets.outputs.has_secrets == 'true' # pragma: allowlist secret
     runs-on: ubuntu-latest
     env:
       GCP_WIF_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
@@ -114,7 +133,8 @@ jobs:
   deploy-production:
     name: Deploy to Production
     runs-on: ubuntu-latest
-    needs: deploy-staging
+    needs: [check-secrets, deploy-staging]
+    if: needs.check-secrets.outputs.has_secrets == 'true' # pragma: allowlist secret
     environment: production # Enforces manual approval gate
     env:
       GCP_WIF_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}

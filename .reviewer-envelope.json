@@ -54,7 +54,7 @@
     "atelier-dashboard/src/components/KanbanCard.tsx": "0964fd0b7cc76e5c1d843efcfd57f39cb376f379c60c102c92a87797ebda7399",
     "atelier-dashboard/src/components/KanbanColumn.tsx": "ef9000a748fe20d62efaf89651391fcaf93c025610c25e5cf41da108a87424a4",
     "atelier-dashboard/src/components/OptimizeArtifactCard.tsx": "7ff8cf63288fe98f3ecfada8dbb6d1807dcd41f5ae12f424230df8a459b23213",
-    "atelier-dashboard/src/components/StudioClientShell.tsx": "7a78f773c3e82014331c16a4f6ca27add5a00600564e7b2c1e473d5efe7c75b7",
+    "atelier-dashboard/src/components/StudioClientShell.tsx": "ca66049a0162bfcfcedde87f190653cc79e2cca8b0c30a2ee9fdeca41d2c3b39",
     "atelier-dashboard/src/components/legibility/AttributionView.tsx": "a124acd6aeaa2411d605cee2cc4429ba9b64ec065259889942c8462224135379",
     "atelier-dashboard/src/components/legibility/StopButton.tsx": "d3c7db763fed96621136f560ca4b8711f8b48348269cbc16689d5cd20ca34a6e",
     "atelier-dashboard/src/components/legibility/TracePanel.tsx": "0031ca6439ef97c6a16b8ecb8e76cc6cd901f57a8accc94431b668dd8998f909",

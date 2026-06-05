@@ -641,6 +641,7 @@ export default function StudioClientShell({ id }: { id: string }) {
   // throws, `a2uiRenderFailed` latches and we fall back to the hand-built panel.
   const [a2uiPayload, setA2uiPayload] = useState<A2uiMessage[] | null>(null);
   const [a2uiRenderFailed, setA2uiRenderFailed] = useState(false);
+  const [isBeatDismissed, setIsBeatDismissed] = useState(false);
   // G3 a11y: a single SHELL-OWNED announcer. `a2uiAnnouncement` is written into a
   // persistent role="status" aria-live="polite" region mounted BEFORE the surface
   // (so SC 4.1.3 is satisfied — the region pre-exists the update). `a2uiPanelRef`
@@ -825,6 +826,7 @@ export default function StudioClientShell({ id }: { id: string }) {
     // ADR-0024 / P0.4: reset the A2UI surface + fail-soft latch for the new run
     setA2uiPayload(null);
     setA2uiRenderFailed(false);
+    setIsBeatDismissed(false);
     // G3 a11y: clear the live region so the next surface-ready re-announces.
     setA2uiAnnouncement('');
     addLog('INFO', 'Initiating Vertex AI Convergence Loop...');
@@ -1362,6 +1364,34 @@ export default function StudioClientShell({ id }: { id: string }) {
               />
             )}
           </>
+        )}
+
+        {/* Why Atelier (AT-090 competitor beat) */}
+        {status === 'converged' && !isBeatDismissed && (
+          <div>
+            <div className="h-px bg-[var(--g-outline)] my-4" />
+            <div
+              data-testid="competitor-contrast-beat"
+              className="p-4 rounded-md border border-[var(--g-outline)] bg-[var(--g-surface-hover)] relative"
+            >
+              <button
+                data-testid="competitor-contrast-dismiss"
+                onClick={() => setIsBeatDismissed(true)}
+                className="absolute top-2 right-2 p-1 rounded hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+                aria-label="Dismiss competitor beat"
+              >
+                <X size={14} />
+              </button>
+              <h4 className="text-[11px] uppercase tracking-wider font-semibold text-[var(--g-info)] mb-2">
+                Why Atelier
+              </h4>
+              <p className="text-xs text-gray-300 leading-relaxed pr-4">
+                Atelier enforces an absolute deterministic structure gate (reject+halt on skeletons)
+                before the LLM judge evaluates the design. While competitors apply brand consistency
+                probabilistically, Atelier guarantees it.
+              </p>
+            </div>
+          </div>
         )}
       </div>
     </div>
