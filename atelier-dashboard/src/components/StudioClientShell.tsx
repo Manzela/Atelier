@@ -400,6 +400,7 @@ export default function StudioClientShell({ id }: { id: string }) {
   const [isXl, setIsXl] = useState(false);
 
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
     if (typeof window === 'undefined') return;
     const mediaLg = window.matchMedia('(max-width: 1023px)');
