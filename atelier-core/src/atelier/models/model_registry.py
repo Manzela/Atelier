@@ -191,6 +191,16 @@ def fetch_calibrated_model_from_remote_config(task_type: TaskType) -> str | None
     return None
 
 
+def normalize_model_id(model_id: str) -> str:
+    """Normalize a model ID string, ensuring compatibility with Vertex AI.
+
+    Specifically maps 'gemini-2.5-flash' to 'gemini-2.5-flash-001'.
+    """
+    if model_id == "gemini-2.5-flash":
+        return "gemini-2.5-flash-001"
+    return model_id
+
+
 def calibrate_model(task_type: TaskType) -> str:
     """Return the optimal model ID for the given pipeline task.
 
@@ -207,14 +217,14 @@ def calibrate_model(task_type: TaskType) -> str:
     """
     override = os.environ.get("GEMINI_MODEL_ID")
     if override and override.strip():
-        return override.strip()
+        return normalize_model_id(override.strip())
 
     # Dynamic routing override via Remote Config
     remote_model_id = fetch_calibrated_model_from_remote_config(task_type)
     if remote_model_id:
-        return remote_model_id
+        return normalize_model_id(remote_model_id)
 
-    return TASK_MODEL_ROUTING[task_type]
+    return normalize_model_id(TASK_MODEL_ROUTING[task_type])
 
 
 def resolve_model_id() -> str:
@@ -224,7 +234,7 @@ def resolve_model_id() -> str:
     :class:`TaskType`.  This shim is kept for call sites that pre-date the
     tiered routing (e.g. the agent-engine deploy module and legacy tests).
     """
-    return os.environ.get("GEMINI_MODEL_ID", DEFAULT_GEMINI_MODEL_ID)
+    return normalize_model_id(os.environ.get("GEMINI_MODEL_ID", DEFAULT_GEMINI_MODEL_ID))
 
 
 # ---------------------------------------------------------------------------

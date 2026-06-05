@@ -1,4 +1,5 @@
 resource "google_bigquery_dataset" "atelier_trajectories" {
+  count       = var.env == "staging" ? 1 : 0
   dataset_id  = "atelier_trajectories"
   project     = var.project_id
   location    = "US"
@@ -8,7 +9,8 @@ resource "google_bigquery_dataset" "atelier_trajectories" {
 }
 
 resource "google_bigquery_table" "trajectory_records" {
-  dataset_id          = google_bigquery_dataset.atelier_trajectories.dataset_id
+  count               = var.env == "staging" ? 1 : 0
+  dataset_id          = google_bigquery_dataset.atelier_trajectories[0].dataset_id
   project             = var.project_id
   table_id            = "trajectory_records"
   # staging: false. Production must set deletion_protection = true.
@@ -26,7 +28,8 @@ resource "google_bigquery_table" "trajectory_records" {
 }
 
 resource "google_bigquery_table" "dpo_preference_pairs" {
-  dataset_id          = google_bigquery_dataset.atelier_trajectories.dataset_id
+  count               = var.env == "staging" ? 1 : 0
+  dataset_id          = google_bigquery_dataset.atelier_trajectories[0].dataset_id
   project             = var.project_id
   table_id            = "dpo_preference_pairs"
   # staging: false. Production must set deletion_protection = true.
@@ -50,7 +53,8 @@ resource "google_bigquery_table" "dpo_preference_pairs" {
 # and read by generator_tuner.BigQueryPairMiner.mine_pairs() for Vertex AI PREFERENCE_TUNING.
 # Schema matches BQ_DPO_PAIRS_TABLE in generator_tuner.py and _DPO_PAIRS_TABLE in dreaming_module.py.
 resource "google_bigquery_table" "dpo_pairs" {
-  dataset_id          = google_bigquery_dataset.atelier_trajectories.dataset_id
+  count               = var.env == "staging" ? 1 : 0
+  dataset_id          = google_bigquery_dataset.atelier_trajectories[0].dataset_id
   project             = var.project_id
   table_id            = "dpo_pairs"
   # staging: false. Production must set deletion_protection = true.
@@ -72,7 +76,8 @@ resource "google_bigquery_table" "dpo_pairs" {
 }
 
 resource "google_bigquery_table" "calibration_metrics" {
-  dataset_id          = google_bigquery_dataset.atelier_trajectories.dataset_id
+  count               = var.env == "staging" ? 1 : 0
+  dataset_id          = google_bigquery_dataset.atelier_trajectories[0].dataset_id
   project             = var.project_id
   table_id            = "calibration_metrics"
   # staging: false. Production must set deletion_protection = true.
@@ -88,7 +93,8 @@ resource "google_bigquery_table" "calibration_metrics" {
 }
 
 resource "google_bigquery_table" "cost_ledger" {
-  dataset_id          = google_bigquery_dataset.atelier_trajectories.dataset_id
+  count               = var.env == "staging" ? 1 : 0
+  dataset_id          = google_bigquery_dataset.atelier_trajectories[0].dataset_id
   project             = var.project_id
   table_id            = "cost_ledger"
   # staging: false. Production must set deletion_protection = true.

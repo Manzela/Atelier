@@ -24,13 +24,39 @@ export default function LoginPage() {
     !isFirebaseConfigured &&
     (process.env.NODE_ENV !== 'production' || process.env.NEXT_PUBLIC_E2E === '1');
 
+  const [redirectPath, setRedirectPath] = useState('/');
+
+  // Safe redirect path extraction (runs on client only)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const rawRedirect = params.get('redirect') || '/';
+
+      // Prevent open redirect
+      let safeRedirect = '/';
+      try {
+        const parsed = new URL(rawRedirect, window.location.origin);
+        if (parsed.origin === window.location.origin) {
+          safeRedirect = parsed.pathname + parsed.search + parsed.hash;
+        }
+      } catch {
+        // Fallback for relative paths: check if it starts with '/'
+        if (rawRedirect.startsWith('/') && !rawRedirect.startsWith('//')) {
+          safeRedirect = rawRedirect;
+        }
+      }
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setRedirectPath(safeRedirect);
+    }
+  }, []);
+
   // If already logged in, redirect to home
   useEffect(() => {
     const userStr = localStorage.getItem('user');
     if (userStr) {
-      router.push('/');
+      router.push(redirectPath);
     }
-  }, [router]);
+  }, [router, redirectPath]);
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
@@ -48,7 +74,7 @@ export default function LoginPage() {
       localStorage.setItem('user', JSON.stringify(mockUser));
       setLoading(false);
       setTimeout(() => {
-        router.push('/');
+        router.push(redirectPath);
       }, 500);
       return;
     }
@@ -69,7 +95,7 @@ export default function LoginPage() {
         tenant_id: 't1',
       };
       localStorage.setItem('user', JSON.stringify(userPayload));
-      router.push('/');
+      router.push(redirectPath);
     } catch (err: unknown) {
       console.error('Sign-in failed:', err);
       const message =
@@ -100,15 +126,23 @@ export default function LoginPage() {
               initial={{ scale: 0.5, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.2, type: 'spring', bounce: 0.5 }}
-              className="w-14 h-14 rounded-2xl bg-[var(--g-primary-blue)] flex items-center justify-center mb-6 shadow-[0_0_24px_rgba(26,115,232,0.4)]"
+              className="w-14 h-14 rounded-2xl bg-black flex items-center justify-center mb-6 border border-neutral-800 shadow-[0_0_24px_rgba(255,255,255,0.08)]"
             >
-              <span className="text-2xl font-bold text-white">A</span>
+              <svg
+                className="w-6 h-6"
+                viewBox="0 0 1155 1000"
+                fill="none"
+                role="img"
+                aria-label="Atelier Logo"
+              >
+                <path d="m577.3 0 577.4 1000H0z" fill="#fff" />
+              </svg>
             </m.div>
             <h1 id="login-title" className="text-3xl font-medium tracking-tight text-white mb-3">
-              Welcome to Atelier
+              Atelier
             </h1>
-            <p className="text-[15px] text-[var(--g-text-muted)] text-center">
-              Design rapidly with Autonomous AI
+            <p className="text-[14px] text-[var(--g-text-muted)] text-center leading-relaxed">
+              Autonomous Design Agent
             </p>
           </div>
 
@@ -160,6 +194,35 @@ export default function LoginPage() {
                 developer credential to local API server.
               </p>
             )}
+
+            <div className="text-[11px] text-[var(--g-text-muted)] text-center mt-8 space-y-2 leading-relaxed border-t border-[var(--g-outline)] pt-6">
+              <p>
+                By signing in, you agree to Atelier&rsquo;s{' '}
+                <a
+                  href="/terms"
+                  className="text-[var(--g-info)] hover:underline"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Terms of Service
+                </a>{' '}
+                and{' '}
+                <a
+                  href="/privacy"
+                  className="text-[var(--g-info)] hover:underline"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Privacy Policy
+                </a>
+                .
+              </p>
+              <p>
+                Your Google account is used only for authentication.
+                <br />
+                No data is shared with third parties.
+              </p>
+            </div>
           </div>
         </m.div>
       </main>

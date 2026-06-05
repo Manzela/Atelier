@@ -50,7 +50,7 @@ from atelier.models.model_armor_callbacks import (
     model_armor_after_callback,
     model_armor_before_callback,
 )
-from atelier.models.model_registry import resolve_model_id
+from atelier.models.model_registry import normalize_model_id, resolve_model_id
 from atelier.models.safety import default_model_armor_config
 from atelier.nodes.consensus import CONVERGENCE_DEFAULT, ConsensusEvaluation, evaluate_candidate
 from atelier.nodes.nielsen import NielsenReport, evaluate_nielsen
@@ -327,6 +327,7 @@ def create_critique_panel(*, model: str | BaseLlm | None = None) -> ParallelAgen
         An ADK ``ParallelAgent`` of the four QA critics.
     """
     resolved_model: str | BaseLlm = resolve_model_id() if model is None else model
+    resolved_model = normalize_model_id(resolved_model)
 
     sub_agents: list[BaseAgent] = []
     for spec in _CRITICS:

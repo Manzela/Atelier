@@ -137,7 +137,9 @@ def create_app() -> FastAPI:  # noqa: C901, PLR0915 — handler-registration fac
     # Supports comma-separated origins for staging + production domains.
     # Default: localhost for development.
     # F-06 hardening: reject wildcard and non-URL origins outside development.
-    raw_origins = os.getenv("ATELIER_DASHBOARD_ORIGIN", "http://localhost:5173")
+    raw_origins = os.getenv(
+        "ATELIER_DASHBOARD_ORIGIN", "http://localhost:5173,http://localhost:3000"
+    )
     allowed_origins = [o.strip() for o in raw_origins.split(",") if o.strip()]
     if not _is_dev:
         for origin in allowed_origins:
@@ -155,7 +157,7 @@ def create_app() -> FastAPI:  # noqa: C901, PLR0915 — handler-registration fac
         CORSMiddleware,
         allow_origins=allowed_origins,
         allow_credentials=True,
-        allow_methods=["GET", "POST"],
+        allow_methods=["GET", "POST", "OPTIONS"],
         allow_headers=["Content-Type", "Authorization", "X-Request-ID"],
     )
 

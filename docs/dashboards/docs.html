@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Atelier — Documentation</title>
+  <meta name="description" content="Atelier Documentation — Technical overview of the autonomous design system, multi-specialist pipelines, deterministic gates, consensus judges, token governance, and the DPO flywheel." />
+  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Google+Sans+Text:wght@400;500;700&family=Roboto+Mono:wght@400;500&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Material Design 3 — Light-first, Google B2C aesthetic ───────────────── */
+    :root {
+      color-scheme: dark;
+
+      /* Google Cloud / Stitch M3 Dark Theme Tokens */
+      --g-bg: #0f1013;
+      --g-surface: #1e1f22;
+      --g-surface-hover: #2d2f31;
+      --g-outline: #2c2d30;
+      --g-primary-blue: #1a73e8;
+      --g-primary-blue-hover: #1765cc;
+      --g-text: #e3e3e3;
+      --g-text-muted: #9aa0a6;
+      --g-success: #81c995;
+      --g-warning: #fdd663;
+      --g-error: #f28b82;
+      --g-info: #8ab4f8;
+
+      /* Map MD3 tokens directly to Google Dark tokens */
+      --md-primary: var(--g-primary-blue);
+      --md-on-primary: #ffffff;
+      --md-primary-container: rgba(26, 115, 232, 0.15);
+      --md-on-primary-container: var(--g-info);
+      --md-secondary: var(--g-text-muted);
+      --md-secondary-container: var(--g-surface-hover);
+      --md-on-secondary-container: var(--g-text);
+      --md-tertiary: var(--g-info);
+      --md-tertiary-container: rgba(138, 180, 248, 0.15);
+      --md-on-tertiary-container: var(--g-info);
+      --md-error: var(--g-error);
+      --md-error-container: rgba(242, 139, 130, 0.15);
+      --md-on-error-container: var(--g-error);
+      --md-positive: var(--g-success);
+      --md-warn: var(--g-warning);
+      --md-warn-container: rgba(253, 214, 99, 0.15);
+
+      --md-bg: var(--g-bg);
+      --md-surface: var(--g-surface);
+      --md-on-surface: var(--g-text);
+      --md-on-surface-variant: var(--g-text-muted);
+      --md-surface-container-lowest: #0b0d13;
+      --md-surface-container-low: var(--g-surface);
+      --md-surface-container: var(--g-surface);
+      --md-surface-container-high: var(--g-surface-hover);
+      --md-surface-container-highest: #33343c;
+      --md-outline: var(--g-outline);
+      --md-outline-variant: var(--g-outline);
+
+      /* Shape tokens */
+      --md-shape-xs:  4px;
+      --md-shape-sm:  8px;
+      --md-shape-md:  8px; /* Match studio radius of 8px */
+      --md-shape-lg:  8px; /* Match studio radius of 8px */
+      --md-shape-xl:  8px;
+      --md-shape-full: 9999px;
+
+      /* Motion tokens */
+      --md-ease-standard:       cubic-bezier(0.2, 0, 0, 1);
+      --md-ease-emphasized-dec: cubic-bezier(0.05, 0.7, 0.1, 1);
+      --md-dur-s2: 100ms;
+      --md-dur-s4: 200ms;
+      --md-dur-l2: 500ms;
+
+      /* Typography */
+      --font-sans: 'Google Sans Text', 'Google Sans', system-ui, sans-serif;
+      --font-mono: ui-monospace, 'Roboto Mono', monospace;
+
+      /* Layout */
+      --content-max: 880px;
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--md-bg);
+      background-image: radial-gradient(var(--md-outline) 1px, transparent 1px);
+      background-size: 24px 24px;
+      color: var(--md-on-surface);
+      min-height: 100vh;
+      display: flex;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      font-size: 24px;
+      line-height: 1;
+      user-select: none;
+    }
+
+    /* ── Navigation rail ───────────────────────────────────────────────────── */
+    .nav-rail {
+      width: 80px;
+      height: 100vh;
+      background: rgba(30, 31, 34, 0.8);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 0 24px;
+      flex-shrink: 0;
+      position: fixed;
+      left: 0;
+      top: 0;
+      z-index: 20;
+      border-right: 1px solid var(--md-outline-variant);
+    }
+
+    .brand-mark { width: 40px; height: 40px; margin-bottom: 20px; flex-shrink: 0; }
+
+    .nav-item {
+      width: 72px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      border-radius: var(--md-shape-md);
+      padding: 4px 0 8px;
+      text-decoration: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .nav-indicator {
+      width: 64px;
+      height: 32px;
+      border-radius: var(--md-shape-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background var(--md-dur-s4) var(--md-ease-standard);
+    }
+
+    .nav-item:hover .nav-indicator { background: rgba(138, 180, 248, 0.1); }
+    .nav-item.active .nav-indicator { background: rgba(138, 180, 248, 0.2); }
+
+    .nav-item .material-symbols-outlined {
+      font-size: 22px;
+      color: var(--md-on-surface-variant);
+      transition: color var(--md-dur-s4) var(--md-ease-standard);
+    }
+    .nav-item.active .material-symbols-outlined {
+      color: var(--md-on-primary-container);
+      font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 22;
+    }
+
+    .nav-label {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      color: var(--md-on-surface-variant);
+      line-height: 1;
+      text-align: center;
+    }
+    .nav-item.active .nav-label { color: var(--md-on-surface); }
+
+    .nav-divider { width: 40px; height: 1px; background: var(--md-outline-variant); margin: 8px 0; }
+
+    /* ── Main column ───────────────────────────────────────────────────────── */
+    .main { margin-left: 80px; flex: 1; min-width: 0; }
+
+    .app-bar {
+      min-height: 64px;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      background: rgba(30, 31, 34, 0.8);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--md-outline-variant);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .app-bar-title {
+      font-size: 22px;
+      font-weight: 400;
+      letter-spacing: 0;
+      color: var(--md-on-surface);
+    }
+    .app-bar-title span { color: var(--md-on-surface-variant); }
+
+    .action-button {
+      min-height: 32px;
+      padding: 6px 14px;
+      border-radius: var(--md-shape-full);
+      background: var(--md-primary);
+      color: var(--md-on-primary);
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background var(--md-dur-s4) var(--md-ease-standard);
+    }
+    .action-button:hover {
+      background: color-mix(in srgb, var(--md-primary) 85%, black 15%);
+    }
+
+    /* ── Content Layout ────────────────────────────────────────────────────── */
+    .layout-container {
+      max-width: var(--content-max);
+      margin: 0 auto;
+      padding: 28px 24px 80px;
+      display: grid;
+      grid-template-columns: 1fr 240px;
+      gap: 40px;
+    }
+
+    .doc-content {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 48px;
+    }
+
+    .sidebar-toc {
+      position: sticky;
+      top: 92px;
+      height: calc(100vh - 120px);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .toc-title {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--md-on-surface-variant);
+    }
+
+    .toc-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .toc-item a {
+      font-size: 13px;
+      color: var(--md-on-surface-variant);
+      text-decoration: none;
+      display: block;
+      transition: color var(--md-dur-s2) var(--md-ease-standard);
+      line-height: 1.4;
+    }
+    .toc-item a:hover {
+      color: var(--md-primary);
+    }
+    .toc-item.active a {
+      color: var(--md-primary);
+      font-weight: 500;
+    }
+    .toc-sublist {
+      list-style: none;
+      margin-left: 14px;
+      margin-top: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .toc-sublist a {
+      font-size: 12px;
+    }
+
+    /* ── Typography & Elements ─────────────────────────────────────────────── */
+    .subtitle {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--md-on-surface-variant);
+      max-width: 70ch;
+    }
+
+    .section {
+      scroll-margin-top: 88px;
+      border-bottom: 1px solid var(--md-outline-variant);
+      padding-bottom: 36px;
+    }
+    .section:last-of-type {
+      border-bottom: none;
+    }
+
+    .section-head { margin-bottom: 20px; }
+
+    .section-eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--md-primary);
+      margin-bottom: 6px;
+    }
+    .section-eyebrow .material-symbols-outlined {
+      font-size: 18px;
+      font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 18;
+    }
+
+    .section-title {
+      font-size: 26px;
+      font-weight: 400;
+      letter-spacing: -0.01em;
+      color: var(--md-on-surface);
+    }
+    .section-desc {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--md-on-surface-variant);
+      margin-top: 8px;
+      max-width: 75ch;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+      font-family: 'Google Sans', var(--font-sans);
+      font-weight: 500;
+      color: var(--md-on-surface);
+    }
+
+    h3 {
+      font-size: 16px;
+      margin-top: 28px;
+      margin-bottom: 12px;
+    }
+
+    p {
+      font-size: 14px;
+      line-height: 1.65;
+      color: var(--md-on-surface-variant);
+      margin-bottom: 16px;
+      max-width: 75ch;
+    }
+
+    ul, ol {
+      margin-left: 20px;
+      margin-bottom: 16px;
+      color: var(--md-on-surface-variant);
+      font-size: 14px;
+    }
+    li {
+      margin-bottom: 6px;
+      line-height: 1.6;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      background: rgba(255, 255, 255, 0.06);
+      padding: 2px 6px;
+      border-radius: var(--md-shape-xs);
+      color: var(--g-info);
+    }
+
+    pre {
+      background: rgba(18, 19, 22, 0.7);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid var(--md-outline-variant);
+      border-radius: var(--md-shape-md);
+      padding: 16px;
+      overflow-x: auto;
+      margin-bottom: 20px;
+    }
+    pre code {
+      background: transparent;
+      padding: 0;
+      border-radius: 0;
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--md-on-surface);
+    }
+
+    /* ── Callout (Blockquotes style) ────────────────────────────────────────── */
+    .callout {
+      display: flex;
+      gap: 14px;
+      padding: 18px 20px;
+      border-radius: var(--md-shape-md);
+      background: rgba(30, 31, 34, 0.45);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid var(--md-outline-variant);
+      border-left: 4px solid var(--md-primary);
+      margin-bottom: 24px;
+    }
+    .callout .material-symbols-outlined {
+      font-size: 22px;
+      flex-shrink: 0;
+      margin-top: 1px;
+      color: var(--md-primary);
+      font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 22;
+    }
+    .callout-body h4 { font-size: 14px; font-weight: 500; margin-bottom: 4px; color: var(--md-on-surface); }
+    .callout-body p { font-size: 13.5px; line-height: 1.6; margin-bottom: 0; }
+
+    /* ── Tables ────────────────────────────────────────────────────────────── */
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--md-outline-variant);
+      border-radius: var(--md-shape-md);
+      background: rgba(30, 31, 34, 0.45);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      margin-bottom: 24px;
+    }
+    .data-table { width: 100%; border-collapse: collapse; }
+    .data-table th {
+      text-align: left;
+      padding: 12px 16px;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--md-on-surface);
+      background: rgba(45, 47, 49, 0.7);
+      border-bottom: 1px solid var(--md-outline-variant);
+      white-space: nowrap;
+    }
+    .data-table td {
+      padding: 11px 16px;
+      font-size: 13px;
+      border-bottom: 1px solid var(--md-outline-variant);
+      vertical-align: top;
+      line-height: 1.5;
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table code { font-size: 11.5px; }
+
+    /* ── Mobile bottom nav ─────────────────────────────────────────────────── */
+    .bottom-nav {
+      display: none;
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: 64px;
+      background: rgba(30, 31, 34, 0.8);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-top: 1px solid var(--md-outline-variant);
+      align-items: center;
+      justify-content: space-around;
+      z-index: 20;
+      padding: 0 4px;
+    }
+    .bottom-nav .nav-item { width: auto; min-width: 52px; padding: 6px 0; }
+    .bottom-nav .nav-indicator { width: 46px; height: 28px; }
+
+    /* ── Responsive ────────────────────────────────────────────────────────── */
+    @media (max-width: 860px) {
+      .layout-container { grid-template-columns: 1fr; }
+      .sidebar-toc { display: none; }
+    }
+    @media (max-width: 600px) {
+      .nav-rail { display: none; }
+      .bottom-nav { display: flex; }
+      .main { margin-left: 0; }
+      .layout-container { padding-bottom: 88px; }
+    }
+
+    /* ── Focus & Accessibility ─────────────────────────────────────────────── */
+    :where(a, button, input, [tabindex]):focus-visible {
+      outline: 3px solid var(--md-primary);
+      outline-offset: 3px;
+      border-radius: var(--md-shape-xs);
+    }
+
+    .skip-link {
+      position: absolute;
+      left: 8px; top: -48px;
+      padding: 10px 16px;
+      background: var(--md-primary);
+      color: var(--md-on-primary);
+      border-radius: var(--md-shape-sm);
+      z-index: 100;
+      font-size: 13px;
+      font-weight: 500;
+      transition: top var(--md-dur-s4) var(--md-ease-standard);
+      text-decoration: none;
+    }
+    .skip-link:focus { top: 8px; }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#overview">Skip to content</a>
+
+  <!-- Navigation rail (desktop) -->
+  <nav class="nav-rail" aria-label="Section navigation">
+    <svg class="brand-mark" viewBox="0 0 40 40" fill="none" role="img" aria-label="Atelier">
+      <rect width="40" height="40" rx="10" fill="var(--md-primary-container)"/>
+      <path d="M8 30L16 12L20 22L24 12L32 30" stroke="var(--md-primary)" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="20" cy="22" r="2" fill="var(--md-primary)"/>
+    </svg>
+
+    <a class="nav-item active" href="#overview" aria-current="true">
+      <span class="nav-indicator"><span class="material-symbols-outlined">menu_book</span></span>
+      <span class="nav-label">Docs</span>
+    </a>
+    <a class="nav-item" href="/bench" title="Bench Observatory">
+      <span class="nav-indicator"><span class="material-symbols-outlined">database</span></span>
+      <span class="nav-label">Observatory</span>
+    </a>
+    <a class="nav-item" href="/replay" title="Trajectory Replay">
+      <span class="nav-indicator"><span class="material-symbols-outlined">play_circle</span></span>
+      <span class="nav-label">Replay</span>
+    </a>
+    <div class="nav-divider"></div>
+    <a class="nav-item" href="https://github.com/Manzela/Atelier" target="_blank" rel="noopener">
+      <span class="nav-indicator"><span class="material-symbols-outlined">code</span></span>
+      <span class="nav-label">GitHub</span>
+    </a>
+  </nav>
+
+  <!-- Mobile bottom nav -->
+  <nav class="bottom-nav" aria-label="Section navigation (mobile)">
+    <a class="nav-item active" href="#overview" aria-current="true">
+      <span class="nav-indicator"><span class="material-symbols-outlined">menu_book</span></span>
+      <span class="nav-label">Docs</span>
+    </a>
+    <a class="nav-item" href="/bench">
+      <span class="nav-indicator"><span class="material-symbols-outlined">database</span></span>
+      <span class="nav-label">Observatory</span>
+    </a>
+    <a class="nav-item" href="/replay">
+      <span class="nav-indicator"><span class="material-symbols-outlined">play_circle</span></span>
+      <span class="nav-label">Replay</span>
+    </a>
+  </nav>
+
+  <main class="main">
+    <header class="app-bar">
+      <h1 class="app-bar-title">Atelier <span>— Documentation</span></h1>
+      <a href="/" class="action-button">
+        <span class="material-symbols-outlined">dashboard</span>
+        Go to Studio
+      </a>
+    </header>
+
+    <div class="layout-container">
+      <div class="doc-content">
+
+        <!-- Section: Overview ───────────────────────────────────────────────── -->
+        <section class="section" id="overview" aria-labelledby="overview-title">
+          <div class="section-head">
+            <div class="section-eyebrow"><span class="material-symbols-outlined">info</span>Introduction</div>
+            <h2 class="section-title" id="overview-title">Overview</h2>
+          </div>
+          <p>
+            Atelier is an autonomous, governed, multi-surface design-system generation engine. Unlike typical code-generation tools that output a single page on a best-effort basis, Atelier establishes a rigorous structural convergence loop. Given a brief, the system processes it through a multi-specialist pipeline, verifies structural and token constraints, executes accessibility evaluation, and scores survivors using a multi-judge consensus panel.
+          </p>
+          <p>
+            The system operates on a zero-tolerance token-fidelity model: design decisions are captured as design tokens conforming to the Design Tokens Community Group (DTCG) specification. Modifying a single token propagates change across all generated pages, ensuring complete visual coordination across the surface envelope.
+          </p>
+          <div class="callout">
+            <span class="material-symbols-outlined">security</span>
+            <div class="callout-body">
+              <h4>System Integrity Objective</h4>
+              <p>
+                Atelier ensures all model allocations, token budgets, and output gates are enforced strictly. Off-token modifications or invalid semantic markup trigger fail-closed halts, ensuring that only production-grade code reaches user-facing files.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section: Pipeline ───────────────────────────────────────────────── -->
+        <section class="section" id="pipeline" aria-labelledby="pipeline-title">
+          <div class="section-head">
+            <div class="section-eyebrow"><span class="material-symbols-outlined">account_tree</span>Execution DAG</div>
+            <h2 class="section-title" id="pipeline-title">8-Node DAG &amp; Specialist Pipeline</h2>
+          </div>
+          <p>
+            The execution runtime is structured as an 8-Node Directed Acyclic Graph (DAG) designed to split high-level objectives into distinct, specialist contexts:
+          </p>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width: 15%;">Node</th>
+                  <th style="width: 25%;">Name</th>
+                  <th style="width: 60%;">Responsibilities</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>N1</code></td>
+                  <td>Brief Parser</td>
+                  <td>Parses the natural language intake and translates goals into structured system constraints.</td>
+                </tr>
+                <tr>
+                  <td><code>N14</code></td>
+                  <td>Web-Research Intake (WRAI)</td>
+                  <td>Augments the brief using targeted queries to resolve brand assets and design standards.</td>
+                </tr>
+                <tr>
+                  <td><code>N2</code></td>
+                  <td>Source Resolver</td>
+                  <td>Assembles necessary code patterns, library dependencies, and asset layouts.</td>
+                </tr>
+                <tr>
+                  <td><code>N3a</code></td>
+                  <td>Specialist Pipeline</td>
+                  <td>Orchestrates 6 design and engineering specialist agents sequentially via the ADK.</td>
+                </tr>
+                <tr>
+                  <td><code>N3b</code></td>
+                  <td>Fixer Convergence Loop</td>
+                  <td>Executes iterative fixes targeting explicit errors raised by gates or judges.</td>
+                </tr>
+                <tr>
+                  <td><code>N3c</code></td>
+                  <td>Deterministic Gates</td>
+                  <td>Enforces structural and stylistic conformance pre-flight before judging.</td>
+                </tr>
+                <tr>
+                  <td><code>N3d</code></td>
+                  <td>Consensus Judge</td>
+                  <td>Gathers scores across the 5 D-O-R-A-V axes from independent evaluators.</td>
+                </tr>
+                <tr>
+                  <td><code>N4</code></td>
+                  <td>Best Pick Selector</td>
+                  <td>Selects the optimal candidate scoring above the convergence threshold.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>The 6 DDLC Specialist Roles</h3>
+          <p>
+            Inside node <code>N3a</code>, a sequential pipeline uses Google ADK orchestration to route tasks through 6 specialist agents:
+          </p>
+          <ol>
+            <li><strong>UX Researcher:</strong> Establishes domain research, user flow goals, and specific UI requirements.</li>
+            <li><strong>IA/User-Flow Specialist:</strong> Defines semantic structure, page layout trees, and element hierarchies.</li>
+            <li><strong>Wireframer:</strong> Converts user flows into low-fidelity HTML representations.</li>
+            <li><strong>UI Designer:</strong> Establishes spacing, visual structures, typography weight, and colors.</li>
+            <li><strong>Interaction Designer:</strong> Generates responsive interactions and state transition styling.</li>
+            <li><strong>Token Generator:</strong> Compiles design outputs into strict DTCG-compliant tokens.</li>
+          </ol>
+        </section>
+
+        <!-- Section: Gates ──────────────────────────────────────────────────── -->
+        <section class="section" id="gates" aria-labelledby="gates-title">
+          <div class="section-head">
+            <div class="section-eyebrow"><span class="material-symbols-outlined">verified</span>Quality Control</div>
+            <h2 class="section-title" id="gates-title">Deterministic Quality Gates</h2>
+          </div>
+          <p>
+            To eliminate empty skeletons, broken styling, and visual regressions, every generated candidate must clear a battery of 6 deterministic quality gates before it is eligible for evaluation by the LLM-based judge panel. If a candidate fails any gate, it is rejected and sent back to the Fixer loop:
+          </p>
+          <ul>
+            <li><strong>Semantic HTML Gate:</strong> Verifies document structure, ensuring appropriate tag layout (e.g. <code>&lt;header&gt;</code>, <code>&lt;main&gt;</code>, <code>&lt;nav&gt;</code>) and basic structural elements.</li>
+            <li><strong>CSS Validity Gate:</strong> Runs style declarations through validation engines, halting on syntax errors or invalid declarations.</li>
+            <li><strong>Token Fidelity Gate:</strong> Audits custom styling to ensure colors, margins, and typography map exactly to declared design tokens.</li>
+            <li><strong>Lighthouse Heuristics Gate:</strong> Audits basic document standards, performance tags, and meta tag completeness.</li>
+            <li><strong>Axe Accessibility Gate:</strong> Scans the DOM tree using automated accessibility checks, rejecting any candidate with critical WCAG failures.</li>
+            <li><strong>Visual Difference Gate:</strong> Compares visual changes between iterations to prevent regression.</li>
+          </ul>
+        </section>
+
+        <!-- Section: Consensus ──────────────────────────────────────────────── -->
+        <section class="section" id="consensus" aria-labelledby="consensus-title">
+          <div class="section-head">
+            <div class="section-eyebrow"><span class="material-symbols-outlined">gavel</span>Evaluation Model</div>
+            <h2 class="section-title" id="consensus-title">Multi-Judge Consensus (D-O-R-A-V)</h2>
+          </div>
+          <p>
+            Candidates that pass all deterministic gates are evaluated by a panel of independent LLM judges. The judges score each candidate on a 5-axis scale to determine a composite score:
+          </p>
+          <ul>
+            <li><strong>Design:</strong> Visual appeal, balance, formatting hierarchy, and modern aesthetics.</li>
+            <li><strong>Originality:</strong> Avoidance of generic templates and adherence to specific brand characteristics.</li>
+            <li><strong>Relevance:</strong> Conformance to user brief requirements and constraints.</li>
+            <li><strong>Accessibility:</strong> High contrast ratios, accessible target tap zones, and screen-reader support.</li>
+            <li><strong>Visual Clarity:</strong> Clear scannability and logical information grouping.</li>
+          </ul>
+          <p>
+            The composite score is compiled using a Bayesian consensus formula that weights judge reliability and per-axis metrics. A candidate is declared to have <strong>converged</strong> once the composite score reaches:
+          </p>
+          <pre><code>composite_score &ge; 0.70</code></pre>
+          <p>
+            If no candidate meets the threshold, the Fixer loop modifies the highest-scoring candidate, targeting the specific axis that recorded the lowest score, repeating up to a hard iteration ceiling.
+          </p>
+        </section>
+
+        <!-- Section: Flywheel ────────────────────────────────────────────────── -->
+        <section class="section" id="flywheel" aria-labelledby="flywheel-title">
+          <div class="section-head">
+            <div class="section-eyebrow"><span class="material-symbols-outlined">sync</span>Learning System</div>
+            <h2 class="section-title" id="flywheel-title">The DPO Flywheel</h2>
+          </div>
+          <p>
+            The system continuously improves its performance using a closed-loop data flywheel backed by Direct Preference Optimization (DPO). The flywheel processes data in three core phases:
+          </p>
+          <ol>
+            <li><strong>Observe:</strong> Trajectory telemetry (scores, votes, configurations, outputs) is recorded in real-time to BigQuery.</li>
+            <li><strong>Simulate:</strong> Preference pairs are extracted where one candidate was accepted and another rejected for the same design brief, requiring a minimum score margin.</li>
+            <li><strong>Verify:</strong> Extracted preference pairs are compiled into datasets to run Vertex AI fine-tuning, promoting successful models only if they outperform the baseline adapter.</li>
+          </ol>
+        </section>
+
+        <!-- Section: Governance ─────────────────────────────────────────────── -->
+        <section class="section" id="governance" aria-labelledby="governance-title">
+          <div class="section-head">
+            <div class="section-eyebrow"><span class="material-symbols-outlined">gavel</span>Security &amp; Limits</div>
+            <h2 class="section-title" id="governance-title">Token Governance &amp; Security</h2>
+          </div>
+          <p>
+            Atelier implements strict pre-flight token-use caps to guarantee cost control and protect backend endpoints:
+          </p>
+          <ul>
+            <li><strong>Token-Only Cap:</strong> The system governs resource consumption using tokens, not dollars. The hard limit is set to a cumulative <strong>5,000,000 tokens</strong> per user.</li>
+            <li><strong>Fail-Closed Pre-Flight Check:</strong> Before any Vertex AI endpoint call is initiated, the governor queries the Firestore database. If the token count is exhausted or the database is unavailable, the request fails closed.</li>
+            <li><strong>Authentication &amp; Ingress:</strong> Firebase Authentication validates end-user identities, while Google Cloud Identity-Aware Proxy (IAP) blocks public access to the Cloud Run API, restricting traffic to authorized identities.</li>
+            <li><strong>PII Scrubbing:</strong> OpenTelemetry span processors inspect and redact sensitive parameters before traces leave the memory space.</li>
+          </ul>
+        </section>
+
+        <!-- Section: ADRs ───────────────────────────────────────────────────── -->
+        <section class="section" id="adrs" aria-labelledby="adrs-title">
+          <div class="section-head">
+            <div class="section-eyebrow"><span class="material-symbols-outlined">history_edu</span>Decision Logs</div>
+            <h2 class="section-title" id="adrs-title">Architecture Decision Records</h2>
+          </div>
+          <p>
+            Atelier's design evolution is tracked via Architecture Decision Records (ADR). The current active logs include:
+          </p>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width: 20%;">ADR ID</th>
+                  <th style="width: 30%;">Title</th>
+                  <th style="width: 50%;">Consequences &amp; Context</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>ADR-0024</code></td>
+                  <td>Governed A2UI</td>
+                  <td>Pins the system to A2UI v0.9 (server-to-client subset) as a flag-gated experimental feature. The main design deliverable remains portable HTML/CSS to avoid coupling.</td>
+                </tr>
+                <tr>
+                  <td><code>ADR-0025</code></td>
+                  <td>Generation Latency</td>
+                  <td>Optimizes node concurrency in the specialist pipeline, introducing async step batches to lower pipeline execution times.</td>
+                </tr>
+                <tr>
+                  <td><code>ADR-0026</code></td>
+                  <td>OpenAPI Prod Gating</td>
+                  <td>Disables public access to the interactive OpenAPI UI in production, enforcing pre-auth gateways for all API routes.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- Right Sidebar (Table of Contents) -->
+      <aside class="sidebar-toc" role="complementary" aria-label="Table of Contents">
+        <span class="toc-title">On this page</span>
+        <ul class="toc-list">
+          <li class="toc-item active"><a href="#overview">Overview</a></li>
+          <li class="toc-item"><a href="#pipeline">8-Node DAG</a></li>
+          <li class="toc-item"><a href="#gates">Quality Gates</a></li>
+          <li class="toc-item"><a href="#consensus">Multi-Judge Consensus</a></li>
+          <li class="toc-item"><a href="#flywheel">The DPO Flywheel</a></li>
+          <li class="toc-item"><a href="#governance">Token Governance</a></li>
+          <li class="toc-item"><a href="#adrs">ADR Index</a></li>
+        </ul>
+      </aside>
+    </div>
+  </main>
+
+  <script>
+    "use strict";
+
+    /* Nav active-state on scroll + click. */
+    (function navWiring() {
+      const items = Array.from(document.querySelectorAll(".toc-item, .nav-item"));
+      const tocItems = Array.from(document.querySelectorAll(".toc-item"));
+
+      const setActive = (id) => {
+        // Handle toc active styling
+        tocItems.forEach((it) => {
+          const anchor = it.querySelector("a");
+          const on = anchor.getAttribute("href") === "#" + id;
+          it.classList.toggle("active", on);
+        });
+
+        // Handle nav active styling (except external links)
+        const navItems = Array.from(document.querySelectorAll(".nav-rail .nav-item, .bottom-nav .nav-item"));
+        navItems.forEach((it) => {
+          const href = it.getAttribute("href");
+          if (href && href.startsWith("#")) {
+            const on = href === "#" + id;
+            it.classList.toggle("active", on);
+            if (on) it.setAttribute("aria-current", "true"); else it.removeAttribute("aria-current");
+          }
+        });
+      };
+
+      document.querySelectorAll(".toc-item a, .nav-item").forEach((link) => {
+        link.addEventListener("click", (e) => {
+          const href = link.getAttribute("href");
+          if (href && href.startsWith("#")) {
+            const id = href.slice(1);
+            setActive(id);
+          }
+        });
+      });
+
+      const sections = ["overview", "pipeline", "gates", "consensus", "flywheel", "governance", "adrs"]
+        .map((id) => document.getElementById(id))
+        .filter(Boolean);
+
+      if ("IntersectionObserver" in window) {
+        const obs = new IntersectionObserver((entries) => {
+          entries.forEach((e) => {
+            if (e.isIntersecting) {
+              setActive(e.target.id);
+            }
+          });
+        }, { rootMargin: "-30% 0px -60% 0px", threshold: 0 });
+        sections.forEach((s) => obs.observe(s));
+      }
+    })();
+  </script>
+</body>
+</html>

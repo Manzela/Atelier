@@ -36,7 +36,7 @@ def test_default_pinned_to_ga_gemini_2_5_pro() -> None:
 @pytest.mark.unit
 def test_env_override_honored(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("GEMINI_MODEL_ID", "gemini-2.5-flash")
-    assert resolve_model_id() == "gemini-2.5-flash"
+    assert resolve_model_id() == "gemini-2.5-flash-001"
 
 
 @pytest.mark.unit
@@ -50,7 +50,7 @@ def test_registry_specs_use_calibrated_tier_ids() -> None:
     expected = frozenset(
         {
             DEFAULT_GEMINI_MODEL_ID,
-            GEMINI_FLASH_MODEL_ID,
+            "gemini-2.5-flash-001",
             GEMINI_FLASH_LITE_MODEL_ID,
         }
     )
@@ -64,7 +64,7 @@ def test_planner_default_model_is_pinned() -> None:
 
 @pytest.mark.unit
 def test_planner_explicit_model_override() -> None:
-    assert PlannerAgent(model="gemini-2.5-flash").model == "gemini-2.5-flash"
+    assert PlannerAgent(model="gemini-2.5-flash").model == "gemini-2.5-flash-001"
 
 
 @pytest.mark.unit

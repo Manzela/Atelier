@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="dark" />
+  <title>Atelier — Terms of Service</title>
+  <meta name="description" content="Atelier Terms of Service — legally binding agreement for the autonomous design agent platform." />
+  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Google+Sans+Text:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      color-scheme: dark;
+
+      /* Google Cloud / Stitch M3 Dark Theme Tokens */
+      --g-bg: #0f1013;
+      --g-surface: #1e1f22;
+      --g-surface-hover: #2d2f31;
+      --g-outline: #2c2d30;
+      --g-primary-blue: #1a73e8;
+      --g-primary-blue-hover: #1765cc;
+      --g-text: #e3e3e3;
+      --g-text-muted: #9aa0a6;
+      --g-success: #81c995;
+      --g-warning: #fdd663;
+      --g-error: #f28b82;
+      --g-info: #8ab4f8;
+
+      /* Map semantic variables */
+      --md-primary: var(--g-primary-blue);
+      --md-on-primary: #ffffff;
+      --md-primary-container: rgba(26, 115, 232, 0.15);
+      --md-bg: var(--g-bg);
+      --md-surface: var(--g-surface);
+      --md-on-surface: var(--g-text);
+      --md-on-surface-variant: var(--g-text-muted);
+      --md-outline: var(--g-outline);
+      --md-outline-variant: var(--g-outline);
+
+      --md-shape-xs:  4px;
+      --md-shape-sm:  8px;
+      --md-shape-md:  8px;
+      --md-shape-lg:  8px;
+      --md-shape-full: 9999px;
+
+      --font-sans: 'Google Sans Text', 'Google Sans', system-ui, sans-serif;
+      --font-mono: ui-monospace, 'Roboto Mono', monospace;
+
+      --md-dur-s2: 100ms;
+      --md-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--md-bg);
+      background-image: radial-gradient(var(--md-outline) 1px, transparent 1px);
+      background-size: 24px 24px;
+      color: var(--md-on-surface);
+      font-family: var(--font-sans);
+      line-height: 1.6;
+      padding: 80px 24px 120px;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+      background: rgba(30, 31, 34, 0.45);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid var(--md-outline-variant);
+      border-radius: var(--md-shape-lg);
+      padding: 48px;
+    }
+
+    header {
+      margin-bottom: 32px;
+      border-bottom: 1px solid var(--md-outline-variant);
+      padding-bottom: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
+    .logo-container {
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--md-shape-sm);
+    }
+
+    .logo-container svg {
+      width: 40px;
+      height: 40px;
+    }
+
+    h1 {
+      font-family: 'Google Sans', var(--font-sans);
+      font-size: 32px;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      color: var(--md-on-surface);
+    }
+
+    .meta {
+      font-size: 13px;
+      color: var(--md-on-surface-variant);
+      font-family: var(--font-mono);
+    }
+
+    section {
+      margin-bottom: 32px;
+    }
+
+    h2 {
+      font-family: 'Google Sans', var(--font-sans);
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--md-on-surface);
+      margin-bottom: 12px;
+      margin-top: 24px;
+    }
+
+    p, ul, ol {
+      font-size: 14px;
+      color: var(--md-on-surface-variant);
+      margin-bottom: 16px;
+    }
+
+    ul, ol {
+      margin-left: 24px;
+    }
+
+    li {
+      margin-bottom: 8px;
+    }
+
+    strong {
+      font-weight: 500;
+      color: var(--md-on-surface);
+    }
+
+    a {
+      color: var(--md-primary);
+      text-decoration: none;
+      transition: color var(--md-dur-s2) var(--md-ease-standard);
+    }
+
+    a:hover {
+      color: var(--g-info);
+      text-decoration: underline;
+    }
+
+    footer {
+      margin-top: 48px;
+      border-top: 1px solid var(--md-outline-variant);
+      padding-top: 24px;
+      font-size: 13px;
+      color: var(--md-on-surface-variant);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    /* Focus styling */
+    :where(a, [tabindex]):focus-visible {
+      outline: 3px solid var(--md-primary);
+      outline-offset: 3px;
+      border-radius: var(--md-shape-xs);
+    }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      body {
+        padding: 24px 12px 60px;
+      }
+      .container {
+        padding: 24px 20px;
+        border-radius: var(--md-shape-md);
+      }
+      h1 {
+        font-size: 26px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo-container">
+        <svg viewBox="0 0 40 40" fill="none" role="img" aria-label="Atelier Logo">
+          <rect width="40" height="40" rx="10" fill="var(--md-primary-container)"/>
+          <path d="M8 30L16 12L20 22L24 12L32 30" stroke="var(--md-primary)" stroke-width="2.5"
+                stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="20" cy="22" r="2" fill="var(--md-primary)"/>
+        </svg>
+      </div>
+      <div>
+        <h1>Atelier Terms of Service</h1>
+        <div class="meta">Effective Date: June 5, 2026</div>
+      </div>
+    </header>
+
+    <main>
+      <section>
+        <p>Welcome to <strong>Atelier</strong>. These Terms of Service ("Terms") govern your access to and use of the Atelier platform, including our website, APIs, and autonomous AI agents (collectively, the "Services"). By using our Services, you agree to be bound by these Terms. If you do not agree, please do not use the Services.</p>
+      </section>
+
+      <section>
+        <h2>1. Description of Services</h2>
+        <p>Atelier is an autonomous multi-agent design platform that compiles high-fidelity, production-ready, and accessible user interfaces from natural language briefs. The Services are powered by AI models running on Google Cloud and Vertex AI. We continuously improve and update our Services to provide optimal capabilities.</p>
+      </section>
+
+      <section>
+        <h2>2. Eligibility and Account Setup</h2>
+        <p>To access certain features of Atelier, you must register for an account using Google OAuth. By creating an account, you represent and warrant that:</p>
+        <ul>
+          <li>You are at least 18 years of age or the age of majority in your jurisdiction.</li>
+          <li>All information you provide is accurate and up-to-date.</li>
+          <li>You are solely responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>3. Intellectual Property Rights & Ownership</h2>
+        <p><strong>Your Designs and Code:</strong> As between you and Atelier, you retain all ownership, copyright, and intellectual property rights in the user interface designs, code components, and assets generated by Atelier based on your design briefs, subject to your compliance with these Terms. You are free to export, deploy, license, and commercialize the generated code for any project.</p>
+        <p><strong>Platform Ownership:</strong> Atelier retains all rights, title, and interest in and to the platform, core agent codebases, algorithms, multi-agent frameworks, design-token engines, and any software, tools, or documentation provided by us. You may not reverse engineer, decompile, or attempt to extract the source code of the Atelier platform.</p>
+      </section>
+
+      <section>
+        <h2>4. Acceptable Use Policy</h2>
+        <p>You agree not to use Atelier to:</p>
+        <ul>
+          <li>Generate code, applications, or designs that contain malware, spyware, or other harmful software components.</li>
+          <li>Infringe the intellectual property rights, privacy rights, or publicity rights of any third party.</li>
+          <li>Build products, systems, or tools that violate applicable local, national, or international laws.</li>
+          <li>Interfere with or disrupt the integrity or performance of the Services or Google Cloud infrastructure.</li>
+          <li>Violate the Google Cloud Platform and Google Generative AI Additional Terms of Service.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>5. Disclaimer of Warranties</h2>
+        <p>Atelier is provided on an "as is" and "as available" basis, without any warranties of any kind. Because the Services rely on advanced generative AI technology, we do not guarantee that the generated code is completely free of bugs, security vulnerabilities, or accessibility issues. You are solely responsible for reviewing, testing, and verifying all generated output prior to production deployment.</p>
+      </section>
+
+      <section>
+        <h2>6. Limitation of Liability</h2>
+        <p>To the maximum extent permitted by law, Atelier and its contributors shall not be liable for any indirect, incidental, special, consequential, or punitive damages, or any loss of profits or revenues, whether incurred directly or indirectly, or any loss of data, use, goodwill, or other intangible losses, resulting from (a) your use or inability to use the Services, or (b) any errors, omissions, or security vulnerabilities in any code generated by the AI platform.</p>
+      </section>
+
+      <section>
+        <h2>7. Changes to Terms</h2>
+        <p>We may modify these Terms at any time. We will notify you of any material changes by posting the updated Terms on this page. Your continued use of the Services after the effective date of any changes constitutes your acceptance of the new Terms.</p>
+      </section>
+
+      <section>
+        <h2>8. Governing Law</h2>
+        <p>These Terms shall be governed by and construed in accordance with the laws of the State of California, without regard to its conflict of law principles.</p>
+      </section>
+    </main>
+
+    <footer>
+      <span>&copy; 2026 Atelier. All rights reserved.</span>
+      <a href="/privacy">Privacy Policy</a>
+    </footer>
+  </div>
+</body>
+</html>

@@ -13,7 +13,7 @@ from atelier.models.model_armor_callbacks import (
     model_armor_after_callback,
     model_armor_before_callback,
 )
-from atelier.models.model_registry import resolve_model_id
+from atelier.models.model_registry import normalize_model_id, resolve_model_id
 from atelier.models.safety import default_model_armor_config
 
 logger = logging.getLogger(__name__)
@@ -65,7 +65,7 @@ class BriefParserAgent:
     """Probabilistic agent — extracts BriefSpec from validated brief text via Gemini 3 Flash."""
 
     def __init__(self, model: str | None = None, project: str = "atelier-build-2026") -> None:
-        self.model = model or resolve_model_id()
+        self.model = normalize_model_id(model or resolve_model_id())
         self.project = project
         self._llm = LlmAgent(
             name="brief_parser_llm",

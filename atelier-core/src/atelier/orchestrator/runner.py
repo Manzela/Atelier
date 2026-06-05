@@ -78,6 +78,7 @@ from atelier.models.model_armor_callbacks import (
     MODEL_ARMOR_BLOCK_USER_MESSAGE,
     was_model_armor_blocked,
 )
+from atelier.models.model_registry import normalize_model_id
 from atelier.nodes.consensus import ConsensusEvaluation, evaluate_candidate
 from atelier.orchestrator.governor import (
     TOKEN_CAP_MESSAGE,
@@ -594,19 +595,14 @@ _TRACE_SUMMARY_CHARS: int = 200
 
 
 def _trace_summary(texts: list[Any]) -> str:
-    """One-line, length-capped summary of a specialist's output (AT-026 trace).
+    """A formatted, full trace of a specialist's output (AT-026 trace).
 
-    Joins the event's text parts, collapses whitespace, and truncates to
-    :data:`_TRACE_SUMMARY_CHARS` so the legibility trace shows WHAT each specialist
-    contributed without dumping a full HTML document into the event stream. Non-text
-    parts (the fallback raw-event shape) are stringified defensively. Always returns a
-    non-empty string when any text is present so the trace is never a blank ping.
+    Joins the event's text parts with newlines, preserving all code formatting
+    and newlines, without collapsing or truncating, so the legibility trace shows
+    the complete output.
     """
-    joined = " ".join(str(t) for t in texts if t).strip()
-    collapsed = re.sub(r"\s+", " ", joined)
-    if len(collapsed) <= _TRACE_SUMMARY_CHARS:
-        return collapsed or "(no output)"
-    return collapsed[:_TRACE_SUMMARY_CHARS].rstrip() + "…"
+    joined = "\n".join(str(t) for t in texts if t).strip()
+    return joined or "(no output)"
 
 
 def _default_session_service() -> BaseSessionService:
@@ -708,7 +704,7 @@ class AtelierRunner:
         else:
             self._judge_client = None
         self._max_iterations = max_iterations
-        self._custom_model = model
+        self._custom_model = normalize_model_id(model)
         self._custom_temperature = temperature
         self._custom_top_k = top_k
         self._custom_max_tokens = max_tokens
@@ -1885,7 +1881,7 @@ class AtelierRunner:
                 # Also tallies (input, output, thinking) tokens from each ADK event's
                 # usage_metadata for the AT-095 lifetime counter; falls back to a
                 # deterministic estimate when the offline model surface reports none.
-                async def _run_ensemble(
+                async def _run_ensemble(  # noqa: C901
                     prompt: str = generator_prompt,
                     screen: str = screen,
                     iteration: int = iteration,
@@ -1905,13 +1901,13 @@ class AtelierRunner:
 
                     candidates: list[Any] = []
                     usage_in = usage_out = usage_think = 0
-                    # AT-026 (Mid): emit ONE specialist_trace event per distinct DDLC
-                    # specialist as its ADK event streams. ``Event.author`` is the
-                    # agent name (the specialist that just handed off), so the first
-                    # event from each author makes that specialist's contribution
-                    # legible in real time (< 1s). Deduped per run so the SequentialAgent's
-                    # multi-event authors surface exactly once.
+                    charged_in = charged_out = charged_think = 0
+                    n3a_model_id = "gemini-2.5-flash"
+
                     traced_authors: set[str] = set()
+                    accumulated_texts: list[str] = []
+                    current_author: str | None = None
+
                     async for event in adk_runner.run_async(
                         user_id=user_id,
                         session_id=session_id,
@@ -1927,26 +1923,100 @@ class AtelierRunner:
                         usage_out += eout
                         usage_think += ethink
 
+                        # Charge tokens dynamically in real-time
+                        if ein + eout + ethink > 0:
+                            charged_in += ein
+                            charged_out += eout
+                            charged_think += ethink
+                            self._governor._state.add_user_tokens(
+                                input_tokens=ein,
+                                output_tokens=eout,
+                                thinking_tokens=ethink,
+                                model_id=n3a_model_id,
+                            )
+                            self._usage_store.add(
+                                user_id,
+                                input_tokens=ein,
+                                output_tokens=eout,
+                                thinking_tokens=ethink,
+                                model_id=n3a_model_id,
+                            )
+                            if progress_callback:
+                                await progress_callback(
+                                    "token_delta",
+                                    {
+                                        "input": ein,
+                                        "output": eout,
+                                        "thinking": ethink,
+                                        "cumulative_user_tokens": self._governor._state.cumulative_user_tokens,
+                                    },
+                                )
+
                         author = getattr(event, "author", None)
-                        if (
-                            progress_callback
-                            and isinstance(author, str)
-                            and author
-                            and author not in traced_authors
-                        ):
-                            traced_authors.add(author)
+                        if isinstance(author, str) and author:
+                            if current_author is not None and author != current_author:
+                                # Handoff: previous specialist completed!
+                                if current_author not in traced_authors:
+                                    traced_authors.add(current_author)
+                                    if progress_callback:
+                                        await progress_callback(
+                                            "specialist_trace",
+                                            {
+                                                "screen": screen,
+                                                "iteration": iteration,
+                                                "role": current_author,
+                                                "summary": _trace_summary(accumulated_texts),
+                                            },
+                                        )
+                                accumulated_texts = []
+                            current_author = author
+                            accumulated_texts.extend(texts)
+
+                    # Emit the last specialist's trace
+                    if current_author is not None and current_author not in traced_authors:
+                        traced_authors.add(current_author)
+                        if progress_callback:
                             await progress_callback(
                                 "specialist_trace",
                                 {
                                     "screen": screen,
                                     "iteration": iteration,
-                                    "role": author,
-                                    "summary": _trace_summary(texts),
+                                    "role": current_author,
+                                    "summary": _trace_summary(accumulated_texts),
                                 },
                             )
 
+                    # Handlers for estimated fallback (offline runs)
                     if usage_in + usage_out + usage_think == 0:
                         usage_in, usage_out, usage_think = _estimate_tokens(prompt, candidates)
+
+                    rem_in = usage_in - charged_in
+                    rem_out = usage_out - charged_out
+                    rem_think = usage_think - charged_think
+                    if rem_in + rem_out + rem_think > 0:
+                        self._governor._state.add_user_tokens(
+                            input_tokens=rem_in,
+                            output_tokens=rem_out,
+                            thinking_tokens=rem_think,
+                            model_id=n3a_model_id,
+                        )
+                        self._usage_store.add(
+                            user_id,
+                            input_tokens=rem_in,
+                            output_tokens=rem_out,
+                            thinking_tokens=rem_think,
+                            model_id=n3a_model_id,
+                        )
+                        if progress_callback:
+                            await progress_callback(
+                                "token_delta",
+                                {
+                                    "input": rem_in,
+                                    "output": rem_out,
+                                    "thinking": rem_think,
+                                    "cumulative_user_tokens": self._governor._state.cumulative_user_tokens,
+                                },
+                            )
 
                     return (
                         candidates,
@@ -1979,39 +2049,7 @@ class AtelierRunner:
                     )
                     exit_reason = StopReason.GOVERNOR_FAIL_SOFT
                     break
-                raw_candidates, stitch_degraded, token_usage = governed_result
-                # AT-095: attribute this N3a generation's tokens to the user's lifetime
-                # counter, persist them (atomic, spans runs), and emit a token_delta so
-                # the Studio meter ticks live (§13.3). input + output + thinking.
-                tok_in, tok_out, tok_think = token_usage
-                # N3a dominant tier: Flash (UIDesigner + UX/IA/Wireframe specialists).
-                # Token-Lite tasks (TokenGenerator) run on Flash-Lite but their share
-                # is small; attributing the whole N3a batch to Flash is conservative
-                # (Flash cap 15M > Flash-Lite cap 60M, so this never over-counts).
-                n3a_model_id = "gemini-2.5-flash"
-                self._governor._state.add_user_tokens(
-                    input_tokens=tok_in,
-                    output_tokens=tok_out,
-                    thinking_tokens=tok_think,
-                    model_id=n3a_model_id,
-                )
-                self._usage_store.add(
-                    user_id,
-                    input_tokens=tok_in,
-                    output_tokens=tok_out,
-                    thinking_tokens=tok_think,
-                    model_id=n3a_model_id,
-                )
-                if progress_callback:
-                    await progress_callback(
-                        "token_delta",
-                        {
-                            "input": tok_in,
-                            "output": tok_out,
-                            "thinking": tok_think,
-                            "cumulative_user_tokens": self._governor._state.cumulative_user_tokens,
-                        },
-                    )
+                raw_candidates, stitch_degraded, _token_usage = governed_result
                 # AT-031: record the N3a post-signoff stage call on a stable id. This is
                 # the "post-signoff stages" side of the resume oracle — its token count
                 # must be > 0 after approval, while N1/N2 remain frozen at their

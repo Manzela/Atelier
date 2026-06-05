@@ -6,110 +6,80 @@
   <meta name="color-scheme" content="light dark" />
   <title>Atelier — Trajectory Replay</title>
   <meta name="description" content="Replay and inspect individual agent sessions — span graphs, gate scorecards, and memory recalls for Atelier trajectory runs." />
+  <link rel="icon" href="../favicon.ico" type="image/x-icon" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Text:wght@400;500&family=Roboto:wght@300;400;500&family=Roboto+Mono:wght@400;500&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Google+Sans+Text:wght@400;500;700&family=Roboto+Mono:wght@400;500&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
   <style>
     /* ── Material Design 3 — Light-first, Google B2C aesthetic ────────────── */
     :root {
-      color-scheme: light dark;
+      color-scheme: dark;
 
-      /* Light palette */
-      --md-primary-light:              #1a73e8;
-      --md-on-primary-light:           #ffffff;
-      --md-primary-container-light:    #d3e3fd;
-      --md-on-primary-container-light: #062e6f;
-      --md-secondary-light:            #5f6368;
-      --md-secondary-container-light:  #e8eaed;
-      --md-on-secondary-container-light: #3c4043;
-      --md-tertiary-light:             #7b1fa2;
-      --md-tertiary-container-light:   #f3e5f5;
-      --md-on-tertiary-container-light: #4a0072;
-      --md-error-light:                #d93025;
-      --md-positive-light:             #1e8e3e;
-      --md-bg-light:                        #ffffff;
-      --md-surface-light:                   #ffffff;
-      --md-on-surface-light:                #202124;
-      --md-on-surface-variant-light:        #5f6368;
-      --md-surface-container-lowest-light:  #ffffff;
-      --md-surface-container-low-light:     #f8f9fa;
-      --md-surface-container-light:         #f1f3f4;
-      --md-surface-container-high-light:    #e8eaed;
-      --md-surface-container-highest-light: #dadce0;
-      --md-outline-light:                   #80868b;
-      --md-outline-variant-light:           #dadce0;
+      /* Google Cloud / Stitch M3 Dark Theme Tokens */
+      --g-bg: #0f1013;
+      --g-surface: #1e1f22;
+      --g-surface-hover: #2d2f31;
+      --g-outline: #2c2d30;
+      --g-primary-blue: #1a73e8;
+      --g-primary-blue-hover: #1765cc;
+      --g-text: #e3e3e3;
+      --g-text-muted: #9aa0a6;
+      --g-success: #81c995;
+      --g-warning: #fdd663;
+      --g-error: #f28b82;
+      --g-info: #8ab4f8;
 
-      /* Dark palette */
-      --md-primary-dark:              #a8c7fa;
-      --md-on-primary-dark:           #062e6f;
-      --md-primary-container-dark:    #284290;
-      --md-on-primary-container-dark: #d6e3ff;
-      --md-secondary-dark:            #bec6dc;
-      --md-secondary-container-dark:  #3e4759;
-      --md-on-secondary-container-dark: #dae2f9;
-      --md-tertiary-dark:             #ddbce8;
-      --md-tertiary-container-dark:   #573d62;
-      --md-on-tertiary-container-dark: #f9d8ff;
-      --md-error-dark:                #ffb4ab;
-      --md-positive-dark:             #81c995;
-      --md-bg-dark:                        #101318;
-      --md-surface-dark:                   #101318;
-      --md-on-surface-dark:                #e2e2e9;
-      --md-on-surface-variant-dark:        #c4c6d0;
-      --md-surface-container-lowest-dark:  #0b0d13;
-      --md-surface-container-low-dark:     #191b22;
-      --md-surface-container-dark:         #1e2026;
-      --md-surface-container-high-dark:    #282a31;
-      --md-surface-container-highest-dark: #33343c;
-      --md-outline-dark:                   #8e9099;
-      --md-outline-variant-dark:           #44464f;
+      /* Map MD3 tokens directly to Google Dark tokens */
+      --md-primary: var(--g-primary-blue);
+      --md-on-primary: #ffffff;
+      --md-primary-container: rgba(26, 115, 232, 0.15);
+      --md-on-primary-container: var(--g-info);
+      --md-secondary: var(--g-text-muted);
+      --md-secondary-container: var(--g-surface-hover);
+      --md-on-secondary-container: var(--g-text);
+      --md-tertiary: var(--g-info);
+      --md-tertiary-container: rgba(138, 180, 248, 0.15);
+      --md-on-tertiary-container: var(--g-info);
+      --md-error: var(--g-error);
+      --md-error-container: rgba(242, 139, 130, 0.15);
+      --md-on-error-container: var(--g-error);
+      --md-positive: var(--g-success);
+      --md-warn: var(--g-warning);
+      --md-warn-container: rgba(253, 214, 99, 0.15);
 
-      /* Semantic tokens */
-      --md-primary:              light-dark(var(--md-primary-light), var(--md-primary-dark));
-      --md-on-primary:           light-dark(var(--md-on-primary-light), var(--md-on-primary-dark));
-      --md-primary-container:    light-dark(var(--md-primary-container-light), var(--md-primary-container-dark));
-      --md-on-primary-container: light-dark(var(--md-on-primary-container-light), var(--md-on-primary-container-dark));
-      --md-secondary:            light-dark(var(--md-secondary-light), var(--md-secondary-dark));
-      --md-secondary-container:  light-dark(var(--md-secondary-container-light), var(--md-secondary-container-dark));
-      --md-on-secondary-container: light-dark(var(--md-on-secondary-container-light), var(--md-on-secondary-container-dark));
-      --md-tertiary:             light-dark(var(--md-tertiary-light), var(--md-tertiary-dark));
-      --md-tertiary-container:   light-dark(var(--md-tertiary-container-light), var(--md-tertiary-container-dark));
-      --md-on-tertiary-container: light-dark(var(--md-on-tertiary-container-light), var(--md-on-tertiary-container-dark));
-      --md-error:                light-dark(var(--md-error-light), var(--md-error-dark));
-      --md-positive:             light-dark(var(--md-positive-light), var(--md-positive-dark));
-      --md-bg:                        light-dark(var(--md-bg-light), var(--md-bg-dark));
-      --md-surface:                   light-dark(var(--md-surface-light), var(--md-surface-dark));
-      --md-on-surface:                light-dark(var(--md-on-surface-light), var(--md-on-surface-dark));
-      --md-on-surface-variant:        light-dark(var(--md-on-surface-variant-light), var(--md-on-surface-variant-dark));
-      --md-surface-container-lowest:  light-dark(var(--md-surface-container-lowest-light), var(--md-surface-container-lowest-dark));
-      --md-surface-container-low:     light-dark(var(--md-surface-container-low-light), var(--md-surface-container-low-dark));
-      --md-surface-container:         light-dark(var(--md-surface-container-light), var(--md-surface-container-dark));
-      --md-surface-container-high:    light-dark(var(--md-surface-container-high-light), var(--md-surface-container-high-dark));
-      --md-surface-container-highest: light-dark(var(--md-surface-container-highest-light), var(--md-surface-container-highest-dark));
-      --md-outline:                   light-dark(var(--md-outline-light), var(--md-outline-dark));
-      --md-outline-variant:           light-dark(var(--md-outline-variant-light), var(--md-outline-variant-dark));
+      --md-bg: var(--g-bg);
+      --md-surface: var(--g-surface);
+      --md-on-surface: var(--g-text);
+      --md-on-surface-variant: var(--g-text-muted);
+      --md-surface-container-lowest: #0b0d13;
+      --md-surface-container-low: var(--g-surface);
+      --md-surface-container: var(--g-surface);
+      --md-surface-container-high: var(--g-surface-hover);
+      --md-surface-container-highest: #33343c;
+      --md-outline: var(--g-outline);
+      --md-outline-variant: var(--g-outline);
 
-      --md-shape-xs:   4px;
-      --md-shape-sm:   8px;
-      --md-shape-md:   12px;
-      --md-shape-lg:   16px;
-      --md-shape-full: 50px;
+      /* Shape tokens */
+      --md-shape-xs:  4px;
+      --md-shape-sm:  8px;
+      --md-shape-md:  8px; /* Match studio radius of 8px */
+      --md-shape-lg:  8px; /* Match studio radius of 8px */
+      --md-shape-xl:  8px;
+      --md-shape-full: 9999px;
 
-      --md-ease-emphasized:     cubic-bezier(0.2, 0, 0, 1);
-      --md-ease-emphasized-dec: cubic-bezier(0.05, 0.7, 0.1, 1);
+      /* Motion tokens */
       --md-ease-standard:       cubic-bezier(0.2, 0, 0, 1);
-
+      --md-ease-emphasized-dec: cubic-bezier(0.05, 0.7, 0.1, 1);
       --md-dur-s2: 100ms;
       --md-dur-s4: 200ms;
-      --md-dur-m2: 300ms;
-      --md-dur-m4: 400ms;
       --md-dur-l2: 500ms;
 
-      --font-sans: 'Google Sans Text', 'Roboto', system-ui, sans-serif;
-      --font-mono: 'Roboto Mono', monospace;
+      /* Typography */
+      --font-sans: 'Google Sans Text', 'Google Sans', system-ui, sans-serif;
+      --font-mono: ui-monospace, 'Roboto Mono', monospace;
 
       --sidebar-w: 300px;
-      --header-h:  60px;
+      --header-h:  64px; /* match the 64px height of docs and bench appbar */
     }
 
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -118,11 +88,12 @@
 
     body {
       font-family: var(--font-sans);
-      background: var(--md-bg);
+      background-color: var(--md-bg);
+      background-image: radial-gradient(var(--md-outline) 1px, transparent 1px);
+      background-size: 24px 24px;
       color: var(--md-on-surface);
       height: 100vh;
       display: flex;
-      flex-direction: column;
       overflow: hidden;
       -webkit-font-smoothing: antialiased;
     }
@@ -134,20 +105,119 @@
       user-select: none;
     }
 
-    /* ── Header ─────────────────────────────────────────────────────────────── */
-    .header {
+    /* ── Navigation rail ───────────────────────────────────────────────────── */
+    .nav-rail {
+      width: 80px;
+      height: 100vh;
+      background: rgba(30, 31, 34, 0.8);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 0 24px;
+      flex-shrink: 0;
+      position: fixed;
+      left: 0;
+      top: 0;
+      z-index: 20;
+      border-right: 1px solid var(--md-outline-variant);
+    }
+
+    .brand-mark { width: 40px; height: 40px; margin-bottom: 20px; flex-shrink: 0; }
+
+    .nav-item {
+      width: 72px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      border-radius: var(--md-shape-md);
+      padding: 4px 0 8px;
+      text-decoration: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .nav-indicator {
+      width: 64px;
+      height: 32px;
+      border-radius: var(--md-shape-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background var(--md-dur-s4) var(--md-ease-standard);
+    }
+
+    .nav-item:hover .nav-indicator { background: rgba(138, 180, 248, 0.1); }
+    .nav-item.active .nav-indicator { background: rgba(138, 180, 248, 0.2); }
+
+    .nav-item .material-symbols-outlined {
+      font-size: 22px;
+      color: var(--md-on-surface-variant);
+      transition: color var(--md-dur-s4) var(--md-ease-standard);
+    }
+    .nav-item.active .material-symbols-outlined {
+      color: var(--md-on-primary-container);
+      font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 22;
+    }
+
+    .nav-label {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      color: var(--md-on-surface-variant);
+      line-height: 1;
+      text-align: center;
+    }
+    .nav-item.active .nav-label { color: var(--md-on-surface); }
+
+    .nav-divider { width: 40px; height: 1px; background: var(--md-outline-variant); margin: 8px 0; }
+
+    /* ── Mobile bottom nav ─────────────────────────────────────────────────── */
+    .bottom-nav {
+      display: none;
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: 64px;
+      background: rgba(30, 31, 34, 0.80);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-top: 1px solid var(--md-outline-variant);
+      align-items: center;
+      justify-content: space-around;
+      z-index: 20;
+      padding: 0 4px;
+    }
+    .bottom-nav .nav-item { width: auto; min-width: 52px; padding: 6px 0; }
+    .bottom-nav .nav-indicator { width: 46px; height: 28px; }
+
+    /* ── Main column ───────────────────────────────────────────────────────── */
+    .main {
+      margin-left: 80px;
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    /* ── App bar (formerly Header) ─────────────────────────────────────────── */
+    .app-bar {
       height: var(--header-h);
-      background: var(--md-surface-container-low);
+      background: rgba(30, 31, 34, 0.8);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       border-bottom: 1px solid var(--md-outline-variant);
       display: flex;
       align-items: center;
-      padding: 0 16px 0 20px;
+      padding: 0 24px;
       gap: 16px;
       flex-shrink: 0;
       z-index: 10;
     }
 
-    .header-brand {
+    .app-bar-brand {
       display: flex;
       align-items: center;
       gap: 10px;
@@ -155,22 +225,22 @@
       text-decoration: none;
     }
 
-    .header-brand svg {
+    .app-bar-brand svg {
       width: 28px;
       height: 28px;
     }
 
-    .header-wordmark {
-      font-size: 16px;
-      font-weight: 500;
+    .app-bar-title {
+      font-size: 22px;
+      font-weight: 400;
       letter-spacing: 0;
       color: var(--md-on-surface);
       white-space: nowrap;
+      font-family: 'Google Sans', var(--font-sans);
     }
 
-    .header-wordmark span {
+    .app-bar-title span {
       color: var(--md-on-surface-variant);
-      font-weight: 400;
     }
 
     .header-sep {
@@ -202,13 +272,13 @@
       width: 100%;
       height: 40px;
       padding: 0 14px 0 42px;
-      background: var(--md-surface-container);
+      background: rgba(255, 255, 255, 0.04);
       border: 1px solid var(--md-outline-variant);
       border-radius: var(--md-shape-full);
       color: var(--md-on-surface);
       font-family: var(--font-mono);
       font-size: 13px;
-      outline: none;  /* Reset default; :focus-visible provides accessible replacement */
+      outline: none;
       transition: border-color var(--md-dur-s4) var(--md-ease-standard),
                   background  var(--md-dur-s4) var(--md-ease-standard);
     }
@@ -217,7 +287,7 @@
 
     .search-input:focus {
       border-color: var(--md-primary);
-      background: var(--md-surface-container-high);
+      background: rgba(255, 255, 255, 0.08);
     }
 
     /* Load button */
@@ -225,10 +295,10 @@
       height: 40px;
       padding: 0 20px;
       border-radius: var(--md-shape-full);
-      background: var(--md-primary-container);
-      color: var(--md-on-primary-container);
+      background: var(--md-primary);
+      color: var(--md-on-primary);
       font-family: var(--font-sans);
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 500;
       letter-spacing: 0.01em;
       border: none;
@@ -241,7 +311,7 @@
       white-space: nowrap;
     }
 
-    .load-btn:hover  { background: color-mix(in srgb, var(--md-primary-container) 85%, white 15%); }
+    .load-btn:hover  { background: var(--g-primary-blue-hover); }
     .load-btn:active { transform: scale(0.97); }
 
     .load-btn .material-symbols-outlined {
@@ -269,6 +339,9 @@
     /* ── Sidebar ─────────────────────────────────────────────────────────────── */
     .sidebar {
       border-left: 1px solid var(--md-outline-variant);
+      background: rgba(30, 31, 34, 0.2);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
       overflow-y: auto;
       display: flex;
       flex-direction: column;
@@ -408,7 +481,9 @@
     }
 
     .recall-card {
-      background: var(--md-surface-container-low);
+      background: rgba(30, 31, 34, 0.45);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
       border: 1px solid var(--md-outline-variant);
       border-radius: var(--md-shape-sm);
       padding: 10px 12px;
@@ -416,7 +491,7 @@
     }
 
     .recall-card:hover {
-      background: var(--md-surface-container);
+      background: rgba(45, 47, 49, 0.6);
     }
 
     .recall-tier {
@@ -444,7 +519,9 @@
 
     /* ── Span graph ──────────────────────────────────────────────────────────── */
     .span-graph-wrap {
-      background: var(--md-surface-container);
+      background: rgba(30, 31, 34, 0.45);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
       border: 1px solid var(--md-outline-variant);
       border-radius: var(--md-shape-md);
       overflow: hidden;
@@ -485,7 +562,7 @@
     }
 
     .span-row:hover {
-      background: color-mix(in srgb, var(--md-on-surface) 4%, transparent 96%);
+      background: rgba(255, 255, 255, 0.04);
     }
 
     .span-depth-line {
@@ -524,7 +601,7 @@
       flex: 1;
       height: 16px;
       position: relative;
-      background: var(--md-surface-container-highest);
+      background: rgba(255, 255, 255, 0.06);
       border-radius: 3px;
       overflow: hidden;
     }
@@ -556,13 +633,18 @@
       padding: 48px 24px;
       text-align: center;
       color: var(--md-on-surface-variant);
+      background: rgba(30, 31, 34, 0.3);
+      border: 1px dashed var(--md-outline-variant);
+      border-radius: var(--md-shape-md);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
     }
 
     .empty-state .material-symbols-outlined {
       font-size: 40px;
       font-variation-settings: 'FILL' 0, 'wght' 200, 'GRAD' 0, 'opsz' 40;
       display: block;
-      margin-bottom: 12px;
+      margin: 0 auto 12px;
       color: var(--md-outline);
     }
 
@@ -583,9 +665,9 @@
     .skeleton {
       background: linear-gradient(
         90deg,
-        var(--md-surface-container)      0%,
-        var(--md-surface-container-high) 50%,
-        var(--md-surface-container)      100%
+        rgba(255, 255, 255, 0.04)      0%,
+        rgba(255, 255, 255, 0.08) 50%,
+        rgba(255, 255, 255, 0.04)      100%
       );
       background-size: 200% 100%;
       animation: shimmer 1.4s ease-in-out infinite;
@@ -598,7 +680,9 @@
       bottom: 24px;
       left: 50%;
       transform: translateX(-50%) translateY(80px);
-      background: var(--md-surface-container-highest);
+      background: rgba(30, 31, 34, 0.9);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       color: var(--md-on-surface);
       border: 1px solid var(--md-outline-variant);
       padding: 12px 20px;
@@ -606,8 +690,8 @@
       font-size: 13px;
       font-weight: 500;
       z-index: 100;
-      transition: transform var(--md-dur-m2) var(--md-ease-emphasized-dec),
-                  opacity  var(--md-dur-m2) var(--md-ease-emphasized-dec);
+      transition: transform var(--md-dur-l2) var(--md-ease-emphasized-dec),
+                  opacity  var(--md-dur-l2) var(--md-ease-emphasized-dec);
       opacity: 0;
       white-space: nowrap;
     }
@@ -625,8 +709,10 @@
     }
 
     @media (max-width: 600px) {
-      .header-wordmark { display: none; }
-      .header-sep      { display: none; }
+      .nav-rail { display: none; }
+      .bottom-nav { display: flex; }
+      .main { margin-left: 0; }
+      .main-panel { padding-bottom: 88px; }
     }
 
     /* ── Focus ────────────────────────────────────────────────────────────── */
@@ -656,97 +742,127 @@
       border: 0 !important;
       white-space: nowrap !important;
     }
-    /* ── Fallback for browsers without light-dark() ──────────────────────── */
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --md-primary: var(--md-primary-dark);
-        --md-on-primary: var(--md-on-primary-dark);
-        --md-primary-container: var(--md-primary-container-dark);
-        --md-on-primary-container: var(--md-on-primary-container-dark);
-        --md-secondary: var(--md-secondary-dark);
-        --md-secondary-container: var(--md-secondary-container-dark);
-        --md-on-secondary-container: var(--md-on-secondary-container-dark);
-        --md-tertiary: var(--md-tertiary-dark);
-        --md-tertiary-container: var(--md-tertiary-container-dark);
-        --md-on-tertiary-container: var(--md-on-tertiary-container-dark);
-        --md-error: var(--md-error-dark);
-        --md-positive: var(--md-positive-dark);
-        --md-bg: var(--md-bg-dark);
-        --md-surface: var(--md-surface-dark);
-        --md-on-surface: var(--md-on-surface-dark);
-        --md-on-surface-variant: var(--md-on-surface-variant-dark);
-        --md-surface-container-lowest: var(--md-surface-container-lowest-dark);
-        --md-surface-container-low: var(--md-surface-container-low-dark);
-        --md-surface-container: var(--md-surface-container-dark);
-        --md-surface-container-high: var(--md-surface-container-high-dark);
-        --md-surface-container-highest: var(--md-surface-container-highest-dark);
-        --md-outline: var(--md-outline-dark);
-        --md-outline-variant: var(--md-outline-variant-dark);
-      }
+
+    .skip-link {
+      position: absolute;
+      left: 8px; top: -48px;
+      padding: 10px 16px;
+      background: var(--md-primary);
+      color: var(--md-on-primary);
+      border-radius: var(--md-shape-sm);
+      z-index: 100;
+      font-size: 13px;
+      font-weight: 500;
+      transition: top var(--md-dur-s4) var(--md-ease-standard);
+      text-decoration: none;
     }
+    .skip-link:focus { top: 8px; }
   </style>
 </head>
 <body>
+  <a class="skip-link" href="#session-input">Skip to search</a>
 
-  <!-- Header ──────────────────────────────────────────────────────────────── -->
-  <header class="header">
-    <!-- Brand -->
-    <a class="header-brand" href="../bench/" title="Back to Bench Observatory">
-      <svg viewBox="0 0 28 28" fill="none" role="img" aria-label="Atelier">
-        <rect width="28" height="28" rx="7" fill="var(--md-primary-container)"/>
-        <path d="M5 22L11 9L14 16.5L17 9L23 22"
-              stroke="var(--md-primary)" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="14" cy="16.5" r="1.5" fill="var(--md-primary)"/>
-      </svg>
-      <span class="header-wordmark">Atelier <span>/ Replay</span></span>
+  <!-- Navigation rail (desktop) -->
+  <nav class="nav-rail" aria-label="Section navigation">
+    <svg class="brand-mark" viewBox="0 0 40 40" fill="none" role="img" aria-label="Atelier">
+      <rect width="40" height="40" rx="10" fill="var(--md-primary-container)"/>
+      <path d="M8 30L16 12L20 22L24 12L32 30" stroke="var(--md-primary)" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="20" cy="22" r="2" fill="var(--md-primary)"/>
+    </svg>
+
+    <a class="nav-item" href="/docs" title="Documentation">
+      <span class="nav-indicator"><span class="material-symbols-outlined">menu_book</span></span>
+      <span class="nav-label">Docs</span>
     </a>
+    <a class="nav-item" href="/bench" title="Bench Observatory">
+      <span class="nav-indicator"><span class="material-symbols-outlined">database</span></span>
+      <span class="nav-label">Observatory</span>
+    </a>
+    <a class="nav-item active" href="/replay" title="Trajectory Replay" aria-current="true">
+      <span class="nav-indicator"><span class="material-symbols-outlined">play_circle</span></span>
+      <span class="nav-label">Replay</span>
+    </a>
+    <div class="nav-divider"></div>
+    <a class="nav-item" href="https://github.com/Manzela/Atelier" target="_blank" rel="noopener">
+      <span class="nav-indicator"><span class="material-symbols-outlined">code</span></span>
+      <span class="nav-label">GitHub</span>
+    </a>
+  </nav>
 
-    <div class="header-sep"></div>
+  <!-- Mobile bottom nav -->
+  <nav class="bottom-nav" aria-label="Section navigation (mobile)">
+    <a class="nav-item" href="/docs">
+      <span class="nav-indicator"><span class="material-symbols-outlined">menu_book</span></span>
+      <span class="nav-label">Docs</span>
+    </a>
+    <a class="nav-item" href="/bench">
+      <span class="nav-indicator"><span class="material-symbols-outlined">database</span></span>
+      <span class="nav-label">Observatory</span>
+    </a>
+    <a class="nav-item active" href="/replay" aria-current="true">
+      <span class="nav-indicator"><span class="material-symbols-outlined">play_circle</span></span>
+      <span class="nav-label">Replay</span>
+    </a>
+  </nav>
 
-    <!-- Search -->
-    <div class="search-wrap">
-      <span class="material-symbols-outlined">manage_search</span>
-      <input
-        class="search-input"
-        id="session-input"
-        type="text"
-        placeholder="Enter session ID&hellip;"
-        autocomplete="off"
-        spellcheck="false"
-        aria-label="Enter a session ID to load trajectory replay"
-      />
-    </div>
+  <main class="main">
+    <header class="app-bar">
+      <a class="app-bar-brand" href="/bench" title="Back to Bench Observatory">
+        <svg viewBox="0 0 28 28" fill="none" role="img" aria-label="Atelier">
+          <rect width="28" height="28" rx="7" fill="var(--md-primary-container)"/>
+          <path d="M5 22L11 9L14 16.5L17 9L23 22"
+                stroke="var(--md-primary)" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="14" cy="16.5" r="1.5" fill="var(--md-primary)"/>
+        </svg>
+      </a>
+      <h1 class="app-bar-title">Atelier <span>— Replay</span></h1>
 
-    <button class="load-btn" id="load-btn" aria-label="Load session replay">
-      <span class="material-symbols-outlined">play_arrow</span>
-      Load
-    </button>
+      <div class="header-sep"></div>
 
-  </header>
-
-  <!-- Layout ──────────────────────────────────────────────────────────────── -->
-  <div class="layout">
-
-    <!-- Main panel -->
-    <main class="main-panel">
-      <h1 class="visually-hidden">Atelier Trajectory Replay</h1>
-
-      <!-- Span Graph ─────────────────────────────────────────────────────── -->
-      <div class="span-graph-wrap" id="span-graph-wrap">
-        <div class="span-graph-header">
-          <span class="span-graph-title">Span Graph</span>
-          <span class="span-total-time" id="total-time"></span>
-        </div>
-        <div id="span-graph-body">
-          <div class="empty-state">
-            <span class="material-symbols-outlined">account_tree</span>
-            <p>Enter a session ID and press Load<br>to visualise the execution trace.</p>
-          </div>
-        </div>
+      <!-- Search -->
+      <div class="search-wrap">
+        <span class="material-symbols-outlined">manage_search</span>
+        <input
+          class="search-input"
+          id="session-input"
+          type="text"
+          placeholder="Enter session ID..."
+          autocomplete="off"
+          spellcheck="false"
+          aria-label="Enter a session ID to load trajectory replay"
+        />
       </div>
 
-    </main>
+      <button class="load-btn" id="load-btn" aria-label="Load session replay">
+        <span class="material-symbols-outlined">play_arrow</span>
+        Load
+      </button>
+    </header>
+
+    <!-- Layout ──────────────────────────────────────────────────────────────── -->
+    <div class="layout">
+
+      <!-- Main panel -->
+      <div class="main-panel">
+        <h1 class="visually-hidden">Atelier Trajectory Replay</h1>
+
+        <!-- Span Graph ─────────────────────────────────────────────────────── -->
+        <div class="span-graph-wrap" id="span-graph-wrap">
+          <div class="span-graph-header">
+            <span class="span-graph-title">Span Graph</span>
+            <span class="span-total-time" id="total-time"></span>
+          </div>
+          <div id="span-graph-body">
+            <div class="empty-state">
+              <span class="material-symbols-outlined">account_tree</span>
+              <p>Enter a session ID and press Load<br>to visualise the execution trace.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
 
     <!-- Sidebar -->
     <aside class="sidebar" role="complementary" aria-label="Session details">
@@ -794,6 +910,7 @@
 
     </aside>
   </div>
+  </main>
 
   <!-- Snackbar -->
   <div class="snackbar" id="snackbar" role="status" aria-live="polite"></div>

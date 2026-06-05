@@ -69,7 +69,7 @@ def test_calibrate_model_flash_tasks() -> None:
         TaskType.JUDGE_VISUAL,
     )
     for task in flash_tasks:
-        assert calibrate_model(task) == GEMINI_FLASH_MODEL_ID, task
+        assert calibrate_model(task) == "gemini-2.5-flash-001", task
 
 
 def test_calibrate_model_flash_lite_tasks() -> None:

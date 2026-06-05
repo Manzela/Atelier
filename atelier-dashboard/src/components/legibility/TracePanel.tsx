@@ -156,7 +156,7 @@ export default function TracePanel({ specialistTraces, researchQueries }: TraceP
                 </span>
                 <span className="text-[9px] font-mono text-gray-600">iter {t.iteration + 1}</span>
               </dt>
-              <dd className="mt-0.5 text-[10px] text-gray-400 line-clamp-2">{t.summary}</dd>
+              <dd className="mt-0.5 text-[10px] text-gray-400 whitespace-pre-wrap">{t.summary}</dd>
             </div>
           ))}
         </dl>

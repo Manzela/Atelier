@@ -6,9 +6,10 @@
   <meta name="color-scheme" content="light dark" />
   <title>Atelier — Bench Observatory</title>
   <meta name="description" content="Bench Observatory — production telemetry, a controlled A/B against a single-shot baseline, the quality gates that define convergence, and a public benchmark set for the Atelier autonomous design agent. Every figure traces to a real source." />
+  <link rel="icon" href="../favicon.ico" type="image/x-icon" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Text:wght@400;500&family=Roboto:wght@300;400;500&family=Roboto+Mono:wght@400;500&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Google+Sans+Text:wght@400;500;700&family=Roboto+Mono:wght@400;500&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
   <style>
     /* ── Material Design 3 — Light-first, Google B2C aesthetic ─────────────────
        Token system, fonts and logo carried over from the prior Observatory so
@@ -17,136 +18,59 @@
        fewer competing colours, a clearer top-to-bottom reading order, and a
        target line drawn on every metric that has one. ─────────────────────── */
     :root {
-      color-scheme: light dark;
+      color-scheme: dark;
 
-      /* Raw palette — light */
-      --md-primary-light:              #1a73e8;
-      --md-on-primary-light:           #ffffff;
-      --md-primary-container-light:    #d3e3fd;
-      --md-on-primary-container-light: #062e6f;
-      --md-secondary-light:            #5f6368;
-      --md-secondary-container-light:  #e8eaed;
-      --md-on-secondary-container-light: #3c4043;
-      --md-tertiary-light:             #7b1fa2;
-      --md-tertiary-container-light:   #f3e5f5;
-      --md-on-tertiary-container-light: #4a0072;
-      --md-error-light:                #d93025;
-      --md-error-container-light:      #fce8e6;
-      --md-on-error-container-light:   #a50e0e;
-      --md-positive-light:             #1e8e3e;
-      --md-warn-light:                 #b06000;
-      --md-warn-container-light:       #fef0e3;
+      /* Google Cloud / Stitch M3 Dark Theme Tokens */
+      --g-bg: #0f1013;
+      --g-surface: #1e1f22;
+      --g-surface-hover: #2d2f31;
+      --g-outline: #2c2d30;
+      --g-primary-blue: #1a73e8;
+      --g-primary-blue-hover: #1765cc;
+      --g-text: #e3e3e3;
+      --g-text-muted: #9aa0a6;
+      --g-success: #81c995;
+      --g-warning: #fdd663;
+      --g-error: #f28b82;
+      --g-info: #8ab4f8;
 
-      --md-bg-light:                        #ffffff;
-      --md-surface-light:                   #ffffff;
-      --md-on-surface-light:                #202124;
-      --md-on-surface-variant-light:        #5f6368;
-      --md-surface-container-lowest-light:  #ffffff;
-      --md-surface-container-low-light:     #f8f9fa;
-      --md-surface-container-light:         #f1f3f4;
-      --md-surface-container-high-light:    #e8eaed;
-      --md-surface-container-highest-light: #dadce0;
-      --md-outline-light:                   #80868b;
-      --md-outline-variant-light:           #dadce0;
+      /* Map MD3 tokens directly to Google Dark tokens */
+      --md-primary: var(--g-primary-blue);
+      --md-on-primary: #ffffff;
+      --md-primary-container: rgba(26, 115, 232, 0.15);
+      --md-on-primary-container: var(--g-info);
+      --md-secondary: var(--g-text-muted);
+      --md-secondary-container: var(--g-surface-hover);
+      --md-on-secondary-container: var(--g-text);
+      --md-tertiary: var(--g-info);
+      --md-tertiary-container: rgba(138, 180, 248, 0.15);
+      --md-on-tertiary-container: var(--g-info);
+      --md-error: var(--g-error);
+      --md-error-container: rgba(242, 139, 130, 0.15);
+      --md-on-error-container: var(--g-error);
+      --md-positive: var(--g-success);
+      --md-warn: var(--g-warning);
+      --md-warn-container: rgba(253, 214, 99, 0.15);
 
-      /* Raw palette — dark */
-      --md-primary-dark:              #a8c7fa;
-      --md-on-primary-dark:           #062e6f;
-      --md-primary-container-dark:    #284290;
-      --md-on-primary-container-dark: #d6e3ff;
-      --md-secondary-dark:            #bec6dc;
-      --md-secondary-container-dark:  #3e4759;
-      --md-on-secondary-container-dark: #dae2f9;
-      --md-tertiary-dark:             #ddbce8;
-      --md-tertiary-container-dark:   #573d62;
-      --md-on-tertiary-container-dark: #f9d8ff;
-      --md-error-dark:                #ffb4ab;
-      --md-error-container-dark:      #93000a;
-      --md-on-error-container-dark:   #ffdad6;
-      --md-positive-dark:             #81c995;
-      --md-warn-dark:                 #f5bf66;
-      --md-warn-container-dark:       #4a2e00;
-
-      --md-bg-dark:                        #101318;
-      --md-surface-dark:                   #101318;
-      --md-on-surface-dark:                #e2e2e9;
-      --md-on-surface-variant-dark:        #c4c6d0;
-      --md-surface-container-lowest-dark:  #0b0d13;
-      --md-surface-container-low-dark:     #191b22;
-      --md-surface-container-dark:         #1e2026;
-      --md-surface-container-high-dark:    #282a31;
-      --md-surface-container-highest-dark: #33343c;
-      --md-outline-dark:                   #8e9099;
-      --md-outline-variant-dark:           #44464f;
-
-      /* Semantic tokens via light-dark() */
-      --md-primary:              light-dark(var(--md-primary-light), var(--md-primary-dark));
-      --md-on-primary:           light-dark(var(--md-on-primary-light), var(--md-on-primary-dark));
-      --md-primary-container:    light-dark(var(--md-primary-container-light), var(--md-primary-container-dark));
-      --md-on-primary-container: light-dark(var(--md-on-primary-container-light), var(--md-on-primary-container-dark));
-      --md-secondary:            light-dark(var(--md-secondary-light), var(--md-secondary-dark));
-      --md-secondary-container:  light-dark(var(--md-secondary-container-light), var(--md-secondary-container-dark));
-      --md-on-secondary-container: light-dark(var(--md-on-secondary-container-light), var(--md-on-secondary-container-dark));
-      --md-tertiary:             light-dark(var(--md-tertiary-light), var(--md-tertiary-dark));
-      --md-tertiary-container:   light-dark(var(--md-tertiary-container-light), var(--md-tertiary-container-dark));
-      --md-on-tertiary-container: light-dark(var(--md-on-tertiary-container-light), var(--md-on-tertiary-container-dark));
-      --md-error:                light-dark(var(--md-error-light), var(--md-error-dark));
-      --md-error-container:      light-dark(var(--md-error-container-light), var(--md-error-container-dark));
-      --md-on-error-container:   light-dark(var(--md-on-error-container-light), var(--md-on-error-container-dark));
-      --md-positive:             light-dark(var(--md-positive-light), var(--md-positive-dark));
-      --md-warn:                 light-dark(var(--md-warn-light), var(--md-warn-dark));
-      --md-warn-container:       light-dark(var(--md-warn-container-light), var(--md-warn-container-dark));
-
-      --md-bg:                        light-dark(var(--md-bg-light), var(--md-bg-dark));
-      --md-surface:                   light-dark(var(--md-surface-light), var(--md-surface-dark));
-      --md-on-surface:                light-dark(var(--md-on-surface-light), var(--md-on-surface-dark));
-      --md-on-surface-variant:        light-dark(var(--md-on-surface-variant-light), var(--md-on-surface-variant-dark));
-      --md-surface-container-lowest:  light-dark(var(--md-surface-container-lowest-light), var(--md-surface-container-lowest-dark));
-      --md-surface-container-low:     light-dark(var(--md-surface-container-low-light), var(--md-surface-container-low-dark));
-      --md-surface-container:         light-dark(var(--md-surface-container-light), var(--md-surface-container-dark));
-      --md-surface-container-high:    light-dark(var(--md-surface-container-high-light), var(--md-surface-container-high-dark));
-      --md-surface-container-highest: light-dark(var(--md-surface-container-highest-light), var(--md-surface-container-highest-dark));
-      --md-outline:                   light-dark(var(--md-outline-light), var(--md-outline-dark));
-      --md-outline-variant:           light-dark(var(--md-outline-variant-light), var(--md-outline-variant-dark));
-
-      /* Fallback for browsers without light-dark() */
-      @media (prefers-color-scheme: dark) {
-        --md-primary: var(--md-primary-dark);
-        --md-on-primary: var(--md-on-primary-dark);
-        --md-primary-container: var(--md-primary-container-dark);
-        --md-on-primary-container: var(--md-on-primary-container-dark);
-        --md-secondary: var(--md-secondary-dark);
-        --md-secondary-container: var(--md-secondary-container-dark);
-        --md-on-secondary-container: var(--md-on-secondary-container-dark);
-        --md-tertiary: var(--md-tertiary-dark);
-        --md-tertiary-container: var(--md-tertiary-container-dark);
-        --md-on-tertiary-container: var(--md-on-tertiary-container-dark);
-        --md-error: var(--md-error-dark);
-        --md-error-container: var(--md-error-container-dark);
-        --md-on-error-container: var(--md-on-error-container-dark);
-        --md-positive: var(--md-positive-dark);
-        --md-warn: var(--md-warn-dark);
-        --md-warn-container: var(--md-warn-container-dark);
-        --md-bg: var(--md-bg-dark);
-        --md-surface: var(--md-surface-dark);
-        --md-on-surface: var(--md-on-surface-dark);
-        --md-on-surface-variant: var(--md-on-surface-variant-dark);
-        --md-surface-container-lowest: var(--md-surface-container-lowest-dark);
-        --md-surface-container-low: var(--md-surface-container-low-dark);
-        --md-surface-container: var(--md-surface-container-dark);
-        --md-surface-container-high: var(--md-surface-container-high-dark);
-        --md-surface-container-highest: var(--md-surface-container-highest-dark);
-        --md-outline: var(--md-outline-dark);
-        --md-outline-variant: var(--md-outline-variant-dark);
-      }
+      --md-bg: var(--g-bg);
+      --md-surface: var(--g-surface);
+      --md-on-surface: var(--g-text);
+      --md-on-surface-variant: var(--g-text-muted);
+      --md-surface-container-lowest: #0b0d13;
+      --md-surface-container-low: var(--g-surface);
+      --md-surface-container: var(--g-surface);
+      --md-surface-container-high: var(--g-surface-hover);
+      --md-surface-container-highest: #33343c;
+      --md-outline: var(--g-outline);
+      --md-outline-variant: var(--g-outline);
 
       /* Shape tokens */
       --md-shape-xs:  4px;
       --md-shape-sm:  8px;
-      --md-shape-md:  12px;
-      --md-shape-lg:  16px;
-      --md-shape-xl:  28px;
-      --md-shape-full: 50px;
+      --md-shape-md:  8px; /* Match studio radius of 8px */
+      --md-shape-lg:  8px; /* Match studio radius of 8px */
+      --md-shape-xl:  8px;
+      --md-shape-full: 9999px;
 
       /* Motion tokens */
       --md-ease-standard:       cubic-bezier(0.2, 0, 0, 1);
@@ -156,8 +80,8 @@
       --md-dur-l2: 500ms;
 
       /* Typography */
-      --font-sans: 'Google Sans Text', 'Roboto', system-ui, sans-serif;
-      --font-mono: 'Roboto Mono', monospace;
+      --font-sans: 'Google Sans Text', 'Google Sans', system-ui, sans-serif;
+      --font-mono: ui-monospace, 'Roboto Mono', monospace;
 
       /* Layout */
       --content-max: 1080px;
@@ -169,7 +93,9 @@
 
     body {
       font-family: var(--font-sans);
-      background: var(--md-bg);
+      background-color: var(--md-bg);
+      background-image: radial-gradient(var(--md-outline) 1px, transparent 1px);
+      background-size: 24px 24px;
       color: var(--md-on-surface);
       min-height: 100vh;
       display: flex;
@@ -189,7 +115,9 @@
     .nav-rail {
       width: 80px;
       height: 100vh;
-      background: var(--md-surface-container-low);
+      background: rgba(30, 31, 34, 0.8);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -227,8 +155,8 @@
       transition: background var(--md-dur-s4) var(--md-ease-standard);
     }
 
-    .nav-item:hover .nav-indicator { background: color-mix(in srgb, var(--md-primary) 8%, transparent 92%); }
-    .nav-item.active .nav-indicator { background: var(--md-secondary-container); }
+    .nav-item:hover .nav-indicator { background: rgba(138, 180, 248, 0.1); }
+    .nav-item.active .nav-indicator { background: rgba(138, 180, 248, 0.2); }
 
     .nav-item .material-symbols-outlined {
       font-size: 22px;
@@ -236,7 +164,7 @@
       transition: color var(--md-dur-s4) var(--md-ease-standard);
     }
     .nav-item.active .material-symbols-outlined {
-      color: var(--md-on-secondary-container);
+      color: var(--md-on-primary-container);
       font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 22;
     }
 
@@ -263,7 +191,9 @@
       justify-content: space-between;
       gap: 16px;
       flex-wrap: wrap;
-      background: var(--md-surface-container-low);
+      background: rgba(30, 31, 34, 0.8);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       border-bottom: 1px solid var(--md-outline-variant);
       position: sticky;
       top: 0;
@@ -318,6 +248,12 @@
       max-width: 70ch;
     }
 
+    h1, h2, h3, h4, h5, h6 {
+      font-family: 'Google Sans', var(--font-sans);
+      font-weight: 500;
+      color: var(--md-on-surface);
+    }
+
     /* ── Section heads ─────────────────────────────────────────────────────── */
     .section { scroll-margin-top: 80px; }
 
@@ -341,7 +277,7 @@
 
     .section-title {
       font-size: 22px;
-      font-weight: 400;
+      font-weight: 500;
       letter-spacing: 0;
       color: var(--md-on-surface);
     }
@@ -375,7 +311,9 @@
 
     /* ── Cards ─────────────────────────────────────────────────────────────── */
     .card {
-      background: var(--md-surface-container-low);
+      background: rgba(30, 31, 34, 0.45);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
       border: 1px solid var(--md-outline-variant);
       border-radius: var(--md-shape-md);
       padding: 20px;
@@ -389,7 +327,9 @@
     }
 
     .kpi-card {
-      background: var(--md-surface-container-low);
+      background: rgba(30, 31, 34, 0.45);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
       border: 1px solid var(--md-outline-variant);
       border-radius: var(--md-shape-md);
       padding: 18px;
@@ -437,7 +377,7 @@
       position: relative;
       height: 6px;
       border-radius: var(--md-shape-full);
-      background: var(--md-surface-container-high);
+      background: rgba(255, 255, 255, 0.08);
       overflow: hidden;
       margin-top: 8px;
     }
@@ -492,7 +432,7 @@
       height: 13px;
       border-radius: 50%;
       transform: translate(-50%, -50%);
-      border: 2px solid var(--md-surface-container-low);
+      border: 2px solid var(--md-bg);
       transition: left var(--md-dur-l2) var(--md-ease-emphasized-dec);
     }
     .dist-scale {
@@ -522,6 +462,9 @@
       border: 1px solid var(--md-outline-variant);
       border-radius: var(--md-shape-md);
       overflow: hidden;
+      background: rgba(30, 31, 34, 0.45);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
     }
     .ab-cell {
       padding: 14px 16px;
@@ -533,7 +476,7 @@
     }
     .ab-grid > .ab-cell:nth-last-child(-n+3) { border-bottom: none; }
     .ab-head {
-      background: var(--md-surface-container);
+      background: rgba(45, 47, 49, 0.7);
       font-size: 12px;
       font-weight: 500;
       letter-spacing: 0.03em;
@@ -560,7 +503,9 @@
       padding: 16px;
       border: 1px solid var(--md-outline-variant);
       border-radius: var(--md-shape-md);
-      background: var(--md-surface-container-low);
+      background: rgba(30, 31, 34, 0.45);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
     }
     .gate-name {
       display: flex;
@@ -600,7 +545,14 @@
     .gate-criterion strong { color: var(--md-on-surface); font-weight: 500; }
 
     /* ── Tables ────────────────────────────────────────────────────────────── */
-    .table-wrap { overflow-x: auto; border: 1px solid var(--md-outline-variant); border-radius: var(--md-shape-md); }
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--md-outline-variant);
+      border-radius: var(--md-shape-md);
+      background: rgba(30, 31, 34, 0.45);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
     .data-table { width: 100%; border-collapse: collapse; }
     .data-table th {
       text-align: left;
@@ -609,8 +561,8 @@
       font-weight: 500;
       letter-spacing: 0.05em;
       text-transform: uppercase;
-      color: var(--md-on-surface-variant);
-      background: var(--md-surface-container);
+      color: var(--md-on-surface);
+      background: rgba(45, 47, 49, 0.7);
       border-bottom: 1px solid var(--md-outline-variant);
       white-space: nowrap;
     }
@@ -618,7 +570,7 @@
       padding: 11px 16px;
       font-size: 12px;
       font-family: var(--font-mono);
-      border-bottom: 1px solid color-mix(in srgb, var(--md-outline-variant) 45%, transparent 55%);
+      border-bottom: 1px solid var(--md-outline-variant);
       vertical-align: middle;
       white-space: nowrap;
     }
@@ -641,7 +593,7 @@
     .badge.accepted { background: color-mix(in srgb, var(--md-positive) 16%, transparent 84%); color: var(--md-positive); }
     .badge.rejected { background: color-mix(in srgb, var(--md-error) 14%, transparent 86%); color: var(--md-error); }
     .badge.error    { background: color-mix(in srgb, var(--md-warn) 16%, transparent 84%); color: var(--md-warn); }
-    .badge.neutral  { background: var(--md-surface-container-high); color: var(--md-on-surface-variant); }
+    .badge.neutral  { background: rgba(255, 255, 255, 0.08); color: var(--md-on-surface-variant); }
 
     /* ── Empty / pending states ────────────────────────────────────────────── */
     .empty-state {
@@ -650,7 +602,9 @@
       color: var(--md-on-surface-variant);
       border: 1px dashed var(--md-outline-variant);
       border-radius: var(--md-shape-md);
-      background: var(--md-surface-container-low);
+      background: rgba(30, 31, 34, 0.3);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
     }
     .empty-state .material-symbols-outlined {
       font-size: 36px;
@@ -693,7 +647,7 @@
     .method-block li code, .footnote code {
       font-family: var(--font-mono);
       font-size: 12px;
-      background: var(--md-surface-container);
+      background: rgba(255, 255, 255, 0.08);
       padding: 1px 5px;
       border-radius: var(--md-shape-xs);
     }
@@ -701,9 +655,9 @@
       margin-top: 4px;
       padding: 16px 18px;
       border-radius: var(--md-shape-md);
-      background: var(--md-warn-container);
-      color: light-dark(var(--md-warn-light), var(--md-warn-dark));
-      border: 1px solid color-mix(in srgb, var(--md-warn) 45%, transparent 55%);
+      background: rgba(253, 214, 99, 0.08);
+      color: var(--md-warn);
+      border: 1px solid rgba(253, 214, 99, 0.25);
     }
     .caveats h3 { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
     .caveats .material-symbols-outlined { font-size: 18px; }
@@ -721,7 +675,7 @@
     /* ── Skeleton ──────────────────────────────────────────────────────────── */
     @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
     .skeleton {
-      background: linear-gradient(90deg, var(--md-surface-container) 0%, var(--md-surface-container-high) 50%, var(--md-surface-container) 100%);
+      background: linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 100%);
       background-size: 200% 100%;
       animation: shimmer 1.4s ease-in-out infinite;
       border-radius: var(--md-shape-xs);
@@ -733,7 +687,9 @@
       position: fixed;
       bottom: 0; left: 0; right: 0;
       height: 64px;
-      background: var(--md-surface-container-low);
+      background: rgba(30, 31, 34, 0.80);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       border-top: 1px solid var(--md-outline-variant);
       align-items: center;
       justify-content: space-around;
@@ -811,50 +767,38 @@
       <circle cx="20" cy="22" r="2" fill="var(--md-primary)"/>
     </svg>
 
-    <a class="nav-item active" href="#production" aria-current="true">
+    <a class="nav-item" href="/docs" title="Documentation">
+      <span class="nav-indicator"><span class="material-symbols-outlined">menu_book</span></span>
+      <span class="nav-label">Docs</span>
+    </a>
+    <a class="nav-item active" href="/bench" title="Bench Observatory" aria-current="true">
       <span class="nav-indicator"><span class="material-symbols-outlined">database</span></span>
-      <span class="nav-label">Results</span>
+      <span class="nav-label">Observatory</span>
     </a>
-    <a class="nav-item" href="#ab">
-      <span class="nav-indicator"><span class="material-symbols-outlined">compare_arrows</span></span>
-      <span class="nav-label">A / B</span>
-    </a>
-    <a class="nav-item" href="#gates">
-      <span class="nav-indicator"><span class="material-symbols-outlined">verified</span></span>
-      <span class="nav-label">Gates</span>
-    </a>
-    <a class="nav-item" href="#benchmark">
-      <span class="nav-indicator"><span class="material-symbols-outlined">public</span></span>
-      <span class="nav-label">Bench</span>
+    <a class="nav-item" href="/replay" title="Trajectory Replay">
+      <span class="nav-indicator"><span class="material-symbols-outlined">play_circle</span></span>
+      <span class="nav-label">Replay</span>
     </a>
     <div class="nav-divider"></div>
-    <a class="nav-item" href="#methodology">
-      <span class="nav-indicator"><span class="material-symbols-outlined">science</span></span>
-      <span class="nav-label">Method</span>
+    <a class="nav-item" href="https://github.com/Manzela/Atelier" target="_blank" rel="noopener">
+      <span class="nav-indicator"><span class="material-symbols-outlined">code</span></span>
+      <span class="nav-label">GitHub</span>
     </a>
   </nav>
 
   <!-- Mobile bottom nav -->
   <nav class="bottom-nav" aria-label="Section navigation (mobile)">
-    <a class="nav-item active" href="#production" aria-current="true">
+    <a class="nav-item" href="/docs">
+      <span class="nav-indicator"><span class="material-symbols-outlined">menu_book</span></span>
+      <span class="nav-label">Docs</span>
+    </a>
+    <a class="nav-item active" href="/bench" aria-current="true">
       <span class="nav-indicator"><span class="material-symbols-outlined">database</span></span>
-      <span class="nav-label">Results</span>
+      <span class="nav-label">Observatory</span>
     </a>
-    <a class="nav-item" href="#ab">
-      <span class="nav-indicator"><span class="material-symbols-outlined">compare_arrows</span></span>
-      <span class="nav-label">A / B</span>
-    </a>
-    <a class="nav-item" href="#gates">
-      <span class="nav-indicator"><span class="material-symbols-outlined">verified</span></span>
-      <span class="nav-label">Gates</span>
-    </a>
-    <a class="nav-item" href="#benchmark">
-      <span class="nav-indicator"><span class="material-symbols-outlined">public</span></span>
-      <span class="nav-label">Bench</span>
-    </a>
-    <a class="nav-item" href="#methodology">
-      <span class="nav-indicator"><span class="material-symbols-outlined">science</span></span>
-      <span class="nav-label">Method</span>
+    <a class="nav-item" href="/replay">
+      <span class="nav-indicator"><span class="material-symbols-outlined">play_circle</span></span>
+      <span class="nav-label">Replay</span>
     </a>
   </nav>
 
@@ -1543,25 +1487,17 @@
 
     /* Nav active-state on scroll + click. */
     (function navWiring() {
-      const items = Array.from(document.querySelectorAll(".nav-item"));
-      const setActive = (id) => items.forEach((it) => {
-        const on = it.getAttribute("href") === "#" + id;
-        it.classList.toggle("active", on);
-        if (on) it.setAttribute("aria-current", "true"); else it.removeAttribute("aria-current");
+      const items = Array.from(document.querySelectorAll(".nav-rail .nav-item, .bottom-nav .nav-item"));
+      items.forEach((it) => {
+        const href = it.getAttribute("href");
+        if (href === "/bench" || href === "#production") {
+          it.classList.add("active");
+          it.setAttribute("aria-current", "true");
+        } else {
+          it.classList.remove("active");
+          it.removeAttribute("aria-current");
+        }
       });
-      items.forEach((it) => it.addEventListener("click", () => {
-        const id = it.getAttribute("href").slice(1);
-        setActive(id);
-      }));
-      const sections = ["production", "ab", "gates", "benchmark", "methodology"]
-        .map((id) => document.getElementById(id))
-        .filter(Boolean);
-      if ("IntersectionObserver" in window) {
-        const obs = new IntersectionObserver((entries) => {
-          entries.forEach((e) => { if (e.isIntersecting) setActive(e.target.id); });
-        }, { rootMargin: "-45% 0px -50% 0px", threshold: 0 });
-        sections.forEach((s) => obs.observe(s));
-      }
     })();
 
     load();

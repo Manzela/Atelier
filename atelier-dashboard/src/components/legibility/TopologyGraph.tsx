@@ -67,11 +67,20 @@ const NODES: NodeMeta[] = [
   },
 ];
 
+const ROLE_NAME_MAP: Record<string, string> = {
+  UXResearcher: 'ux_research',
+  IAFlowDesigner: 'ia_flows',
+  Wireframer: 'wireframe',
+  UIDesigner: 'ui_design',
+  InteractionDesigner: 'interaction_spec',
+  TokenGenerator: 'tokens',
+};
+
 type NodeState = 'idle' | 'active' | 'done' | 'error';
 
 export default function TopologyGraph({ specialistTraces, error }: TopologyGraphProps) {
   // Determine state of each node based on specialistTraces
-  const completedRoles = new Set(specialistTraces.map((t) => t.role));
+  const completedRoles = new Set(specialistTraces.map((t) => ROLE_NAME_MAP[t.role] || t.role));
 
   // Find the first role that is not completed
   const activeRoleIndex = NODES.findIndex((node) => !completedRoles.has(node.role));
