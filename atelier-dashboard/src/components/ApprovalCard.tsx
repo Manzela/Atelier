@@ -31,6 +31,8 @@ import {
   Pencil,
   HelpCircle,
   AlertTriangle,
+  MessageSquare,
+  Sliders,
 } from 'lucide-react';
 import type { PlanData, ProposedDefault } from '@/lib/api';
 
@@ -43,6 +45,8 @@ export interface ApprovalCardProps {
   onReject?: () => void;
   /** True while the approval write is in flight (disables the buttons). */
   isSubmitting?: boolean;
+  /** Callback to steer the generation with user's answers and steering context. */
+  onSteer?: (steeringText: string) => void;
 }
 
 /** A single editable, cited default row. */
@@ -131,6 +135,7 @@ export default function ApprovalCard({
   onApprove,
   onReject,
   isSubmitting = false,
+  onSteer,
 }: ApprovalCardProps) {
   const defaults = useMemo(() => plan.proposed_defaults ?? [], [plan.proposed_defaults]);
   const openQuestions = plan.open_questions ?? [];
@@ -145,6 +150,19 @@ export default function ApprovalCard({
   const [edits, setEdits] = useState<Record<string, string>>(() =>
     Object.fromEntries(defaults.map((d) => [d.standard_id, d.rule]))
   );
+
+  const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [generalSteering, setGeneralSteering] = useState('');
+
+  const handleAnswerChange = useCallback((index: number, val: string) => {
+    setAnswers((prev) => ({ ...prev, [index]: val }));
+  }, []);
+
+  const hasSteeringInput = useMemo(() => {
+    const hasAnswers = Object.values(answers).some((val) => val.trim().length > 0);
+    const hasGeneral = generalSteering.trim().length > 0;
+    return hasAnswers || hasGeneral;
+  }, [answers, generalSteering]);
 
   const handleEdit = useCallback((standardId: string, next: string) => {
     setEdits((prev) => ({ ...prev, [standardId]: next }));
@@ -164,6 +182,29 @@ export default function ApprovalCard({
     };
     onApprove(editedPlan);
   }, [plan, defaults, edits, onApprove]);
+
+  const handleSteerSubmit = useCallback(() => {
+    if (!onSteer) return;
+
+    const steeringParts: string[] = [];
+
+    const answeredQs = openQuestions
+      .map((q, idx) => {
+        const ans = answers[idx]?.trim();
+        return ans ? `- Question: ${q}\n  Answer: ${ans}` : null;
+      })
+      .filter(Boolean);
+
+    if (answeredQs.length > 0) {
+      steeringParts.push(`### Answers to Open Questions:\n${answeredQs.join('\n')}`);
+    }
+
+    if (generalSteering.trim()) {
+      steeringParts.push(`### Additional Design Steering:\n${generalSteering.trim()}`);
+    }
+
+    onSteer(steeringParts.join('\n\n'));
+  }, [onSteer, openQuestions, answers, generalSteering]);
 
   return (
     <div
@@ -250,7 +291,7 @@ export default function ApprovalCard({
           </section>
         )}
 
-        {/* Open questions — surfaced, not silently defaulted */}
+        {/* Open questions — surfaced as interactive chat refinement */}
         {openQuestions.length > 0 && (
           <section className="mt-5" aria-labelledby="approval-questions-heading">
             <h3
@@ -258,20 +299,82 @@ export default function ApprovalCard({
               className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--g-text-muted)]"
             >
               <HelpCircle size={12} aria-hidden="true" className="text-[var(--g-info)]" />
-              Open questions
+              Interactive Chat Refinement
             </h3>
-            <ul className="space-y-1.5 text-[12px] text-[var(--g-text-muted)]">
-              {openQuestions.map((q, i) => (
-                <li key={i} className="flex gap-2">
-                  <span aria-hidden="true" className="text-[var(--g-info)]">
-                    &bull;
+            <div className="rounded-lg border border-[var(--g-outline)] bg-[var(--g-bg)]/40 p-4 space-y-4">
+              <div className="flex items-start gap-2.5">
+                <div className="w-6 h-6 rounded-full bg-[var(--g-primary-blue)]/20 border border-[var(--g-primary-blue)]/40 flex items-center justify-center shrink-0">
+                  <span className="text-[10px] font-bold text-[var(--g-primary-blue)] font-mono">
+                    A
                   </span>
-                  <span>{q}</span>
-                </li>
-              ))}
-            </ul>
+                </div>
+                <div className="rounded-md bg-[var(--g-surface)] border border-[var(--g-outline)] p-3 text-[12px] text-[var(--g-text)] max-w-[85%] shadow-sm">
+                  <p className="font-semibold mb-1 text-[var(--g-info)] text-[11px]">
+                    ATELIER PLANNER
+                  </p>
+                  I have analyzed your design brief and structured the layouts. To deliver a more
+                  tailored and high-fidelity output, please clarify the following open questions:
+                </div>
+              </div>
+
+              {openQuestions.map((q, i) => {
+                const answerId = `approval-answer-input-${i}`;
+                return (
+                  <div key={i} className="space-y-2">
+                    <div className="flex items-start gap-2.5 pl-6">
+                      <div className="w-5 h-5 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center shrink-0">
+                        <HelpCircle size={10} className="text-amber-500" />
+                      </div>
+                      <div className="rounded-md bg-amber-500/5 border border-amber-500/10 p-2.5 text-[12px] text-[var(--g-text-muted)] flex-1">
+                        {q}
+                      </div>
+                    </div>
+                    <div className="pl-14">
+                      <textarea
+                        id={answerId}
+                        rows={2}
+                        placeholder="Type your answer here..."
+                        value={answers[i] ?? ''}
+                        onChange={(e) => handleAnswerChange(i, e.target.value)}
+                        className="w-full rounded border border-[var(--g-outline)] bg-[var(--g-surface)] px-2.5 py-1.5 text-[12px] text-[var(--g-text)] placeholder:text-[var(--g-text-muted)]/50 outline-none focus:border-[var(--g-primary-blue)] focus:ring-1 focus:ring-[var(--g-primary-blue)] transition-all resize-y"
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </section>
         )}
+
+        {/* General steering box */}
+        <section className="mt-5" aria-labelledby="approval-steering-heading">
+          <h3
+            id="approval-steering-heading"
+            className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--g-text-muted)]"
+          >
+            <MessageSquare size={12} aria-hidden="true" className="text-[var(--g-info)]" />
+            Additional Design Steering
+          </h3>
+          <div className="rounded-lg border border-[var(--g-outline)] bg-[var(--g-bg)]/40 p-4">
+            <div className="flex items-start gap-2.5 mb-2">
+              <div className="w-6 h-6 rounded-full bg-violet-500/20 border border-violet-500/40 flex items-center justify-center shrink-0">
+                <Sliders size={11} className="text-violet-400" />
+              </div>
+              <div className="text-[11px] text-[var(--g-text-muted)] flex-1 pt-0.5">
+                Guide Atelier on visual style, themes (e.g. Light/Dark mode), or specific UX
+                requirements.
+              </div>
+            </div>
+            <textarea
+              id="general-steering"
+              rows={3}
+              placeholder="e.g., Use dark mode theme with Linear-style glassmorphism, focus on key shortcuts, and add a Kanban board view..."
+              value={generalSteering}
+              onChange={(e) => setGeneralSteering(e.target.value)}
+              className="w-full rounded border border-[var(--g-outline)] bg-[var(--g-surface)] px-2.5 py-1.5 text-[12px] text-[var(--g-text)] placeholder:text-[var(--g-text-muted)]/50 outline-none focus:border-[var(--g-primary-blue)] focus:ring-1 focus:ring-[var(--g-primary-blue)] transition-all resize-y"
+            />
+          </div>
+        </section>
 
         {/* Acknowledged gaps — the agent always acknowledges degradation */}
         {gaps.length > 0 && (
@@ -296,16 +399,28 @@ export default function ApprovalCard({
         )}
 
         {/* Actions */}
-        <div className="mt-6 flex items-center justify-end gap-2.5 border-t border-[var(--g-outline)] pt-4">
+        <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2.5 border-t border-[var(--g-outline)] pt-4">
           {onReject && (
             <button
               type="button"
               data-testid="approval-reject"
               onClick={onReject}
               disabled={isSubmitting}
-              className="rounded-md border border-[var(--g-outline)] px-3.5 py-2 text-[13px] font-medium text-[var(--g-text-muted)] transition-colors hover:bg-[var(--g-surface-hover)] hover:text-[var(--g-text)] disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full sm:w-auto rounded-md border border-[var(--g-outline)] px-3.5 py-2 text-[13px] font-medium text-[var(--g-text-muted)] transition-colors hover:bg-[var(--g-surface-hover)] hover:text-[var(--g-text)] disabled:cursor-not-allowed disabled:opacity-50"
             >
               Back
+            </button>
+          )}
+          {onSteer && (
+            <button
+              type="button"
+              data-testid="approval-steer"
+              onClick={handleSteerSubmit}
+              disabled={isSubmitting || !hasSteeringInput}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-md border border-[var(--g-outline)] bg-[var(--g-surface-hover)] px-4 py-2 text-[13px] font-semibold text-[var(--g-text)] transition-colors hover:bg-[var(--g-surface)] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <MessageSquare size={15} aria-hidden="true" />
+              Steer &amp; Regenerate
             </button>
           )}
           <button
@@ -313,7 +428,7 @@ export default function ApprovalCard({
             data-testid="approval-approve"
             onClick={handleApprove}
             disabled={isSubmitting}
-            className="inline-flex items-center gap-1.5 rounded-md bg-[var(--g-primary-blue)] px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-[var(--g-primary-blue-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-md bg-[var(--g-primary-blue)] px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-[var(--g-primary-blue-hover)] disabled:cursor-not-allowed disabled:opacity-60"
           >
             <CheckCircle2 size={15} aria-hidden="true" />
             {isSubmitting ? 'Approving…' : 'Approve & generate'}

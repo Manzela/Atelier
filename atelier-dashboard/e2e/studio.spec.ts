@@ -3,7 +3,7 @@ import { test, expect } from './fixtures';
 test.describe('Studio Workspace', () => {
   test('renders the studio header with project ID', async ({ authenticatedPage: page }) => {
     await page.goto('/studio/test-project-123');
-    await expect(page.getByText('test-project-123')).toBeVisible();
+    await expect(page.getByText('Test Project 123')).toBeVisible();
   });
 
   test('back button navigates to landing page', async ({ authenticatedPage: page }) => {
@@ -23,7 +23,7 @@ test.describe('Studio Workspace', () => {
   test('layers panel renders', async ({ authenticatedPage: page }) => {
     await page.goto('/studio/test-project-123');
     // Panel heading is always visible regardless of layer content
-    await expect(page.getByText('Layers')).toBeVisible();
+    await expect(page.getByText('Layers', { exact: true })).toBeVisible();
   });
 
   test('Vertex AI settings panel renders sliders', async ({ authenticatedPage: page }) => {

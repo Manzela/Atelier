@@ -395,6 +395,29 @@ export default function StudioClientShell({ id }: { id: string }) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(false);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [isMobileOrTablet, setIsMobileOrTablet] = useState(false);
+  const [isXl, setIsXl] = useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+    if (typeof window === 'undefined') return;
+    const mediaLg = window.matchMedia('(max-width: 1023px)');
+    const mediaXl = window.matchMedia('(max-width: 1279px)');
+
+    const sync = () => {
+      setIsMobileOrTablet(mediaLg.matches);
+      setIsXl(mediaXl.matches);
+    };
+
+    sync();
+    mediaLg.addEventListener('change', sync);
+    mediaXl.addEventListener('change', sync);
+    return () => {
+      mediaLg.removeEventListener('change', sync);
+      mediaXl.removeEventListener('change', sync);
+    };
+  }, []);
   const [temperature, setTemperature] = useState(0.4);
   const [topK, setTopK] = useState(40);
   const [maxTokens, setMaxTokens] = useState(4096);
@@ -711,6 +734,7 @@ export default function StudioClientShell({ id }: { id: string }) {
         setSignoffSubmitting(false);
         addLog('SUCCESS', `Sign-off ${next} — resuming generation.`);
         setStatus('generating');
+        setIsRightSidebarOpen(true);
       }
     },
     [teardownSignoff]
@@ -793,7 +817,7 @@ export default function StudioClientShell({ id }: { id: string }) {
     setScale((s) => Math.max(0.2, Math.min(3, s + delta)));
   };
 
-  const startGeneration = () => {
+  const startGeneration = (overrideBrief?: string) => {
     if (status === 'generating' || status === 'cap-reached' || !user) return;
     // AT-094 (R9): fail-fast when offline — do not open a request that cannot
     // succeed. Acknowledge the degradation (log) and surface the offline state;
@@ -803,6 +827,7 @@ export default function StudioClientShell({ id }: { id: string }) {
       return;
     }
     setStatus('generating');
+    setIsRightSidebarOpen(true);
     setLogs([]);
     // AT-042: reset any prior sign-off state for the new run.
     teardownSignoff();
@@ -831,11 +856,14 @@ export default function StudioClientShell({ id }: { id: string }) {
     setA2uiAnnouncement('');
     addLog('INFO', 'Initiating Vertex AI Convergence Loop...');
 
-    const searchParams = new URLSearchParams(window.location.search);
-    let brief = searchParams.get('brief') || 'SaaS landing page';
-    const deviceParam = searchParams.get('device');
-    if (deviceParam === 'app' || deviceParam === 'web') {
-      brief = `${brief} [Device Platform: ${deviceParam}]`;
+    let brief = overrideBrief;
+    if (!brief) {
+      const searchParams = new URLSearchParams(window.location.search);
+      brief = searchParams.get('brief') || 'SaaS landing page';
+      const deviceParam = searchParams.get('device');
+      if (deviceParam === 'app' || deviceParam === 'web') {
+        brief = `${brief} [Device Platform: ${deviceParam}]`;
+      }
     }
 
     const callbacks: StreamCallbacks = {
@@ -998,6 +1026,27 @@ export default function StudioClientShell({ id }: { id: string }) {
       max_tokens: maxTokens,
     });
   };
+
+  const handleSteerSignoff = useCallback(
+    (steeringText: string) => {
+      if (!user) return;
+      teardownSignoff();
+      setSignoffPlan(null);
+      setSignoffSubmitting(false);
+
+      const searchParams = new URLSearchParams(window.location.search);
+      let baseBrief = searchParams.get('brief') || 'SaaS landing page';
+      const deviceParam = searchParams.get('device');
+      if (deviceParam === 'app' || deviceParam === 'web') {
+        baseBrief = `${baseBrief} [Device Platform: ${deviceParam}]`;
+      }
+
+      const augmentedBrief = `${baseBrief}\n\n[Human Steering Context]:\n${steeringText}`;
+      addLog('INFO', 'Applying interactive chat steering & restarting Convergence Loop...');
+      startGeneration(augmentedBrief);
+    },
+    [user, teardownSignoff, startGeneration]
+  );
 
   const renderLeftSidebarContent = () => (
     <div className="flex flex-col h-full">
@@ -1504,7 +1553,7 @@ export default function StudioClientShell({ id }: { id: string }) {
               />
             )}
             <button
-              onClick={startGeneration}
+              onClick={() => startGeneration()}
               disabled={status === 'generating' || status === 'cap-reached'}
               className="flex items-center gap-1.5 bg-[var(--g-primary-blue)] hover:bg-[var(--g-primary-blue-hover)] disabled:opacity-50 text-white px-4 py-1.5 rounded-md text-xs font-medium transition-colors shadow-sm"
             >
@@ -1612,13 +1661,15 @@ export default function StudioClientShell({ id }: { id: string }) {
 
         <div className="flex-1 flex overflow-hidden relative">
           {/* Desktop Left Block Drawer */}
-          <aside className="hidden lg:flex w-56 border-r border-[var(--g-outline)] bg-[var(--g-surface)]/50 backdrop-blur-md flex-col z-10 shrink-0">
-            {renderLeftSidebarContent()}
-          </aside>
+          {(!mounted || !isMobileOrTablet) && (
+            <aside className="hidden lg:flex w-56 border-r border-[var(--g-outline)] bg-[var(--g-surface)]/50 backdrop-blur-md flex-col z-10 shrink-0">
+              {renderLeftSidebarContent()}
+            </aside>
+          )}
 
           {/* Mobile Left Sidebar Drawer */}
           <AnimatePresence>
-            {isLeftSidebarOpen && (
+            {mounted && isMobileOrTablet && isLeftSidebarOpen && (
               <div className="fixed inset-0 z-40 lg:hidden flex">
                 {/* Backdrop */}
                 <m.div
@@ -1771,17 +1822,18 @@ export default function StudioClientShell({ id }: { id: string }) {
                 </div>
               )}
 
-              {/* \u2500\u2500 Awaiting sign-off (AT-042) \u2014 ApprovalCard, push-free resume \u2500\u2500 */}
+              {/* ── Awaiting sign-off (AT-042) — ApprovalCard, push-free resume ── */}
               {status === 'awaiting-signoff' && signoffPlan && (
                 <ApprovalCard
                   plan={signoffPlan}
                   onApprove={handleApproveSignoff}
                   onReject={handleRejectSignoff}
                   isSubmitting={signoffSubmitting}
+                  onSteer={handleSteerSignoff}
                 />
               )}
 
-              {/* \u2500\u2500 Loading (generating) state \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */}
+              {/* ──────────────── Loading (generating) state ────────────────────────────── */}
               {status === 'generating' && (
                 <div
                   data-testid="state-loading"
@@ -1795,7 +1847,7 @@ export default function StudioClientShell({ id }: { id: string }) {
                     className="text-[var(--g-info)] animate-spin"
                     aria-hidden="true"
                   />
-                  <h2 className="text-lg font-semibold text-gray-700">Generating\u2026</h2>
+                  <h2 className="text-lg font-semibold text-gray-700">Generating…</h2>
                   <p className="text-sm text-gray-600">
                     Vertex AI Convergence Loop is running. This may take a moment.
                   </p>
@@ -1863,7 +1915,7 @@ export default function StudioClientShell({ id }: { id: string }) {
                     then try again.
                   </p>
                   <button
-                    onClick={startGeneration}
+                    onClick={() => startGeneration()}
                     className="mt-2 flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
                   >
                     <RotateCcw size={14} aria-hidden="true" />
@@ -1887,7 +1939,7 @@ export default function StudioClientShell({ id }: { id: string }) {
                     &mdash; no further tokens were spent. Run again to start a fresh design.
                   </p>
                   <button
-                    onClick={startGeneration}
+                    onClick={() => startGeneration()}
                     className="mt-2 flex items-center gap-2 bg-[var(--g-primary-blue)] hover:bg-[var(--g-primary-blue-hover)] text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
                   >
                     <RotateCcw size={14} aria-hidden="true" />
@@ -1916,13 +1968,15 @@ export default function StudioClientShell({ id }: { id: string }) {
           </main>
 
           {/* Desktop Right Vertex AI Config Panel */}
-          <aside className="hidden xl:flex w-72 border-l border-[var(--g-outline)] bg-[var(--g-surface)]/50 backdrop-blur-md flex-col z-10 shrink-0">
-            {renderRightSidebarContent()}
-          </aside>
+          {(!mounted || !isXl) && (
+            <aside className="hidden xl:flex w-72 border-l border-[var(--g-outline)] bg-[var(--g-surface)]/50 backdrop-blur-md flex-col z-10 shrink-0">
+              {renderRightSidebarContent()}
+            </aside>
+          )}
 
           {/* Mobile Right Sidebar Drawer */}
           <AnimatePresence>
-            {isRightSidebarOpen && (
+            {mounted && isXl && isRightSidebarOpen && (
               <div className="fixed inset-0 z-40 xl:hidden flex justify-end">
                 {/* Backdrop */}
                 <m.div

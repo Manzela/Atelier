@@ -50,7 +50,7 @@ jobs:
 
       # Authenticate to GCP using WIF or Fallback Service Account Key
       - name: Authenticate to Google Cloud via WIF
-        if: ${{ env.GCP_WIF_PROVIDER != '' }}
+        if: ${{ env.GCP_WIF_PROVIDER }}
         id: auth-wif
         uses: google-github-actions/auth@v2
         with:
@@ -60,7 +60,7 @@ jobs:
           export_environment_variables: true
 
       - name: Authenticate to Google Cloud via Key
-        if: ${{ env.GCP_WIF_PROVIDER == '' && env.GCP_SA_KEY != '' }}
+        if: ${{ !env.GCP_WIF_PROVIDER && env.GCP_SA_KEY }}
         id: auth-key
         uses: google-github-actions/auth@v2
         with:
@@ -145,7 +145,7 @@ jobs:
 
       # Authenticate to GCP using WIF or Fallback Service Account Key
       - name: Authenticate to Google Cloud via WIF
-        if: ${{ env.GCP_WIF_PROVIDER != '' }}
+        if: ${{ env.GCP_WIF_PROVIDER }}
         id: auth-wif
         uses: google-github-actions/auth@v2
         with:
@@ -155,7 +155,7 @@ jobs:
           export_environment_variables: true
 
       - name: Authenticate to Google Cloud via Key
-        if: ${{ env.GCP_WIF_PROVIDER == '' && env.GCP_SA_KEY != '' }}
+        if: ${{ !env.GCP_WIF_PROVIDER && env.GCP_SA_KEY }}
         id: auth-key
         uses: google-github-actions/auth@v2
         with:

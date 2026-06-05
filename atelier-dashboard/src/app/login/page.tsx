@@ -139,7 +139,7 @@ export default function LoginPage() {
               </svg>
             </m.div>
             <h1 id="login-title" className="text-3xl font-medium tracking-tight text-white mb-3">
-              Atelier
+              Welcome to Atelier
             </h1>
             <p className="text-[14px] text-[var(--g-text-muted)] text-center leading-relaxed">
               Autonomous Design Agent

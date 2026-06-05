@@ -194,10 +194,10 @@ def fetch_calibrated_model_from_remote_config(task_type: TaskType) -> str | None
 def normalize_model_id(model_id: str) -> str:
     """Normalize a model ID string, ensuring compatibility with Vertex AI.
 
-    Specifically maps 'gemini-2.5-flash' to 'gemini-2.5-flash-001'.
+    Specifically maps 'gemini-2.5-flash-001' to 'gemini-2.5-flash'.
     """
-    if model_id == "gemini-2.5-flash":
-        return "gemini-2.5-flash-001"
+    if model_id == "gemini-2.5-flash-001":
+        return "gemini-2.5-flash"
     return model_id
 
 

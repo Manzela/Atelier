@@ -48,13 +48,13 @@
     "atelier-dashboard/e2e/at043-states.spec.ts": "0a4f4a75400ccf18ac67bc51c1beeb8e7e06d65fe9a31375caef461a542c8cbf",
     "atelier-dashboard/playwright.config.ts": "409e3ad4781ddcc815c7794a250ebde8abfb801f10f8b6015cb2acfe911a0757",
     "atelier-dashboard/src/app/board/page.tsx": "80aa04215308829e94555fe7a0e485cbd35240c228da85d3d87cb630fe2b7f81",
-    "atelier-dashboard/src/components/ApprovalCard.tsx": "d88bb1f591c57fd97bc2e94387f4557b4863a49fb0f40dc84f1bbe3afd2b78fb",
+    "atelier-dashboard/src/components/ApprovalCard.tsx": "9798c58a15f303fa302b6158927bd7af972079dd94dc30dfbdf72317642f3329",
     "atelier-dashboard/src/components/BoardClientShell.tsx": "e44ba6291ffc6e96ab6f694968f47f4958ed27f289c1d511b6b5697d396948ab",
     "atelier-dashboard/src/components/KanbanBoard.tsx": "a92de5f1fc5526d1153ed35df7bc4ba80fe5000814bc191fca2e06ee44b822f4",
     "atelier-dashboard/src/components/KanbanCard.tsx": "0964fd0b7cc76e5c1d843efcfd57f39cb376f379c60c102c92a87797ebda7399",
     "atelier-dashboard/src/components/KanbanColumn.tsx": "ef9000a748fe20d62efaf89651391fcaf93c025610c25e5cf41da108a87424a4",
     "atelier-dashboard/src/components/OptimizeArtifactCard.tsx": "7ff8cf63288fe98f3ecfada8dbb6d1807dcd41f5ae12f424230df8a459b23213",
-    "atelier-dashboard/src/components/StudioClientShell.tsx": "ca66049a0162bfcfcedde87f190653cc79e2cca8b0c30a2ee9fdeca41d2c3b39",
+    "atelier-dashboard/src/components/StudioClientShell.tsx": "6d2c606f9e4dbbab1bf83a0c0d6ec114ce6aa126153c460204f8dca2c885063b",
     "atelier-dashboard/src/components/legibility/AttributionView.tsx": "a124acd6aeaa2411d605cee2cc4429ba9b64ec065259889942c8462224135379",
     "atelier-dashboard/src/components/legibility/StopButton.tsx": "d3c7db763fed96621136f560ca4b8711f8b48348269cbc16689d5cd20ca34a6e",
     "atelier-dashboard/src/components/legibility/TracePanel.tsx": "0031ca6439ef97c6a16b8ecb8e76cc6cd901f57a8accc94431b668dd8998f909",
@@ -66,9 +66,10 @@
     "atelier-dashboard/src/lib/lexorank.ts": "b32a47645a95ca9c00d073d14b6b90ed4965400e1a6b3c5a987ef909a1680ce2",
     "atelier-dashboard/src/lib/optimize-trace.ts": "a8d2dc98d24dbab7939001358507be6db1b669c43862232c5ee5ad10789f16b7",
     "atelier-core/src/atelier/intake/brief_parser.py": "91bd5e5fa6d2fff042cea6b0014e6c2c9a0e945d0ac7f7738f8910ca680e9641",
-    "atelier-core/src/atelier/models/model_registry.py": "ba1e8ea6027b4533110b565822f7cf9258dedcec4e117975a3ba5a49fa351740",
+    "atelier-core/src/atelier/models/model_registry.py": "21fedb1f664c71ed41b62f1846e1ad26f3717e202a368d9a2363c77589707723",
     "atelier-core/src/atelier/nodes/critique_panel.py": "01c3d170e857260e928cd304c6be55f51a138a84e7906c90ede460fa35a8f376",
-    "atelier-dashboard/src/app/login/page.tsx": "93eaa338a33be12cbc8de53e9b6c4e12b827a7ca18e8e57d0c2859ed306de0b3",
-    "atelier-dashboard/src/components/legibility/TopologyGraph.tsx": "07d630960d6e3cac70f337bb0540d10a606cef541cdb9cfa70421fca6d0d2ea3"
+    "atelier-dashboard/src/app/login/page.tsx": "9c7911d00d1aa1e78b129d7a4fd4470176a20ba4857571f4babf3537de0bde9f",
+    "atelier-dashboard/src/components/legibility/TopologyGraph.tsx": "07d630960d6e3cac70f337bb0540d10a606cef541cdb9cfa70421fca6d0d2ea3",
+    "atelier-dashboard/src/components/StitchClientShell.tsx": "576190d682aad56cf0d9459ee4799c6a5427b8bc9278ca6d5862600b2d29887f"
   }
 }
