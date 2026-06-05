@@ -37,6 +37,14 @@ import {
   Palette,
   WifiOff,
   Square,
+  Settings,
+  BookOpen,
+  FileText,
+  Shield,
+  LifeBuoy,
+  LogOut,
+  Check,
+  Copy,
 } from 'lucide-react';
 import {
   runGenerationStream,
@@ -82,6 +90,7 @@ import {
   type FlatToken,
   type GeneratedControl,
 } from '@/lib/design-system';
+import { prettifyProjectName } from '@/lib/project-utils';
 
 // ADR-0024 / P0.4: the Governed A2UI design-system panel. Client-only (the
 // renderer auto-injects styles via document.adoptedStyleSheets), so it is
@@ -196,110 +205,6 @@ function AnimatedScoreValue({ value }: { value: number | undefined }) {
   }, [value, mv]);
 
   return <m.span>{display}</m.span>;
-}
-
-// AT-090: Competitor-contrast beat — rendered on convergence, dismissible.
-// Product COPY only; no runtime Claude integration. ADR-0020/§13.5 guardrail honored.
-function CompetitorContrastBeat({ onDismiss }: { onDismiss: () => void }) {
-  return (
-    <m.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 8 }}
-      transition={{ type: 'spring', bounce: 0, duration: 0.35 }}
-      data-testid="competitor-contrast-beat"
-      className="rounded border border-[var(--g-info)]/30 bg-black/40 p-4 text-[11px] leading-relaxed"
-    >
-      <div className="flex items-start justify-between gap-2 mb-3">
-        <h4 className="text-[11px] uppercase tracking-wider font-semibold text-[var(--g-info)]">
-          Why Atelier?
-        </h4>
-        <button
-          data-testid="competitor-contrast-dismiss"
-          onClick={onDismiss}
-          className="shrink-0 p-0.5 rounded hover:bg-white/10 text-gray-500 hover:text-white transition-colors"
-          aria-label="Dismiss competitor contrast"
-        >
-          <X size={12} />
-        </button>
-      </div>
-
-      {/* vs Stitch / v0 / Lovable */}
-      <div className="mb-3">
-        <p className="text-gray-400 font-semibold mb-1">vs Stitch / v0 / Lovable</p>
-        <ul className="space-y-1 text-gray-400">
-          <li>
-            <span className="text-white font-medium">reject+halt on skeleton</span> — deterministic
-            structure gate rejects empty/skeleton output before any LLM token burns
-          </li>
-          <li>
-            <span className="text-white font-medium">anchored tokens</span> — zero-tolerance token
-            gate; a design-system value edit propagates to every token-bound surface, not suggested
-            and drifted
-          </li>
-          <li>
-            <span className="text-white font-medium">edit-not-regenerate</span> — one-edit -&gt;
-            N-surface token propagation (AT-052); byte-stable replay
-          </li>
-          <li>
-            <span className="text-white font-medium">legible token meter</span> — token-based
-            governance with fail-closed gates; live per-user cap in deploy wave; invisible burn is
-            the top usage complaint
-          </li>
-          <li>
-            <span className="text-white font-medium">proactive standards + scope-lock</span> —
-            checks applied before generation, not after
-          </li>
-        </ul>
-      </div>
-
-      {/* vs Claude Design */}
-      <div className="mb-3">
-        <p className="text-gray-400 font-semibold mb-1">
-          vs Claude Design (Anthropic Labs, research preview)
-        </p>
-        <p className="text-gray-500 mb-1.5 italic text-[10px]">
-          Claude Design out-polishes Atelier on raw visual fidelity, interactive-refinement feel,
-          output breadth, and real adoption. It is a flagship WYSIWYG editor. Atelier does a
-          different job.
-        </p>
-        <ul className="space-y-1 text-gray-400">
-          <li>
-            <span className="text-white font-medium">autonomous and long-running</span> — unattended
-            convergence vs synchronous human-collaborative editing
-          </li>
-          <li>
-            <span className="text-white font-medium">multi-specialist DAG + critique panel</span> —
-            6-role DDLC specialist pipeline, Fixer loop, 5-axis D-O-R-A-V judge vs single-model pass
-          </li>
-          <li>
-            <span className="text-white font-medium">
-              ENFORCES brand (zero-tolerance token gate)
-            </span>{' '}
-            — applied and verified vs built and suggested
-          </li>
-          <li>
-            <span className="text-white font-medium">governed</span> — fail-closed gates,
-            converge-or-halt discipline (live); Model Armor + IAP auth (deploy wave)
-          </li>
-          <li>
-            <span className="text-white font-medium">observable</span> — per-iteration scorecard
-            (oracle-score deltas, AT-093), byte-equal replay (live); Kanban board (deploy wave)
-          </li>
-          <li>
-            <span className="text-white font-medium">Google-native</span> — Vertex AI + Gemini +
-            BigQuery + Cloud Run + Firebase
-          </li>
-        </ul>
-      </div>
-
-      {/* Proof-points */}
-      <div className="pt-2 border-t border-[var(--g-outline)] text-[10px] text-gray-500">
-        B1 proof-points: skeleton reject+halt / one-edit -&gt; N-surface (AT-052) / converging
-        oracle-score deltas (AT-093) / byte-stable replay
-      </div>
-    </m.div>
-  );
 }
 
 // AT-044: Design-system panel — one editable row per design-system token, plus
@@ -488,10 +393,55 @@ export default function StudioClientShell({ id }: { id: string }) {
   const [scale, setScale] = useState(1);
   const [deviceWidth, setDeviceWidth] = useState<DeviceWidth>(1280);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(false);
+  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
   const [temperature, setTemperature] = useState(0.4);
   const [topK, setTopK] = useState(40);
   const [maxTokens, setMaxTokens] = useState(4096);
   const { user, initRef } = useClientAuth();
+
+  const [briefText, setBriefText] = useState('');
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setBriefText(params.get('brief') || '');
+    }
+  }, []);
+
+  const projectTitle = useMemo(() => {
+    return prettifyProjectName(briefText, id);
+  }, [briefText, id]);
+
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const getUserInitials = (): string => {
+    if (!user?.displayName) return '?';
+    return user.displayName
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .substring(0, 2)
+      .toUpperCase();
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    router.push('/login');
+  };
 
   const [selectedModel, setSelectedModel] = useState('gemini-2.5-pro');
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -501,6 +451,7 @@ export default function StudioClientShell({ id }: { id: string }) {
       const params = new URLSearchParams(window.location.search);
       const modelParam = params.get('model');
       if (modelParam) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setSelectedModel(modelParam);
       }
     }
@@ -637,12 +588,35 @@ export default function StudioClientShell({ id }: { id: string }) {
   const failingAxis: string | null = latestIterScore?.failing_axis ?? null;
   const [degradationReason, setDegradationReason] = useState<string>('');
   const [capReachedDetail, setCapReachedDetail] = useState<string>('');
-  // AT-090: competitor-contrast beat — shown on convergence, dismissible
-  const [competitorBeatVisible, setCompetitorBeatVisible] = useState(true);
+  // Multi-surface: planned surfaces from the plan SSE event, converged HTML per surface.
+  const [plannedSurfaces, setPlannedSurfaces] = useState<string[]>([]);
+  const [surfaces, setSurfaces] = useState<Record<string, string>>({});
+  const [selectedSurface, setSelectedSurface] = useState<string | null>(null);
   // AT-096: live token meter — cumulative per-user counter (NOT reset on new run)
   const [tokenUsage, setTokenUsage] = useState<TokenDeltaData | null>(null);
   // AT-096: soft-warn dismissal — once dismissed, stays dismissed for the session
   const [softWarnDismissed, setSoftWarnDismissed] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (user?.uid && !tokenUsage) {
+      try {
+        const storedUsage = localStorage.getItem(`atelier_last_token_usage_${user.uid}`);
+        if (storedUsage) {
+          // eslint-disable-next-line react-hooks/set-state-in-effect
+          setTokenUsage(JSON.parse(storedUsage) as TokenDeltaData);
+        }
+      } catch (e) {
+        console.error('Failed to load token usage from localStorage:', e);
+      }
+    }
+  }, [isSettingsOpen, user?.uid, tokenUsage]);
+
+  const handleCopy = (text: string, field: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
   // AT-026 (legibility): the live agent trace — one entry per DDLC specialist
   // hand-off and one per WRAI research query, accumulated from the SSE stream.
   const [specialistTraces, setSpecialistTraces] = useState<SpecialistTraceData[]>([]);
@@ -711,7 +685,9 @@ export default function StudioClientShell({ id }: { id: string }) {
   }, []);
 
   const addLog = (level: string, msg: string) => {
-    const time = new Date().toISOString().split('T')[1].slice(0, 8);
+    const d = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const time = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
     setLogs((prev) => [...prev, { id: Date.now(), time, level, msg }]);
   };
 
@@ -832,7 +808,9 @@ export default function StudioClientShell({ id }: { id: string }) {
     setSignoffPlan(null);
     setSignoffSubmitting(false);
     setIterationScores([]); // AT-093: reset per-iteration scorecard on each new run
-    setCompetitorBeatVisible(true); // AT-090: show beat again on each new run
+    setPlannedSurfaces([]);
+    setSurfaces({});
+    setSelectedSurface(null);
     // AT-026: reset the legibility trace + attribution + stop target for the new run
     setSpecialistTraces([]);
     setResearchQueries([]);
@@ -851,11 +829,20 @@ export default function StudioClientShell({ id }: { id: string }) {
     setA2uiAnnouncement('');
     addLog('INFO', 'Initiating Vertex AI Convergence Loop...');
 
-    const brief = new URLSearchParams(window.location.search).get('brief') || 'SaaS landing page';
+    const searchParams = new URLSearchParams(window.location.search);
+    let brief = searchParams.get('brief') || 'SaaS landing page';
+    const deviceParam = searchParams.get('device');
+    if (deviceParam === 'app' || deviceParam === 'web') {
+      brief = `${brief} [Device Platform: ${deviceParam}]`;
+    }
 
     const callbacks: StreamCallbacks = {
       onPlan: (data) => {
         addLog('INFO', `Plan received: ${data.surfaces?.join(', ') || 'N/A'}`);
+        if (data.surfaces && data.surfaces.length > 0) {
+          setPlannedSurfaces(data.surfaces);
+          setSelectedSurface(data.surfaces[0]);
+        }
         // AT-026: capture the run id so the Stop control can address THIS run.
         if (data.session_id) setSessionId(data.session_id);
         // AT-042: a plan that carries sign-off-relevant scope (cited defaults or
@@ -901,6 +888,14 @@ export default function StudioClientShell({ id }: { id: string }) {
       },
       onScreenConverged: (data) => {
         addLog('SUCCESS', `Screen converged: ${data.screen}`);
+        setSurfaces((prev) => ({ ...prev, [data.screen]: data.html }));
+        setSelectedSurface((prev) => {
+          if (!prev || prev === data.screen) {
+            setConvergedHtml(data.html);
+            return data.screen;
+          }
+          return prev;
+        });
       },
       onComplete: (data) => {
         if (data.best_html) setConvergedHtml(data.best_html);
@@ -957,11 +952,18 @@ export default function StudioClientShell({ id }: { id: string }) {
         setTokenUsage(data);
         const delta = data.input + data.output + data.thinking;
         addLog('INFO', `Tokens: +${delta} (Σ ${data.cumulative_user_tokens}/${TOKEN_CAP})`);
+        if (user?.uid) {
+          try {
+            localStorage.setItem(`atelier_last_token_usage_${user.uid}`, JSON.stringify(data));
+          } catch (e) {
+            console.error('Failed to save token usage to localStorage:', e);
+          }
+        }
       },
       // AT-026 (Mid): append each DDLC specialist hand-off to the live trace.
       onSpecialistTrace: (data: SpecialistTraceData) => {
         setSpecialistTraces((prev) => [...prev, data]);
-        addLog('INFO', `Specialist ${data.role}: ${data.summary.slice(0, 60)}`);
+        addLog('INFO', `Specialist ${data.role}: ${data.summary}`);
       },
       // AT-026 (Mid): append each WRAI research query to the live trace.
       onResearchQuery: (data: ResearchQueryData) => {
@@ -995,6 +997,376 @@ export default function StudioClientShell({ id }: { id: string }) {
     });
   };
 
+  const renderLeftSidebarContent = () => (
+    <div className="flex flex-col h-full">
+      <div className="p-3 border-b border-[var(--g-outline)] flex items-center justify-between lg:justify-start gap-2">
+        <div className="flex items-center gap-2">
+          <Layout size={14} className="text-gray-400" />
+          <span className="text-xs font-semibold text-gray-300 uppercase tracking-wider">
+            Layers
+          </span>
+        </div>
+        <button
+          onClick={() => setIsLeftSidebarOpen(false)}
+          className="lg:hidden p-1 hover:bg-white/10 rounded text-gray-400 hover:text-white transition-colors"
+          aria-label="Close layers panel"
+        >
+          <X size={14} />
+        </button>
+      </div>
+      <div className="flex-1 overflow-y-auto p-2 space-y-1">
+        {layers.map((layer, i) => (
+          <div
+            key={i}
+            onClick={() => {
+              handleLayerClick(layer, i);
+              setIsLeftSidebarOpen(false);
+            }}
+            className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-[var(--g-surface-hover)] text-xs text-gray-400 cursor-pointer group transition-colors"
+          >
+            <Box
+              size={14}
+              className="text-gray-500 group-hover:text-[var(--g-info)] transition-colors"
+            />
+            <span className="truncate">{layer.name}</span>
+          </div>
+        ))}
+        {layers.length === 0 && (
+          <div className="p-3 text-xs text-gray-500 italic text-center">No layers generated</div>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderRightSidebarContent = () => (
+    <div className="flex flex-col h-full">
+      {/* G3 a11y: persistent, single live region for A2UI state. Mounted
+          UNCONDITIONALLY and BEFORE the A2UI surface so per SC 4.1.3 the
+          region pre-exists the update (the renderer injects container +
+          content together and has no aria-live of its own). Tailwind's
+          built-in `sr-only` keeps it visually hidden but screen-reader
+          reachable. Do NOT mount a second live region — double-announce. */}
+      <div data-testid="a2ui-live-region" role="status" aria-live="polite" className="sr-only">
+        {a2uiAnnouncement}
+      </div>
+      <div className="p-4 border-b border-[var(--g-outline)] flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <SlidersHorizontal size={16} className="text-[var(--g-info)]" />
+          <span className="text-sm font-semibold text-white">Vertex AI Settings</span>
+        </div>
+        <button
+          onClick={() => setIsRightSidebarOpen(false)}
+          className="xl:hidden p-1 hover:bg-white/10 rounded text-gray-400 hover:text-white transition-colors"
+          aria-label="Close settings panel"
+        >
+          <X size={16} />
+        </button>
+      </div>
+
+      <div className="p-5 space-y-6 flex-1 overflow-y-auto">
+        <div className="space-y-4">
+          <div>
+            <div className="flex justify-between text-xs mb-1.5">
+              <span className="text-gray-400">Temperature</span>
+              <span className="text-white font-mono">{temperature.toFixed(2)}</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              value={temperature}
+              onChange={(e) => setTemperature(parseFloat(e.target.value))}
+              className="w-full accent-[var(--g-primary-blue)]"
+              aria-label="Temperature"
+            />
+          </div>
+          <div>
+            <div className="flex justify-between text-xs mb-1.5">
+              <span className="text-gray-400">Top-K</span>
+              <span className="text-white font-mono">{topK}</span>
+            </div>
+            <input
+              type="range"
+              min="1"
+              max="40"
+              value={topK}
+              onChange={(e) => setTopK(parseInt(e.target.value))}
+              className="w-full accent-[var(--g-primary-blue)]"
+              aria-label="Top-K"
+            />
+          </div>
+          <div>
+            <div className="flex justify-between text-xs mb-1.5">
+              <span className="text-gray-400">Max Tokens</span>
+              <span className="text-white font-mono">{maxTokens}</span>
+            </div>
+            <input
+              type="range"
+              min="1024"
+              max="8192"
+              step="512"
+              value={maxTokens}
+              onChange={(e) => setMaxTokens(parseInt(e.target.value))}
+              className="w-full accent-[var(--g-primary-blue)]"
+              aria-label="Max Tokens"
+            />
+          </div>
+        </div>
+
+        <div className="h-px bg-[var(--g-outline)] my-6"></div>
+
+        {/* AT-093: D-O-R-A-V Scorecard — animates per-iteration during generation */}
+        <div data-testid="dorav-scorecard" data-iteration={currentIteration ?? ''}>
+          <h4 className="text-[11px] uppercase tracking-wider font-semibold text-gray-500 mb-3">
+            D-O-R-A-V Scorecard
+            {currentIteration != null && (
+              <span className="ml-2 px-1.5 py-0.5 rounded text-[9px] bg-[var(--g-info)]/20 text-[var(--g-info)] font-mono border border-[var(--g-info)]/30 align-middle">
+                iter {currentIteration + 1}
+              </span>
+            )}
+          </h4>
+          {/* Composite headline */}
+          <div className="bg-black/40 p-3 rounded border border-[var(--g-info)]/30 flex justify-between items-center mb-3">
+            <span className="text-xs text-gray-300 font-semibold">Composite</span>
+            <span
+              className={`text-sm font-mono font-bold ${liveDorav?.composite != null ? 'text-[var(--g-info)]' : 'text-gray-600'}`}
+            >
+              {liveDorav?.composite != null ? (
+                <AnimatedScoreValue value={liveDorav.composite} />
+              ) : (
+                '--'
+              )}
+            </span>
+          </div>
+          <div className="space-y-2">
+            {DORAV_AXES.map(({ key, label }) => {
+              const val = liveDorav?.[key as DoravAxisKey];
+              const isFailing = failingAxis === key;
+              return (
+                <div
+                  key={key}
+                  data-testid={`dorav-axis-${key}`}
+                  data-score={val != null ? String(Math.round(val * 100)) : ''}
+                  className={`px-3 py-2 rounded border flex justify-between items-center transition-colors ${
+                    isFailing
+                      ? 'failing-axis bg-amber-950/40 border-amber-500/60'
+                      : 'bg-black/30 border-[var(--g-outline)]'
+                  }`}
+                >
+                  <span
+                    className={`text-xs ${isFailing ? 'text-amber-300 font-semibold' : 'text-gray-400'}`}
+                  >
+                    {label}
+                    {isFailing && (
+                      <span className="ml-1 text-[9px] text-amber-400 font-mono">↓ low</span>
+                    )}
+                  </span>
+                  <span
+                    className={`text-xs font-mono font-bold ${
+                      isFailing
+                        ? 'text-amber-400'
+                        : val != null
+                          ? 'text-emerald-400'
+                          : 'text-gray-600'
+                    }`}
+                  >
+                    {val != null ? <AnimatedScoreValue value={val} /> : '—'}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* AT-026 (Mid legibility): live agent trace — specialist hand-offs +
+            research queries + D-O-R-A-V tooltips. Shown while generating and
+            whenever any trace has arrived (so it persists after convergence). */}
+        {(status === 'generating' || specialistTraces.length > 0 || researchQueries.length > 0) && (
+          <>
+            <TopologyGraph
+              specialistTraces={specialistTraces}
+              error={status === 'error' ? 'Pipeline error' : null}
+            />
+            <TracePanel specialistTraces={specialistTraces} researchQueries={researchQueries} />
+          </>
+        )}
+
+        {/* AT-027 (Optimize surfacing): read-only MoE routing decision +
+            dreaming/DPO artifact for the run. Shown whenever either asset
+            has arrived; the card itself returns null if both are empty. */}
+        {(routeDecision || dreamingArtifact) && (
+          <OptimizeArtifactCard routeDecision={routeDecision} dreamingArtifact={dreamingArtifact} />
+        )}
+
+        {/* AT-026 (Post / Attribution): the run-oracle verdict — every
+            acceptance criterion -> verdict + evidence. Shown on a terminal
+            outcome (converged / degraded / stopped) once a run has produced a
+            verdict; "Amend & regenerate" re-enters the loop. */}
+        {(status === 'converged' || status === 'degraded' || status === 'stopped') &&
+          (runVerdict !== null || convergedHtml) && (
+            <AttributionView runVerdict={runVerdict} onAmend={startGeneration} />
+          )}
+
+        {/* AT-096: Live Token Meter */}
+        <div className="h-px bg-[var(--g-outline)] my-4" />
+        {(() => {
+          const cumulative = tokenUsage?.cumulative_user_tokens ?? 0;
+          const pct = Math.min(100, (cumulative / TOKEN_CAP) * 100);
+          const remaining = TOKEN_CAP - cumulative;
+          const barColor = pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-amber-500' : 'bg-emerald-500';
+          return (
+            <>
+              {/* Soft warning banner — dismissible, non-blocking, shown once */}
+              {tokenUsage &&
+                tokenUsage.cumulative_user_tokens >= 0.9 * TOKEN_CAP &&
+                !softWarnDismissed && (
+                  <div
+                    data-testid="token-soft-warning"
+                    className="flex items-center justify-between gap-2 mb-3 px-3 py-2 rounded border border-amber-500/60 bg-amber-950/40 text-[11px] text-amber-300"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    <span>You&apos;re approaching this account&apos;s usage limit (90%).</span>
+                    <button
+                      onClick={() => setSoftWarnDismissed(true)}
+                      className="shrink-0 p-0.5 rounded hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+                      aria-label="Dismiss token warning"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                )}
+              <div data-testid="token-meter" data-cumulative={cumulative} data-cap={TOKEN_CAP}>
+                <h4 className="text-[11px] uppercase tracking-wider font-semibold text-gray-500 mb-2">
+                  Token Usage
+                </h4>
+                {/* Hero: remaining headroom */}
+                <div className="bg-black/40 p-3 rounded border border-[var(--g-outline)] mb-2">
+                  <div className="flex justify-between items-baseline mb-1.5">
+                    <span className="text-[10px] text-gray-400">Used</span>
+                    <span className="text-xs font-mono text-white">
+                      {cumulative.toLocaleString()} / {TOKEN_CAP.toLocaleString()}
+                    </span>
+                  </div>
+                  {/* Progress bar */}
+                  <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden mb-1.5">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${barColor}`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-[10px] text-gray-500">Remaining</span>
+                    <span
+                      className={`text-xs font-mono font-bold ${pct >= 90 ? 'text-red-400' : pct >= 70 ? 'text-amber-400' : 'text-emerald-400'}`}
+                    >
+                      {remaining.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+                {/* Per-type breakdown */}
+                <div className="space-y-1">
+                  {[
+                    { testid: 'token-meter-input', label: 'Input', val: tokenUsage?.input },
+                    {
+                      testid: 'token-meter-output',
+                      label: 'Output',
+                      val: tokenUsage?.output,
+                    },
+                    {
+                      testid: 'token-meter-thinking',
+                      label: 'Thinking',
+                      val: tokenUsage?.thinking,
+                    },
+                  ].map(({ testid, label, val }) => (
+                    <div
+                      key={testid}
+                      data-testid={testid}
+                      className="flex justify-between items-center px-2 py-1 rounded bg-black/20 border border-[var(--g-outline)]"
+                    >
+                      <span className="text-[10px] text-gray-500">{label}</span>
+                      <span className="text-[10px] font-mono text-gray-300">
+                        {val != null ? val.toLocaleString() : '—'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          );
+        })()}
+
+        {/* Nielsen Heuristics */}
+        {(status === 'converged' || nielsen.length > 0) && (
+          <div>
+            <div className="h-px bg-[var(--g-outline)] my-4" />
+            <h4 className="text-[11px] uppercase tracking-wider font-semibold text-gray-500 mb-3">
+              Nielsen Heuristics
+            </h4>
+            {nielsen.length === 0 ? (
+              <p className="text-xs text-gray-600 italic">No heuristic data</p>
+            ) : (
+              <div className="space-y-1.5">
+                {nielsen.map((item) => (
+                  <div
+                    key={item.heuristic}
+                    className="flex items-center gap-2 px-2 py-1.5 rounded bg-black/20 border border-[var(--g-outline)]"
+                  >
+                    <span
+                      className={`shrink-0 w-2 h-2 rounded-full ${item.present ? 'bg-emerald-400' : 'bg-gray-600'}`}
+                      aria-label={item.present ? 'present' : 'absent'}
+                    />
+                    <span className="text-[10px] text-gray-400 flex-1 truncate capitalize">
+                      {item.heuristic.replace(/_/g, ' ')}
+                    </span>
+                    <span className="text-[10px] font-mono text-gray-500 shrink-0">
+                      {item.votes}/3
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* AT-044 / ADR-0024: design-system panel */}
+        {convergedHtml && effectiveDesignSystem && (
+          <>
+            {useA2uiPanel && a2uiPayload ? (
+              <div data-testid="studio-a2ui-section" aria-busy={status === 'generating'}>
+                <div className="h-px bg-[var(--g-outline)] my-4" />
+                <div className="mb-2 flex justify-end">
+                  <span
+                    className="rounded border border-[var(--g-info)]/30 bg-[var(--g-info)]/15 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-[var(--g-info)]"
+                    title="Rendered from the agent-emitted A2UI surface (Governed A2UI)"
+                  >
+                    A2UI
+                  </span>
+                </div>
+                <A2uiDesignSystemPanel
+                  ref={a2uiPanelRef}
+                  messages={a2uiPayload}
+                  onRenderError={handleA2uiRenderError}
+                  onSurfaceReady={handleA2uiSurfaceReady}
+                  isStreaming={status === 'generating'}
+                />
+              </div>
+            ) : (
+              <DesignSystemPanel
+                rows={designSystemRows}
+                controls={generatedControls}
+                scales={groupScales}
+                onEditToken={handleEditToken}
+                onScale={handleScaleGroup}
+              />
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+
   if (!user) return <div ref={initRef} />;
 
   // AT-094 (R9): the offline acknowledgement owns the canvas ONLY when there is
@@ -1018,25 +1390,56 @@ export default function StudioClientShell({ id }: { id: string }) {
             >
               <ArrowLeft size={18} className="text-[var(--g-text-muted)]" />
             </button>
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-[13px] text-white tracking-wide">{id}</span>
-              <span className="px-1.5 py-0.5 rounded text-[10px] bg-[var(--g-info)]/20 text-[var(--g-info)] font-mono border border-[var(--g-info)]/30">
+            <button
+              onClick={() => setIsLeftSidebarOpen(!isLeftSidebarOpen)}
+              className="lg:hidden p-1.5 hover:bg-[var(--g-surface-hover)] rounded-md transition-colors text-gray-400 hover:text-white"
+              aria-label="Toggle layers panel"
+            >
+              <Layout size={18} />
+            </button>
+            <div className="flex items-center gap-2 max-w-[120px] sm:max-w-none">
+              <span className="font-semibold text-[13px] text-white tracking-wide truncate">
+                {projectTitle}
+              </span>
+              <span className="px-1.5 py-0.5 rounded text-[10px] bg-[var(--g-info)]/20 text-[var(--g-info)] font-mono border border-[var(--g-info)]/30 shrink-0">
                 v1.0
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-1 bg-black/40 p-1 rounded-md border border-[var(--g-outline)]">
-            <button className="px-3 py-1 rounded text-xs font-medium bg-[var(--g-outline)] text-white shadow-sm">
-              Home
-            </button>
-            <button className="px-3 py-1 rounded text-xs font-medium text-gray-400 hover:text-white transition-colors">
-              Auth
-            </button>
-            <button className="px-3 py-1 rounded text-xs font-medium text-gray-400 hover:text-white transition-colors">
-              Dashboard
-            </button>
-          </div>
+          {plannedSurfaces.length > 0 && (
+            <div className="flex items-center gap-1 bg-black/40 p-1 rounded-md border border-[var(--g-outline)] max-w-[200px] sm:max-w-none overflow-x-auto">
+              {plannedSurfaces.map((surf) => {
+                const isAvailable = !!surfaces[surf];
+                const isSelected = selectedSurface === surf;
+                return (
+                  <button
+                    key={surf}
+                    onClick={() => {
+                      if (isAvailable) {
+                        setSelectedSurface(surf);
+                        setConvergedHtml(surfaces[surf]);
+                      }
+                    }}
+                    disabled={!isAvailable}
+                    title={isAvailable ? surf : `${surf} — generating…`}
+                    className={`px-3 py-1 rounded text-xs font-medium transition-colors shrink-0 ${
+                      isSelected
+                        ? 'bg-[var(--g-outline)] text-white shadow-sm'
+                        : isAvailable
+                          ? 'text-gray-400 hover:text-white cursor-pointer'
+                          : 'text-gray-600 cursor-default'
+                    }`}
+                  >
+                    {surf}
+                    {!isAvailable && status === 'generating' && (
+                      <span className="ml-1 inline-block w-1.5 h-1.5 rounded-full bg-gray-600 animate-pulse align-middle" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           <div className="flex items-center gap-3">
             <div className="relative flex items-center">
@@ -1082,39 +1485,132 @@ export default function StudioClientShell({ id }: { id: string }) {
               )}
               {status === 'generating' ? 'Generating...' : 'Run'}
             </button>
+
+            {/* Settings Toggle Button on mobile */}
+            <button
+              onClick={() => setIsRightSidebarOpen(!isRightSidebarOpen)}
+              className="xl:hidden p-1.5 hover:bg-[var(--g-surface-hover)] rounded-md transition-colors text-gray-400 hover:text-white"
+              aria-label="Toggle settings panel"
+            >
+              <SlidersHorizontal size={18} />
+            </button>
+
+            {/* Avatar Dropdown */}
+            {user && (
+              <div className="relative ml-2" ref={menuRef}>
+                <button
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  className="w-7 h-7 rounded-full bg-[var(--g-primary-blue)] flex items-center justify-center text-[10px] font-bold text-white cursor-pointer hover:bg-[var(--g-primary-blue-hover)] transition-colors shadow-sm focus:outline-none focus:ring-1 focus:ring-[var(--g-primary-blue)]"
+                  title={user.email}
+                  aria-haspopup="true"
+                  aria-expanded={isMenuOpen}
+                >
+                  {getUserInitials()}
+                </button>
+
+                {isMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-60 bg-[var(--g-surface)]/95 border border-[var(--g-outline)] rounded-lg shadow-2xl backdrop-blur-md p-2 z-50 animate-in fade-in slide-in-from-top-1 duration-200">
+                    <div className="px-3 py-1.5 border-b border-[var(--g-outline)] mb-1">
+                      <p className="text-xs font-medium text-white truncate">{user.displayName}</p>
+                      <p className="text-[10px] text-[var(--g-text-muted)] truncate">
+                        {user.email}
+                      </p>
+                    </div>
+
+                    <div className="space-y-0.5">
+                      <button
+                        onClick={() => {
+                          setIsSettingsOpen(true);
+                          setIsMenuOpen(false);
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-1.5 rounded text-left text-xs text-gray-200 hover:bg-[var(--g-surface-hover)] hover:text-white transition-colors"
+                      >
+                        <Settings size={12} className="text-[var(--g-text-muted)]" />
+                        Account Settings
+                      </button>
+                      <a
+                        href="https://atelier.autonomous-agent.dev/docs"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full flex items-center gap-2 px-3 py-1.5 rounded text-left text-xs text-gray-200 hover:bg-[var(--g-surface-hover)] hover:text-white transition-colors"
+                      >
+                        <BookOpen size={12} className="text-[var(--g-text-muted)]" />
+                        Documentation
+                      </a>
+                      <a
+                        href="/terms"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full flex items-center gap-2 px-3 py-1.5 rounded text-left text-xs text-gray-200 hover:bg-[var(--g-surface-hover)] hover:text-white transition-colors"
+                      >
+                        <FileText size={12} className="text-[var(--g-text-muted)]" />
+                        Terms of Service
+                      </a>
+                      <a
+                        href="/privacy"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full flex items-center gap-2 px-3 py-1.5 rounded text-left text-xs text-gray-200 hover:bg-[var(--g-surface-hover)] hover:text-white transition-colors"
+                      >
+                        <Shield size={12} className="text-[var(--g-text-muted)]" />
+                        Privacy Policy
+                      </a>
+                      <a
+                        href="mailto:support@atelier.autonomous-agent.dev"
+                        className="w-full flex items-center gap-2 px-3 py-1.5 rounded text-left text-xs text-gray-200 hover:bg-[var(--g-surface-hover)] hover:text-white transition-colors"
+                      >
+                        <LifeBuoy size={12} className="text-[var(--g-text-muted)]" />
+                        Help &amp; Support
+                      </a>
+                    </div>
+
+                    <div className="h-px bg-[var(--g-outline)] my-1" />
+
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2 px-3 py-1.5 rounded text-left text-xs text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"
+                    >
+                      <LogOut size={12} />
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </header>
 
         <div className="flex-1 flex overflow-hidden relative">
-          {/* Left Block Drawer */}
-          <aside className="w-56 border-r border-[var(--g-outline)] bg-[var(--g-surface)]/50 backdrop-blur-md flex flex-col z-10">
-            <div className="p-3 border-b border-[var(--g-outline)] flex items-center gap-2">
-              <Layout size={14} className="text-gray-400" />
-              <span className="text-xs font-semibold text-gray-300 uppercase tracking-wider">
-                Layers
-              </span>
-            </div>
-            <div className="flex-1 overflow-y-auto p-2 space-y-1">
-              {layers.map((layer, i) => (
-                <div
-                  key={i}
-                  onClick={() => handleLayerClick(layer, i)}
-                  className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-[var(--g-surface-hover)] text-xs text-gray-400 cursor-pointer group transition-colors"
-                >
-                  <Box
-                    size={14}
-                    className="text-gray-500 group-hover:text-[var(--g-info)] transition-colors"
-                  />
-                  <span className="truncate">{layer.name}</span>
-                </div>
-              ))}
-              {layers.length === 0 && (
-                <div className="p-3 text-xs text-gray-500 italic text-center">
-                  No layers generated
-                </div>
-              )}
-            </div>
+          {/* Desktop Left Block Drawer */}
+          <aside className="hidden lg:flex w-56 border-r border-[var(--g-outline)] bg-[var(--g-surface)]/50 backdrop-blur-md flex-col z-10 shrink-0">
+            {renderLeftSidebarContent()}
           </aside>
+
+          {/* Mobile Left Sidebar Drawer */}
+          <AnimatePresence>
+            {isLeftSidebarOpen && (
+              <div className="fixed inset-0 z-40 lg:hidden flex">
+                {/* Backdrop */}
+                <m.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setIsLeftSidebarOpen(false)}
+                  className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
+                />
+                {/* Sidebar Content */}
+                <m.aside
+                  initial={{ x: -224 }}
+                  animate={{ x: 0 }}
+                  exit={{ x: -224 }}
+                  transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                  className="relative w-56 bg-[var(--g-bg)] border-r border-[var(--g-outline)] h-full flex flex-col z-50"
+                >
+                  {renderLeftSidebarContent()}
+                </m.aside>
+              </div>
+            )}
+          </AnimatePresence>
 
           {/* Center Canvas */}
           <main className="flex-1 relative flex items-center justify-center overflow-auto">
@@ -1389,364 +1885,36 @@ export default function StudioClientShell({ id }: { id: string }) {
             </m.div>
           </main>
 
-          {/* Right Vertex AI Config Panel */}
-          <aside className="w-72 border-l border-[var(--g-outline)] bg-[var(--g-surface)]/50 backdrop-blur-md flex flex-col z-10">
-            {/* G3 a11y: persistent, single live region for A2UI state. Mounted
-                UNCONDITIONALLY and BEFORE the A2UI surface so per SC 4.1.3 the
-                region pre-exists the update (the renderer injects container +
-                content together and has no aria-live of its own). Tailwind's
-                built-in `sr-only` keeps it visually hidden but screen-reader
-                reachable. Do NOT mount a second live region — double-announce. */}
-            <div
-              data-testid="a2ui-live-region"
-              role="status"
-              aria-live="polite"
-              className="sr-only"
-            >
-              {a2uiAnnouncement}
-            </div>
-            <div className="p-4 border-b border-[var(--g-outline)] flex items-center gap-2">
-              <SlidersHorizontal size={16} className="text-[var(--g-info)]" />
-              <span className="text-sm font-semibold text-white">Vertex AI Settings</span>
-            </div>
-
-            <div className="p-5 space-y-6 flex-1 overflow-y-auto">
-              <div className="space-y-4">
-                <div>
-                  <div className="flex justify-between text-xs mb-1.5">
-                    <span className="text-gray-400">Temperature</span>
-                    <span className="text-white font-mono">{temperature.toFixed(2)}</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.05"
-                    value={temperature}
-                    onChange={(e) => setTemperature(parseFloat(e.target.value))}
-                    className="w-full accent-[var(--g-primary-blue)]"
-                    aria-label="Temperature"
-                  />
-                </div>
-                <div>
-                  <div className="flex justify-between text-xs mb-1.5">
-                    <span className="text-gray-400">Top-K</span>
-                    <span className="text-white font-mono">{topK}</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="1"
-                    max="40"
-                    value={topK}
-                    onChange={(e) => setTopK(parseInt(e.target.value))}
-                    className="w-full accent-[var(--g-primary-blue)]"
-                    aria-label="Top-K"
-                  />
-                </div>
-                <div>
-                  <div className="flex justify-between text-xs mb-1.5">
-                    <span className="text-gray-400">Max Tokens</span>
-                    <span className="text-white font-mono">{maxTokens}</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="1024"
-                    max="8192"
-                    step="512"
-                    value={maxTokens}
-                    onChange={(e) => setMaxTokens(parseInt(e.target.value))}
-                    className="w-full accent-[var(--g-primary-blue)]"
-                    aria-label="Max Tokens"
-                  />
-                </div>
-              </div>
-
-              <div className="h-px bg-[var(--g-outline)] my-6"></div>
-
-              {/* AT-093: D-O-R-A-V Scorecard — animates per-iteration during generation */}
-              <div data-testid="dorav-scorecard" data-iteration={currentIteration ?? ''}>
-                <h4 className="text-[11px] uppercase tracking-wider font-semibold text-gray-500 mb-3">
-                  D-O-R-A-V Scorecard
-                  {currentIteration != null && (
-                    <span className="ml-2 px-1.5 py-0.5 rounded text-[9px] bg-[var(--g-info)]/20 text-[var(--g-info)] font-mono border border-[var(--g-info)]/30 align-middle">
-                      iter {currentIteration + 1}
-                    </span>
-                  )}
-                </h4>
-                {/* Composite headline */}
-                <div className="bg-black/40 p-3 rounded border border-[var(--g-info)]/30 flex justify-between items-center mb-3">
-                  <span className="text-xs text-gray-300 font-semibold">Composite</span>
-                  <span
-                    className={`text-sm font-mono font-bold ${liveDorav?.composite != null ? 'text-[var(--g-info)]' : 'text-gray-600'}`}
-                  >
-                    {liveDorav?.composite != null ? (
-                      <AnimatedScoreValue value={liveDorav.composite} />
-                    ) : (
-                      '--'
-                    )}
-                  </span>
-                </div>
-                <div className="space-y-2">
-                  {DORAV_AXES.map(({ key, label }) => {
-                    const val = liveDorav?.[key as DoravAxisKey];
-                    const isFailing = failingAxis === key;
-                    return (
-                      <div
-                        key={key}
-                        data-testid={`dorav-axis-${key}`}
-                        data-score={val != null ? String(Math.round(val * 100)) : ''}
-                        className={`px-3 py-2 rounded border flex justify-between items-center transition-colors ${
-                          isFailing
-                            ? 'failing-axis bg-amber-950/40 border-amber-500/60'
-                            : 'bg-black/30 border-[var(--g-outline)]'
-                        }`}
-                      >
-                        <span
-                          className={`text-xs ${isFailing ? 'text-amber-300 font-semibold' : 'text-gray-400'}`}
-                        >
-                          {label}
-                          {isFailing && (
-                            <span className="ml-1 text-[9px] text-amber-400 font-mono">↓ low</span>
-                          )}
-                        </span>
-                        <span
-                          className={`text-xs font-mono font-bold ${
-                            isFailing
-                              ? 'text-amber-400'
-                              : val != null
-                                ? 'text-emerald-400'
-                                : 'text-gray-600'
-                          }`}
-                        >
-                          {val != null ? <AnimatedScoreValue value={val} /> : '—'}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* AT-026 (Mid legibility): live agent trace — specialist hand-offs +
-                  research queries + D-O-R-A-V tooltips. Shown while generating and
-                  whenever any trace has arrived (so it persists after convergence). */}
-              {(status === 'generating' ||
-                specialistTraces.length > 0 ||
-                researchQueries.length > 0) && (
-                <>
-                  <TopologyGraph
-                    specialistTraces={specialistTraces}
-                    error={status === 'error' ? 'Pipeline error' : null}
-                  />
-                  <TracePanel
-                    specialistTraces={specialistTraces}
-                    researchQueries={researchQueries}
-                  />
-                </>
-              )}
-
-              {/* AT-027 (Optimize surfacing): read-only MoE routing decision +
-                  dreaming/DPO artifact for the run. Shown whenever either asset
-                  has arrived; the card itself returns null if both are empty. */}
-              {(routeDecision || dreamingArtifact) && (
-                <OptimizeArtifactCard
-                  routeDecision={routeDecision}
-                  dreamingArtifact={dreamingArtifact}
-                />
-              )}
-
-              {/* AT-026 (Post / Attribution): the run-oracle verdict — every
-                  acceptance criterion -> verdict + evidence. Shown on a terminal
-                  outcome (converged / degraded / stopped) once a run has produced a
-                  verdict; "Amend & regenerate" re-enters the loop. */}
-              {(status === 'converged' || status === 'degraded' || status === 'stopped') &&
-                (runVerdict !== null || convergedHtml) && (
-                  <AttributionView runVerdict={runVerdict} onAmend={startGeneration} />
-                )}
-
-              {/* AT-096: Live Token Meter */}
-              <div className="h-px bg-[var(--g-outline)] my-4" />
-              {(() => {
-                const cumulative = tokenUsage?.cumulative_user_tokens ?? 0;
-                const pct = Math.min(100, (cumulative / TOKEN_CAP) * 100);
-                const remaining = TOKEN_CAP - cumulative;
-                const barColor =
-                  pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-amber-500' : 'bg-emerald-500';
-                return (
-                  <>
-                    {/* Soft warning banner — dismissible, non-blocking, shown once */}
-                    {tokenUsage &&
-                      tokenUsage.cumulative_user_tokens >= 0.9 * TOKEN_CAP &&
-                      !softWarnDismissed && (
-                        <div
-                          data-testid="token-soft-warning"
-                          className="flex items-center justify-between gap-2 mb-3 px-3 py-2 rounded border border-amber-500/60 bg-amber-950/40 text-[11px] text-amber-300"
-                          role="status"
-                          aria-live="polite"
-                        >
-                          <span>
-                            You&apos;re approaching this account&apos;s usage limit (90%).
-                          </span>
-                          <button
-                            onClick={() => setSoftWarnDismissed(true)}
-                            className="shrink-0 p-0.5 rounded hover:bg-white/10 text-amber-400 hover:text-white transition-colors"
-                            aria-label="Dismiss token warning"
-                          >
-                            <X size={12} />
-                          </button>
-                        </div>
-                      )}
-                    <div
-                      data-testid="token-meter"
-                      data-cumulative={cumulative}
-                      data-cap={TOKEN_CAP}
-                    >
-                      <h4 className="text-[11px] uppercase tracking-wider font-semibold text-gray-500 mb-2">
-                        Token Usage
-                      </h4>
-                      {/* Hero: remaining headroom */}
-                      <div className="bg-black/40 p-3 rounded border border-[var(--g-outline)] mb-2">
-                        <div className="flex justify-between items-baseline mb-1.5">
-                          <span className="text-[10px] text-gray-400">Used</span>
-                          <span className="text-xs font-mono text-white">
-                            {cumulative.toLocaleString()} / {TOKEN_CAP.toLocaleString()}
-                          </span>
-                        </div>
-                        {/* Progress bar */}
-                        <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden mb-1.5">
-                          <div
-                            className={`h-full rounded-full transition-all duration-500 ${barColor}`}
-                            style={{ width: `${pct}%` }}
-                          />
-                        </div>
-                        <div className="flex justify-between items-baseline">
-                          <span className="text-[10px] text-gray-500">Remaining</span>
-                          <span
-                            className={`text-xs font-mono font-bold ${pct >= 90 ? 'text-red-400' : pct >= 70 ? 'text-amber-400' : 'text-emerald-400'}`}
-                          >
-                            {remaining.toLocaleString()}
-                          </span>
-                        </div>
-                      </div>
-                      {/* Per-type breakdown */}
-                      <div className="space-y-1">
-                        {[
-                          { testid: 'token-meter-input', label: 'Input', val: tokenUsage?.input },
-                          {
-                            testid: 'token-meter-output',
-                            label: 'Output',
-                            val: tokenUsage?.output,
-                          },
-                          {
-                            testid: 'token-meter-thinking',
-                            label: 'Thinking',
-                            val: tokenUsage?.thinking,
-                          },
-                        ].map(({ testid, label, val }) => (
-                          <div
-                            key={testid}
-                            data-testid={testid}
-                            className="flex justify-between items-center px-2 py-1 rounded bg-black/20 border border-[var(--g-outline)]"
-                          >
-                            <span className="text-[10px] text-gray-500">{label}</span>
-                            <span className="text-[10px] font-mono text-gray-300">
-                              {val != null ? val.toLocaleString() : '—'}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                );
-              })()}
-
-              {/* Nielsen Heuristics */}
-              {(status === 'converged' || nielsen.length > 0) && (
-                <div>
-                  <div className="h-px bg-[var(--g-outline)] my-4" />
-                  <h4 className="text-[11px] uppercase tracking-wider font-semibold text-gray-500 mb-3">
-                    Nielsen Heuristics
-                  </h4>
-                  {nielsen.length === 0 ? (
-                    <p className="text-xs text-gray-600 italic">No heuristic data</p>
-                  ) : (
-                    <div className="space-y-1.5">
-                      {nielsen.map((item) => (
-                        <div
-                          key={item.heuristic}
-                          className="flex items-center gap-2 px-2 py-1.5 rounded bg-black/20 border border-[var(--g-outline)]"
-                        >
-                          <span
-                            className={`shrink-0 w-2 h-2 rounded-full ${item.present ? 'bg-emerald-400' : 'bg-gray-600'}`}
-                            aria-label={item.present ? 'present' : 'absent'}
-                          />
-                          <span className="text-[10px] text-gray-400 flex-1 truncate capitalize">
-                            {item.heuristic.replace(/_/g, ' ')}
-                          </span>
-                          <span className="text-[10px] font-mono text-gray-500 shrink-0">
-                            {item.votes}/3
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* AT-044 / ADR-0024: design-system panel. When the A2UI flag is ON
-                  and the agent emitted a surface, render it via @a2ui/react;
-                  otherwise (and on any A2UI render failure) the hand-built panel
-                  is the default + fail-soft fallback. */}
-              {convergedHtml && effectiveDesignSystem && (
-                <>
-                  {useA2uiPanel && a2uiPayload ? (
-                    // G3 a11y: aria-busy reflects an in-flight generation so AT
-                    // knows the design-system region is updating.
-                    <div data-testid="studio-a2ui-section" aria-busy={status === 'generating'}>
-                      <div className="h-px bg-[var(--g-outline)] my-4" />
-                      {/* Provenance only — the A2UI surface is self-describing
-                          (it renders its own "Design System" title + token rows),
-                          so the chrome adds just the Governed-A2UI badge. Design-
-                          system colored (--g-info); indigo is off-system per
-                          DESIGN_SYSTEM.md and must not be (re)introduced here. */}
-                      <div className="mb-2 flex justify-end">
-                        <span
-                          className="rounded border border-[var(--g-info)]/30 bg-[var(--g-info)]/15 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-[var(--g-info)]"
-                          title="Rendered from the agent-emitted A2UI surface (Governed A2UI)"
-                        >
-                          A2UI
-                        </span>
-                      </div>
-                      <A2uiDesignSystemPanel
-                        ref={a2uiPanelRef}
-                        messages={a2uiPayload}
-                        onRenderError={handleA2uiRenderError}
-                        onSurfaceReady={handleA2uiSurfaceReady}
-                        isStreaming={status === 'generating'}
-                      />
-                    </div>
-                  ) : (
-                    <DesignSystemPanel
-                      rows={designSystemRows}
-                      controls={generatedControls}
-                      scales={groupScales}
-                      onEditToken={handleEditToken}
-                      onScale={handleScaleGroup}
-                    />
-                  )}
-                </>
-              )}
-
-              {/* AT-090: Competitor-contrast beat */}
-              <AnimatePresence>
-                {status === 'converged' && competitorBeatVisible && (
-                  <div>
-                    <div className="h-px bg-[var(--g-outline)] my-4" />
-                    <CompetitorContrastBeat onDismiss={() => setCompetitorBeatVisible(false)} />
-                  </div>
-                )}
-              </AnimatePresence>
-            </div>
+          {/* Desktop Right Vertex AI Config Panel */}
+          <aside className="hidden xl:flex w-72 border-l border-[var(--g-outline)] bg-[var(--g-surface)]/50 backdrop-blur-md flex-col z-10 shrink-0">
+            {renderRightSidebarContent()}
           </aside>
+
+          {/* Mobile Right Sidebar Drawer */}
+          <AnimatePresence>
+            {isRightSidebarOpen && (
+              <div className="fixed inset-0 z-40 xl:hidden flex justify-end">
+                {/* Backdrop */}
+                <m.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setIsRightSidebarOpen(false)}
+                  className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
+                />
+                {/* Sidebar Content */}
+                <m.aside
+                  initial={{ x: 288 }}
+                  animate={{ x: 0 }}
+                  exit={{ x: 288 }}
+                  transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                  className="relative w-72 bg-[var(--g-bg)] border-l border-[var(--g-outline)] h-full flex flex-col z-50"
+                >
+                  {renderRightSidebarContent()}
+                </m.aside>
+              </div>
+            )}
+          </AnimatePresence>
 
           {/* Bottom Drawer: Cloud Log Explorer */}
           <AnimatePresence>
@@ -1756,7 +1924,7 @@ export default function StudioClientShell({ id }: { id: string }) {
                 animate={{ y: 0 }}
                 exit={{ y: '100%' }}
                 transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
-                className="absolute bottom-0 left-56 right-72 h-64 bg-[#1e1f22] border-t border-[var(--g-outline)] shadow-2xl flex flex-col z-30"
+                className="absolute bottom-0 left-0 lg:left-56 right-0 xl:right-72 h-64 bg-[#1e1f22] border-t border-[var(--g-outline)] shadow-2xl flex flex-col z-30"
               >
                 <div className="h-10 bg-[#2d2f31] flex items-center justify-between px-4 border-b border-[var(--g-outline)]">
                   <div className="flex items-center gap-2 text-xs text-gray-300 font-medium">
@@ -1807,6 +1975,228 @@ export default function StudioClientShell({ id }: { id: string }) {
           </div>
         </div>
       </div>
+
+      {/* Account Settings Modal */}
+      <AnimatePresence>
+        {isSettingsOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <m.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsSettingsOpen(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-md"
+            />
+
+            {/* Modal Content */}
+            <m.div
+              initial={{ scale: 0.95, opacity: 0, y: 10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 10 }}
+              transition={{ type: 'spring', duration: 0.4 }}
+              className="relative w-full max-w-2xl bg-[#131416]/95 border border-[var(--g-outline)] rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--g-outline)] bg-black/20 text-left">
+                <div className="flex items-center gap-2">
+                  <Settings size={16} className="text-[var(--g-primary-blue)]" />
+                  <h2 className="text-sm font-semibold text-white">Account Settings</h2>
+                </div>
+                <button
+                  onClick={() => setIsSettingsOpen(false)}
+                  className="text-gray-400 hover:text-white p-1 rounded-md hover:bg-white/5 transition-colors cursor-pointer"
+                  aria-label="Close settings"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-6 text-left">
+                {/* User Profile Info */}
+                <div className="bg-black/20 rounded-lg border border-[var(--g-outline)] p-4 space-y-3">
+                  <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    User Profile
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                    <div>
+                      <label className="text-gray-500 block mb-0.5">Display Name</label>
+                      <div className="font-medium text-white">{user?.displayName || '—'}</div>
+                    </div>
+                    <div>
+                      <label className="text-gray-500 block mb-0.5">Email Address</label>
+                      <div className="font-medium text-white">{user?.email || '—'}</div>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-[var(--g-outline)]/50 space-y-2 text-xs">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <label className="text-gray-500 block mb-0.5">User ID (UID)</label>
+                        <div className="font-mono text-gray-300 select-all truncate max-w-[280px] md:max-w-[400px]">
+                          {user?.uid || '—'}
+                        </div>
+                      </div>
+                      {user?.uid && (
+                        <button
+                          onClick={() => handleCopy(user.uid, 'uid')}
+                          className="shrink-0 p-1.5 rounded hover:bg-white/5 text-gray-400 hover:text-white transition-colors cursor-pointer"
+                          title="Copy UID"
+                        >
+                          {copiedField === 'uid' ? (
+                            <Check size={14} className="text-emerald-400" />
+                          ) : (
+                            <Copy size={14} />
+                          )}
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="flex justify-between items-center pt-2 border-t border-[var(--g-outline)]/50">
+                      <div>
+                        <label className="text-gray-500 block mb-0.5">Tenant ID</label>
+                        <div className="font-mono text-gray-300 select-all truncate max-w-[280px] md:max-w-[400px]">
+                          {user?.tenant_id || '—'}
+                        </div>
+                      </div>
+                      {user?.tenant_id && (
+                        <button
+                          onClick={() => handleCopy(user.tenant_id, 'tenant')}
+                          className="shrink-0 p-1.5 rounded hover:bg-white/5 text-gray-400 hover:text-white transition-colors cursor-pointer"
+                          title="Copy Tenant ID"
+                        >
+                          {copiedField === 'tenant' ? (
+                            <Check size={14} className="text-emerald-400" />
+                          ) : (
+                            <Copy size={14} />
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* GCP & Platform Config */}
+                <div className="bg-black/20 rounded-lg border border-[var(--g-outline)] p-4 space-y-3">
+                  <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    Workspace &amp; GCP Environment
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                    <div className="flex items-center justify-between pr-2">
+                      <div>
+                        <label className="text-gray-500 block mb-0.5">GCP Project</label>
+                        <span className="font-mono text-gray-200">atelier-build-2026</span>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        Connected
+                      </span>
+                    </div>
+                    <div>
+                      <label className="text-gray-500 block mb-0.5">Active Billing Tier</label>
+                      <div className="font-medium text-white flex items-center gap-1.5">
+                        <span>Enterprise AI Developer (Self-Serve)</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-gray-500 block mb-0.5">Base API URL</label>
+                      <span className="font-mono text-gray-300 truncate block max-w-[280px]">
+                        https://atelier-dashboard-537337457799.us-central1.run.app/
+                      </span>
+                    </div>
+                    <div>
+                      <label className="text-gray-500 block mb-0.5">Platform Status</label>
+                      <span className="text-emerald-400 font-medium">All Services Operational</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Token Allocation & Usage */}
+                <div className="bg-black/20 rounded-lg border border-[var(--g-outline)] p-4 space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                      Token Allocation &amp; Usage
+                    </h3>
+                    <span className="px-2 py-0.5 rounded text-[10px] bg-[var(--g-primary-blue)]/20 text-[var(--g-primary-blue)] border border-[var(--g-primary-blue)]/30 font-mono">
+                      Limit: 5,000,000
+                    </span>
+                  </div>
+
+                  {(() => {
+                    const TOKEN_CAP = 5_000_000;
+                    const cumulative = tokenUsage?.cumulative_user_tokens ?? 0;
+                    const pct = Math.min(100, (cumulative / TOKEN_CAP) * 100);
+                    const remaining = TOKEN_CAP - cumulative;
+                    const barColor =
+                      pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-amber-500' : 'bg-emerald-500';
+
+                    return (
+                      <div className="space-y-4">
+                        <div>
+                          <div className="flex justify-between items-baseline mb-1.5 text-xs">
+                            <span className="text-gray-400">Cumulative Usage</span>
+                            <span className="font-mono text-white">
+                              {cumulative.toLocaleString()} / {TOKEN_CAP.toLocaleString()} (
+                              {pct.toFixed(1)}%)
+                            </span>
+                          </div>
+
+                          {/* Progress bar */}
+                          <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden mb-2">
+                            <div
+                              className={`h-full rounded-full transition-all duration-500 ${barColor}`}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+
+                          <div className="flex justify-between items-baseline text-xs">
+                            <span className="text-gray-500">Available Headroom</span>
+                            <span
+                              className={`font-mono font-bold ${pct >= 90 ? 'text-red-400' : pct >= 70 ? 'text-amber-400' : 'text-emerald-400'}`}
+                            >
+                              {remaining.toLocaleString()} tokens
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Breakdown */}
+                        <div className="grid grid-cols-3 gap-2 pt-2 border-t border-[var(--g-outline)]/50">
+                          {[
+                            { label: 'Input Tokens', val: tokenUsage?.input },
+                            { label: 'Output Tokens', val: tokenUsage?.output },
+                            { label: 'Thinking Tokens', val: tokenUsage?.thinking },
+                          ].map(({ label, val }) => (
+                            <div
+                              key={label}
+                              className="bg-black/30 border border-[var(--g-outline)] rounded p-2 text-center"
+                            >
+                              <div className="text-[10px] text-gray-500 block mb-0.5">{label}</div>
+                              <div className="text-xs font-mono font-semibold text-gray-200">
+                                {val != null ? val.toLocaleString() : '0'}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="px-6 py-4 border-t border-[var(--g-outline)] bg-black/20 flex justify-end gap-3">
+                <button
+                  onClick={() => setIsSettingsOpen(false)}
+                  className="px-4 py-1.5 rounded-md border border-[var(--g-outline)] text-xs font-medium text-gray-300 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </m.div>
+          </div>
+        )}
+      </AnimatePresence>
     </LazyMotion>
   );
 }
