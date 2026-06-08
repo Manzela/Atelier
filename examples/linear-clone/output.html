@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Active Issues - Acme Corp</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>:root{--c-auto-0:rgba(0,0,0,0.3);--c-auto-1:#2A2D33;--c-auto-2:#4A5568;}
+        /* --- DESIGN SYSTEM TOKENS --- */
+        :root {
+            /* Color Tokens */
+            --color-background-canvas: #0d0e10;
+            --color-background-surface-1: #121317;
+            --color-background-surface-2: #191a1d;
+            --color-background-interactive-hover: #1d1e22;
+            --color-background-overlay-light: rgba(255, 255, 255, 0.2);
+            --color-text-primary: #f0f0f1;
+            --color-text-secondary: #a0a2a7;
+            --color-text-tertiary: #676a70;
+            --color-text-on-accent: #ffffff;
+            --color-border-default: #23252a;
+            --color-border-subtle: #303136;
+            --color-accent-primary: #5e6ad2;
+            --color-accent-primary-hover: #6975dd;
+            --color-interactive-focus-ring: #727ee5;
+            --color-status-todo: #a0a2a7;
+            --color-status-in-progress: #d19f4f;
+            --color-status-done: #5ead7a;
+            --color-priority-urgent: #e96464;
+            --color-priority-high: #e28946;
+            --color-priority-medium: #d19f4f;
+            --color-priority-low: #5692f3;
+
+            /* Typography Tokens */
+            --typography-font-family-sans: 'Inter', sans-serif;
+            --typography-size-heading: 24px;
+            --typography-size-body-default: 14px;
+            --typography-size-body-compact: 13px;
+            --typography-size-label-default: 12px;
+            --typography-size-label-compact: 11px;
+            --typography-weight-regular: 400;
+            --typography-weight-medium: 500;
+            --typography-weight-semibold: 600;
+
+            /* Spacing Tokens */
+            --spacing-1: 1px;
+            --spacing-2: 2px;
+            --spacing-4: 4px;
+            --spacing-5: 5px;
+            --spacing-6: 6px;
+            --spacing-8: 8px;
+            --spacing-10: 10px;
+            --spacing-12: 12px;
+            --spacing-16: 16px;
+            --spacing-24: 24px;
+            --spacing-50: 50px;
+            --spacing-240: 240px;
+            --spacing-negative-8: -8px;
+
+            /* Radius Tokens */
+            --radius-xs: 2px;
+            --radius-sm: 4px;
+            --radius-md: 5px;
+            --radius-lg: 6px;
+            --radius-xl: 12px;
+            --radius-full: 50%;
+
+            /* Elevation Tokens */
+            --elevation-flyout: 0px 4px 12px 0px rgba(0,0,0,0.3);
+        }
+
+        /* --- BASE & UTILITIES --- */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html {
+            font-family: var(--typography-font-family-sans);
+            font-size: var(--typography-size-body-default);
+            color: var(--color-text-primary);
+            background-color: var(--color-background-canvas);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        body { overflow: hidden; }
+        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0; }
+        *:focus-visible { outline: var(--spacing-2) solid var(--color-interactive-focus-ring); outline-offset: var(--spacing-2); border-radius: var(--radius-sm); }
+        .icon { width: 16px; height: 16px; flex-shrink: 0; }
+
+        /* --- GLOBAL LAYOUT [S-1] --- */
+        .app-container { display: grid; grid-template-columns: var(--spacing-240) 1fr; height: 100vh; }
+
+        /* --- LEFT SIDEBAR (NAV) [S-1.1] --- */
+        .app-nav {
+            background-color: var(--color-background-surface-1);
+            border-right: var(--spacing-1) solid var(--color-border-default);
+            display: flex; flex-direction: column;
+            padding: var(--spacing-12); gap: var(--spacing-16);
+            overflow-y: auto;
+        }
+
+        .workspace-section { /* [S-1.1.1] */
+            display: flex; align-items: center;
+            gap: var(--spacing-8); padding: var(--spacing-4);
+        }
+        .workspace-avatar { width: var(--spacing-24); height: var(--spacing-24); border-radius: var(--radius-sm); background-color: #2A2D33; /* Placeholder */ }
+        .workspace-name { font-weight: var(--typography-weight-medium); flex-grow: 1; }
+        .notification-btn { background: none; border: none; color: var(--color-text-secondary); cursor: pointer; position: relative; padding: var(--spacing-4); }
+        .notification-dot { position: absolute; top: var(--spacing-4); right: var(--spacing-4); width: var(--spacing-6); height: var(--spacing-6); border-radius: var(--radius-full); background-color: var(--color-accent-primary); border: var(--spacing-1) solid var(--color-background-surface-1); }
+
+        .new-issue-btn { /* [S-1.1.2] */
+            display: flex; align-items: center; justify-content: center;
+            gap: var(--spacing-8); width: 100%;
+            padding: var(--spacing-8) var(--spacing-12);
+            background-color: var(--color-accent-primary);
+            color: var(--color-text-on-accent);
+            border: none; border-radius: var(--radius-lg);
+            font-weight: var(--typography-weight-medium);
+            font-size: var(--typography-size-body-default);
+            cursor: pointer; transition: background-color 150ms ease;
+        }
+        .new-issue-btn:hover { background-color: var(--color-accent-primary-hover); }
+        .shortcut-key { background-color: var(--color-background-overlay-light); padding: var(--spacing-2) var(--spacing-5); border-radius: var(--radius-sm); font-size: var(--typography-size-label-default); font-weight: var(--typography-weight-semibold); }
+
+        .nav-group { /* [S-1.1.3, S-1.1.4, S-1.1.5] */
+            display: flex; flex-direction: column; gap: var(--spacing-4);
+        }
+        .nav-group-title {
+            font-size: var(--typography-size-label-compact); font-weight: var(--typography-weight-semibold); color: var(--color-text-tertiary);
+            padding: 0 var(--spacing-8) var(--spacing-4); text-transform: uppercase;
+        }
+        .nav-list { list-style: none; }
+        .nav-item a {
+            display: flex; align-items: center; gap: var(--spacing-8);
+            padding: var(--spacing-6) var(--spacing-8); border-radius: var(--radius-md);
+            color: var(--color-text-secondary); text-decoration: none;
+            font-size: var(--typography-size-body-default);
+            transition: background-color 150ms ease, color 150ms ease;
+        }
+        .nav-item a .icon { color: var(--color-text-tertiary); transition: color 150ms ease; }
+        .nav-item a:hover { background-color: var(--color-background-interactive-hover); color: var(--color-text-primary); }
+        .nav-item a:hover .icon { color: var(--color-text-secondary); }
+        .nav-item a[aria-current="page"] { background-color: var(--color-background-surface-2); color: var(--color-text-primary); font-weight: var(--typography-weight-medium); }
+        .nav-item a[aria-current="page"] .icon { color: var(--color-text-primary); }
+
+        /* --- CENTER PANE (MAIN) [S-1.2] --- */
+        .app-main { display: flex; flex-direction: column; overflow: hidden; padding: var(--spacing-16) var(--spacing-24); }
+
+        .view-header { /* [S-1.2.1] */
+            font-size: var(--typography-size-heading); font-weight: var(--typography-weight-semibold); padding-bottom: var(--spacing-12);
+        }
+
+        .view-toolbar { /* [S-1.2.2] */
+            display: flex; align-items: center; gap: var(--spacing-8);
+            padding-bottom: var(--spacing-12); flex-shrink: 0; border-bottom: var(--spacing-1) solid var(--color-border-default);
+        }
+        .toolbar-btn { /* [S-1.2.2.1, S-1.2.2.2] */
+            display: inline-flex; align-items: center; gap: var(--spacing-6);
+            background-color: var(--color-background-surface-2); border: var(--spacing-1) solid var(--color-border-subtle);
+            color: var(--color-text-secondary); padding: var(--spacing-5) var(--spacing-10); border-radius: var(--radius-lg);
+            font-size: var(--typography-size-body-compact); cursor: pointer;
+            transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+        }
+        .toolbar-btn:hover { background-color: var(--color-background-interactive-hover); color: var(--color-text-primary); border-color: var(--color-border-subtle); }
+        .toolbar-btn .icon { width: 14px; height: 14px; }
+
+        .active-filters { /* [S-1.2.2.4] */ display: flex; align-items: center; gap: var(--spacing-8); list-style: none; }
+        .filter-chip {
+            display: flex; align-items: center; gap: var(--spacing-6);
+            background-color: var(--color-background-surface-2); padding: var(--spacing-4) var(--spacing-8); border-radius: var(--radius-xl);
+            font-size: var(--typography-size-body-compact); color: var(--color-text-primary);
+        }
+        .filter-chip-dismiss {
+            background: none; border: none; color: var(--color-text-tertiary);
+            cursor: pointer; padding: var(--spacing-2); display: inline-flex;
+            align-items: center; justify-content: center; border-radius: var(--radius-full);
+        }
+        .filter-chip-dismiss:hover { color: var(--color-text-primary); background-color: var(--color-background-interactive-hover); }
+
+        /* --- ISSUES LIST [S-1.2.3] --- */
+        .issues-list { overflow-y: auto; flex-grow: 1; }
+        .issue-group-header { /* [S-1.2.3.1] */
+            font-size: var(--typography-size-label-default); font-weight: var(--typography-weight-medium);
+            color: var(--color-text-secondary); padding: var(--spacing-16) var(--spacing-8) var(--spacing-8);
+        }
+        .issue-row { /* [S-1.2.3.2] */
+            display: flex; align-items: center; padding: var(--spacing-8);
+            border-bottom: var(--spacing-1) solid var(--color-border-default);
+            gap: var(--spacing-12); cursor: pointer; position: relative; transition: background-color 150ms ease;
+        }
+        .issue-row:hover, .issue-row:focus-within { background-color: var(--color-background-interactive-hover); }
+        .issue-row:focus-within { outline: none; }
+        .issue-row:focus-within::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            border: var(--spacing-2) solid var(--color-interactive-focus-ring);
+            border-radius: var(--radius-sm); pointer-events: none;
+        }
+
+        .issue-select input[type="checkbox"] { /* [S-1.2.3.2.1] */
+            -webkit-appearance: none; appearance: none; width: 16px; height: 16px;
+            border: var(--spacing-1) solid var(--color-border-subtle); border-radius: var(--radius-sm);
+            background-color: var(--color-background-surface-1); cursor: pointer; display: grid; place-content: center;
+        }
+        .issue-select input[type="checkbox"]::before {
+            content: ''; width: 8px; height: 8px; transform: scale(0);
+            transition: 120ms transform ease-in-out;
+            background-color: var(--color-accent-primary); border-radius: var(--radius-xs);
+        }
+        .issue-select input[type="checkbox"]:checked::before { transform: scale(1); }
+        .issue-select input[type="checkbox"]:focus-visible { outline-offset: var(--spacing-1); }
+
+        .issue-status { /* [S-1.2.3.2.2] */ flex-shrink: 0; display: flex; align-items: center; gap: var(--spacing-6); font-size: var(--typography-size-body-compact); }
+        .issue-id { /* [S-1.2.3.2.3] */ flex-shrink: 0; color: var(--color-text-secondary); font-size: var(--typography-size-body-compact); }
+        .issue-title { /* [S-1.2.3.2.4] */ flex-grow: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .issue-metadata { display: flex; align-items: center; gap: var(--spacing-12); flex-shrink: 0; }
+        .issue-priority-icon { /* [S-1.2.3.2.6] */ display: flex; align-items: center; }
+        .issue-assignees { /* [S-1.2.3.2.5] */ display: flex; align-items: center; }
+        .assignee-avatar {
+            width: var(--spacing-20); height: var(--spacing-20); border-radius: var(--radius-full);
+            border: var(--spacing-2) solid var(--color-background-canvas); background-color: #4A5568; /* Placeholder */
+        }
+        .assignee-avatar:not(:first-child) { margin-left: var(--spacing-negative-8); }
+        .issue-timestamp { /* [S-1.2.3.2.7] */ color: var(--color-text-secondary); font-size: var(--typography-size-body-compact); width: var(--spacing-50); text-align: right; }
+
+        .shortcut-hint { /* [S-1.2.3.2.8] */
+            position: absolute; right: var(--spacing-8); top: 50%; transform: translateY(-50%);
+            background-color: var(--color-background-surface-2); color: var(--color-text-primary);
+            padding: var(--spacing-4) var(--spacing-8); border-radius: var(--radius-sm);
+            border: var(--spacing-1) solid var(--color-border-subtle);
+            font-size: var(--typography-size-label-default);
+            opacity: 0; pointer-events: none; transition: opacity 150ms ease;
+            box-shadow: var(--elevation-flyout);
+        }
+        .issue-row:hover .shortcut-hint, .issue-row:focus-within .shortcut-hint { opacity: 1; transition-delay: 400ms; }
+        .issue-row:hover .issue-metadata, .issue-row:focus-within .issue-metadata { opacity: 0; transition: opacity 50ms ease; }
+
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- [S-1.1] Left Sidebar (Primary Navigation) -->
+        <nav class="app-nav" aria-label="Main Navigation">
+            <header class="workspace-section"> <!-- [S-1.1.1] -->
+                <img class="workspace-avatar" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236B7280'%3E%3Cpath d='M12 12C14.21 12 16 10.21 16 8C16 5.79 14.21 4 12 4C9.79 4 8 5.79 8 8C8 10.21 9.79 12 12 12ZM12 14C9.33 14 4 15.34 4 18V20H20V18C20 15.34 14.67 14 12 14Z'/%3E%3C/svg%3E" alt="Acme Corp workspace">
+                <span class="workspace-name">Acme Corp</span>
+                <button class="notification-btn" aria-label="Notifications">
+                    <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a6 6 0 00-6 6v3.586l-1.707 1.707A1 1 0 003 15h14a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" /></svg>
+                    <span class="notification-dot"></span>
+                </button>
+            </header>
+
+            <button class="new-issue-btn"> <!-- [S-1.1.2] -->
+                <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+                <span>New Issue</span><kbd class="shortcut-key">C</kbd>
+            </button>
+
+            <div class="nav-group"> <!-- [S-1.1.3] -->
+                <h2 class="nav-group-title">Views</h2>
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="#"><svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0l-2.276-5.161a1 1 0 00-.923-.659H7.2a1 1 0 00-.923.659L4 13m16 0h-2M4 13H2" /></svg><span>Inbox</span></a></li>
+                    <li class="nav-item"><a href="#"><svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg><span>My Issues</span></a></li>
+                </ul>
+            </div>
+
+            <div class="nav-group"> <!-- [S-1.1.4] -->
+                <h2 class="nav-group-title">Projects</h2>
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="#"><svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2z" /></svg><span>Frontend Platform</span></a></li>
+                    <li class="nav-item"><a href="#"><svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2z" /></svg><span>API Services</span></a></li>
+                </ul>
+            </div>
+
+            <div class="nav-group"> <!-- [S-1.1.5] -->
+                <h2 class="nav-group-title">Engineering</h2>
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="#" aria-current="page"><svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg><span>Active Issues</span></a></li>
+                    <li class="nav-item"><a href="#"><svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10m16-10v10M4 14h16" /></svg><span>Backlog</span></a></li>
+                    <li class="nav-item"><a href="#"><svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" /></svg><span>Board View</span></a></li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- [S-1.2] Center Pane (Main Content) -->
+        <main class="app-main">
+            <h1 class="view-header">Active Issues</h1> <!-- [S-1.2.1] -->
+
+            <div class="view-toolbar"> <!-- [S-1.2.2] -->
+                <button class="toolbar-btn"> <!-- [S-1.2.2.1] -->
+                    <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" /></svg><span>Filter</span>
+                </button>
+                <button class="toolbar-btn"> <!-- [S-1.2.2.2] -->
+                    <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7.5L7.5 3m0 0L12 7.5M7.5 3v13.5m13.5 0L16.5 21m0 0L12 16.5m4.5 4.5V7.5" /></svg><span>Sort</span>
+                </button>
+                <ul class="active-filters"> <!-- [S-1.2.2.4] -->
+                    <li><div class="filter-chip"><span>Status: In Progress</span><button class="filter-chip-dismiss" aria-label="Remove 'Status: In Progress' filter"><svg class="icon" style="width:12px; height:12px;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" /></svg></button></div></li>
+                </ul>
+            </div>
+
+            <div class="issues-list"> <!-- [S-1.2.3] -->
+                <section class="issue-group">
+                    <h2 class="issue-group-header" id="group-in-progress">In Progress</h2> <!-- [S-1.2.3.1] -->
+                    <div role="list" aria-labelledby="group-in-progress">
+                        <div role="listitem" class="issue-row" tabindex="0" aria-labelledby="issue-title-1"> <!-- [S-1.2.3.2] -->
+                            <div class="issue-select"><input type="checkbox" id="issue-1" aria-label="Select issue PRO-123"><label for="issue-1" class="sr-only">Select issue PRO-123</label></div>
+                            <div class="issue-status" title="In Progress"> <!-- [S-1.2.3.2.2] --><svg class="icon" style="color: var(--color-status-in-progress);" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-13a.75.75 0 00-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 000-1.5h-3.25V5z" clip-rule="evenodd" /></svg></div>
+                            <span class="issue-id">PRO-123</span> <!-- [S-1.2.3.2.3] -->
+                            <span class="issue-title" id="issue-title-1">Refactor authentication flow to use new token library</span> <!-- [S-1.2.3.2.4] -->
+                            <div class="issue-metadata">
+                                <div class="issue-priority-icon" title="High Priority"> <!-- [S-1.2.3.2.6] --><svg class="icon" style="color:var(--color-priority-high);" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 11l5-5m0 0l5 5m-5-5v12" /></svg></div>
+                                <div class="issue-assignees"> <!-- [S-1.2.3.2.5] --><img class="assignee-avatar" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAgAAAAGAAAAGgAAAAAAAqACAAQAAAADAAAAIKADAAQAAAADAAAAIAAAAAB3o17bAAACmUlEQVR4AdXWvWsUQRgG8G+yYJcICkFEFEW0UuKviAhWsoj4J7S1sRCEgskikVhbYycYWNsImhARQUhAQRDEKyL4l0QUSa7L3e7M3W43O4GFF7f77M7vN+/M3DCDY8Zzjg0gGf9gMzgCvsx99i+Az8A7cAc8hWl9zDdwCjwD78CLcI7/CdzCq4A3MA38A9fBpx/M8AmsA1fBHfAUnAGXwDfwDgyCg/A8+Ah8AV+B28AacAdcAbfA5fBN6AJ2wTc464sDkGZgG9gB1sD7t4y3XgPbcAw8Aw/B9zD/J/gMzsM2cAWsA+eBU2AL+A7uAb6CDfAdTAZf4Wz8G7gAjsH7gB9gDtB+wQ3gGXgNnIVtYAlMBgfg5y5vpH8XF4D5+S3gGfgAXgHbwAowCVwAR8GbgJcAcT/gX3gBdgC94R1YBd6C5zAD3AEngW/hJ2BHwBfA3pA8+v2Mh0A4g/gV3AXvgbHgT2B3wBvAtoA3/oLfAZtwAVzO33MA+H7kQ+D30R93Sg+Ah+A/+H7+E+yMh4AT8B18L0V3ADxg7PzYwXwXzwD7A37AH/D73wdf/yT8g78P3gK3ge8B/wJ+B+M8G/I5uA3+BG7AyfAb8A/gE/Av+AacA++Bs/EeDAm/gf+Bb+Eb8AlYA1aA9YAa3J1aAFaA3eAa2ADqgAtgDdgA/v64eB/YAm4APwXeAjwLPAe8CjwL/BHrX+V+4FrgdWAzcCdwGPAE8DpwAnAReBZ4GbgbOAXcBV4G3gYuAxcBJwFXgdeAm4GLgFPAMOB2YD/gPsA08C9wHPAW8CpwE3A2cDpwGHAIuAn4EfgLOA44DngE+Az4Avga+Bb4A/gq+AX4LvgX+BL4D/gL+BH4N/Aw+Df+eM/Av0LHyj9G0kAAAAASUVORK5CYII=" alt="Jane Doe"></div>
+                                <time class="issue-timestamp" datetime="2024-07-16T14:30:00Z">2h ago</time> <!-- [S-1.2.3.2.7] -->
+                            </div>
+                            <span class="shortcut-hint" aria-hidden="true">Press <strong>E</strong> to edit</span> <!-- [S-1.2.3.2.8] -->
+                        </div>
+                        <div role="listitem" class="issue-row" tabindex="0" aria-labelledby="issue-title-2">
+                            <div class="issue-select"><input type="checkbox" id="issue-2" aria-label="Select issue PRO-122"><label for="issue-2" class="sr-only">Select issue PRO-122</label></div>
+                            <div class="issue-status" title="In Progress"><svg class="icon" style="color: var(--color-status-in-progress);" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-13a.75.75 0 00-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 000-1.5h-3.25V5z" clip-rule="evenodd" /></svg></div>
+                            <span class="issue-id">PRO-122</span>
+                            <span class="issue-title" id="issue-title-2">Improve performance of the main dashboard query</span>
+                            <div class="issue-metadata">
+                                <div class="issue-priority-icon" title="Medium Priority"><svg class="icon" style="color:var(--color-priority-medium);" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 12h16" /></svg></div>
+                                <div class="issue-assignees"><img class="assignee-avatar" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAgAAAAGAAAAGgAAAAAAAqACAAQAAAADAAAAIKADAAQAAAADAAAAIAAAAAB3o17bAAACqklEQVR4AdXWv0sUYRgG8G/yYAs2GkXUoIJoJaR/QdBCUFP/R4hFQUdLEUvB0sIqYquNjaWEpKFJEBGksIl1aCgEd3Bl3V3P3Z35/MBLuHl37+zO833Pew5n/McZ/3FGg2zwj/0TwHfwYx3y24CH4CPwDnyFpXtJ3gC/gGfgPXhP5gK+h08B7wPfwA/gM/gGZt4D8AJ8BfYBf8I7sAK8Bp+AE+Bl+AO+g3/AT/A53E0UAYc5L0I2ALaBZ2AJmH4z/utXwA74CvwBv8I/p8CnsAmcBHuBWeAksBO8A2fBLpAJnoH5fA+OA3vgI/gM7oPdwBNwB9wAz8FPsBSg7fMv4F/gSdgG9gI/gN/gM/gO9oGzMAzcBf6CdwJ/Apq/A94CPyFcwG7gD+AnWAbOAg/BeTAD/ApwAeA+yBwU/gQegvMgg3wAjoJ7oC3oDfgFngM3gI/ge9gd8CgI/v0h+DswDfwPZgNvoDXgA/gG/gGdgK/gE/gDngGngU/gJ/gE/gO/gb+BG+A72AM+gY/gS/gVfAVfA/8D/wZ/Bv8DvgN+Aj4CfgY+Bp4GngWeBe4D7gXuBQ4BDgMOAg4CJwETgYnA5cBPgZuBy4ErgSuBK4E/AR+BPoEugS6BDgFOAU4DzgNOAs4DTgMugy6DLgEfgZ+Bn4GfgR+Bn4G3gbeBt4G3gY+Bj4GvgW+Br4FvgR+BP4E/gT+Dv4G/g5+Dz4N/A38DPwN/Az8D/wYfAx8DnwOfA58DnwGfAZ8BnwOfAZ8DnwZfAl8CXwJfB18DXwNfA18DXwXfAd8B3wHfAd8B3wHfAd8F3wXfBd8F3wXfBd8F3wXfDP4BvgZ6P/ABkQo3aZcNTLAAAAAElFTkSuQmCC" alt="John Smith"></div>
+                                <time class="issue-timestamp" datetime="2024-07-16T12:05:00Z">5h ago</time>
+                            </div>
+                            <span class="shortcut-hint" aria-hidden="true">Press <strong>E</strong> to edit</span>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="issue-group">
+                    <h2 class="issue-group-header" id="group-todo">Todo</h2>
+                    <div role="list" aria-labelledby="group-todo">
+                        <div role="listitem" class="issue-row" tabindex="0" aria-labelledby="issue-title-3">
+                            <div class="issue-select"><input type="checkbox" id="issue-3" aria-label="Select issue DES-42"><label for="issue-3" class="sr-only">Select issue DES-42</label></div>
+                            <div class="issue-status" title="Todo"><svg class="icon" style="color: var(--color-status-todo);" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M9 9.563C9 9.252 9.252 9 9.563 9h4.874c.311 0 .563.252.563.563v4.874c0 .311-.252.563-.563.563H9.564a.562.562 0 01-.563-.563V9.564z" /></svg></div>
+                            <span class="issue-id">DES-42</span>
+                            <span class="issue-title" id="issue-title-3">Update design system components with new color palette</span>
+                            <div class="issue-metadata">
+                                <div class="issue-priority-icon" title="Urgent Priority"><svg class="icon" style="color:var(--color-priority-urgent);" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10.707 3.293a1 1 0 00-1.414 0L3.293 9.293a1 1 0 000 1.414l6 6a1 1 0 001.414-1.414L5.414 10l5.293-5.293a1 1 0 000-1.414z" clip-rule="evenodd" transform="rotate(90 10 10)"/><path fill-rule="evenodd" d="M14.707 3.293a1 1 0 00-1.414 0L7.293 9.293a1 1 0 000 1.414l6 6a1 1 0 001.414-1.414L9.414 10l5.293-5.293a1 1 0 000-1.414z" clip-rule="evenodd" transform="rotate(90 12 10)"/></svg></div>
+                                <div class="issue-assignees"><img class="assignee-avatar" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABGdBTUEAALGPC/xhBQAAADhlWElmTU0AKgAAAAgAAYdpAAgAAAAGAAAAGgAAAAAAAqACAAQAAAADAAAAIKADAAQAAAADAAAAIAAAAAB3o17bAAACnUlEQVR4AdXWvWsUQRgG8G+yYJcICkFEFEW0UuKviAhWsoj4J7S1sRCEgskikVhbYycYWNsImhARQUhAQRDEKyL4l0QUSa7L3e7M3W43O4GFF7f77M7vN+/M3DCDY8Zzjg0gGf9gMzgCvsx99i+Az8A7cAc8hWl9zDdwCjwD78CLcI7/CdzCq4A3MA38A9fBpx/M8AmsA1fBHfAUnAGXwDfwDgyCg/A8+Ah8AV+B28AacAdcAbfA5fBN6AJ2wTc464sDkGZgG9gB1sD7t4y3XgPbcAw8Aw/B9zD/J/gMzsM2cAWsA+eBU2AL+A7uAb6CDfAdTAZf4Wz8G7gAjsH7gB9gDtB+wQ3gGXgNnIVtYAlMBgfg5y5vpH8XF4D5+S3gGfgAXgHbwAowCVwAR8GbgJcAcT/gX3gBdgC94R1YBd6C5zAD3AEngW/hJ2BHwBfA3pA8+v2Mh0A4g/gV3AXvgbHgT2B3wBvAtoA3/oLfAZtwAVzO33MA+H7kQ+D30R93Sg+Ah+A/+H7+E+yMh4AT8B18L0V3ADxg7PzYwXwXzwD7A37AH/D73wdf/yT8g78P3gK3ge8B/wJ+B+M8G/I5uA3+BG7AyfAb8A/gE/Av+AacA++Bs/EeDAm/gf+Bb+Eb8AlYA1aA9YAa3J1aAFaA3eAa2ADqgAtgDdgA/v64eB/YAm4APwXeAjwLPAe8CjwL/BHrX+V+4FrgdWAzcCdwGPAE8DpwAnAReBZ4GbgbOAXcBV4G3gYuAxcBJwFXgdeAm4GLgFPAMOB2YD/gPsA08C9wHPAW8CpwE3A2cDpwGHAIuAn4EfgLOA44DngE+Az4Avga+Bb4A/gq+AX4LvgX+BL4D/gL+BH4N/Aw+Df+eM/Av0LHyj9G0kAAAAASUVORK5CYII=" alt="Jane Doe"></div>
+                                <time class="issue-timestamp" datetime="2024-07-16T11:00:00Z">6h ago</time>
+                            </div>
+                            <span class="shortcut-hint" aria-hidden="true">Press <strong>E</strong> to edit</span>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

@@ -65,6 +65,11 @@ _INJECTION_PATTERNS: tuple[str, ...] = (
     r"bypass\s+(?:your\s+)?(?:safety\s+)?(?:filters|guardrails|guidelines|policies)",
     r"ignore\s+(?:your\s+)?(?:safety\s+)?(?:filters|guardrails|guidelines|policies)",
     r"developer\s+mode\s+enabled",
+    r"as\s+(?:a|an)\s+unrestricted\s+AI",
+    r"DAN\s+mode",
+    r"jailbreak",
+    r"hypothetical\s+scenario\s+where\s+you\s+can",
+    r"act\s+as\s+a\s+security\s+researcher",
 )
 
 _COMPILED: tuple[re.Pattern[str], ...] = tuple(

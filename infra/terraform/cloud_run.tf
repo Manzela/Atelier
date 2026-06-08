@@ -89,6 +89,14 @@ resource "google_cloud_run_v2_service" "atelier_api" {
         value = "true"
       }
       env {
+        name  = "SESSION_BACKEND"
+        value = "vertex"
+      }
+      env {
+        name  = "AGENT_ENGINE_ID"
+        value = var.agent_engine_id
+      }
+      env {
         name  = "FIXER_MODEL"
         value = "gemini-2.5-flash"
       }

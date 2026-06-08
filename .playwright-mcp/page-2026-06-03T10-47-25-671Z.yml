@@ -1,0 +1,12 @@
+- generic [active] [ref=e1]:
+    - main [ref=e2]:
+        - generic [ref=e3]:
+            - generic [ref=e4]:
+                - generic [ref=e6]: A
+                - heading "Welcome to Atelier" [level=1] [ref=e7]
+                - paragraph [ref=e8]: Design rapidly with Autonomous AI
+            - generic [ref=e17]: 'Firebase: Error (auth/internal-error).'
+            - button "Continue with Google" [ref=e10] [cursor=pointer]:
+                - img [ref=e11]
+                - text: Continue with Google
+    - alert [ref=e16]

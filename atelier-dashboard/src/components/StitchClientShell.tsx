@@ -25,6 +25,8 @@ import {
   History,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { onIdTokenChanged } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 import { prettifyProjectName } from '@/lib/project-utils';
 
 type SidebarMode = 'stitch' | 'gcp';
@@ -67,6 +69,29 @@ function useClientAuth() {
     },
     [router]
   );
+
+  useEffect(() => {
+    if (!auth) return;
+    const unsubscribe = onIdTokenChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          const token = await firebaseUser.getIdToken();
+          const userStr = localStorage.getItem('user');
+          if (userStr) {
+            const userObj = JSON.parse(userStr) as UserSession;
+            if (userObj.token !== token) {
+              userObj.token = token;
+              localStorage.setItem('user', JSON.stringify(userObj));
+              setUser(userObj);
+            }
+          }
+        } catch (err) {
+          console.error('Failed to sync Firebase token:', err);
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   return { user, initRef };
 }

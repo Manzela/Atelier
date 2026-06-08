@@ -3,6 +3,7 @@
   "name": "Atelier",
   "description": "Autonomous UI/UX design agent — generates, judges, and iterates production-grade web interfaces through an 8-node DAG with deterministic gates and D-O-R-A-V consensus judges.",
   "version": "0.1.1-alpha",
+  "protocolVersion": "0.3.0",
   "url": "https://atelier.autonomous-agent.dev",
   "provider": {
     "organization": "Manzela",
@@ -14,32 +15,36 @@
       "name": "Generate UI",
       "description": "Generate production-grade HTML/CSS/JS from a design brief with accessibility compliance and brand alignment",
       "inputModes": ["text", "file"],
-      "outputModes": ["text", "file"]
+      "outputModes": ["text", "file"],
+      "tags": ["ui-generation", "design", "html", "css", "javascript"]
     },
     {
       "id": "review-ui",
       "name": "Review UI",
       "description": "Review and score existing UI against D-O-R-A-V axes (Design, Originality, Relevance, Accessibility, Visual Clarity)",
       "inputModes": ["text", "file"],
-      "outputModes": ["text"]
+      "outputModes": ["text"],
+      "tags": ["ui-review", "dorav-scoring", "evaluation"]
     },
     {
       "id": "campaign-orchestrate",
       "name": "Campaign Orchestration",
       "description": "Orchestrate multi-surface design campaigns (12+ pages) with dependency-aware generation ordering and cross-surface coherence verification",
       "inputModes": ["text"],
-      "outputModes": ["text", "file"]
+      "outputModes": ["text", "file"],
+      "tags": ["campaign-orchestration", "multi-surface", "planning"]
     },
     {
       "id": "design-system-infer",
       "name": "Design System Inference",
       "description": "Infer design system tokens, patterns, and conventions from an existing codebase via PADI (Project-Agnostic Descriptor Inference)",
       "inputModes": ["file"],
-      "outputModes": ["text"]
+      "outputModes": ["text"],
+      "tags": ["design-system", "token-inference", "padi"]
     }
   ],
   "protocols": {
-    "a2a": "1.0",
+    "a2a": "0.3.0",
     "adk": "2.0-beta"
   },
   "authentication": {

@@ -17,3 +17,9 @@ variable "env" {
     error_message = "env must be staging or production."
   }
 }
+
+variable "agent_engine_id" {
+  type        = string
+  description = "The deployed Vertex AI Agent Engine (Reasoning Engine) resource ID"
+  default     = "8092258795629051904"
+}

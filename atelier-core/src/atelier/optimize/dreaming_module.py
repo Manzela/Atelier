@@ -105,12 +105,14 @@ MIN_MARGIN: Final[float] = 0.12
 # / "WCAG" / "spec" / "guideline"), or an evidence marker ("measured" / "score"
 # / "contrast").
 _PRAISE_PATTERN: Final[re.Pattern[str]] = re.compile(
-    r"\b(looks good|great|excellent|amazing|perfect|fantastic|love it)\b",
+    r"\b(looks good|great|excellent|amazing|perfect|fantastic|love it|"
+    r"spectacular|wonderful|outstanding|brilliant|exceptional)\b",
     re.IGNORECASE,
 )
 _JUSTIFICATION_PATTERN: Final[re.Pattern[str]] = re.compile(
     r"\b(because|reason|rationale|standard|wcag|spec|guideline|"
-    r"measured|score|contrast|ratio|criteria|evidence)\b",
+    r"measured|score|contrast|ratio|criteria|evidence|compliance|"
+    r"verification|audit|provenance)\b",
     re.IGNORECASE,
 )
 # Soft penalty applied to an unjustified-praise chosen_score.
