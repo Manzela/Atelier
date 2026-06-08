@@ -1,0 +1,44 @@
+trim trailing whitespace.................................................Passed
+fix end of files.........................................................Passed
+check yaml...............................................................Passed
+check toml...............................................................Passed
+check json...............................................................Passed
+check for added large files..............................................Passed
+check for merge conflicts................................................Passed
+check for case conflicts.................................................Passed
+check for broken symlinks............................(no files to check)Skipped
+detect destroyed symlinks................................................Passed
+detect private key.......................................................Passed
+mixed line ending........................................................Passed
+forbid new submodules................................(no files to check)Skipped
+ruff (legacy alias)......................................................Passed
+ruff format..............................................................Passed
+mypy.....................................................................Passed
+Detect secrets...........................................................Failed
+- hook id: detect-secrets
+- exit code: 1
+
+ERROR: Potential secrets about to be committed to git repo!
+
+Secret Type: Secret Keyword
+Location:    .github/workflows/deploy.yml:32
+
+Secret Type: Secret Keyword
+Location:    .github/workflows/deploy.yml:42
+
+Possible mitigations:
+  - For information about putting your secrets in a safer place, please ask in
+    #security
+  - Mark false positives with an inline `pragma: allowlist secret` comment
+
+If a secret has already been committed, visit
+https://help.github.com/articles/removing-sensitive-data-from-a-repository
+
+markdownlint.............................................................Passed
+yamllint.................................................................Passed
+shellcheck...............................................................Passed
+shfmt....................................................................Passed
+prettier.................................................................Passed
+ban bare except / silent pass............................................Passed
+features.json evidence_tests schema gate.................................Passed
+Validate routing manifest against JSON Schema............................Passed

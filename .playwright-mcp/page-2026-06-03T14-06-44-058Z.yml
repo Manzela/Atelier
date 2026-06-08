@@ -1,0 +1,421 @@
+- generic [active] [ref=e1]:
+    - link "Skip to results" [ref=e2] [cursor=pointer]:
+        - /url: '#production'
+    - navigation "Section navigation" [ref=e3]:
+        - img "Atelier" [ref=e4]
+        - link "database Results" [ref=e8] [cursor=pointer]:
+            - /url: '#production'
+            - generic [ref=e10]: database
+            - generic [ref=e11]: Results
+        - link "compare_arrows A / B" [ref=e12] [cursor=pointer]:
+            - /url: '#ab'
+            - generic [ref=e14]: compare_arrows
+            - generic [ref=e15]: A / B
+        - link "verified Gates" [ref=e16] [cursor=pointer]:
+            - /url: '#gates'
+            - generic [ref=e18]: verified
+            - generic [ref=e19]: Gates
+        - link "public Bench" [ref=e20] [cursor=pointer]:
+            - /url: '#benchmark'
+            - generic [ref=e22]: public
+            - generic [ref=e23]: Bench
+        - link "science Method" [ref=e25] [cursor=pointer]:
+            - /url: '#methodology'
+            - generic [ref=e27]: science
+            - generic [ref=e28]: Method
+    - main [ref=e29]:
+        - generic [ref=e30]:
+            - heading "Atelier — Bench Observatory" [level=1] [ref=e31]
+            - status [ref=e32]:
+                - generic [ref=e33]: verified
+                - generic [ref=e34]: Real data · BigQuery · updated Jun 3, 2026
+        - generic [ref=e35]:
+            - paragraph [ref=e36]: Every figure on this page traces to production telemetry, a controlled A/B, or a public benchmark. No synthetic data. Where a result has not been produced yet, the section says so plainly rather than showing a zero as if it were real.
+            - region "How to read this page" [ref=e37]:
+                - generic [ref=e38]: menu_book
+                - generic [ref=e39]:
+                    - heading "How to read this" [level=2] [ref=e40]
+                    - paragraph [ref=e41]:
+                        - text: Atelier is
+                        - strong [ref=e42]: gate-first
+                        - text: ': each design candidate must clear a fixed sequence of quality gates, and a candidate only'
+                        - strong [ref=e43]: converges
+                        - text: once its composite score reaches
+                        - strong [ref=e44]: ≥ 0.70
+                        - text: . Every metric below is shown against that bar or its stated target, so you can see what
+                        - emphasis [ref=e45]: good
+                        - text: looks like next to the
+                        - emphasis [ref=e46]: actual
+                        - text: result — not a number in isolation.
+            - region "Production results" [ref=e47]:
+                - generic [ref=e48]:
+                    - generic [ref=e49]:
+                        - generic [ref=e50]: database
+                        - text: Production telemetry
+                    - heading "Production results" [level=2] [ref=e51]
+                    - paragraph [ref=e52]: Pulled from the BigQuery trajectory store. Each run produces several candidates; a candidate is accepted only after it clears every gate and converges at composite ≥ 0.70.
+                - generic [ref=e53]:
+                    - generic [ref=e54]:
+                        - generic [ref=e55]: Runs
+                        - generic [ref=e56]: '3'
+                        - generic [ref=e57]: Distinct pipeline runs recorded in BigQuery.
+                        - generic [ref=e58]:
+                            - generic [ref=e59]: remove
+                            - text: no target
+                    - generic [ref=e60]:
+                        - generic [ref=e61]: Candidates
+                        - generic [ref=e62]: '7'
+                        - generic [ref=e63]: Design candidates generated across all runs.
+                        - generic [ref=e64]:
+                            - generic [ref=e65]: remove
+                            - text: no target
+                    - generic [ref=e66]:
+                        - generic [ref=e67]: Convergence rate
+                        - generic [ref=e68]: 42.9%
+                        - generic [ref=e69]: Share of candidates accepted after clearing every gate.
+                        - generic [ref=e72]:
+                            - generic [ref=e73]: remove
+                            - text: 3 / 7 accepted
+                    - generic [ref=e74]:
+                        - generic [ref=e75]: Avg composite (all)
+                        - generic [ref=e76]: '0.66'
+                        - generic [ref=e77]: Mean composite across every candidate, converged or not.
+                        - generic [ref=e81]:
+                            - generic [ref=e82]: cancel
+                            - text: good ≥ 0.70 · below
+                    - generic [ref=e83]:
+                        - generic [ref=e84]: Best per run
+                        - generic [ref=e85]: '0.98'
+                        - generic [ref=e86]: Highest composite reached by any candidate.
+                        - generic [ref=e90]:
+                            - generic [ref=e91]: check_circle
+                            - text: good ≥ 0.70 · met
+                    - generic [ref=e92]:
+                        - generic [ref=e93]: Candidates ≥ bar
+                        - generic [ref=e94]: 5 / 7
+                        - generic [ref=e95]: Candidates reaching the 0.70 convergence bar.
+                        - generic [ref=e96]:
+                            - generic [ref=e97]: remove
+                            - text: bar = 0.70 composite
+                - generic [ref=e98]:
+                    - generic [ref=e99]:
+                        - generic [ref=e100]: scatter_plot
+                        - text: Candidate composite distribution
+                    - paragraph [ref=e101]: 'Each dot is one candidate’s composite score. The marked line is the 0.70 convergence bar — this is the “good vs actual” view: dots at or past the line converged.'
+                    - img "Distribution of candidate composite scores against the 0.70 convergence bar" [ref=e102]:
+                        - generic [ref=e103]:
+                            - generic [ref=e105]: bar 0.70
+                            - 'generic "candidate 1: composite 0.92" [ref=e106]'
+                            - 'generic "candidate 2: composite 0.90" [ref=e107]'
+                            - 'generic "candidate 3: composite 0.93" [ref=e108]'
+                            - 'generic "candidate 4: composite 0.92" [ref=e109]'
+                            - 'generic "candidate 5: composite 0.00" [ref=e110]'
+                            - 'generic "candidate 6: composite 0.98" [ref=e111]'
+                            - 'generic "candidate 7: composite 0.00" [ref=e112]'
+                        - generic [ref=e113]:
+                            - generic [ref=e114]: '0.00'
+                            - generic [ref=e115]: '0.50'
+                            - generic [ref=e116]: '1.00'
+                        - generic [ref=e117]:
+                            - generic [ref=e118]: converged (≥ 0.70)
+                            - generic [ref=e120]: below bar
+                - heading "Recent runs" [level=3] [ref=e122]:
+                    - generic [ref=e123]: table_rows
+                    - text: Recent runs
+                - table "Recent production runs" [ref=e125]:
+                    - rowgroup [ref=e126]:
+                        - row "Trajectory ID Composite Outcome Timestamp (UTC)" [ref=e127]:
+                            - columnheader "Trajectory ID" [ref=e128]
+                            - columnheader "Composite" [ref=e129]
+                            - columnheader "Outcome" [ref=e130]
+                            - columnheader "Timestamp (UTC)" [ref=e131]
+                    - rowgroup [ref=e132]:
+                        - row "dd79b2f2-8105-4531 0.92 accepted 2026-06-03 11:08:26Z" [ref=e133]:
+                            - cell "dd79b2f2-8105-4531" [ref=e134]
+                            - cell "0.92" [ref=e135]
+                            - cell "accepted" [ref=e136]:
+                                - generic [ref=e137]:
+                                    - generic [ref=e138]: check
+                                    - text: accepted
+                            - cell "2026-06-03 11:08:26Z" [ref=e139]
+                        - row "20dde1a7-8331-4d6c 0.90 rejected 2026-06-03 11:08:26Z" [ref=e140]:
+                            - cell "20dde1a7-8331-4d6c" [ref=e141]
+                            - cell "0.90" [ref=e142]
+                            - cell "rejected" [ref=e143]:
+                                - generic [ref=e144]:
+                                    - generic [ref=e145]: close
+                                    - text: rejected
+                            - cell "2026-06-03 11:08:26Z" [ref=e146]
+                        - row "9d65fa61-e9b7-4897 0.93 accepted 2026-06-03 11:08:26Z" [ref=e147]:
+                            - cell "9d65fa61-e9b7-4897" [ref=e148]
+                            - cell "0.93" [ref=e149]
+                            - cell "accepted" [ref=e150]:
+                                - generic [ref=e151]:
+                                    - generic [ref=e152]: check
+                                    - text: accepted
+                            - cell "2026-06-03 11:08:26Z" [ref=e153]
+                        - row "54950bc0-bfe0-4ca2 0.92 accepted 2026-06-03 08:37:14Z" [ref=e154]:
+                            - cell "54950bc0-bfe0-4ca2" [ref=e155]
+                            - cell "0.92" [ref=e156]
+                            - cell "accepted" [ref=e157]:
+                                - generic [ref=e158]:
+                                    - generic [ref=e159]: check
+                                    - text: accepted
+                            - cell "2026-06-03 08:37:14Z" [ref=e160]
+                        - row "c3e71986-5b83-461a 0.00 rejected 2026-06-03 06:07:45Z" [ref=e161]:
+                            - cell "c3e71986-5b83-461a" [ref=e162]
+                            - cell "0.00" [ref=e163]
+                            - cell "rejected" [ref=e164]:
+                                - generic [ref=e165]:
+                                    - generic [ref=e166]: close
+                                    - text: rejected
+                            - cell "2026-06-03 06:07:45Z" [ref=e167]
+                        - row "05a8f71a-860c-4c30 0.98 rejected 2026-06-03 06:07:45Z" [ref=e168]:
+                            - cell "05a8f71a-860c-4c30" [ref=e169]
+                            - cell "0.98" [ref=e170]
+                            - cell "rejected" [ref=e171]:
+                                - generic [ref=e172]:
+                                    - generic [ref=e173]: close
+                                    - text: rejected
+                            - cell "2026-06-03 06:07:45Z" [ref=e174]
+                        - row "2a0b2918-f699-40e3 0.00 rejected 2026-06-03 06:07:45Z" [ref=e175]:
+                            - cell "2a0b2918-f699-40e3" [ref=e176]
+                            - cell "0.00" [ref=e177]
+                            - cell "rejected" [ref=e178]:
+                                - generic [ref=e179]:
+                                    - generic [ref=e180]: close
+                                    - text: rejected
+                            - cell "2026-06-03 06:07:45Z" [ref=e181]
+                - paragraph [ref=e182]:
+                    - text: 'Source: BigQuery'
+                    - code [ref=e183]: atelier-build-2026.atelier_trajectories.trajectory_records
+                    - text: . 3 runs, 7 candidates (2026-06-03 06:07:45Z → 2026-06-03 11:08:26Z). Accepted candidates averaged
+                    - strong [ref=e184]: '0.92'
+                    - text: composite.
+            - region "Atelier vs a single-shot baseline" [ref=e185]:
+                - generic [ref=e186]:
+                    - generic [ref=e187]:
+                        - generic [ref=e188]: compare_arrows
+                        - text: Controlled A/B
+                    - heading "Atelier vs a single-shot baseline" [level=2] [ref=e189]
+                    - paragraph [ref=e190]: Same briefs, same gate path. The baseline emits one design with no iteration; Atelier runs the full gate-first pipeline. This isolates the value of the pipeline itself.
+                - generic [ref=e191]:
+                    - generic [ref=e192]:
+                        - generic [ref=e193]: science
+                        - generic [ref=e194]:
+                            - heading "What this controlled run shows" [level=2] [ref=e195]
+                            - paragraph [ref=e196]: Both arms were scored by the identical gate + D-O-R-A-V consensus path on the same briefs. The single-shot baseline produces structurally valid HTML, but its designs do not reach the 0.70 convergence bar on the quality consensus — single-shot output does not meet the bar Atelier ships against.
+                            - paragraph [ref=e197]:
+                                - strong [ref=e198]: 'Methodology:'
+                                - text: the Atelier arm in this local harness runs with the Stitch design system disabled (a degraded configuration) and is
+                                - emphasis [ref=e199]: not
+                                - text: representative of production. Atelier’s representative performance is the Production results above. This A/B is shown for transparency, not as a production benchmark.
+                    - table "Atelier versus single-shot baseline" [ref=e200]:
+                        - columnheader "Metric" [ref=e201]
+                        - columnheader "Atelier" [ref=e202]
+                        - columnheader "Single-shot" [ref=e203]
+                        - cell "Mean gate score higher is better" [ref=e204]:
+                            - generic [ref=e205]: Mean gate score
+                            - generic [ref=e206]: higher is better
+                        - cell "84.70" [ref=e207]:
+                            - generic [ref=e208]: '84.70'
+                        - cell "88.50" [ref=e209]:
+                            - generic [ref=e210]: '88.50'
+                        - cell "Accessibility pass rate WCAG AA gate" [ref=e211]:
+                            - generic [ref=e212]: Accessibility pass rate
+                            - generic [ref=e213]: WCAG AA gate
+                        - cell "0.0%" [ref=e214]:
+                            - generic [ref=e215]: 0.0%
+                        - cell "100.0%" [ref=e216]:
+                            - generic [ref=e217]: 100.0%
+                        - cell "Convergence rate reached composite ≥ 0.70" [ref=e218]:
+                            - generic [ref=e219]: Convergence rate
+                            - generic [ref=e220]: reached composite ≥ 0.70
+                        - cell "0.0%" [ref=e221]:
+                            - generic [ref=e222]: 0.0%
+                        - cell "0.0%" [ref=e223]:
+                            - generic [ref=e224]: 0.0%
+                    - heading "Per-brief results" [level=3] [ref=e225]:
+                        - generic [ref=e226]: checklist
+                        - text: Per-brief results
+                    - table "Per-brief A/B results" [ref=e228]:
+                        - rowgroup [ref=e229]:
+                            - row "Task Category Reference target Atelier Converged? Baseline Baseline failed gates" [ref=e230]:
+                                - columnheader "Task" [ref=e231]
+                                - columnheader "Category" [ref=e232]
+                                - columnheader "Reference target" [ref=e233]
+                                - columnheader "Atelier" [ref=e234]
+                                - columnheader "Converged?" [ref=e235]
+                                - columnheader "Baseline" [ref=e236]
+                                - columnheader "Baseline failed gates" [ref=e237]
+                        - rowgroup [ref=e238]:
+                            - row "— dashboard — — no — —" [ref=e239]:
+                                - cell "—" [ref=e240]
+                                - cell "dashboard" [ref=e241]
+                                - cell "—" [ref=e242]
+                                - cell "—" [ref=e243]
+                                - cell "no" [ref=e244]:
+                                    - generic [ref=e245]:
+                                        - generic [ref=e246]: close
+                                        - text: 'no'
+                                - cell "—" [ref=e247]
+                                - cell "—" [ref=e248]
+                    - paragraph [ref=e249]:
+                        - text: 'Sample size:'
+                        - strong [ref=e250]: N = 1
+                        - text: briefs, identical for both arms.
+            - region "The quality gates" [ref=e251]:
+                - generic [ref=e252]:
+                    - generic [ref=e253]:
+                        - generic [ref=e254]: verified
+                        - text: Definition of good
+                    - heading "The quality gates" [level=2] [ref=e255]
+                    - paragraph [ref=e256]:
+                        - text: These gates define what “good” means for a candidate. They run fail-closed and in order; a candidate that fails any one of them is rejected. On top of the deterministic gates, a
+                        - strong [ref=e257]: D‑O‑R‑A‑V
+                        - text: consensus (Design, Originality, Relevance, Accessibility, Visual‑clarity) scores each surviving candidate to produce the composite used for the 0.70 bar.
+                - generic [ref=e258]:
+                    - generic [ref=e259]:
+                        - generic [ref=e260]:
+                            - generic [ref=e261]:
+                                - generic [ref=e262]: filter_1
+                                - text: Semantic HTML
+                            - code [ref=e263]: semantic-html
+                        - generic [ref=e264]:
+                            - paragraph [ref=e265]: Document is a real, well-formed HTML5 page with landmark elements.
+                            - generic [ref=e266]:
+                                - generic [ref=e267]: rule
+                                - generic [ref=e268]:
+                                    - strong [ref=e269]: Pass criterion.
+                                    - text: Valid <!doctype> + semantic landmarks (header/main/section).
+                    - generic [ref=e270]:
+                        - generic [ref=e271]:
+                            - generic [ref=e272]:
+                                - generic [ref=e273]: filter_2
+                                - text: Design-token fidelity
+                            - code [ref=e274]: token-fidelity
+                        - generic [ref=e275]:
+                            - paragraph [ref=e276]: Every colour resolves to a declared design token — no raw literals.
+                            - generic [ref=e277]:
+                                - generic [ref=e278]: rule
+                                - generic [ref=e279]:
+                                    - strong [ref=e280]: Pass criterion.
+                                    - text: 'Zero-tolerance: one undeclared colour literal rejects the candidate.'
+                    - generic [ref=e281]:
+                        - generic [ref=e282]:
+                            - generic [ref=e283]:
+                                - generic [ref=e284]: filter_3
+                                - text: Accessibility (axe-core)
+                            - code [ref=e285]: axe
+                        - generic [ref=e286]:
+                            - paragraph [ref=e287]: No critical/serious accessibility violations (contrast, labels, ARIA).
+                            - generic [ref=e288]:
+                                - generic [ref=e289]: rule
+                                - generic [ref=e290]:
+                                    - strong [ref=e291]: Pass criterion.
+                                    - text: Fail-closed on any axe-core critical/serious impact (WCAG AA aligned).
+                    - generic [ref=e292]:
+                        - generic [ref=e293]:
+                            - generic [ref=e294]:
+                                - generic [ref=e295]: filter_4
+                                - text: Visual consistency
+                            - code [ref=e296]: visual-diff
+                        - generic [ref=e297]:
+                            - paragraph [ref=e298]: Rendered layout is structurally coherent, not a broken/empty frame.
+                            - generic [ref=e299]:
+                                - generic [ref=e300]: rule
+                                - generic [ref=e301]:
+                                    - strong [ref=e302]: Pass criterion.
+                                    - text: Structure floor + visual regression check.
+            - region "Public benchmark" [ref=e303]:
+                - generic [ref=e304]:
+                    - generic [ref=e305]:
+                        - generic [ref=e306]: public
+                        - text: External generalization set
+                    - heading "Public benchmark" [level=2] [ref=e307]
+                    - paragraph [ref=e308]: A held-out, third-party prompt set used to check that Atelier generalizes beyond its own briefs.
+                - generic [ref=e310]:
+                    - generic [ref=e311]:
+                        - generic [ref=e312]:
+                            - generic [ref=e313]: Benchmark
+                            - generic [ref=e314]: WebGen-Bench
+                            - generic [ref=e315]: Third-party prompt set, held out from Atelier’s own briefs.
+                        - generic [ref=e316]:
+                            - generic [ref=e317]: Prompts available
+                            - generic [ref=e318]: '101'
+                            - generic [ref=e319]: Prompts in the public set usable as a generalization probe.
+                    - paragraph [ref=e320]:
+                        - text: 'Source:'
+                        - link "luzimu/WebGen-Bench (HuggingFace)" [ref=e321] [cursor=pointer]:
+                            - /url: https://huggingface.co/datasets/luzimu/WebGen-Bench
+                            - text: luzimu/WebGen-Bench (HuggingFace)
+                            - generic [ref=e322]: open_in_new
+                        - text: '· Paper:'
+                        - link "arXiv:2505.03733" [ref=e323] [cursor=pointer]:
+                            - /url: https://arxiv.org/abs/2505.03733
+                            - text: arXiv:2505.03733
+                            - generic [ref=e324]: open_in_new
+                    - generic [ref=e325]:
+                        - generic [ref=e326]: info
+                        - generic [ref=e327]:
+                            - text: The official WebGen-Bench metric is
+                            - strong [ref=e328]: test-agent appearance/functionality score (not reproduced here)
+                            - text: . It is not reproduced here. Any Atelier slice is scored by Atelier’s own gates and is
+                            - strong [ref=e329]: not
+                            - text: comparable to the public leaderboard.
+                    - generic [ref=e330]:
+                        - heading "Atelier slice — not yet run" [level=3] [ref=e331]
+                        - paragraph [ref=e332]: Atelier-gate-scored slice not yet run.
+            - region "Methodology & provenance" [ref=e333]:
+                - generic [ref=e334]:
+                    - generic [ref=e335]:
+                        - generic [ref=e336]: science
+                        - text: Transparency
+                    - heading "Methodology & provenance" [level=2] [ref=e337]
+                - generic [ref=e338]:
+                    - generic [ref=e339]:
+                        - generic [ref=e340]:
+                            - heading "Data sources" [level=3] [ref=e341]
+                            - list [ref=e342]:
+                                - listitem [ref=e343]:
+                                    - text: Production telemetry —
+                                    - code [ref=e344]: BigQuery atelier-build-2026.atelier_trajectories.trajectory_records
+                                - listitem [ref=e345]:
+                                    - text: Controlled A/B —
+                                    - code [ref=e346]: scripts/eval/run_baseline_ab.py (Atelier vs single-shot, identical gate path)
+                                - listitem [ref=e347]: Public benchmark — luzimu/WebGen-Bench (arXiv:2505.03733)
+                        - generic [ref=e348]:
+                            - heading "Sample sizes" [level=3] [ref=e349]
+                            - list [ref=e350]:
+                                - listitem [ref=e351]: 'Production: 3 runs, 7 candidates'
+                                - listitem [ref=e352]: 'Controlled A/B: 1 briefs'
+                                - listitem [ref=e353]: 'WebGen-Bench: 101 prompts available'
+                        - generic [ref=e354]:
+                            - heading "Scope & environment" [level=3] [ref=e355]
+                            - list [ref=e356]:
+                                - listitem [ref=e357]:
+                                    - text: Composite scores are produced
+                                    - strong [ref=e358]: locally
+                                    - text: by the D‑O‑R‑A‑V consensus.
+                                - listitem [ref=e359]: Production telemetry reflects the live serving path stored in BigQuery.
+                                - listitem [ref=e360]:
+                                    - text: 'Convergence bar: composite'
+                                    - strong [ref=e361]: ≥ 0.70
+                                    - text: .
+                                - listitem [ref=e362]: 'Accessibility target: WCAG AA (axe-core critical/serious = reject).'
+                    - generic [ref=e363]:
+                        - heading "Honest caveats" [level=3] [ref=e364]:
+                            - generic [ref=e365]: warning
+                            - text: Honest caveats
+                        - list [ref=e366]:
+                            - listitem [ref=e367]: — Production sample is small and early — figures will move as more runs land.
+                            - listitem [ref=e368]: — The controlled A/B and the WebGen-Bench slice have not been run at scale yet; those sections show a pending state rather than a placeholder number.
+                            - listitem [ref=e369]:
+                                - text: — The official WebGen-Bench metric (a test-agent appearance/functionality score) is
+                                - strong [ref=e370]: not
+                                - text: reproduced here. Any Atelier slice is scored by Atelier’s own gates and labelled as such — it is not comparable to the public leaderboard.
+                            - listitem [ref=e371]: — Composite scores are produced locally by the D‑O‑R‑A‑V consensus, distinct from the production serving path.
+                    - paragraph [ref=e372]:
+                        - text: 'Eval driver:'
+                        - code [ref=e373]: scripts/eval/run_baseline_ab.py
+                        - text: . Every figure traces to one of these sources. No demo or synthetic data.

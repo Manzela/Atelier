@@ -1,0 +1,29 @@
+# Grounded web research domain trust configuration (AT-025).
+# Spans tier 1 (design-system authoritative), tier 2 (community layout practices),
+# and deny_domains (hallucinations or irrelevant commercial sites).
+
+tier_1_domains:
+  - radix-ui.com
+  - material.io
+  - tailwindcss.com
+  - web.dev
+  - developer.mozilla.org
+  - react.dev
+  - nextjs.org
+
+tier_2_domains:
+  - medium.com
+  - smashingmagazine.com
+  - prototypr.io
+  - dev.to
+  - css-tricks.com
+  - logrocket.com
+  - codepen.io
+  - github.com
+
+deny_domains:
+  - schlage.com
+
+trust_thresholds:
+  tier_1_min_score: 0.9
+  tier_2_min_score: 0.7

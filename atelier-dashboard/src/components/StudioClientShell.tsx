@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useState, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import { onIdTokenChanged } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import {
@@ -136,6 +138,29 @@ function useClientAuth() {
     },
     [router]
   );
+
+  useEffect(() => {
+    if (!auth) return;
+    const unsubscribe = onIdTokenChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          const token = await firebaseUser.getIdToken();
+          const userStr = localStorage.getItem('user');
+          if (userStr) {
+            const userObj = JSON.parse(userStr) as UserSession;
+            if (userObj.token !== token) {
+              userObj.token = token;
+              localStorage.setItem('user', JSON.stringify(userObj));
+              setUser(userObj);
+            }
+          }
+        } catch (err) {
+          console.error('Failed to sync Firebase token:', err);
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   return { user, initRef };
 }
@@ -1020,12 +1045,35 @@ export default function StudioClientShell({ id }: { id: string }) {
       },
     };
 
-    runGenerationStream(brief, user.token, callbacks, {
-      model: selectedModel,
-      temperature,
-      top_k: topK,
-      max_tokens: maxTokens,
-    });
+    const executeGeneration = (tokenToUse: string | null) => {
+      runGenerationStream(brief, tokenToUse, callbacks, {
+        model: selectedModel,
+        temperature,
+        top_k: topK,
+        max_tokens: maxTokens,
+      });
+    };
+
+    if (auth && auth.currentUser) {
+      auth.currentUser
+        .getIdToken(true)
+        .then((newToken) => {
+          const userStr = localStorage.getItem('user');
+          if (userStr) {
+            const userObj = JSON.parse(userStr) as UserSession;
+            userObj.token = newToken;
+            localStorage.setItem('user', JSON.stringify(userObj));
+            user.token = newToken;
+          }
+          executeGeneration(newToken);
+        })
+        .catch((err) => {
+          console.error('Failed to force refresh token, using current token:', err);
+          executeGeneration(user.token);
+        });
+    } else {
+      executeGeneration(user.token);
+    }
   };
 
   const handleSteerSignoff = useCallback(

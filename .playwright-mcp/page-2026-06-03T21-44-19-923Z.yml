@@ -1,0 +1,128 @@
+- generic [ref=e2]:
+    - navigation "Main Navigation" [ref=e3]:
+        - generic [ref=e4]:
+            - img "Acme Corp workspace" [ref=e5]
+            - generic [ref=e6]: Acme Corp
+            - button "Notifications" [ref=e7] [cursor=pointer]:
+                - img [ref=e8]
+        - button "New Issue C" [ref=e11] [cursor=pointer]:
+            - img [ref=e12]
+            - generic [ref=e14]: New Issue
+            - generic [ref=e15]: C
+        - generic [ref=e16]:
+            - heading "Views" [level=2] [ref=e17]
+            - list [ref=e18]:
+                - listitem [ref=e19]:
+                    - link "Inbox" [ref=e20] [cursor=pointer]:
+                        - /url: '#'
+                        - img [ref=e21]
+                        - generic [ref=e23]: Inbox
+                - listitem [ref=e24]:
+                    - link "My Issues" [ref=e25] [cursor=pointer]:
+                        - /url: '#'
+                        - img [ref=e26]
+                        - generic [ref=e28]: My Issues
+        - generic [ref=e29]:
+            - heading "Projects" [level=2] [ref=e30]
+            - list [ref=e31]:
+                - listitem [ref=e32]:
+                    - link "Frontend Platform" [ref=e33] [cursor=pointer]:
+                        - /url: '#'
+                        - img [ref=e34]
+                        - generic [ref=e36]: Frontend Platform
+                - listitem [ref=e37]:
+                    - link "API Services" [ref=e38] [cursor=pointer]:
+                        - /url: '#'
+                        - img [ref=e39]
+                        - generic [ref=e41]: API Services
+        - generic [ref=e42]:
+            - heading "Engineering" [level=2] [ref=e43]
+            - list [ref=e44]:
+                - listitem [ref=e45]:
+                    - link "Active Issues" [ref=e46] [cursor=pointer]:
+                        - /url: '#'
+                        - img [ref=e47]
+                        - generic [ref=e49]: Active Issues
+                - listitem [ref=e50]:
+                    - link "Backlog" [ref=e51] [cursor=pointer]:
+                        - /url: '#'
+                        - img [ref=e52]
+                        - generic [ref=e54]: Backlog
+                - listitem [ref=e55]:
+                    - link "Board View" [ref=e56] [cursor=pointer]:
+                        - /url: '#'
+                        - img [ref=e57]
+                        - generic [ref=e59]: Board View
+    - main [ref=e60]:
+        - heading "Active Issues" [level=1] [ref=e61]
+        - generic [ref=e62]:
+            - button "Filter" [ref=e63] [cursor=pointer]:
+                - img [ref=e64]
+                - generic [ref=e66]: Filter
+            - button "Sort" [ref=e67] [cursor=pointer]:
+                - img [ref=e68]
+                - generic [ref=e70]: Sort
+            - list [ref=e71]:
+                - listitem [ref=e72]:
+                    - generic [ref=e73]:
+                        - generic [ref=e74]: 'Status: In Progress'
+                        - 'button "Remove ''Status: In Progress'' filter" [ref=e75] [cursor=pointer]':
+                            - img [ref=e76]
+        - generic [ref=e78]:
+            - generic [ref=e79]:
+                - heading "In Progress" [level=2] [ref=e80]
+                - list "In Progress" [ref=e81]:
+                    - listitem "Refactor authentication flow to use new token library" [ref=e82] [cursor=pointer]:
+                        - generic [ref=e83]:
+                            - checkbox "Select issue PRO-123" [ref=e84]
+                            - generic [ref=e85]: Select issue PRO-123
+                        - generic "In Progress" [ref=e86]:
+                            - img [ref=e87]
+                        - generic [ref=e89]: PRO-123
+                        - generic [ref=e90]: Refactor authentication flow to use new token library
+                        - generic [ref=e91]:
+                            - generic "High Priority" [ref=e92]:
+                                - img [ref=e93]
+                            - img "Jane Doe" [ref=e96]
+                            - time [ref=e97]: 2h ago
+                        - generic:
+                            - text: Press
+                            - strong: E
+                            - text: to edit
+                    - listitem "Improve performance of the main dashboard query" [ref=e98] [cursor=pointer]:
+                        - generic [ref=e99]:
+                            - checkbox "Select issue PRO-122" [ref=e100]
+                            - generic [ref=e101]: Select issue PRO-122
+                        - generic "In Progress" [ref=e102]:
+                            - img [ref=e103]
+                        - generic [ref=e105]: PRO-122
+                        - generic [ref=e106]: Improve performance of the main dashboard query
+                        - generic [ref=e107]:
+                            - generic "Medium Priority" [ref=e108]:
+                                - img [ref=e109]
+                            - img "John Smith" [ref=e111]
+                            - time [ref=e112]: 5h ago
+                        - generic:
+                            - text: Press
+                            - strong: E
+                            - text: to edit
+            - generic [ref=e113]:
+                - heading "Todo" [level=2] [ref=e114]
+                - list "Todo" [ref=e115]:
+                    - listitem "Update design system components with new color palette" [ref=e116] [cursor=pointer]:
+                        - generic [ref=e117]:
+                            - checkbox "Select issue DES-42" [ref=e118]
+                            - generic [ref=e119]: Select issue DES-42
+                        - generic "Todo" [ref=e120]:
+                            - img [ref=e121]
+                        - generic [ref=e124]: DES-42
+                        - generic [ref=e125]: Update design system components with new color palette
+                        - generic [ref=e126]:
+                            - generic "Urgent Priority" [ref=e127]:
+                                - img [ref=e128]
+                            - img "Jane Doe" [ref=e132]
+                            - time [ref=e133]: 6h ago
+                        - generic:
+                            - text: Press
+                            - strong: E
+                            - text: to edit

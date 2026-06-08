@@ -1,0 +1,15 @@
+- generic [active] [ref=e1]:
+    - banner [ref=e2]:
+        - img "Fintech App Logo" [ref=e3]
+    - main [ref=e6]:
+        - generic [ref=e7]:
+            - heading "A smarter way to manage your money." [level=1] [ref=e8]
+            - paragraph [ref=e9]: Create your secure account in about 2 minutes. Let's get started.
+    - contentinfo [ref=e10]:
+        - generic [ref=e11]:
+            - link "Get Started" [ref=e12] [cursor=pointer]:
+                - /url: '#'
+            - paragraph [ref=e13]:
+                - text: Already have an account?
+                - link "Log In" [ref=e14] [cursor=pointer]:
+                    - /url: '#'
