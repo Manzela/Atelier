@@ -3,7 +3,7 @@
     "collect": {
       "startServerCommand": "npm run start",
       "startServerReadyPattern": "Ready",
-      "url": ["http://localhost:3000/login"],
+      "url": ["http://localhost:3000/privacy"],
       "numberOfRuns": 3,
       "settings": {
         "preset": "desktop",
