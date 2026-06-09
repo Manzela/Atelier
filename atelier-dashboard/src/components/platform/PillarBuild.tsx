@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronRight, Loader2, AlertCircle, Box, Cpu, Layers, Wrench } from 'lucide-react';
 import { usePlatformData } from './usePlatformData';
+import { useAgentActivity } from './useAgentActivity';
 import PlatformTopologyGraph from './PlatformTopologyGraph';
 import type {
   AgentSummary,
@@ -221,40 +222,73 @@ function AgentDetailPanel({ agentId }: { agentId: string }) {
 // Agent registry list
 // ---------------------------------------------------------------------------
 
+/**
+ * A small pulsing dot indicating the agent is currently executing a task.
+ * Shown inline next to the agent name when `active` is true.
+ */
+function LiveDot({ state }: { state: 'active' | 'done' | 'idle' | 'error' | undefined }) {
+  if (state === 'active') {
+    return (
+      <span className="relative flex h-2 w-2 shrink-0" title="Running">
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--g-info)] opacity-75" />
+        <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--g-info)]" />
+      </span>
+    );
+  }
+  if (state === 'done') {
+    return (
+      <span
+        className="inline-flex h-2 w-2 shrink-0 rounded-full bg-[var(--g-success)]"
+        title="Done"
+      />
+    );
+  }
+  return null;
+}
+
 function AgentList({
   agents,
   selectedId,
   onSelect,
+  agentActivity,
 }: {
   agents: AgentSummary[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  /** Live per-agent state map from `useAgentActivity`. Keys are agentRole / agent id. */
+  agentActivity: Record<string, 'active' | 'done' | 'idle' | 'error'>;
 }) {
   return (
     <ul className="divide-y divide-[var(--g-outline)]">
-      {agents.map((agent) => (
-        <li key={agent.id}>
-          <button
-            onClick={() => onSelect(agent.id)}
-            className={`w-full text-left px-3 py-2.5 flex items-center justify-between gap-2 transition-colors ${
-              selectedId === agent.id
-                ? 'bg-[var(--g-info)]/10 text-[var(--g-info)]'
-                : 'text-[var(--g-text)] hover:bg-black/20'
-            }`}
-          >
-            <div className="flex flex-col min-w-0">
-              <span className="text-xs font-semibold truncate">{agent.name}</span>
-              <span className="text-[10px] text-[var(--g-text-muted)] font-mono truncate">
-                {agent.task_type ?? agent.kind} — {agent.model_id}
-              </span>
-            </div>
-            <ChevronRight
-              size={12}
-              className={`shrink-0 ${selectedId === agent.id ? 'text-[var(--g-info)]' : 'text-[var(--g-text-muted)]'}`}
-            />
-          </button>
-        </li>
-      ))}
+      {agents.map((agent) => {
+        const liveState = agentActivity[agent.id] ?? agentActivity[agent.task_type ?? ''];
+        return (
+          <li key={agent.id}>
+            <button
+              onClick={() => onSelect(agent.id)}
+              className={`w-full text-left px-3 py-2.5 flex items-center justify-between gap-2 transition-colors ${
+                selectedId === agent.id
+                  ? 'bg-[var(--g-info)]/10 text-[var(--g-info)]'
+                  : 'text-[var(--g-text)] hover:bg-black/20'
+              }`}
+            >
+              <div className="flex flex-col min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-semibold truncate">{agent.name}</span>
+                  <LiveDot state={liveState} />
+                </div>
+                <span className="text-[10px] text-[var(--g-text-muted)] font-mono truncate">
+                  {agent.task_type ?? agent.kind} — {agent.model_id}
+                </span>
+              </div>
+              <ChevronRight
+                size={12}
+                className={`shrink-0 ${selectedId === agent.id ? 'text-[var(--g-info)]' : 'text-[var(--g-text-muted)]'}`}
+              />
+            </button>
+          </li>
+        );
+      })}
     </ul>
   );
 }
@@ -270,6 +304,10 @@ function AgentList({
  *   1. Agent Registry master-detail (roster on the left, full descriptor on the right).
  *   2. System Topology graph (the static specialist DAG from /v1/platform/topology).
  *   3. A2A Agent Card skills and MCP toolsets from /v1/platform/build.
+ *
+ * Phase-D: live per-agent state is subscribed via `useAgentActivity` (Firestore
+ * `onSnapshot`) and surfaced both in the Agent Registry list (pulsing live dot)
+ * and in the System Topology graph node colours.
  */
 export default function PillarBuild() {
   const {
@@ -291,6 +329,10 @@ export default function PillarBuild() {
     error: topoError,
     data: topoData,
   } = usePlatformData<TopologyGraphSpec>('/v1/platform/topology');
+
+  // Phase-D: live agent activity — subscribed to the tenant's task docs via
+  // Firestore onSnapshot. Empty map on initial render; no polling.
+  const agentActivity = useAgentActivity();
 
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
 
@@ -363,7 +405,12 @@ export default function PillarBuild() {
           <div className="rounded-lg border border-[var(--g-outline)] overflow-hidden grid lg:grid-cols-[240px_1fr]">
             {/* Left: roster */}
             <div className="border-b lg:border-b-0 lg:border-r border-[var(--g-outline)] overflow-y-auto max-h-96">
-              <AgentList agents={agents} selectedId={effectiveAgent} onSelect={setSelectedAgent} />
+              <AgentList
+                agents={agents}
+                selectedId={effectiveAgent}
+                onSelect={setSelectedAgent}
+                agentActivity={agentActivity}
+              />
             </div>
             {/* Right: detail */}
             <div className="overflow-y-auto max-h-96">
@@ -392,7 +439,11 @@ export default function PillarBuild() {
             <span>{topoError}</span>
           </div>
         ) : topoData?.available ? (
-          <PlatformTopologyGraph spec={topoData} title="Specialist DAG" />
+          <PlatformTopologyGraph
+            spec={topoData}
+            title="Specialist DAG"
+            nodeStates={agentActivity}
+          />
         ) : (
           <UnavailablePane label="System topology is currently unavailable." />
         )}

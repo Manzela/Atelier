@@ -9,6 +9,19 @@ The full architectural design lives in [`../superpowers/specs/2026-05-14-atelier
 3. **[Conventions](../conventions/)** — commit messages, branching, code style, logging.
 4. **[Runbooks](../runbooks/)** — operational procedures (filled out as Phase 1+ ships them).
 
+## Pillar docs
+
+Four dedicated files cover the four operational pillars of the platform:
+
+| Pillar   | File                                     | Covers                                                                            |
+| -------- | ---------------------------------------- | --------------------------------------------------------------------------------- |
+| Build    | [build-pillar.md](build-pillar.md)       | Agent registry, DAG topology, A2A skills, MCP toolsets, Agent Garden registration |
+| Scale    | [scale-pillar.md](scale-pillar.md)       | Model catalog, session/memory backends, Agent Engine deployment                   |
+| Govern   | [govern-pillar.md](govern-pillar.md)     | Registry, identity, gateway, policy, security, audit                              |
+| Optimize | [optimize-pillar.md](optimize-pillar.md) | DPO flywheel: observe → simulate → verify                                         |
+
+---
+
 ## Key concepts
 
 | Concept                                                                 | Where to read                                                            |

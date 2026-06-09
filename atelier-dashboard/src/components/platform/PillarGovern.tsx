@@ -3,6 +3,7 @@
 import React from 'react';
 import { Loader2, AlertCircle, CheckCircle2, ShieldCheck, ShieldAlert } from 'lucide-react';
 import { usePlatformData } from './usePlatformData';
+import { useAgentActivity } from './useAgentActivity';
 import PlatformTopologyGraph from './PlatformTopologyGraph';
 import type { PlatformGovern, TopologyGraphSpec } from '@/lib/api';
 
@@ -77,6 +78,9 @@ function UnavailablePane({ label }: { label: string }) {
  *   - System Topology graph for governance context.
  *
  * Every sub-block is fail-soft and guarded on its own `available` flag.
+ *
+ * Phase-D: live agent activity is subscribed via `useAgentActivity` (Firestore
+ * `onSnapshot`) and drives the Topology graph node states.
  */
 export default function PillarGovern() {
   const { loading, error, data, refetch } = usePlatformData<PlatformGovern>('/v1/platform/govern');
@@ -86,6 +90,10 @@ export default function PillarGovern() {
     error: topoError,
     data: topoData,
   } = usePlatformData<TopologyGraphSpec>('/v1/platform/topology');
+
+  // Phase-D: live agent activity — subscribed to the tenant's task docs via
+  // Firestore onSnapshot. Empty map on initial render; no polling.
+  const agentActivity = useAgentActivity();
 
   if (loading) {
     return (
@@ -287,7 +295,11 @@ export default function PillarGovern() {
             <span>{topoError}</span>
           </div>
         ) : topoData?.available ? (
-          <PlatformTopologyGraph spec={topoData} title="Specialist DAG" />
+          <PlatformTopologyGraph
+            spec={topoData}
+            title="Specialist DAG"
+            nodeStates={agentActivity}
+          />
         ) : (
           <UnavailablePane label="System topology is currently unavailable." />
         )}
