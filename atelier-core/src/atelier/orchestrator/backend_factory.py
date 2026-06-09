@@ -38,6 +38,8 @@ if TYPE_CHECKING:
     from google.adk.memory import BaseMemoryService
     from google.adk.sessions import BaseSessionService
 
+    from atelier.memory.bigquery_backend import BigQueryEpisodicBackend
+
 logger = logging.getLogger(__name__)
 
 DEFAULT_BACKEND = "memory"
@@ -172,3 +174,45 @@ def create_memory_service(
 
     logger.info("memory backend: InMemoryMemoryService (offline)")
     return InMemoryMemoryService()
+
+
+def create_episodic_backend(
+    backend_name: str | None = None,
+    *,
+    project_id: str | None = None,
+) -> BigQueryEpisodicBackend | None:
+    """Return the EPISODIC-tier backend selected by ``SESSION_BACKEND`` (ADR 0029).
+
+    The episodic tier (BigQuery ``atelier_trajectories.session_events``) is a
+    distinct subsystem from the ADK ``BaseMemoryService`` session/long-term
+    memory returned by :func:`create_memory_service`; it is constructed here so
+    the backend is reachable from the canonical factory rather than only in
+    tests. The ``vertex`` and ``bigquery`` backends both persist episodic events
+    to BigQuery; the offline ``memory`` backend has no episodic store and returns
+    ``None`` (the caller skips episodic writes, matching the no-network lane).
+
+    Args:
+        backend_name: Explicit backend override. When ``None`` the
+            ``SESSION_BACKEND`` env var is read (default ``"memory"``).
+        project_id: GCP project for the BigQuery client. Falls back to
+            ``GOOGLE_CLOUD_PROJECT``, then the backend's own default project.
+
+    Returns:
+        A ``BigQueryEpisodicBackend`` for the persisted backends, or ``None``
+        for the offline ``memory`` backend.
+
+    Raises:
+        ValueError: If the resolved backend name is not recognised.
+    """
+    backend = _resolve_backend(backend_name)
+    if backend == "memory":
+        logger.info("episodic backend: none (offline memory lane)")
+        return None
+
+    from atelier.memory.bigquery_backend import BigQueryEpisodicBackend  # noqa: PLC0415
+
+    project = project_id or os.environ.get("GOOGLE_CLOUD_PROJECT")
+    logger.info("episodic backend: BigQueryEpisodicBackend (project=%s)", project)
+    if project is not None:
+        return BigQueryEpisodicBackend(project=project)
+    return BigQueryEpisodicBackend()

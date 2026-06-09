@@ -27,7 +27,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Annotated, Any, Final
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -857,12 +857,14 @@ def _build_run_verdict(payload: dict[str, Any]) -> dict[str, Any] | None:
     description="Streams the pipeline progress events (plan, screen_start, candidates, evaluations, fixer, complete) in EventSource format.",
 )
 async def generate_stream(  # noqa: C901, PLR0915 — SSE orchestrator: nested pipeline + cap/rate-limit handling
+    http_request: Request,
     request: GenerateRequest,
     user: Annotated[FirebaseUser, Depends(require_auth_strict)],
 ) -> StreamingResponse:
     """Run the pipeline and stream events in real-time.
 
     Args:
+        http_request: Starlette request object used to detect client disconnect.
         request: Brief text and optional configuration.
         user: Verified Firebase user from Authorization: Bearer header.
 
@@ -881,8 +883,16 @@ async def generate_stream(  # noqa: C901, PLR0915 — SSE orchestrator: nested p
         raise HTTPException(status_code=400, detail=gate_outcome.diagnostic)
 
     queue: asyncio.Queue[tuple[str, Any]] = asyncio.Queue()
+    # Shared container: populated by progress_callback as soon as the runner
+    # emits a payload carrying a session_id.  Used by sse_generator to arm the
+    # cooperative Stop on client disconnect.
+    _session_id_holder: list[str] = []
 
     async def progress_callback(event_type: str, payload: dict[str, Any]) -> None:
+        # Capture session_id from the first event that carries one so the
+        # sse_generator can stop the run on client disconnect.
+        if not _session_id_holder and payload.get("session_id"):
+            _session_id_holder.append(str(payload["session_id"]))
         if event_type == "complete":
             # AT-027: surface the read-only optimize assets (MoE route decision +
             # dreaming/DPO artifact) for THIS run, just BEFORE the complete event so
@@ -1011,6 +1021,22 @@ async def generate_stream(  # noqa: C901, PLR0915 — SSE orchestrator: nested p
         task = asyncio.create_task(_run_pipeline_task())
 
         while True:
+            # Check for client disconnect on each keep-alive tick so disconnected
+            # clients do not continue consuming paid Vertex quota.
+            if await http_request.is_disconnected():
+                logger.info(
+                    "atelier.generate.stream.client_disconnected",
+                    extra={"uid": sanitize(user.uid)},
+                )
+                if _session_id_holder:
+                    from atelier.orchestrator.stop_controller import (  # noqa: PLC0415
+                        request_stop,
+                    )
+
+                    request_stop(_session_id_holder[0])
+                task.cancel()
+                break
+
             try:
                 # Wait for an event with a 1.0 second timeout to support keep-alive pinging
                 event_type, payload = await asyncio.wait_for(queue.get(), timeout=1.0)

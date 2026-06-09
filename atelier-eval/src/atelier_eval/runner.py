@@ -1,6 +1,6 @@
 """Eval runner — orchestrates benchmark execution across adapters.
 
-Usage (Phase 2):
+Usage:
     runner = EvalRunner(data_dir="atelier-eval/data")
     results = runner.run_design2code(generated_outputs)
     scoreboard.publish(results)
@@ -19,7 +19,9 @@ if TYPE_CHECKING:
 class EvalRunner:
     """Coordinates benchmark evaluation across multiple adapters.
 
-    Phase 1 skeleton — real orchestration logic lands in Phase 2.
+    Dispatches generated outputs to the Design2Code, Web2Code, ScreenSpot, and
+    WebGen-Bench adapters, collects their per-task results, and aggregates them
+    into a single scoreboard summary.
     """
 
     data_dir: str

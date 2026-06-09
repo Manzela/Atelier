@@ -230,6 +230,8 @@ def _install_fake_firebase_admin_auth(monkeypatch: pytest.MonkeyPatch) -> None:
 
     Also stubs ``_init_firebase`` so no real Admin SDK initialisation runs.
     """
+    from atelier.auth import firebase as _fb
+
     fake_auth = types.ModuleType("firebase_admin.auth")
     fake_auth.RevokedIdTokenError = _RevokedIdTokenError  # type: ignore[attr-defined]
 
@@ -238,10 +240,14 @@ def _install_fake_firebase_admin_auth(monkeypatch: pytest.MonkeyPatch) -> None:
         # keyword, so a keyword-only param here matches the real call site.
         if check_revoked:
             raise _RevokedIdTokenError("The Firebase ID token has been revoked.")
+        # A token valid by audience/issuer (matching the post-decode assertion in
+        # _decode_token); the test isolates revocation behaviour, not aud/iss.
         return {
             "uid": "revoked-user-uid",
             "email": "revoked@example.com",
             "email_verified": True,
+            "aud": _fb._PROJECT_ID,
+            "iss": f"{_fb._FIREBASE_ISSUER_PREFIX}{_fb._PROJECT_ID}",
         }
 
     fake_auth.verify_id_token = _verify_id_token  # type: ignore[attr-defined]

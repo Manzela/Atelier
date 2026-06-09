@@ -111,10 +111,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Notify Telegram
+        env:
+          # Secrets are passed via env (never interpolated into the shell string),
+          # so a transformation, error message, or `set -x` cannot defeat masking.
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TAG_NAME: ${{ needs.release-please.outputs.tag_name }}
         run: |
-          if [ -n "${{ secrets.TELEGRAM_BOT_TOKEN }}" ]; then
+          if [ -n "${TELEGRAM_BOT_TOKEN}" ]; then
             curl -fsS -X POST \
-              "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-              -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-              -d text="🚀 Atelier ${{ needs.release-please.outputs.tag_name }} released. https://github.com/Manzela/atelier/releases/tag/${{ needs.release-please.outputs.tag_name }}"
+              "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+              --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
+              --data-urlencode "text=Atelier ${TAG_NAME} released. https://github.com/Manzela/atelier/releases/tag/${TAG_NAME}"
           fi

@@ -20,7 +20,7 @@ This document tracks all accepted operational, security, safety, and compliance 
 
 ### RR-01: Chromium Sandbox Exclusion in Production Container
 
-- **Context:** The automated accessibility gate ([axe_core.py](file:///Users/danielmanzela/Professional%20Profile/Atelier/.worktrees/audit-e2e/atelier-core/src/atelier/gates/axe_core.py)) relies on headless Chromium. Inside rootless Docker containers, Chromium cannot run with the sandbox enabled without requiring `SYS_ADMIN` kernel privileges, which raises container escape risks.
+- **Context:** The automated accessibility gate ([axe_core.py](../../atelier-core/src/atelier/gates/axe_core.py)) relies on headless Chromium. Inside rootless Docker containers, Chromium cannot run with the sandbox enabled without requiring `SYS_ADMIN` kernel privileges, which raises container escape risks.
 - **Mitigation:** Chromium is executed with `--no-sandbox` only when running inside the production container environment.
 - **Resolution:**
   1. The production container has been hardened to run as a non-root user (`appuser`) with a read-only filesystem.
@@ -33,7 +33,7 @@ This document tracks all accepted operational, security, safety, and compliance 
 
 ### RR-02: Prompt Injection Guard Obfuscation Bypass
 
-- **Context:** The model boundary before-callbacks ([model_armor_callbacks.py](file:///Users/danielmanzela/Professional%20Profile/Atelier/.worktrees/audit-e2e/atelier-core/src/atelier/models/model_armor_callbacks.py)) use a compiled regex pattern set to catch natural-language overrides.
+- **Context:** The model boundary before-callbacks ([model_armor_callbacks.py](../../atelier-core/src/atelier/models/model_armor_callbacks.py)) use a compiled regex pattern set to catch natural-language overrides.
 - **Mitigation:** Fail-closed client-side filter + server-side Model Armor.
 - **Resolution:**
   1. Expanded the injection pattern set in `model_armor_callbacks.py` to include novel and obfuscated vectors (e.g., DAN mode, unrestricted AI scenarios).

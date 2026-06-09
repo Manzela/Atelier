@@ -45,6 +45,13 @@ echo "Applying..."
 terraform apply plan.tfplan
 
 echo "Verifying Cloud Run staging service..."
-gcloud run services describe atelier-staging --region=us-central1 --project="${PROJECT}" --format="value(status.url)"
+# The service is named atelier-api-${env} by Terraform (google_cloud_run_v2_service.atelier_api).
+# Use `terraform output cloud_run_url` as the authoritative URL rather than a hardcoded name.
+SERVICE_URL="$(terraform output -raw cloud_run_url 2>/dev/null || true)"
+if [[ -n "${SERVICE_URL}" ]]; then
+  echo "Cloud Run service URL: ${SERVICE_URL}"
+else
+  gcloud run services describe "atelier-api-staging" --region=us-central1 --project="${PROJECT}" --format="value(status.url)"
+fi
 
 echo "Terraform apply complete ✅"

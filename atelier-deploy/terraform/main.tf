@@ -147,6 +147,15 @@ resource "google_cloud_run_v2_service" "api" {
       max_instance_count = var.api_max_instances
     }
 
+    # Limit concurrent requests per instance so the in-process per-user rate
+    # limiter and circuit-breaker approximate fleet-level controls.  Each
+    # long-running DAG generation (N1->N4) ties up one request slot for the
+    # full generation; keeping concurrency low bounds the dilution of the
+    # in-process token counters across instances (AT-097 / finding i106).
+    # Default of 10 matches api_max_instances so the total in-flight cap is
+    # max_instances * max_concurrency = a bounded, operator-reviewable ceiling.
+    max_instance_request_concurrency = 10
+
     containers {
       image = var.api_image
 

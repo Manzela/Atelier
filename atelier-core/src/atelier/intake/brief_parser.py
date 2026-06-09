@@ -28,8 +28,8 @@ class BriefGateOutcome(BaseModel):
 # ---------------------------------------------------------------------------
 # Tunable thresholds
 # ---------------------------------------------------------------------------
-MIN_BRIEF_TOKENS: int = 10  # below this → gate FAIL (too vague)
-MAX_BRIEF_TOKENS: int = 4096  # above this → gate FAIL (too large for single call)
+MIN_BRIEF_TOKENS: int = 10  # below this → gate REJECT (too vague)
+MAX_BRIEF_TOKENS: int = 4096  # above this → gate REJECT (too large for single call)
 INJECTION_PATTERNS: tuple[str, ...] = (
     r"<script",
     r"javascript:",
@@ -43,7 +43,12 @@ class BriefParserGate:
     """Deterministic gate — validates raw brief text before LLM parsing."""
 
     def check(self, brief_text: str) -> BriefGateOutcome:
-        """Returns GateDecision.PASS or GateDecision.FAIL with diagnostic."""
+        """Returns GateDecision.PASS or GateDecision.REJECT with diagnostic.
+
+        PASS is returned when the brief passes all length and injection checks.
+        REJECT is returned for empty, too-short, too-long, or injected briefs.
+        The gate never returns DEFER.
+        """
         tokens = brief_text.split()
         if not tokens:
             return BriefGateOutcome(decision=GateDecision.REJECT, diagnostic="Empty brief")

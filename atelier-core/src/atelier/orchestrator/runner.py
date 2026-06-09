@@ -23,6 +23,7 @@ PRD Reference: §6.3 (N1-N4), §21 (Failure Trichotomy)
 
 from __future__ import annotations
 
+import asyncio
 import dataclasses
 import json
 import logging
@@ -78,7 +79,7 @@ from atelier.models.model_armor_callbacks import (
     MODEL_ARMOR_BLOCK_USER_MESSAGE,
     was_model_armor_blocked,
 )
-from atelier.models.model_registry import normalize_model_id
+from atelier.models.model_registry import calibrate_model, normalize_model_id
 from atelier.nodes.consensus import ConsensusEvaluation, evaluate_candidate
 from atelier.orchestrator.governor import (
     TOKEN_CAP_MESSAGE,
@@ -86,7 +87,7 @@ from atelier.orchestrator.governor import (
     MetacognitiveGovernor,
 )
 from atelier.orchestrator.planner import PlanStep
-from atelier.orchestrator.specialists import create_specialist_pipeline
+from atelier.orchestrator.specialists import create_specialist_pipeline, get_specialist_specs
 from atelier.orchestrator.stop_controller import clear_stop, is_stop_requested
 from atelier.orchestrator.stop_reason import (
     StopReason,
@@ -1841,10 +1842,11 @@ class AtelierRunner:
                     break
 
                 if self._governor._state.is_over_token_cap():
-                    # AT-095 graceful in-flight stop: the previous iteration's
-                    # completed unit pushed cumulative usage to the cap. Stop cleanly
-                    # BEFORE starting another (expensive) generation — finish-the-unit,
-                    # then a single branded message (never a raw quota error or hang).
+                    # AT-095 graceful in-flight stop: a prior unit (or the in-stream
+                    # check inside _run_ensemble, which aborts the ADK run the moment a
+                    # tier crosses its cap) pushed cumulative usage over the cap. Stop
+                    # cleanly BEFORE starting another (expensive) generation, then a
+                    # single branded message (never a raw quota error or hang).
                     _exceeded = self._governor._state.exceeded_tier()
                     logger.warning(
                         "Convergence loop graceful stop: per-user token cap reached.",
@@ -1881,7 +1883,7 @@ class AtelierRunner:
                 # Also tallies (input, output, thinking) tokens from each ADK event's
                 # usage_metadata for the AT-095 lifetime counter; falls back to a
                 # deterministic estimate when the offline model surface reports none.
-                async def _run_ensemble(  # noqa: C901
+                async def _run_ensemble(  # noqa: C901, PLR0912, PLR0915
                     prompt: str = generator_prompt,
                     screen: str = screen,
                     iteration: int = iteration,
@@ -1902,7 +1904,26 @@ class AtelierRunner:
                     candidates: list[Any] = []
                     usage_in = usage_out = usage_think = 0
                     charged_in = charged_out = charged_think = 0
-                    n3a_model_id = "gemini-2.5-flash"
+
+                    # AT-095 per-tier attribution: charge each ADK event against the
+                    # model the producing specialist actually runs on, not a single
+                    # hardcoded Flash id. The event author equals the specialist name;
+                    # map name -> calibrated model id so Pro/Flash-Lite spend lands in
+                    # the correct per-tier bucket (and its correct cap). When a uniform
+                    # model override is in effect (hermetic tests / pinned model), every
+                    # specialist runs on it, so the map collapses to that single id.
+                    if self._custom_model:
+                        specialist_model_by_author = {
+                            spec.name: self._custom_model for spec in get_specialist_specs()
+                        }
+                    else:
+                        specialist_model_by_author = {
+                            spec.name: calibrate_model(spec.task_type)
+                            for spec in get_specialist_specs()
+                        }
+                    # Fallback for events from a non-specialist author (root coordinator)
+                    # or an unmapped name: charge Flash, the bulk-generation tier.
+                    fallback_model_id = self._custom_model or "gemini-2.5-flash"
 
                     traced_authors: set[str] = set()
                     accumulated_texts: list[str] = []
@@ -1923,6 +1944,15 @@ class AtelierRunner:
                         usage_out += eout
                         usage_think += ethink
 
+                        author = getattr(event, "author", None)
+                        # Attribute this event's tokens to the real model the
+                        # producing specialist runs on (AT-095 per-tier cap).
+                        event_model_id = (
+                            specialist_model_by_author.get(author, fallback_model_id)
+                            if isinstance(author, str)
+                            else fallback_model_id
+                        )
+
                         # Charge tokens dynamically in real-time
                         if ein + eout + ethink > 0:
                             charged_in += ein
@@ -1932,14 +1962,14 @@ class AtelierRunner:
                                 input_tokens=ein,
                                 output_tokens=eout,
                                 thinking_tokens=ethink,
-                                model_id=n3a_model_id,
+                                model_id=event_model_id,
                             )
                             self._usage_store.add(
                                 user_id,
                                 input_tokens=ein,
                                 output_tokens=eout,
                                 thinking_tokens=ethink,
-                                model_id=n3a_model_id,
+                                model_id=event_model_id,
                             )
                             if progress_callback:
                                 await progress_callback(
@@ -1951,8 +1981,25 @@ class AtelierRunner:
                                         "cumulative_user_tokens": self._governor._state.cumulative_user_tokens,
                                     },
                                 )
+                            # AT-095 in-stream cap enforcement (finding: mid-iteration
+                            # overrun): once this event pushes a tier over its cap,
+                            # abort the ADK run immediately rather than letting the rest
+                            # of the specialist pipeline keep spending. The governor's
+                            # run_with_governance wrapper maps the break to a graceful
+                            # degraded stop; the top-of-loop check then halts the loop.
+                            if self._governor._state.is_over_token_cap():
+                                logger.warning(
+                                    "AT-095 in-stream token-cap stop: aborting N3a "
+                                    "mid-pipeline (tier over cap).",
+                                    extra={
+                                        "exceeded_tier": self._governor._state.exceeded_tier(),
+                                        "cumulative_user_tokens": (
+                                            self._governor._state.cumulative_user_tokens
+                                        ),
+                                    },
+                                )
+                                break
 
-                        author = getattr(event, "author", None)
                         if isinstance(author, str) and author:
                             if current_author is not None and author != current_author:
                                 # Handoff: previous specialist completed!
@@ -1994,18 +2041,21 @@ class AtelierRunner:
                     rem_out = usage_out - charged_out
                     rem_think = usage_think - charged_think
                     if rem_in + rem_out + rem_think > 0:
+                        # Estimated-fallback remainder (offline runs with no per-event
+                        # usage metadata): no author signal to split by tier, so charge
+                        # the bulk-generation tier (Flash, or the uniform override).
                         self._governor._state.add_user_tokens(
                             input_tokens=rem_in,
                             output_tokens=rem_out,
                             thinking_tokens=rem_think,
-                            model_id=n3a_model_id,
+                            model_id=fallback_model_id,
                         )
                         self._usage_store.add(
                             user_id,
                             input_tokens=rem_in,
                             output_tokens=rem_out,
                             thinking_tokens=rem_think,
-                            model_id=n3a_model_id,
+                            model_id=fallback_model_id,
                         )
                         if progress_callback:
                             await progress_callback(
@@ -2092,9 +2142,17 @@ class AtelierRunner:
                         "candidates", {"screen": screen, "candidates": raw_candidates}
                     )
 
-                # N3c → N3d → N4: gate filtering + consensus evaluation + best-pick
-                convergence_result = self._run_n3c_n3d_n4(
-                    raw_candidates, brief_text, iteration=iteration, tenant_ctx=tenant_ctx
+                # N3c → N3d → N4: gate filtering + consensus evaluation + best-pick.
+                # This method does blocking I/O (GCS screenshot upload) and joins a
+                # ThreadPoolExecutor of judge calls. Offload it to a worker thread so
+                # the event loop stays responsive (SSE progress, other awaitables) for
+                # the duration of N3c/N3d rather than stalling the single Cloud Run loop.
+                convergence_result = await asyncio.to_thread(
+                    self._run_n3c_n3d_n4,
+                    raw_candidates,
+                    brief_text,
+                    iteration=iteration,
+                    tenant_ctx=tenant_ctx,
                 )
                 # AT-097: charge N3d (D-O-R-A-V judge) token spend to the user's
                 # lifetime counter too — not just N3a. Mirrors the N3a attribution

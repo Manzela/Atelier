@@ -36,6 +36,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 import time
 from collections import deque
 from dataclasses import dataclass, field
@@ -289,11 +290,31 @@ class GovernorState:
                 return tier
         return None
 
+    @staticmethod
+    def _stable_step_key(step_id: str) -> str:
+        """Strip a trailing ``_<digits>`` iteration suffix from a step id.
+
+        Runner step ids are formatted as ``<stage>_<screen>_<iteration>``
+        (e.g. ``convergence_loop_landing_3``).  The iteration counter makes
+        every recorded entry unique, so a naive all-equal comparison can never
+        detect a true loop.  Stripping the suffix yields the stable stage key
+        (``convergence_loop_landing``) that repeats across iterations.
+        """
+        return re.sub(r"_\d+$", "", step_id)
+
     def is_loop(self) -> bool:
+        """Return True when the same stable stage has repeated MAX_LOOP_ITERATIONS times.
+
+        Compares the iteration-stripped stage key of every entry in
+        ``step_history`` so that step ids that embed an increasing iteration
+        counter (e.g. ``convergence_loop_landing_0`` …
+        ``convergence_loop_landing_9``) still trigger the guard.
+        """
         if len(self.step_history) < MAX_LOOP_ITERATIONS:
             return False
-        first = self.step_history[0]
-        return all(s == first for s in self.step_history)
+        keys = [self._stable_step_key(s) for s in self.step_history]
+        first = keys[0]
+        return all(k == first for k in keys)
 
     def is_stalled(self) -> bool:
         return (time.monotonic() - self.last_step_time) > STALL_TIMEOUT_SECONDS

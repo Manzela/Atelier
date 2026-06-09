@@ -41,6 +41,7 @@ ADR Reference: 0028 (DPO parameters — β=0.1, epochs=3, adapter=4)
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import os
@@ -51,7 +52,7 @@ from pathlib import Path
 from typing import Any, Final
 
 # pyrefly: ignore [missing-import]
-from atelier.reward.composite import regressed_axes
+from atelier.reward.composite import EXTRINSIC_MARGIN_FLOOR, regressed_axes
 
 # pyrefly: ignore [missing-import]
 from atelier.utils.log_sanitizer import sanitize
@@ -97,9 +98,12 @@ def _resolve_calibration_seed_path() -> Path:
 
 _CALIBRATION_SEED_PATH: Final[Path] = _resolve_calibration_seed_path()
 
-# Minimum margin for a pair to be useful DPO training signal.
-# Below this the chosen/rejected distinction is too noisy.
-MIN_MARGIN: Final[float] = 0.12
+# Minimum margin for a pair to be useful DPO training signal. Below this the
+# chosen/rejected distinction is too noisy. Single-sourced from the AND-gate's
+# EXTRINSIC_MARGIN_FLOOR (reward.composite, §21.3) so every DPO surface — mid-
+# flight, dpo_builder, and the offline gate — enforces the same floor and cannot
+# silently diverge.
+MIN_MARGIN: Final[float] = EXTRINSIC_MARGIN_FLOOR
 
 
 # ---------------------------------------------------------------------------
@@ -117,9 +121,32 @@ MIN_MARGIN: Final[float] = 0.12
 # marker ("because" / "reason" / "rationale"), a standard reference ("standard"
 # / "WCAG" / "spec" / "guideline"), or an evidence marker ("measured" / "score"
 # / "contrast").
+# The lexicon is intentionally broad: a 12-phrase allowlist was trivially
+# bypassable (RR-04) — any synonym outside the list ("gorgeous", "stunning",
+# "nails it", ...) escaped the penalty and a naive generator quickly learns the
+# uncovered vocabulary. We now match a wide strong-positive sentiment + flattery
+# lexicon AND bare intensifier+adjective constructions ("absolutely lovely",
+# "really clean"), so unjustified praise is penalised regardless of the exact
+# word chosen. Justification (see _JUSTIFICATION_PATTERN) still exempts it.
 _PRAISE_PATTERN: Final[re.Pattern[str]] = re.compile(
-    r"\b(looks good|great|excellent|amazing|perfect|fantastic|love it|"
-    r"spectacular|wonderful|outstanding|brilliant|exceptional)\b",
+    r"\b("
+    # Strong-positive adjectives (flattery vocabulary).
+    r"looks? (?:good|great|amazing|fantastic|stunning|gorgeous|beautiful|perfect)|"
+    r"great|excellent|amazing|perfect|fantastic|spectacular|wonderful|outstanding|"
+    r"brilliant|exceptional|gorgeous|stunning|beautiful|breathtaking|flawless|"
+    r"impeccable|sublime|magnificent|superb|marvelous|marvellous|delightful|"
+    r"elegant|polished|pristine|immaculate|top[- ]?notch|first[- ]?rate|"
+    r"world[- ]?class|best[- ]?in[- ]?class|next[- ]?level|"
+    # Praise idioms / phrasal flattery.
+    r"love (?:it|this|that)|nails? it|nailed it|knocks? it out of the park|"
+    r"chef'?s? kiss|on point|spot[- ]?on|masterpiece|work of art|"
+    r"couldn'?t be better|can'?t be improved|second to none|"
+    # Bare intensifier + positive adjective ("absolutely lovely", "really clean").
+    r"(?:absolutely|incredibly|extremely|remarkably|truly|really|so|very|"
+    r"super|insanely|wildly|stunningly) "
+    r"(?:good|nice|clean|lovely|pretty|beautiful|polished|impressive|gorgeous|"
+    r"slick|sleek|cool|awesome|stunning|elegant)"
+    r")\b",
     re.IGNORECASE,
 )
 _JUSTIFICATION_PATTERN: Final[re.Pattern[str]] = re.compile(
@@ -369,10 +396,36 @@ def extract_pairs_midflight(
         extra={
             "session_id": session_id,
             "pairs_extracted": len(pairs),
-            "chosen_score": scored[0][1] if scored else 0,
+            # Log the post-penalty chosen_score that is actually persisted into
+            # every ExtractedPair, not the raw pre-penalty score — so a fired
+            # anti-sycophancy penalty is visible in the flush log.
+            "chosen_score": chosen_score,
         },
     )
     return pairs
+
+
+def _dpo_row_id(pair: ExtractedPair) -> str:
+    """Deterministic BigQuery ``insertId`` for a DPO pair (idempotent writes).
+
+    A retried or re-emitted ``/v1/generate`` request must not write the same
+    preference pair twice — duplicate rows skew the training distribution and
+    inflate apparent volume. BigQuery streaming inserts deduplicate on a stable
+    ``insertId``, so we key off the pair's *content*, not its ``surface_id``: the
+    runner assigns a fresh ``uuid4`` surface_id per emit, so including it would
+    defeat the dedup. The logical identity of a pair is its decision point plus
+    the two candidates being compared.
+    """
+    fingerprint = "\x1f".join(
+        (
+            pair.session_id,
+            pair.node_name,
+            str(pair.iteration),
+            pair.chosen_response,
+            pair.rejected_response,
+        )
+    )
+    return hashlib.sha256(fingerprint.encode("utf-8")).hexdigest()
 
 
 def write_pairs_to_bq(
@@ -381,6 +434,10 @@ def write_pairs_to_bq(
     bq_client: Any | None = None,
 ) -> int:
     """Write extracted pairs to the dpo_pairs BigQuery table (fail-soft).
+
+    Writes are idempotent: each row carries a content-derived ``insertId``
+    (:func:`_dpo_row_id`), so a retried or re-emitted request does not duplicate
+    pairs that were already streamed (mirrors trajectory_recorder.flush).
 
     Args:
         pairs: ExtractedPair objects to insert.
@@ -416,7 +473,8 @@ def write_pairs_to_bq(
                 }
             )
 
-        errors = client.insert_rows_json(_DPO_PAIRS_TABLE, rows)
+        row_ids = [_dpo_row_id(pair) for pair in pairs]
+        errors = client.insert_rows_json(_DPO_PAIRS_TABLE, rows, row_ids=row_ids)
         if errors:
             logger.warning(
                 "BQ insert errors writing DPO pairs (fail-soft)",

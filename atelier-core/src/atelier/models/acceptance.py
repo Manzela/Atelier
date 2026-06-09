@@ -14,8 +14,9 @@ from pydantic import BaseModel, ConfigDict, Field
 class BrandConstraints(BaseModel):
     """Brand guardrails from the signed-off brief."""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
+    schema_version: int = 1
     forbidden_colors: list[str] = Field(default_factory=list)
     constitution: str | None = None
 
@@ -23,7 +24,7 @@ class BrandConstraints(BaseModel):
 class AcceptanceCriteria(BaseModel):
     """The `ACCEPTANCE.json` schema (PRD §7) — frozen at SIGN-OFF."""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     run_id: str
     brief_sha256: str
@@ -46,8 +47,9 @@ class AcceptanceCriteria(BaseModel):
 class CriterionVerdict(BaseModel):
     """One acceptance criterion's verdict (PRD §7A.4 attribution record)."""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
+    schema_version: int = 1
     criterion_id: str
     kind: str  # surface_exists | composite | axe | contrast | token_fidelity | token_group | handoff | forbidden_colors
     target: str
@@ -59,7 +61,9 @@ class CriterionVerdict(BaseModel):
 class RunVerdict(BaseModel):
     """Aggregate run-oracle result. ``complete`` iff every criterion verdict holds."""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    schema_version: int = 1
 
     complete: bool
     criteria: list[CriterionVerdict]

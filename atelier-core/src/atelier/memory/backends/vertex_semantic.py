@@ -264,27 +264,64 @@ class VertexSemanticMemoryBackend:
         )
         return hits
 
+    #: Near-duplicate collapse threshold: entries whose TF-IDF cosine similarity
+    #: to an already-kept entry is at or above this are treated as duplicates.
+    _CONSOLIDATE_SIMILARITY_THRESHOLD: float = 0.92
+
     async def consolidate(
         self,
         scope: MemoryScopeKey,
         *,
         dry_run: bool = True,
     ) -> ConsolidationReport:
-        """Periodic dedup + cluster-summarize; default dry_run for safety."""
+        """Collapse near-duplicate semantic memories within a scope.
+
+        Greedy near-duplicate collapse over the scope's entries: each entry is
+        compared (TF-IDF cosine, the same metric :meth:`query_semantic` ranks
+        with) against the entries already kept; an entry at or above
+        :attr:`_CONSOLIDATE_SIMILARITY_THRESHOLD` to any kept entry is dropped.
+        Insertion order is preserved and the first occurrence of each cluster is
+        the one retained, so query results stay stable across a consolidation.
+
+        ``dry_run=True`` (the default, for safety) reports how many entries would
+        be collapsed without mutating the store; ``dry_run=False`` rewrites the
+        scope to the deduplicated set and persists it.
+
+        Cluster summarization (LLM-backed rollups of a cluster into one memory)
+        is delegated to the managed Vertex AI Memory Bank and is not performed by
+        this offline substrate, so ``clusters_summarized`` is always 0 here.
+        """
         scope_key = scope.encode()
         entries = self._store.get(scope_key, [])
 
-        # Stub: no actual dedup in v1.0 implementation
+        kept: list[tuple[str, str, dict[str, str]]] = []
+        duplicates_collapsed = 0
+        for rn, content, meta in entries:
+            is_duplicate = any(
+                self._tfidf_similarity(content, kept_content)
+                >= self._CONSOLIDATE_SIMILARITY_THRESHOLD
+                for _, kept_content, _ in kept
+            )
+            if is_duplicate:
+                duplicates_collapsed += 1
+            else:
+                kept.append((rn, content, meta))
+
+        if not dry_run and duplicates_collapsed:
+            self._store[scope_key] = kept
+            self._persist()
+
         report = ConsolidationReport(
             scope_encoded=scope_key,
-            duplicates_collapsed=0,
+            duplicates_collapsed=duplicates_collapsed,
             clusters_summarized=0,
             dry_run=dry_run,
         )
         logger.info(
-            "consolidate: scope=%s entries=%d dry_run=%s",
+            "consolidate: scope=%s entries=%d collapsed=%d dry_run=%s",
             scope_key,
             len(entries),
+            duplicates_collapsed,
             dry_run,
         )
         return report

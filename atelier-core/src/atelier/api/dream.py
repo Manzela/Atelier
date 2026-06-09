@@ -233,8 +233,17 @@ async def promote_tuned_model(
             },
         )
 
-    # H-3b: Gate staging mock scorer — must not run in production.
-    if os.getenv("ATELIER_ENV", "development") != "development":
+    # H-3b: Gate the always-pass staging mock scorer behind TWO independent
+    # conditions, not one, so a single env misconfiguration cannot promote an
+    # unverified model. The mock deterministically clears the κ gate regardless of
+    # real model quality, so it must run ONLY when (a) the environment is local
+    # development AND (b) an explicit opt-in flag is set. Either condition failing
+    # is a hard 501: the production scorer (resolve the tuned endpoint, run the
+    # calibration seed against it) is not yet wired, and the mock must never stand
+    # in for it outside an intentional local run.
+    is_development = os.getenv("ATELIER_ENV", "development") == "development"
+    staging_promote_allowed = os.getenv("ATELIER_ALLOW_STAGING_PROMOTE") == "1"
+    if not (is_development and staging_promote_allowed):
         raise HTTPException(
             status_code=501,
             detail={
@@ -242,7 +251,9 @@ async def promote_tuned_model(
                 "detail": (
                     "Production scorer not wired. The staging mock scorer must not "
                     "be used outside local development — it deterministically passes "
-                    "the κ gate regardless of actual model quality. Contact engineering."
+                    "the κ gate regardless of actual model quality, so it requires "
+                    "both ATELIER_ENV=development and ATELIER_ALLOW_STAGING_PROMOTE=1. "
+                    "Contact engineering."
                 ),
             },
         )

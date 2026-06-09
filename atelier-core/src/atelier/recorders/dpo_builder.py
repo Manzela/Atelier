@@ -1,4 +1,22 @@
-"""DPO dataset builder — produces preference pairs from trajectory records.
+"""DPO dataset builder — offline batch path that produces preference pairs from
+recorded trajectory records.
+
+This is the POST-FLIGHT / batch builder: it consumes ``TrajectoryRecord`` rows
+(the DPO flywheel tiers in PRD §6.6 / models.data_contracts.TrajectoryRecord) and
+emits JSONL preference pairs for a tuning job. It is the documented consumer of
+``TrajectoryRecord`` and is exercised by tests; it is intentionally NOT on the
+per-request hot path.
+
+It is deliberately distinct from the mid-flight miner
+(``optimize.dreaming_module.extract_pairs_midflight``), which runs synchronously
+inside a single ``/v1/generate`` request and selects the best candidate against
+each rejected candidate by relative margin. This builder instead groups recorded
+candidates at a shared decision point and applies ABSOLUTE quality tiers — a
+``chosen`` floor (T2) and a ``rejected`` ceiling (T3) — because over the batched
+corpus the absolute composite_score is meaningful, unlike a single request where
+only the relative ordering is. Both surfaces share the same minimum-margin floor
+(``MIN_MARGIN``), single-sourced from ``reward.composite.EXTRINSIC_MARGIN_FLOOR``,
+so the two paths cannot silently diverge on the noise floor.
 
 G10 fix: compares DIFFERENT candidates evaluated at the same (surface_id, node_name, iteration)
 decision point. Does NOT compare consecutive iterations of the same candidate.
@@ -22,10 +40,13 @@ Output format: JSONL, one JSON object per line:
 from typing import Any, Final
 
 from atelier.nodes.trajectory import TrajectoryRecord
+from atelier.reward.composite import EXTRINSIC_MARGIN_FLOOR
 
 T2_THRESHOLD: Final[float] = 0.70  # chosen floor
 T3_THRESHOLD: Final[float] = 0.50  # rejected ceiling
-MIN_MARGIN: Final[float] = 0.15  # minimum score gap to be a valid pair
+# Single-sourced from the AND-gate floor so every DPO surface agrees on the
+# minimum chosen/rejected score gap (mid-flight, this builder, offline gate).
+MIN_MARGIN: Final[float] = EXTRINSIC_MARGIN_FLOOR  # minimum score gap to be a valid pair
 
 
 def prepare_dpo_dataset(records: list[TrajectoryRecord]) -> list[dict[str, Any]]:

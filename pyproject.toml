@@ -255,20 +255,45 @@ module = "atelier.orchestrator.*"
 # ignore_errors=true is required because ADK stub gaps produce cascading
 # arg-type errors that cannot be individually suppressed without forking ADK.
 # Claude-owned modules (optimize/, memory/, router/) are fully strict.
+# RR-67: the sibling overrides (intake/integrations/nodes) were tightened from
+# ignore_errors to targeted disable_error_code so their own logic is strict-
+# checked. This module is NOT yet tightened: narrowing it surfaces five real,
+# non-ADK type errors in source files (specialists.py:362-366 ModelArmorConfig
+# assignment, runner.py:889 misc, runner.py:2340 var-annotated) that must be
+# fixed at the source before the blanket ignore can be lifted. Keeping
+# ignore_errors here is deliberate and tracked, not oversight.
 ignore_errors = true
 
 [[tool.mypy.overrides]]
 module = "atelier.integrations.*"
 # google-adk (MCPToolset, SseConnectionParams) and google-cloud-secretmanager
-# have no inline stubs. import-untyped and attr-defined errors are false
-# positives — all APIs are structurally correct at runtime.
-ignore_errors = true
+# have no inline stubs. Suppress ONLY the stub-gap codes (was ignore_errors=true
+# — RR-67) so the integration glue's own logic stays strict-checked; only the
+# un-typeable ADK / secretmanager boundary is exempt.
+# warn_unused_ignores=false: a few inline `# type: ignore` comments on the ADK
+# boundary now resolve via disable_error_code instead, so whether they read as
+# "used" varies with the resolver — suppress the unused-ignore noise defensively.
+# "misc": where google-adk is absent from the resolver env (the isolated
+# pre-commit mypy), McpToolset resolves to Any and subclassing it trips
+# disallow_subclassing_any ([misc]); harmless where the SDK is installed and the
+# base is properly typed.
+ignore_missing_imports = true
+disallow_any_unimported = false
+disallow_untyped_calls = false
+warn_unused_ignores = false
+disable_error_code = ["import-untyped", "no-any-unimported", "attr-defined", "arg-type", "misc"]
 
 [[tool.mypy.overrides]]
 module = "atelier.intake.*"
-# google-adk (AgentConfig, LlmAgent via google.adk.agents) has no stubs.
-# import-untyped errors are false positives.
-ignore_errors = true
+# google-adk (AgentConfig, LlmAgent via google.adk.agents) has no stubs, so the
+# ADK symbols resolve to Any in strict mode. Suppress ONLY the stub-gap codes
+# (was a blanket ignore_errors=true, which switched off ALL type enforcement on
+# the intake gate's own logic — RR-67). The gate's decision logic is now fully
+# strict-checked; only the un-typeable ADK boundary is exempt.
+ignore_missing_imports = true
+disallow_any_unimported = false
+disallow_untyped_calls = false
+disable_error_code = ["import-untyped", "no-any-unimported", "attr-defined"]
 
 [[tool.mypy.overrides]]
 module = "atelier.nodes.*"
@@ -282,6 +307,12 @@ module = "atelier.evaluation.*"
 # stubs; the resulting list-item/arg-type errors are stub gaps, not runtime
 # bugs. These are provisional Optimize/eval surfaces; full strict typing lands
 # when AT-100 (AgentEvaluator) and AT-027 (simulation) wire them into V1.
+# RR-67: the sibling overrides (intake/integrations/nodes/orchestrator) were
+# tightened from ignore_errors to targeted disable_error_code so their own logic
+# is strict-checked. This module is intentionally NOT yet tightened: narrowing it
+# surfaces two real type errors in agent_simulation.py (bool/int assignment at
+# :305) that must be fixed in source before the blanket ignore can be lifted —
+# tracked under AT-027. Keeping ignore_errors here is deliberate, not oversight.
 ignore_errors = true
 
 [[tool.mypy.overrides]]
@@ -293,8 +324,13 @@ disallow_untyped_calls = false
 [[tool.mypy.overrides]]
 module = "atelier.agent_engine_deploy"
 # Vertex AI Agent Engine deploy API (AdkApp, agent_engines.create) stub gaps.
-# Provisional deploy entrypoint; full strict typing lands with AT-082.
-ignore_errors = true
+# Suppress ONLY the stub-gap codes (was ignore_errors=true — RR-67) so the
+# entrypoint's own logic stays strict-checked. Provisional surface; full strict
+# typing of the Vertex deploy boundary lands with AT-082.
+ignore_missing_imports = true
+disallow_any_unimported = false
+disallow_untyped_calls = false
+disable_error_code = ["import-untyped", "no-any-unimported", "attr-defined", "arg-type"]
 
 [[tool.mypy.overrides]]
 module = ["skimage.*", "PIL", "PIL.*"]

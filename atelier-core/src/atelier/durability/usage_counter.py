@@ -86,6 +86,15 @@ _RATE_LIMIT_WINDOW_SECONDS: Final[float] = float(
 _GLOBAL_TOKEN_BUDGET_PER_WINDOW: Final[int] = int(
     os.getenv("ATELIER_GLOBAL_TOKEN_BUDGET_PER_WINDOW", str(50_000_000))
 )
+#: Cloud Run can run several instances concurrently, and the breaker window
+#: above is process-local — so without correction the real fleet ceiling would
+#: be ``budget * max_instances`` before ANY instance trips (AT-097 finding). Until
+#: the breaker is backed by shared (Firestore/Redis) state, each instance enforces
+#: its budget DIVIDED by the configured instance ceiling, so the N independent
+#: per-instance windows sum to the intended fleet budget. Defaults to 1 (no
+#: division) so an unset env or a single-instance deploy keeps the full budget;
+#: production sets this to ``max_instance_count`` from the Cloud Run terraform.
+_MAX_INSTANCES: Final[int] = max(1, int(os.getenv("ATELIER_MAX_INSTANCES", "1")))
 _GLOBAL_WINDOW_SECONDS: Final[float] = float(os.getenv("ATELIER_GLOBAL_WINDOW_SECONDS", "60"))
 _CIRCUIT_BREAKER_COOLDOWN_SECONDS: Final[float] = float(
     os.getenv("ATELIER_CIRCUIT_BREAKER_COOLDOWN_SECONDS", "60")
@@ -190,6 +199,7 @@ class UsageCounterStore:
         global_token_budget_per_window: int = _GLOBAL_TOKEN_BUDGET_PER_WINDOW,
         global_window_seconds: float = _GLOBAL_WINDOW_SECONDS,
         circuit_breaker_cooldown_seconds: float = _CIRCUIT_BREAKER_COOLDOWN_SECONDS,
+        max_instances: int = _MAX_INSTANCES,
     ) -> None:
         if backend is None:
             backend = "memory" if _use_memory_backend() else "firestore"
@@ -202,7 +212,16 @@ class UsageCounterStore:
         self._rl_window = rate_limit_window_seconds
         # AT-097 global circuit-breaker thresholds (operator-open). A budget <= 0
         # disables the breaker entirely (the window is then never recorded either).
-        self._global_budget = global_token_budget_per_window
+        # The breaker window is process-local, so on a multi-instance Cloud Run
+        # deploy each instance must enforce its share of the fleet budget for the
+        # N independent windows to sum to the intended ceiling (AT-097). A budget
+        # of <= 0 stays <= 0 (disabled) regardless of the instance count.
+        instances = max(1, max_instances)
+        self._global_budget = (
+            global_token_budget_per_window // instances
+            if global_token_budget_per_window > 0
+            else global_token_budget_per_window
+        )
         self._global_window = global_window_seconds
         self._breaker_cooldown = circuit_breaker_cooldown_seconds
         self._fs_client: Any = None  # lazily initialised google.cloud.firestore.Client
@@ -460,7 +479,10 @@ class UsageCounterStore:
            the rolling window has reached the operator-set budget → TRIP (arm the
            cooldown) and reject.
 
-        In-process (one Cloud Run instance); the distributed fleet edge is Cloud
+        In-process (one Cloud Run instance). The breaker window is process-local,
+        so each instance enforces ``budget // max_instances`` and the N independent
+        windows sum to the intended fleet ceiling (set ``ATELIER_MAX_INSTANCES`` to
+        the Cloud Run ``max_instance_count``). The distributed fleet edge is Cloud
         Armor at the ALB (PRD §22 — "Cloud Armor (rate-limit)"). This app-layer
         breaker is defense-in-depth: it works in the hermetic lane and on a single
         instance, and is never weaker than the edge. Disabled when the operator

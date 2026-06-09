@@ -115,17 +115,21 @@ EDGE_CASE_BRIEFS: list[SimulationBrief] = [
     SimulationBrief(
         id="edge-002",
         category="edge_case",
-        text="B" * 4000,
+        # ~4096-word brief to hit the MAX_BRIEF_TOKENS boundary (word-count gate).
+        # "word " is 5 chars; 4096 repetitions = 4096 tokens, which equals the cap
+        # and is rejected as "Brief too long".  One fewer word would PASS the gate.
+        text=("word " * 4095).strip(),
         expected_outcome="pass",
-        description="Maximum-length brief (4000 chars) — tests boundary",
+        description="Near-maximum-length brief (4095 words) — one under the 4096-word cap",
         tags=["boundary", "length"],
     ),
     SimulationBrief(
         id="edge-003",
         category="edge_case",
-        text="Button",
+        # Exactly MIN_BRIEF_TOKENS (10) words — minimum valid brief.
+        text="Design a minimal button component with hover and focus states.",
         expected_outcome="pass",
-        description="Minimal valid brief (single word) — tests narrow planner path",
+        description="Minimal valid brief (10 words) — tests the minimum-token boundary",
         tags=["minimal", "narrow"],
     ),
     SimulationBrief(

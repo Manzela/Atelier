@@ -1,4 +1,14 @@
-"""Audit script for SDLC gaps RR-01 through RR-05."""
+"""Audit script for SDLC gaps RR-01 through RR-05.
+
+Each ``audit_rrNN_*`` function returns True (PASS) or False (FAIL).  Any
+unhandled exception inside an audit function is caught in ``main()`` and
+reported as a FAIL so that a single import error cannot prevent the remaining
+checks from running.
+
+Run from the repository root:
+
+    python scripts/ci/audit_sdlc_gaps.py
+"""
 
 from __future__ import annotations
 
@@ -8,14 +18,14 @@ from pathlib import Path
 
 import yaml
 
-# Add project root to sys.path for imports
-sys.path.append(str(Path.cwd() / "atelier-core/src"))
+# Resolve atelier-core early so the per-check imports below can succeed whether
+# the script is invoked from the repo root or from scripts/ci/.
+_ATELIER_SRC = Path(__file__).parents[2] / "atelier-core" / "src"
+if str(_ATELIER_SRC) not in sys.path:
+    sys.path.insert(0, str(_ATELIER_SRC))
 
-from atelier.models.model_armor_callbacks import _INJECTION_PATTERNS
-from atelier.optimize.dreaming_module import _JUSTIFICATION_PATTERN, _PRAISE_PATTERN
 
-
-def audit_rr01_chromium_sandbox():
+def audit_rr01_chromium_sandbox() -> bool:
     """Verify Chromium sandbox configuration."""
     print("Auditing RR-01: Chromium Sandbox...")
     path = Path("atelier-core/src/atelier/gates/axe_core.py")
@@ -31,15 +41,16 @@ def audit_rr01_chromium_sandbox():
     return False
 
 
-def audit_rr02_prompt_injection():
+def audit_rr02_prompt_injection() -> bool:
     """Verify prompt injection patterns."""
     print("Auditing RR-02: Prompt Injection...")
+
+    from atelier.models.model_armor_callbacks import _INJECTION_PATTERNS  # noqa: PLC0415
 
     required = ["DAN mode", "jailbreak", "unrestricted AI"]
     found = set()
     for pattern in _INJECTION_PATTERNS:
         for req in required:
-            # Normalize regex pattern for simple string matching or use re
             clean_pattern = (
                 pattern.replace(r"\s+", " ").replace("(?:a|an) ", "").replace(r"(?:your\s+)?", "")
             )
@@ -56,7 +67,7 @@ def audit_rr02_prompt_injection():
 
 
 def _collect_run_text(job: dict) -> str:
-    """Concatenate every step's `run:` body in a parsed workflow job."""
+    """Concatenate every step's ``run:`` body in a parsed workflow job."""
     parts: list[str] = []
     for step in job.get("steps", []) or []:
         if isinstance(step, dict) and isinstance(step.get("run"), str):
@@ -65,7 +76,7 @@ def _collect_run_text(job: dict) -> str:
 
 
 def _load_workflow(path: Path) -> tuple[dict | None, str | None]:
-    """Parse a workflow file, returning (workflow, error_reason)."""
+    """Parse a workflow file, returning ``(workflow, error_reason)``."""
     if not path.exists():
         return None, f"{path} not found"
     try:
@@ -77,11 +88,11 @@ def _load_workflow(path: Path) -> tuple[dict | None, str | None]:
 def _rr03_failure_reason(path: Path) -> str | None:
     """Return the first reason the RR-03 gate is unsound, or None if sound.
 
-    The security job is only a real gate if `ci-success` BOTH lists it in
-    `needs` AND its verify step actually inspects `needs.security.result`.
-    Substring-matching the file (the previous tautological check) passes even
-    when the verify loop ignores the security result, so parse the YAML and
-    assert the dependency *and* the result reference explicitly.
+    The security job is only a real gate if ``ci-success`` BOTH lists it in
+    ``needs`` AND its verify step actually inspects ``needs.security.result``.
+    Substring-matching the file passes even when the verify loop ignores the
+    security result, so parse the YAML and assert the dependency and the result
+    reference explicitly.
     """
     workflow, error = _load_workflow(path)
     if error is not None:
@@ -94,7 +105,6 @@ def _rr03_failure_reason(path: Path) -> str | None:
     if not isinstance(ci_success, dict):
         return "no `ci-success` job defined in ci.yml."
 
-    # `needs` may be a scalar or a list; normalize to a set of job names.
     needs = ci_success.get("needs", [])
     if isinstance(needs, str):
         needs = [needs]
@@ -110,7 +120,7 @@ def _rr03_failure_reason(path: Path) -> str | None:
     return None
 
 
-def audit_rr03_ci_gates():
+def audit_rr03_ci_gates() -> bool:
     """Verify CI/CD gates (security job is a real gate, not a tautology)."""
     print("Auditing RR-03: CI/CD Gates...")
     reason = _rr03_failure_reason(Path(".github/workflows/ci.yml"))
@@ -121,21 +131,53 @@ def audit_rr03_ci_gates():
     return True
 
 
-def audit_rr04_sycophancy():
-    """Verify anti-sycophancy patterns."""
+def audit_rr04_sycophancy() -> bool:
+    """Verify anti-sycophancy reward behaves correctly (behavioral, not tautological).
+
+    Calls ``apply_anti_sycophancy_reward`` directly:
+      - Unjustified praise must be penalised (score multiplied by < 1.0).
+      - Justified praise must be preserved (score unchanged).
+    """
     print("Auditing RR-04: Sycophancy...")
 
-    praise_regex = _PRAISE_PATTERN.pattern
-    justification_regex = _JUSTIFICATION_PATTERN.pattern
+    try:
+        from atelier.optimize.dreaming_module import (  # noqa: PLC0415
+            apply_anti_sycophancy_reward,
+        )
+    except ImportError as exc:
+        print(f"  FAIL: Could not import apply_anti_sycophancy_reward: {exc}")
+        return False
 
-    if "spectacular" in praise_regex and "compliance" in justification_regex:
-        print("  PASS: Hardened sycophancy patterns found.")
-        return True
-    print("  FAIL: Sycophancy patterns not hardened.")
-    return False
+    base_score = 1.0
+
+    # Unjustified praise: should be penalised (result < base_score).
+    unjustified = "This design looks spectacular and brilliant!"
+    penalised = apply_anti_sycophancy_reward(unjustified, base_score)
+    if penalised >= base_score:
+        print(
+            f"  FAIL: Unjustified praise was NOT penalised "
+            f"(got {penalised}, expected < {base_score})."
+        )
+        return False
+
+    # Justified praise: compliance/spec reference should preserve the score.
+    justified = "This design is spectacular — it satisfies WCAG 2.1 AA compliance."
+    preserved = apply_anti_sycophancy_reward(justified, base_score)
+    if preserved < base_score:
+        print(
+            f"  FAIL: Justified praise was incorrectly penalised "
+            f"(got {preserved}, expected {base_score})."
+        )
+        return False
+
+    print(
+        f"  PASS: Unjustified praise penalised ({penalised:.3f}), "
+        f"justified praise preserved ({preserved:.3f})."
+    )
+    return True
 
 
-def audit_rr05_circuit_breaker():
+def audit_rr05_circuit_breaker() -> bool:
     """Verify circuit breaker call."""
     print("Auditing RR-05: Circuit Breaker...")
     path = Path("atelier-core/src/atelier/orchestrator/runner.py")
@@ -151,14 +193,22 @@ def audit_rr05_circuit_breaker():
     return False
 
 
-def main():
-    results = [
-        audit_rr01_chromium_sandbox(),
-        audit_rr02_prompt_injection(),
-        audit_rr03_ci_gates(),
-        audit_rr04_sycophancy(),
-        audit_rr05_circuit_breaker(),
+def main() -> None:
+    audit_fns = [
+        audit_rr01_chromium_sandbox,
+        audit_rr02_prompt_injection,
+        audit_rr03_ci_gates,
+        audit_rr04_sycophancy,
+        audit_rr05_circuit_breaker,
     ]
+
+    results: list[bool] = []
+    for fn in audit_fns:
+        try:
+            results.append(fn())
+        except Exception as exc:  # noqa: BLE001
+            print(f"  FAIL: {fn.__name__} raised an unexpected exception: {exc}")
+            results.append(False)
 
     if all(results):
         print("\nSDLC Audit: ALL GAPS RESOLVED.")

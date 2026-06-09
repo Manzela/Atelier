@@ -16,11 +16,14 @@ PRD Reference: §6.3 (N6 CSC-D), F0213-F0214
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import yaml
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -74,28 +77,46 @@ class Constitution:
     scoring: ConstitutionScoring
 
 
-def _parse_constitution(data: dict[str, Any]) -> Constitution:
+def _parse_constitution(data: dict[str, Any], source: str = "<unknown>") -> Constitution:
     """Parse a constitution from YAML data.
 
     Args:
         data: Parsed YAML dictionary.
+        source: Human-readable source label (file path) for error messages.
 
     Returns:
         A Constitution instance.
 
     Raises:
-        KeyError: If required fields are missing.
+        ValueError: If required fields (``name``, or per-principle ``id``/``name``)
+            are missing, surfacing the source file so the caller can report clearly.
     """
-    principles = tuple(
-        ConstitutionPrinciple(
-            principle_id=p["id"],
-            name=p["name"],
-            description=p.get("description", "").strip(),
-            weight=float(p.get("weight", 1.0)),
-        )
-        for p in data.get("principles", [])
-    )
+    try:
+        constitution_name: str = data["name"]
+    except KeyError as exc:
+        raise ValueError(f"Constitution in {source} is missing required field 'name'") from exc
 
+    raw_principles = data.get("principles", [])
+    parsed_principles: list[ConstitutionPrinciple] = []
+    for idx, p in enumerate(raw_principles):
+        try:
+            pid = p["id"]
+            pname = p["name"]
+        except KeyError as exc:
+            raise ValueError(
+                f"Principle #{idx} in constitution '{constitution_name}' "
+                f"({source}) is missing required field {exc}"
+            ) from exc
+        parsed_principles.append(
+            ConstitutionPrinciple(
+                principle_id=pid,
+                name=pname,
+                description=p.get("description", "").strip(),
+                weight=float(p.get("weight", 1.0)),
+            )
+        )
+
+    principles = tuple(parsed_principles)
     scoring_data = data.get("scoring", {})
     scoring = ConstitutionScoring(
         minimum_pass=float(scoring_data.get("minimum_pass", 0.70)),
@@ -104,7 +125,7 @@ def _parse_constitution(data: dict[str, Any]) -> Constitution:
     )
 
     return Constitution(
-        name=data["name"],
+        name=constitution_name,
         version=int(data.get("version", 1)),
         applies_to=tuple(data.get("applies_to", [])),
         principles=principles,
@@ -131,13 +152,26 @@ def load_constitutions(
     constitutions: dict[str, Constitution] = {}
 
     if not constitutions_dir.exists():
+        logger.warning(
+            "constitution_registry: constitutions directory not found — "
+            "no constitutions loaded (fail-open). "
+            "Expected path: %s",
+            constitutions_dir,
+        )
         return constitutions
 
     for yaml_file in sorted(constitutions_dir.glob("*.yaml")):
         with yaml_file.open() as f:
             data = yaml.safe_load(f)
         if data:
-            constitution = _parse_constitution(data)
+            try:
+                constitution = _parse_constitution(data, source=str(yaml_file))
+            except (ValueError, TypeError):
+                logger.exception(
+                    "constitution_registry: skipping malformed constitution file %s",
+                    yaml_file,
+                )
+                continue
             constitutions[constitution.name] = constitution
 
     return constitutions
