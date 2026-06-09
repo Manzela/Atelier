@@ -3,12 +3,19 @@ steps:
     args:
       - 'build'
       - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/atelier-images/atelier-api:${_IMAGE_TAG}'
+      - '-t'
       - 'us-central1-docker.pkg.dev/$PROJECT_ID/atelier-images/atelier-api:latest'
       - '-f'
       - 'deploy/Dockerfile.api'
       - '.'
 images:
+  # Deploy by the immutable ${_IMAGE_TAG} (the commit SHA, supplied by the deploy
+  # workflow); :latest is kept only as a convenience pointer, never deployed.
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/atelier-images/atelier-api:${_IMAGE_TAG}'
   - 'us-central1-docker.pkg.dev/$PROJECT_ID/atelier-images/atelier-api:latest'
+substitutions:
+  _IMAGE_TAG: 'latest'
 timeout: '600s'
 options:
   machineType: 'E2_HIGHCPU_8'

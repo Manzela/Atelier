@@ -9,6 +9,8 @@ steps:
       - '-f'
       - 'atelier-dashboard/Dockerfile'
       - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/atelier-images/atelier-dashboard:${_IMAGE_TAG}'
+      - '-t'
       - 'us-central1-docker.pkg.dev/$PROJECT_ID/atelier-images/atelier-dashboard:latest'
       - '--build-arg'
       - 'NEXT_PUBLIC_API_URL=${_API_URL}'
@@ -26,8 +28,10 @@ steps:
       - 'NEXT_PUBLIC_FIREBASE_APP_ID=${_FB_APP_ID}'
       - '.'
 images:
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/atelier-images/atelier-dashboard:${_IMAGE_TAG}'
   - 'us-central1-docker.pkg.dev/$PROJECT_ID/atelier-images/atelier-dashboard:latest'
 substitutions:
+  _IMAGE_TAG: 'latest'
   _API_URL: 'https://atelier-api-staging-537337457799.us-central1.run.app'
   _FB_API_KEY: ''
   _FB_AUTH_DOMAIN: 'atelier-build-2026.firebaseapp.com'

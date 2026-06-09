@@ -118,6 +118,15 @@ resource "google_cloud_run_v2_service" "atelier_api" {
   depends_on = [
     google_project_service.required
   ]
+
+  lifecycle {
+    # var.api_image pins the plan-time digest, but the live revision is rolled by
+    # `gcloud run deploy` in the deploy workflow. Ignore image drift so a later
+    # `terraform apply` does not revert the running revision to the plan-time
+    # value (restored 2026-06-09: the immutable-digest change dropped this block,
+    # which would otherwise make Terraform fight the deploy pipeline).
+    ignore_changes = [template[0].containers[0].image]
+  }
 }
 
 resource "google_storage_bucket" "rag_datastore_staging" {

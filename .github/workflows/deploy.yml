@@ -82,17 +82,19 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Build and push API image
+      # Build and push API image, tagged with the immutable commit SHA.
       - name: Build API image
         run: |
-          gcloud builds submit --config deploy/cloudbuild.yaml --project=${{ env.PROJECT_ID }} .
+          gcloud builds submit --config deploy/cloudbuild.yaml \
+            --substitutions=_IMAGE_TAG=${{ github.sha }} \
+            --project=${{ env.PROJECT_ID }} .
 
       # Deploy API service
       - name: Deploy API to Cloud Run (Staging)
         id: deploy-api
         run: |
           gcloud run deploy atelier-api-staging \
-            --image=us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/atelier-images/atelier-api:latest \
+            --image=us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/atelier-images/atelier-api:${{ github.sha }} \
             --region=${{ env.REGION }} \
             --project=${{ env.PROJECT_ID }} \
             --concurrency=1 \
@@ -107,14 +109,14 @@ jobs:
         run: |
           gcloud builds submit --config atelier-dashboard/cloudbuild.yaml \
             --project=${{ env.PROJECT_ID }} \
-            --substitutions=_API_URL="${{ steps.deploy-api.outputs.api_url }}",_FB_API_KEY="${{ secrets.FIREBASE_API_KEY }}" \
+            --substitutions=_IMAGE_TAG=${{ github.sha }},_API_URL="${{ steps.deploy-api.outputs.api_url }}",_FB_API_KEY="${{ secrets.FIREBASE_API_KEY }}" \
             .
 
       # Deploy Dashboard service
       - name: Deploy Dashboard to Cloud Run (Staging)
         run: |
           gcloud run deploy atelier-dashboard-staging \
-            --image=us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/atelier-images/atelier-dashboard:latest \
+            --image=us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/atelier-images/atelier-dashboard:${{ github.sha }} \
             --region=${{ env.REGION }} \
             --project=${{ env.PROJECT_ID }} \
             --allow-unauthenticated
@@ -178,12 +180,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Deploy API service to Production
+      # Deploy API service to Production — the exact immutable SHA image the
+      # staging job built and verified earlier in this run, never :latest.
       - name: Deploy API to Cloud Run (Production)
         id: deploy-api
         run: |
           gcloud run deploy atelier-api-production \
-            --image=us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/atelier-images/atelier-api:latest \
+            --image=us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/atelier-images/atelier-api:${{ github.sha }} \
             --region=${{ env.REGION }} \
             --project=${{ env.PROJECT_ID }} \
             --concurrency=1 \
@@ -198,14 +201,14 @@ jobs:
         run: |
           gcloud builds submit --config atelier-dashboard/cloudbuild.yaml \
             --project=${{ env.PROJECT_ID }} \
-            --substitutions=_API_URL="https://atelier.autonomous-agent.dev",_FB_API_KEY="${{ secrets.FIREBASE_API_KEY }}" \
+            --substitutions=_IMAGE_TAG=${{ github.sha }},_API_URL="https://atelier.autonomous-agent.dev",_FB_API_KEY="${{ secrets.FIREBASE_API_KEY }}" \
             .
 
       # Deploy Dashboard service to Production
       - name: Deploy Dashboard to Cloud Run (Production)
         run: |
           gcloud run deploy atelier-dashboard-production \
-            --image=us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/atelier-images/atelier-dashboard:latest \
+            --image=us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/atelier-images/atelier-dashboard:${{ github.sha }} \
             --region=${{ env.REGION }} \
             --project=${{ env.PROJECT_ID }} \
             --allow-unauthenticated
