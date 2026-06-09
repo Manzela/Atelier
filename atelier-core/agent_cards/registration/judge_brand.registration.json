@@ -1,0 +1,28 @@
+{
+  "_target": {
+    "parent": "projects/${GOOGLE_CLOUD_PROJECT}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/assistants/${ASSISTANT_ID}",
+    "agentId": "judge-brand",
+    "method": "CreateAgent (POST {parent}/agents)"
+  },
+  "displayName": "Design Judge (Flash Vision)",
+  "description": "D-O-R-A-V brand judge: scores candidates on the brand axis (fail-soft to a heuristic scorer when Vertex is down).",
+  "icon": {
+    "uri": ""
+  },
+  "a2aAgentDefinition": {
+    "jsonAgentCard": "{\"authentication\": {\"schemes\": [{\"description\": \"Firebase ID token from Identity Platform\", \"type\": \"bearer\"}, {\"description\": \"API key for service-to-service communication\", \"in\": \"header\", \"name\": \"X-Atelier-API-Key\", \"type\": \"apiKey\"}]}, \"capabilities\": {\"multiTurn\": true, \"pushNotifications\": false, \"stateTransitionHistory\": true, \"streaming\": false}, \"defaultInputModes\": [\"text\"], \"defaultOutputModes\": [\"text\"], \"description\": \"D-O-R-A-V brand judge: scores candidates on the brand axis (fail-soft to a heuristic scorer when Vertex is down).\", \"name\": \"Design Judge (Flash Vision)\", \"protocolVersion\": \"0.3.0\", \"protocols\": {\"a2a\": \"0.3.0\", \"adk\": \"2.1\"}, \"provider\": {\"organization\": \"Manzela\", \"url\": \"https://manzela.com\"}, \"skills\": [{\"description\": \"D-O-R-A-V brand judge: scores candidates on the brand axis (fail-soft to a heuristic scorer when Vertex is down).\", \"id\": \"judge-brand\", \"inputModes\": [\"text\"], \"name\": \"D-O-R-A-V Brand Judge\", \"outputModes\": [\"text\"], \"tags\": [\"dorav-brand\", \"brand-alignment\", \"evaluation\"]}], \"url\": \"https://atelier.autonomous-agent.dev/.well-known/agents/judge_brand/agent-card.json\", \"version\": \"0.2.0a0\"}"
+  },
+  "_adkAgentDefinitionTemplate": {
+    "provisionedReasoningEngine": {
+      "reasoningEngine": "projects/${GOOGLE_CLOUD_PROJECT}/locations/${LOCATION}/reasoningEngines/${REASONING_ENGINE_ID}"
+    }
+  },
+  "authorizations": [
+    "projects/${GOOGLE_CLOUD_PROJECT}/locations/${LOCATION}/authorizations/${AUTHORIZATION_ID}"
+  ],
+  "_provenance": {
+    "sourceCard": "agent_cards/judge_brand.agent-card.json",
+    "protocolVersion": "0.3.0",
+    "skills": ["judge-brand"]
+  }
+}
