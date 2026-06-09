@@ -27,7 +27,9 @@ const scriptSrc = [
 const connectSrc = [
   "connect-src 'self'",
   'https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com',
-  'https://*.run.app https://*.us-central1.run.app https://*.autonomous-agent.dev https://accounts.google.com',
+  // Cloud Run is scoped to this project's services (project number 537337457799)
+  // rather than the org-wide *.run.app, which would allow any tenant's service.
+  'https://*-537337457799.us-central1.run.app https://*.autonomous-agent.dev https://accounts.google.com',
   'wss://*.firebaseio.com',
   isDev ? 'http://localhost:*' : '',
 ]

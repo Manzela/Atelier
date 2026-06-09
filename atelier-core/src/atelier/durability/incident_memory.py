@@ -7,20 +7,53 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 from atelier.memory.scope import MemoryScopeKey
 from atelier.models.enums import GateDecision
 
 CONVERGENCE_THRESHOLD = 0.70
+_DEFAULT_PROJECT_ID = "atelier-build-2026"
 
 if TYPE_CHECKING:
+    from atelier.memory.backends.vertex_semantic import SemanticHit
     from atelier.models.data_contracts import GateOutcome
     from atelier.nodes.consensus import ConsensusEvaluation
 
 logger = logging.getLogger(__name__)
+
+
+@runtime_checkable
+class _SemanticBackend(Protocol):
+    """Structural contract for the scope-keyed semantic substrate AT-080 needs.
+
+    Matches ``VertexSemanticMemoryBackend``; the ADK ``BaseMemoryService`` that
+    the orchestrator injects does NOT satisfy it (its surface is
+    ``add_session_to_memory``/``search_memory``), which is why the bank resolves
+    its own backend instead of trusting the injected service.
+    """
+
+    async def write_semantic(
+        self,
+        scope: MemoryScopeKey,
+        content: str,
+        *,
+        embedding: Sequence[float] | None = ...,
+        metadata: dict[str, str] | None = ...,
+    ) -> str: ...
+
+    async def query_semantic(
+        self,
+        scope: MemoryScopeKey,
+        query_text: str,
+        *,
+        top_k: int = ...,
+        min_similarity: float = ...,
+    ) -> list[SemanticHit]: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -68,12 +101,54 @@ def serialize_incident(
     return json.dumps(record)
 
 
+def _resolve_semantic_backend(memory_service: Any) -> _SemanticBackend | None:
+    """Resolve a scope-keyed semantic backend, never silently failing.
+
+    If the injected ``memory_service`` already implements the semantic surface
+    (``write_semantic``/``query_semantic``), it is used as-is. Otherwise — the
+    common case, where the orchestrator injects an ADK ``BaseMemoryService`` —
+    a ``VertexSemanticMemoryBackend`` is constructed (offline file store) and a
+    single WARNING is logged so the fallback is visible. On construction failure
+    the bank degrades to explicit logged no-ops rather than the prior silent
+    ``hasattr``-gated dead end.
+    """
+    if isinstance(memory_service, _SemanticBackend):
+        return memory_service
+
+    logger.warning(
+        "IncidentMemoryBank: injected memory service %s is not a semantic backend "
+        "(no write_semantic/query_semantic); falling back to VertexSemanticMemoryBackend "
+        "so the AT-080 learning loop records and queries resolutions instead of silently "
+        "no-op'ing.",
+        type(memory_service).__name__,
+    )
+    try:
+        from atelier.memory.backends.vertex_semantic import (  # noqa: PLC0415
+            VertexSemanticMemoryBackend,
+        )
+
+        project_id = os.getenv("GOOGLE_CLOUD_PROJECT") or _DEFAULT_PROJECT_ID
+        return VertexSemanticMemoryBackend(project_id=project_id)
+    except Exception:
+        logger.exception(
+            "IncidentMemoryBank: could not construct fallback semantic backend; "
+            "incident learning loop will be a logged no-op for this run.",
+        )
+        return None
+
+
 class IncidentMemoryBank:
     """Incident Diagnostic Memory Bank manager."""
 
     def __init__(self, memory_service: Any) -> None:
-        """Initialize the manager with a HierarchicalMemory instance."""
-        self._memory_service = memory_service
+        """Initialize the manager, resolving a real scope-keyed semantic backend.
+
+        The orchestrator injects an ADK ``BaseMemoryService`` whose surface is
+        ``add_session_to_memory``/``search_memory``, not the semantic API this
+        bank speaks. ``_resolve_semantic_backend`` bridges that gap (or logs why
+        it could not) so the AT-080 loop is never a silent no-op.
+        """
+        self._backend = _resolve_semantic_backend(memory_service)
 
     async def record_incident(
         self,
@@ -83,6 +158,11 @@ class IncidentMemoryBank:
         consensus: ConsensusEvaluation | None,
     ) -> None:
         """Record a failure incident in the semantic memory bank."""
+        if self._backend is None:
+            logger.warning(
+                "record_incident: no semantic backend; skipping incident %s", incident_id
+            )
+            return
         try:
             content = serialize_incident(tenant_id, incident_id, gate_outcomes, consensus)
             scope = MemoryScopeKey(
@@ -90,25 +170,11 @@ class IncidentMemoryBank:
                 phase="incident",
                 actor_id="fixer",
             )
-            # Fail-soft dynamic check for semantic memory service
-            if hasattr(self._memory_service, "write_semantic"):
-                await self._memory_service.write_semantic(
-                    scope=scope,
-                    content=content,
-                    metadata={"type": "incident", "incident_id": incident_id},
-                )
-            elif hasattr(self._memory_service, "write_episodic"):
-                # Fallback to episodic memory
-                from atelier.memory.protocol import MemoryEvent  # noqa: PLC0415
-
-                event = MemoryEvent(
-                    event_id=incident_id,
-                    occurred_at=datetime.now(UTC),
-                    node_name="FixerIncident",
-                    payload={"content": content},
-                    embedding=None,
-                )
-                await self._memory_service.write_episodic(event)
+            await self._backend.write_semantic(
+                scope,
+                content,
+                metadata={"type": "incident", "incident_id": incident_id},
+            )
         except Exception as exc:  # noqa: BLE001
             logger.warning(
                 "Failed to record incident in memory bank (fail-soft): %s",
@@ -123,6 +189,11 @@ class IncidentMemoryBank:
         resolution_delta: str,
     ) -> None:
         """Record the resolution details for an incident to assist future fixes."""
+        if self._backend is None:
+            logger.warning(
+                "record_resolution: no semantic backend; skipping incident %s", incident_id
+            )
+            return
         try:
             scope = MemoryScopeKey(
                 project_id=tenant_id,
@@ -136,12 +207,11 @@ class IncidentMemoryBank:
                     "timestamp": datetime.now(UTC).isoformat(),
                 }
             )
-            if hasattr(self._memory_service, "write_semantic"):
-                await self._memory_service.write_semantic(
-                    scope=scope,
-                    content=content,
-                    metadata={"type": "resolution", "incident_id": incident_id},
-                )
+            await self._backend.write_semantic(
+                scope,
+                content,
+                metadata={"type": "resolution", "incident_id": incident_id},
+            )
         except Exception as exc:  # noqa: BLE001
             logger.warning(
                 "Failed to record resolution in memory bank (fail-soft): %s",
@@ -157,33 +227,47 @@ class IncidentMemoryBank:
         top_k: int = 3,
     ) -> list[str]:
         """Query semantic memory for similar incidents and retrieve their resolutions."""
-        resolutions = []
+        resolutions: list[str] = []
+        if self._backend is None:
+            logger.warning("query_similar_resolutions: no semantic backend; returning no matches")
+            return resolutions
         try:
             query_text = serialize_incident(tenant_id, "query", gate_outcomes, consensus)
+            incident_scope = MemoryScopeKey(
+                project_id=tenant_id,
+                phase="incident",
+                actor_id="fixer",
+            )
+            resolution_scope = MemoryScopeKey(
+                project_id=tenant_id,
+                phase="incident_resolution",
+                actor_id="fixer",
+            )
 
-            if hasattr(self._memory_service, "query_semantic"):
-                results = await self._memory_service.query_semantic(
-                    query_text=query_text,
-                    top_k=top_k,
-                )
-                for r in results:
-                    try:
-                        record = json.loads(r.passage)
-                        inc_id = record.get("incident_id")
-                        if inc_id:
-                            # Search for the resolution record specifically
-                            res_results = await self._memory_service.query_semantic(
-                                query_text=inc_id,
-                                top_k=1,
-                            )
-                            for rr in res_results:
-                                res_record = json.loads(rr.passage)
-                                if res_record.get("incident_id") == inc_id:
-                                    resolutions.append(res_record.get("resolution"))
-                    except Exception as exc:  # noqa: BLE001
-                        logger.debug(
-                            "Failed to parse historical resolution record (skipping): %s", exc
-                        )
+            incident_hits = await self._backend.query_semantic(
+                incident_scope,
+                query_text,
+                top_k=top_k,
+            )
+            for hit in incident_hits:
+                try:
+                    record = json.loads(hit.content)
+                    inc_id = record.get("incident_id")
+                    if not inc_id:
+                        continue
+                    # Two-step lookup: the matched incident points at its
+                    # resolution, which lives under a distinct scope.
+                    res_hits = await self._backend.query_semantic(
+                        resolution_scope,
+                        inc_id,
+                        top_k=1,
+                    )
+                    for res_hit in res_hits:
+                        res_record = json.loads(res_hit.content)
+                        if res_record.get("incident_id") == inc_id:
+                            resolutions.append(res_record.get("resolution"))
+                except Exception as exc:  # noqa: BLE001
+                    logger.debug("Failed to parse historical resolution record (skipping): %s", exc)
         except Exception as exc:  # noqa: BLE001
             logger.warning(
                 "Failed to query similar resolutions from memory bank (fail-soft): %s",

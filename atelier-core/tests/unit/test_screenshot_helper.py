@@ -17,8 +17,13 @@ def test_capture_and_upload_screenshot_success(mock_playwright, mock_upload):
     mock_browser = MagicMock()
     mock_p_instance.chromium.launch.return_value = mock_browser
 
+    # Untrusted HTML is rendered in a JS-disabled context with the network
+    # blocked, so the helper goes through new_context(...).new_page() + route().
+    mock_context = MagicMock()
+    mock_browser.new_context.return_value = mock_context
+
     mock_page = MagicMock()
-    mock_browser.new_page.return_value = mock_page
+    mock_context.new_page.return_value = mock_page
     mock_page.screenshot.return_value = b"raw-screenshot-bytes"
 
     # Mock GCS upload
@@ -36,6 +41,11 @@ def test_capture_and_upload_screenshot_success(mock_playwright, mock_upload):
     )
     mock_page.screenshot.assert_called_once_with(type="png", full_page=True)
     mock_browser.close.assert_called_once()
+
+    # The untrusted-HTML hardening must hold: JavaScript disabled on the context
+    # and a request router installed to block non-data network access.
+    mock_browser.new_context.assert_called_once_with(java_script_enabled=False)
+    mock_page.route.assert_called_once()
 
     # Verify GCS upload was called
     mock_upload.assert_called_once()

@@ -36,6 +36,7 @@ R11 (managed over custom).
 
 from __future__ import annotations
 
+import json
 import logging
 import re
 from collections.abc import Iterable
@@ -61,12 +62,14 @@ _INJECTION_PATTERNS: tuple[str, ...] = (
     r"reveal\s+(?:your\s+)?system\s+prompt",
     r"override\s+(?:your\s+)?system\s+prompt",
     r"forget\s+(?:all\s+)?your\s+instructions",
-    r"you\s+are\s+now\s+(?:a|an)\s+unrestricted",
+    r"you\s+are\s+(?:now\s+)?(?:a|an|totally|completely)?\s*unrestricted",
     r"bypass\s+(?:your\s+)?(?:safety\s+)?(?:filters|guardrails|guidelines|policies)",
     r"ignore\s+(?:your\s+)?(?:safety\s+)?(?:filters|guardrails|guidelines|policies)",
     r"developer\s+mode\s+enabled",
-    r"as\s+(?:a|an)\s+unrestricted\s+AI",
-    r"DAN\s+mode",
+    r"as\s+(?:a|an)?\s*unrestricted(?:\s+AI)?",
+    r"you\s+are\s+DAN\b",
+    r"do\s+anything\s+now",
+    r"DAN[\s-]?mode",
     r"jailbreak",
     r"hypothetical\s+scenario\s+where\s+you\s+can",
     r"act\s+as\s+a\s+security\s+researcher",
@@ -115,13 +118,24 @@ def was_model_armor_blocked(candidates: Iterable[object]) -> bool:
 
 
 def _request_text(llm_request: LlmRequest) -> str:
-    """Concatenate the text of every part in the request for scanning."""
+    """Concatenate the scannable text of every part in the request.
+
+    Covers both plain ``text`` parts and ``function_response`` payloads — an
+    injection imperative can arrive in a tool return, not only in the user
+    prompt, so the tool-return surface must be scanned as well (otherwise the
+    before-model guard's tool-return defense never actually runs).
+    """
     chunks: list[str] = []
     for content in llm_request.contents or []:
         for part in content.parts or []:
             text = getattr(part, "text", None)
             if text:
                 chunks.append(text)
+            fn_response = getattr(part, "function_response", None)
+            if fn_response is not None:
+                response = getattr(fn_response, "response", None)
+                if response is not None:
+                    chunks.append(json.dumps(response, default=str))
     return "\n".join(chunks)
 
 

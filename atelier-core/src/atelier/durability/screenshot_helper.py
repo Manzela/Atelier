@@ -22,11 +22,31 @@ def _launch_args() -> list[str]:
 
 
 def _capture_screenshot_sync(html: str) -> bytes:
-    """Launch Chromium, render HTML, and capture page screenshot."""
+    """Launch Chromium, render the (untrusted) HTML, and capture a screenshot.
+
+    The HTML is agent-generated, so it is rendered defensively:
+
+    * JavaScript is disabled on the context — an injected ``<script>`` cannot
+      execute, removing the active-content exfiltration and SSRF vector.
+    * Every non-``data:`` request is aborted — neither the document nor its CSS
+      can reach the network (e.g. the GCP metadata server) to fetch or exfiltrate.
+
+    The Chromium process sandbox is only dropped (``--no-sandbox``) where the
+    container cannot supply user namespaces; with scripts disabled and the
+    network blocked there is no script to exploit a renderer bug and no channel
+    to exfiltrate through, so the residual sandbox-escape surface is inert.
+    """
     with sync_playwright() as p:
         browser = p.chromium.launch(args=_launch_args())
         try:
-            page = browser.new_page()
+            context = browser.new_context(java_script_enabled=False)
+            page = context.new_page()
+            page.route(
+                "**/*",
+                lambda route: (
+                    route.continue_() if route.request.url.startswith("data:") else route.abort()
+                ),
+            )
             page.set_content(html, wait_until="domcontentloaded", timeout=_SET_CONTENT_TIMEOUT_MS)
             return page.screenshot(type="png", full_page=True)
         finally:

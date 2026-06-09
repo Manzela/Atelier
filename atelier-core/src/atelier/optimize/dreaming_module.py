@@ -18,6 +18,16 @@ Two operational modes:
    writes them directly to the dpo_pairs BQ table. Zero latency impact because
    the write is fire-and-forget (non-blocking async task or synchronous fail-soft).
 
+   Mid-flight applies the two AND-gate predicates whose inputs exist at single-
+   request time: the extrinsic-margin floor (MIN_MARGIN) and the per-axis
+   regression check (reward.composite.regressed_axes over each candidate's N3d
+   votes). The other two predicates — swap_stability and kappa_vs_golden — have
+   no producer at this point (there is no position-swap pairwise pass per
+   request, and κ is a per-brief calibration-seed metric), so the authoritative
+   4-predicate gate is AndGateRewardEngine.evaluate, run offline over the mined
+   corpus where all four signals are available. Mid-flight is a pre-filter, not
+   the final gate; it never fabricates the two missing scalars.
+
 2. **Post-flight** (asynchronous, periodic / on-demand):
    Scans trajectory_records for surfaces with both accepted and rejected
    outcomes across multiple requests. Mines cross-request pairs (richer
@@ -39,6 +49,9 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Final
+
+# pyrefly: ignore [missing-import]
+from atelier.reward.composite import regressed_axes
 
 # pyrefly: ignore [missing-import]
 from atelier.utils.log_sanitizer import sanitize
@@ -218,6 +231,32 @@ class DreamingReport:
 # ---------------------------------------------------------------------------
 
 
+def _axis_pairs(
+    chosen_votes: dict[str, Any],
+    rejected_votes: dict[str, Any],
+) -> dict[str, dict[str, float]]:
+    """Build the AND-gate ``intrinsic`` dict from two candidates' N3d votes.
+
+    Each ``votes`` value is ``{"score": float}`` with the score normalized to
+    ``[0.0, 1.0]`` (see nodes.consensus). Only axes the judge scored on BOTH
+    candidates are comparable, so axes missing from either side are dropped —
+    an absent vote is not evidence of regression. Returns the
+    ``{axis: {"chosen": s, "rejected": s}}`` shape regressed_axes expects.
+    """
+    intrinsic: dict[str, dict[str, float]] = {}
+    for axis, chosen_vote in chosen_votes.items():
+        rejected_vote = rejected_votes.get(axis)
+        if not isinstance(chosen_vote, dict) or not isinstance(rejected_vote, dict):
+            continue
+        if "score" not in chosen_vote or "score" not in rejected_vote:
+            continue
+        intrinsic[axis] = {
+            "chosen": float(chosen_vote["score"]),
+            "rejected": float(rejected_vote["score"]),
+        }
+    return intrinsic
+
+
 def extract_pairs_midflight(
     *,
     session_id: str,
@@ -256,10 +295,15 @@ def extract_pairs_midflight(
     pairs: list[ExtractedPair] = []
     now = datetime.now(tz=UTC).isoformat()
 
-    # Keep only candidates with real HTML, carrying each one's own score. No
-    # positional cursor: the (html, score) pairing is fixed inside each entry.
-    scored: list[tuple[str, float]] = [
-        (str(c.get("html", "")), float(c.get("composite_score", 0.0)))
+    # Keep only candidates with real HTML, carrying each one's own score and its
+    # per-axis N3d votes. No positional cursor: the (html, score, votes) triple
+    # is fixed inside each entry.
+    scored: list[tuple[str, float, dict[str, Any]]] = [
+        (
+            str(c.get("html", "")),
+            float(c.get("composite_score", 0.0)),
+            c.get("votes", {}) if isinstance(c.get("votes"), dict) else {},
+        )
         for c in scored_candidates
         if str(c.get("html", "")).strip()
     ]
@@ -273,7 +317,7 @@ def extract_pairs_midflight(
 
     # Form pairs: best vs each loser
     scored.sort(key=lambda x: x[1], reverse=True)
-    chosen_html, chosen_raw_score = scored[0]
+    chosen_html, chosen_raw_score, chosen_votes = scored[0]
 
     # Anti-sycophancy (§3.6): the chosen candidate's reward is down-weighted if
     # it praises without justification, so a flattering-but-unjustified winner
@@ -283,10 +327,25 @@ def extract_pairs_midflight(
         chosen_score=chosen_raw_score,
     )
 
-    for rejected_html, rejected_score in scored[1:]:
+    for rejected_html, rejected_score, rejected_votes in scored[1:]:
         margin = chosen_score - rejected_score
         if margin < MIN_MARGIN:
             continue  # Too close — not useful training signal
+
+        # AND-gate axis-regression predicate (reward.composite, §21.3). The
+        # composite-margin filter above is a scalar gate; a winner can clear it
+        # while still regressing on an individual D-O-R-A-V axis. Goodhart-
+        # resistance demands we reject such a pair — training on it teaches the
+        # generator to trade one axis for aggregate score. Only axes the judge
+        # scored on BOTH candidates are comparable; missing votes are skipped.
+        intrinsic = _axis_pairs(chosen_votes, rejected_votes)
+        regressions = regressed_axes(intrinsic)
+        if regressions:
+            logger.debug(
+                "Mid-flight pair rejected by axis-regression gate",
+                extra={"session_id": session_id, "regressed_axes": list(regressions)},
+            )
+            continue
 
         pairs.append(
             ExtractedPair(

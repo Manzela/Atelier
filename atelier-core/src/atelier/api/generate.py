@@ -988,9 +988,23 @@ async def generate_stream(  # noqa: C901, PLR0915 — SSE orchestrator: nested p
                     },
                 )
             )
-        except Exception as e:
-            logger.exception("Error in streaming generation pipeline task")
-            await queue.put(("error", {"detail": str(e)}))
+        except Exception:
+            # Do not leak the raw exception string to the client; return a generic
+            # message plus a correlation id and keep the full detail server-side.
+            correlation_id = uuid4().hex[:12]
+            logger.exception(
+                "Error in streaming generation pipeline task [correlation_id=%s]",
+                correlation_id,
+            )
+            await queue.put(
+                (
+                    "error",
+                    {
+                        "detail": "Internal error during generation.",
+                        "correlation_id": correlation_id,
+                    },
+                )
+            )
 
     async def sse_generator() -> AsyncGenerator[str, None]:
         # Start the pipeline in the background

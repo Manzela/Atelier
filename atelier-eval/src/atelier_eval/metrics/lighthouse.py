@@ -122,8 +122,16 @@ def run_lighthouse(
 
     Raises:
         RuntimeError: If the lighthouse CLI is not available or exits non-zero.
-        ValueError: If the JSON output cannot be parsed.
+        ValueError: If the URL is not http(s) or the JSON output cannot be parsed.
     """
+    # Guard against argument injection: the URL is passed positionally to the
+    # lighthouse CLI, so a value beginning with '-' would be parsed as a flag and
+    # a non-http scheme (file:, javascript:) would let the target read local
+    # resources. Restrict to http(s) before building the arg list.
+    if not url.startswith(("http://", "https://")):
+        msg = f"run_lighthouse requires an http(s) URL, got: {url!r}"
+        raise ValueError(msg)
+
     with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tmp:
         output_path = Path(tmp.name)
 

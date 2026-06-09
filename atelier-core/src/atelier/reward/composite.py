@@ -174,6 +174,34 @@ class CompositeRewardEngine(Protocol):
 
 
 # ---------------------------------------------------------------------------
+# Shared predicate — axis regression
+# ---------------------------------------------------------------------------
+
+
+def regressed_axes(intrinsic: dict[str, dict[str, float]]) -> tuple[str, ...]:
+    """Return the axes where rejected outscored chosen by > MAX_AXIS_REGRESSION.
+
+    Pulled out of the AND-gate so the axis-regression predicate has a single
+    definition. The full offline gate (AndGateRewardEngine.evaluate) consumes
+    it alongside the three scalar predicates; the mid-flight DPO extractor
+    (optimize/dreaming_module.extract_pairs_midflight) reuses it on its own,
+    because per-axis chosen/rejected scores are the only AND-gate input that
+    exists at single-request extraction time.
+
+    Sorted-key iteration guarantees deterministic ordering across Python
+    versions (dicts preserve insertion order as of 3.7, but callers may
+    construct the dict in arbitrary order). Strict-greater: delta ==
+    MAX_AXIS_REGRESSION passes, delta > MAX_AXIS_REGRESSION fails.
+    """
+    failed: list[str] = []
+    for axis in sorted(intrinsic.keys()):
+        scores = intrinsic[axis]
+        if scores["rejected"] - scores["chosen"] > MAX_AXIS_REGRESSION:
+            failed.append(axis)
+    return tuple(failed)
+
+
+# ---------------------------------------------------------------------------
 # Default implementation
 # ---------------------------------------------------------------------------
 
@@ -208,17 +236,11 @@ class AndGateRewardEngine:
         if components.swap_stability < SWAP_STABILITY_FLOOR:
             failed.append("swap_stability")
 
-        # Predicate 3: per-axis regression.
-        # Sorted key iteration guarantees deterministic failed_checks ordering
-        # across Python versions (dicts preserve insertion order as of 3.7,
-        # but callers may construct the dict in arbitrary order).
-        for axis in sorted(components.intrinsic.keys()):
-            scores = components.intrinsic[axis]
-            chosen_score = scores["chosen"]
-            rejected_score = scores["rejected"]
-            # Strict-greater: delta == MAX_AXIS_REGRESSION passes.
-            if rejected_score - chosen_score > MAX_AXIS_REGRESSION:
-                failed.append(f"axis_regression:{axis}")
+        # Predicate 3: per-axis regression. Shared with the mid-flight extractor
+        # via regressed_axes() so the predicate has one definition; sorted-key
+        # ordering there keeps failed_checks deterministic.
+        for axis in regressed_axes(components.intrinsic):
+            failed.append(f"axis_regression:{axis}")
 
         # Predicate 4: kappa vs golden-set calibration
         if components.kappa_vs_golden < KAPPA_VS_GOLDEN_FLOOR:
