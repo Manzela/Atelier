@@ -203,6 +203,7 @@ def _decode_token(token: str, *, check_revoked: bool = False) -> dict[str, Any]:
                 "The provided credential is missing, invalid, or expired. "
                 "Sign in again to obtain a fresh ID token."
             )
+        # nosemgrep: python.lang.security.audit.logging.logger-credential-leak.python-logger-credential-disclosure -- the literal is a static log-format string, not a secret; interpolated args are an error code, the exception class name, and a sanitized/truncated message — no credential is logged.
         logger.warning(
             "Firebase token verification failed [%s]: %s — %s",
             error_code,

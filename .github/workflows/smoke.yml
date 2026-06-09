@@ -29,4 +29,10 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Probe live endpoints
-        run: bash scripts/ci/smoke_probe.sh "${{ github.event.inputs.base_url || 'https://atelier.autonomous-agent.dev' }}"
+        # The dispatch input is untrusted, so it is bound to an environment
+        # variable and dereferenced inside the shell ("$BASE_URL") rather than
+        # interpolated into the run script. This prevents shell injection via a
+        # crafted base_url (semgrep run-shell-injection).
+        env:
+          BASE_URL: ${{ github.event.inputs.base_url || 'https://atelier.autonomous-agent.dev' }}
+        run: bash scripts/ci/smoke_probe.sh "$BASE_URL"
