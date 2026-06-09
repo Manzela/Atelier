@@ -30,7 +30,6 @@ import os
 
 import structlog
 from axe_playwright_python.sync_playwright import Axe
-from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import sync_playwright
 
 from atelier.gates.deterministic import _structure_floor_reject, check_axe_stub
@@ -164,7 +163,7 @@ def check_axe(candidate: CandidateUI) -> GateOutcome:
 
     try:
         violations = _scan_in_thread(html)
-    except PlaywrightError as exc:
+    except Exception as exc:  # noqa: BLE001
         return _fail_soft_to_heuristic(candidate, exc)
 
     return _outcome_from_violations(candidate, violations)

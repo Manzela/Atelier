@@ -163,7 +163,7 @@ def _score(categories: dict[str, Any], key: str) -> float:
     raw = cat.get("score")
     if raw is None:
         return 0.0
-    return round(raw * 100, 1)
+    return float(round(raw * 100, 1))
 
 
 def _audit_numeric(audits: dict[str, Any], audit_id: str, field_name: str) -> float:
