@@ -52,6 +52,7 @@ export function useAgentActivity(projectId = 'p1'): AgentActivityMap {
       (error) => {
         // Fail-soft: log the degradation; the component keeps the last-known map.
         console.warn(
+          // nosemgrep: javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring -- template literals, not a printf-style format string; no format-specifier injection is possible.
           `[useAgentActivity] Firestore agent-activity subscription error for ` +
             `${tenantId}/${projectId}:`,
           error
