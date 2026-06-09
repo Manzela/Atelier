@@ -97,6 +97,22 @@ MODEL_ARMOR_BLOCK_USER_MESSAGE = (
 )
 
 
+class ModelArmorInputBlocked(Exception):  # noqa: N818 — domain terminology
+    """Raised when Model Armor blocks injected input at the brief-parse boundary.
+
+    The before-model callback short-circuits an injection brief by returning the
+    :data:`_BLOCK_MESSAGE` sentinel instead of model JSON. The N1 brief parser
+    detects that sentinel and raises this typed error so the streaming pipeline
+    surfaces the branded :data:`MODEL_ARMOR_BLOCK_USER_MESSAGE` acknowledgment —
+    NOT a generic "internal error" that reads to the user as a crash (the design
+    thesis is fail-LOUD safety: state plainly that the input was blocked).
+    """
+
+    def __init__(self, user_message: str = MODEL_ARMOR_BLOCK_USER_MESSAGE) -> None:
+        self.user_message = user_message
+        super().__init__(user_message)
+
+
 def was_model_armor_blocked(candidates: Iterable[object]) -> bool:
     """True when Model Armor short-circuited generation for these candidates.
 

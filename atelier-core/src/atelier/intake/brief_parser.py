@@ -10,8 +10,10 @@ from pydantic import BaseModel, ConfigDict
 from atelier.intake.brief_spec import BriefSpec
 from atelier.models.enums import GateDecision
 from atelier.models.model_armor_callbacks import (
+    ModelArmorInputBlocked,
     model_armor_after_callback,
     model_armor_before_callback,
+    was_model_armor_blocked,
 )
 from atelier.models.model_registry import normalize_model_id, resolve_model_id
 from atelier.models.safety import default_model_armor_config
@@ -87,6 +89,14 @@ class BriefParserAgent:
         """Parse validated brief text → BriefSpec. Raises ValueError on parse failure."""
         response = await self._call_llm(brief_text)
         if isinstance(response, str):
+            # Model Armor's before-model callback short-circuits an injection brief
+            # by returning the block sentinel instead of model JSON. Detect it here
+            # and raise the typed block error BEFORE attempting JSON validation —
+            # otherwise the plain-text refusal hits model_validate_json and throws a
+            # generic "Parse failure" that surfaces to the user as an internal crash
+            # rather than the branded "blocked as prompt-injection" acknowledgment.
+            if was_model_armor_blocked([response]):
+                raise ModelArmorInputBlocked
             try:
                 return BriefSpec.model_validate_json(response)
             except Exception as e:

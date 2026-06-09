@@ -930,6 +930,7 @@ async def generate_stream(  # noqa: C901, PLR0915 — SSE orchestrator: nested p
 
     async def _run_pipeline_task() -> None:
         from atelier.models.data_contracts import TenantContext  # noqa: PLC0415
+        from atelier.models.model_armor_callbacks import ModelArmorInputBlocked  # noqa: PLC0415
         from atelier.orchestrator.governor import (  # noqa: PLC0415
             CIRCUIT_BREAKER_MESSAGE,
             TOKEN_CAP_MESSAGE,
@@ -1015,6 +1016,31 @@ async def generate_stream(  # noqa: C901, PLR0915 — SSE orchestrator: nested p
                     {
                         "detail": "Too many requests. Please wait a moment and try again.",
                         "code": 429,
+                    },
+                )
+            )
+        except ModelArmorInputBlocked as exc:
+            # The brief itself was a prompt-injection that Model Armor blocked at the
+            # N1 parse boundary. Fail LOUD but HONESTLY: surface the branded safety
+            # acknowledgment as a clean degraded+complete (the same shape as the cap
+            # path), never the generic "internal error" that reads as a crash. The
+            # design thesis is fail-closed safety stated plainly — see PRD §21.
+            logger.warning(
+                "atelier.generate.stream.input_blocked", extra={"uid": sanitize(user.uid)}
+            )
+            await queue.put(("degraded", {"mode": "blocked", "message": exc.user_message}))
+            # The Studio keys its acknowledgment off the complete event's `degraded`
+            # field (there is no separate degraded-event handler), so set it here —
+            # otherwise onComplete takes the success branch over a blocked run. This
+            # direct queue.put bypasses _enrich_complete_payload, so the mapping the
+            # normal path does is applied inline.
+            await queue.put(
+                (
+                    "complete",
+                    {
+                        "degraded": True,
+                        "degradation_reason": exc.user_message,
+                        "user_message": exc.user_message,
                     },
                 )
             )

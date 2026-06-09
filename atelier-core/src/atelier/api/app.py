@@ -33,6 +33,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from atelier.__version__ import __version__
+from atelier.models.model_armor_callbacks import ModelArmorInputBlocked
 from atelier.orchestrator.governor import (
     CIRCUIT_BREAKER_MESSAGE,
     TOKEN_CAP_MESSAGE,
@@ -222,6 +223,33 @@ def create_app() -> FastAPI:  # noqa: C901, PLR0915 — handler-registration fac
                 "detail": TOKEN_CAP_MESSAGE,
                 "user_action": "Contact administrator to continue.",
                 "docs_url": "https://atelier.autonomous-agent.dev/docs/limits",
+            },
+        )
+
+    # --- Global exception handler: ModelArmorInputBlocked → HTTP 422 ──────────
+    # A prompt-injection brief that Model Armor blocked at the N1 parse boundary.
+    # The non-streaming /v1/generate path would otherwise 500 on the downstream
+    # JSON "Parse failure"; fail LOUD but HONESTLY with the branded safety message
+    # (the streaming path emits the same message as a degraded+complete event).
+    # 422 Unprocessable Content: the input was well-formed HTTP but semantically
+    # rejected by the safety guard.
+    @application.exception_handler(ModelArmorInputBlocked)
+    async def model_armor_input_blocked_handler(
+        request: Request,
+        exc: ModelArmorInputBlocked,
+    ) -> JSONResponse:
+        await logger.awarning(
+            "atelier.input_blocked",
+            path=str(request.url.path),
+        )
+        return JSONResponse(
+            status_code=422,
+            content={
+                "error": "input_blocked",
+                "code": 422,
+                "title": "Request blocked by safety guard",
+                "detail": exc.user_message,
+                "user_action": "Revise the brief to describe the design you want, then resubmit.",
             },
         )
 
