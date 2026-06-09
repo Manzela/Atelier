@@ -281,7 +281,7 @@ ignore_missing_imports = true
 disallow_any_unimported = false
 disallow_untyped_calls = false
 warn_unused_ignores = false
-disable_error_code = ["import-untyped", "no-any-unimported", "attr-defined", "arg-type", "misc"]
+disable_error_code = ["import-untyped", "no-any-unimported", "attr-defined", "arg-type", "misc", "untyped-decorator"]
 
 [[tool.mypy.overrides]]
 module = "atelier.intake.*"
