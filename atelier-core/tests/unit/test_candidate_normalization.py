@@ -16,6 +16,7 @@ from atelier.orchestrator.runner import (
     _complete_accessibility,
     _complete_color_token_palette,
     _extract_html_document,
+    _looks_like_html,
 )
 
 _DOC = (
@@ -50,6 +51,20 @@ class TestExtractHtmlDocument:
         assert (
             _extract_html_document("  <div>just a fragment</div>  ") == "<div>just a fragment</div>"
         )
+
+    def test_strips_narrated_preamble_from_document_less_fragment(self) -> None:
+        # Live regression: the Fixer narrates before a fragment (no <html> wrapper)
+        # and references tags in backticks. The preamble must NOT survive into the
+        # canvas; extraction slices from the first line-start structural tag.
+        raw = (
+            "Here is the corrected HTML and CSS for the Project Board screen.\n\n"
+            "The code now correctly uses `<aside>`, `<main>`, and `<nav>`:\n\n"
+            '<div class="board"><aside>nav</aside><main>cols</main></div>'
+        )
+        out = _extract_html_document(raw)
+        assert out.startswith('<div class="board">')
+        assert "Here is the corrected" not in out
+        assert "`<aside>`" not in out  # the backticked prose mention is gone
 
 
 @pytest.mark.unit
@@ -168,3 +183,42 @@ class TestCompleteAccessibility:
     def test_fully_compliant_doc_unchanged(self) -> None:
         doc = '<html lang="en"><head><title>Ok</title></head><body><main>ok</main></body></html>'
         assert _complete_accessibility(doc) == doc
+
+
+@pytest.mark.unit
+class TestLooksLikeHtml:
+    """The non-convergence fallback must never serve markdown prose as a design.
+
+    Regression: on the live Linear-app E2E the Wireframer's markdown out-scored
+    the failing-but-real HTML on mean gate score and was rendered as washed-out
+    text in the Studio canvas. _looks_like_html gates the fallback selection.
+    """
+
+    def test_rejects_wireframer_markdown_prose(self) -> None:
+        # Verbatim shape of the live regression: prose that *names* structural
+        # tags (`<main>`, `<nav>`) in backticks but never writes a closing tag.
+        markdown = (
+            "Here is the low-fidelity structural wireframe for the **Project Board** "
+            "screen.\n\n### 1. Overall Screen Layout (`App Shell`)\n\n"
+            "*   **`<aside>` (Sidebar Navigation):** A fixed-width vertical region.\n"
+            "*   **`<main>` (Main Content Area):** The primary content region.\n"
+            "*   **`<nav>`:** A vertically stacked list of navigation items."
+        )
+        # Contains `<main>`/`<nav>` substrings yet no closing tag -> not a design.
+        assert _looks_like_html(markdown) is False
+
+    def test_accepts_full_document(self) -> None:
+        assert _looks_like_html("<!DOCTYPE html><html><body><main>x</main></body></html>")
+
+    def test_accepts_structural_fragment(self) -> None:
+        assert _looks_like_html('<div class="board"><section>col</section></div>')
+
+    def test_accepts_nav_and_form_containers(self) -> None:
+        assert _looks_like_html("<nav>links</nav>")
+        assert _looks_like_html('<form action="/x"></form>')
+
+    def test_rejects_plain_text(self) -> None:
+        assert _looks_like_html("just a sentence with no markup at all.") is False
+
+    def test_case_insensitive(self) -> None:
+        assert _looks_like_html("<MAIN>X</MAIN>")

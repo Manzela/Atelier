@@ -31,7 +31,7 @@ import os
 import re
 import uuid
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Final, cast
 
 from google.adk.events.event import Event
 from google.adk.events.event_actions import EventActions
@@ -148,6 +148,14 @@ def _usage_from_event(event: Any) -> tuple[int, int, int]:
     )
 
 
+#: A structural/container tag opening at the START of a line — the mark of real
+#: markup, as opposed to a tag named mid-sentence or in backticks inside prose.
+#: Used to strip a narrated preamble from a document-less HTML fragment.
+_LINE_START_STRUCTURAL_TAG = re.compile(
+    r"(?im)^\s*<(?:div|main|section|aside|header|nav|article|footer|ul|ol|table|form)\b"
+)
+
+
 def _extract_html_document(raw: str) -> str:
     """Return the clean HTML document embedded in a raw generator candidate.
 
@@ -176,7 +184,63 @@ def _extract_html_document(raw: str) -> str:
     end = lower.rfind("</html>")
     if start != -1 and end != -1 and end > start:
         return text[start : end + len("</html>")]
+    # No full document (a fragment). The Fixer / UI Designer often narrate "Here
+    # is the corrected HTML ..." — with backticked tag mentions like `<aside>` —
+    # BEFORE the real markup. Strip that preamble by slicing from the first
+    # structural tag that begins a LINE: prose references tags mid-sentence or in
+    # backticks, real markup opens them at a line start. Without this, the
+    # non-converged fallback renders its prose preamble as text above the design
+    # in the Studio canvas (surfaced by the live Linear-app E2E).
+    fragment = _LINE_START_STRUCTURAL_TAG.search(text)
+    if fragment:
+        return text[fragment.start() :].strip()
     return text
+
+
+#: Structural/container tags that mark a candidate as renderable HTML rather than
+#: a specialist's markdown narration (e.g. the Wireframer's prose description).
+_HTML_STRUCTURE_TAGS: Final[tuple[str, ...]] = (
+    "<!doctype",
+    "<html",
+    "<body",
+    "<main",
+    "<section",
+    "<div",
+    "<header",
+    "<nav",
+    "<form",
+    "<ul",
+    "<table",
+)
+
+
+#: A real closing tag (``</div>``, ``</main>`` …). Markdown that *describes*
+#: structure names opening tags in backticks (`` `<main>` ``) but never writes
+#: the matching close, so requiring one separates rendered UI from narration.
+_HTML_CLOSING_TAG = re.compile(r"</[a-z][\w-]*>", re.IGNORECASE)
+
+
+def _looks_like_html(text: str) -> bool:
+    """Return True when ``text`` carries real HTML structure, not markdown prose.
+
+    The non-convergence fallback (:data:`best_partial_html`) must surface an
+    actual renderable design, never a specialist's markdown description — the
+    Wireframer, for instance, emits prose like "Here is the low-fidelity
+    structural wireframe ..." that *names* tags such as ``<main>`` / ``<nav>`` in
+    backticks. When such prose out-scores the failing-but-real HTML on mean gate
+    score, it would otherwise be served as the "design" and render as washed-out
+    text in the Studio canvas.
+
+    A full document (doctype / ``<html``) qualifies outright. Otherwise a
+    candidate must carry BOTH a structural/container opening tag AND a matching
+    closing tag — the closing tag is what distinguishes rendered UI from prose
+    that merely references opening tags.
+    """
+    lower = text.lower()
+    if "<!doctype" in lower or "<html" in lower:
+        return True
+    has_structural = any(tag in lower for tag in _HTML_STRUCTURE_TAGS)
+    return has_structural and bool(_HTML_CLOSING_TAG.search(lower))
 
 
 def _non_convergence_message(iteration: int) -> str:
@@ -883,9 +947,13 @@ class AtelierRunner:
             gate_result = run_gates(candidate, _N3C_GATE_AXES)
             gate_results.append(gate_result)
 
-            # Track the highest mean-gate-score candidate (an HTML design scores
-            # far above a markdown specialist output) for the fallback below.
-            if gate_result.outcomes:
+            # Track the highest mean-gate-score candidate for the non-convergence
+            # fallback below — but ONLY among candidates that are actually HTML.
+            # A markdown specialist output (e.g. the Wireframer's prose) can
+            # out-score failing-but-real HTML on the mean and would then be served
+            # as the "design", rendering as washed-out text in the Studio canvas.
+            # Guarding on _looks_like_html keeps the fallback a renderable screen.
+            if gate_result.outcomes and _looks_like_html(html_content):
                 mean_score = sum(o.score for o in gate_result.outcomes) / len(gate_result.outcomes)
                 if mean_score > best_partial_score:
                     best_partial_score = mean_score
@@ -971,7 +1039,7 @@ class AtelierRunner:
             best_candidate = best_partial_html
             logger.warning(
                 "N4: all candidates failed N3c gates; falling back to best-scoring HTML "
-                "candidate (mean gate score %.1f of %d)",
+                "candidate (mean gate score %.1f/100 across %d candidates)",
                 best_partial_score,
                 len(raw_candidates),
             )

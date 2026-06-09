@@ -768,6 +768,26 @@ def _enrich_complete_payload(payload: dict[str, Any]) -> dict[str, Any]:
     # ------------------------------------------------------------------
     enriched["run_verdict"] = _build_run_verdict(payload)
 
+    # ------------------------------------------------------------------
+    # degraded / degradation_reason: failure-trichotomy honesty (PRD §21).
+    # When the loop did NOT converge, best_html is the strongest SUB-BAR draft,
+    # not a blessed result. The Studio keys its acknowledgment off `degraded`,
+    # so derive it here from the runner's `converged` flag and surface the
+    # already-composed `user_message` (the "strong draft — did not clear every
+    # gate, retry to refine" acknowledgment). Without this the frontend takes
+    # the success branch and reports "All screens converged" over a sub-bar
+    # design — the exact "apparent capability over trust" failure the PRD
+    # forbids. A more specific per-iteration cause (stitch / governor fail-soft)
+    # already in `degradation_reason` is preserved; an explicit upstream
+    # `degraded=True` is never downgraded.
+    if not enriched.get("converged", False) and not enriched.get("degraded", False):
+        enriched["degraded"] = True
+        enriched["degradation_reason"] = (
+            enriched.get("degradation_reason")
+            or enriched.get("user_message")
+            or "This design did not clear every convergence gate; showing the strongest draft."
+        )
+
     return enriched
 
 
