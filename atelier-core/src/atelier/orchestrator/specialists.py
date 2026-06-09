@@ -231,6 +231,19 @@ if tuple(spec.output_key for spec in _SPECIALISTS) != SPECIALIST_OUTPUT_KEYS:
     )
 
 
+def get_specialist_specs() -> tuple[_SpecialistSpec, ...]:
+    """Return the frozen DDLC specialist roster (read-only single source of truth).
+
+    Public accessor over the module-private :data:`_SPECIALISTS` tuple so the
+    agent registry (and any future introspection surface) can enumerate the
+    specialists' identity, hand-off contract, role brief, model routing hook
+    (``task_type``), and Stitch toolset flag without reaching into a private
+    name or duplicating the data. The tuple and each :class:`_SpecialistSpec`
+    are frozen, so the returned value is safe to expose directly.
+    """
+    return _SPECIALISTS
+
+
 def _fetch_prompt_from_agent_registry(agent_name: str, fallback_prompt: str) -> str:
     """Fetch the dynamic prompt/role for the given agent from Vertex AI Agent Registry.
 

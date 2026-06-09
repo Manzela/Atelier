@@ -45,7 +45,7 @@
   ],
   "protocols": {
     "a2a": "0.3.0",
-    "adk": "2.0-beta"
+    "adk": "2.1"
   },
   "authentication": {
     "schemes": [
