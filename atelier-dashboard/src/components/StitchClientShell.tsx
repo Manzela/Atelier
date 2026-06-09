@@ -305,14 +305,14 @@ export default function StitchClientShell() {
                               `/studio/${proj.id}?brief=${encodeURIComponent(proj.brief)}&model=${selectedModel}&device=${deviceType}`
                             )
                           }
-                          className="text-left text-sm py-2 px-3 rounded-md hover:bg-[var(--g-surface-hover)] text-gray-300 truncate transition-colors w-full block text-left"
+                          className="text-left text-sm py-2 px-3 rounded-md hover:bg-[var(--g-surface-hover)] text-[var(--g-text)] truncate transition-colors w-full block text-left"
                           title={proj.brief}
                         >
                           {prettifyProjectName(proj.brief, proj.id)}
                         </button>
                       ))}
                       {projects.length === 0 && (
-                        <div className="text-left text-xs py-2 px-3 text-gray-500 italic">
+                        <div className="text-left text-xs py-2 px-3 text-[var(--g-text-muted)] italic">
                           No projects built yet
                         </div>
                       )}
@@ -333,26 +333,26 @@ export default function StitchClientShell() {
                       setView('generate');
                       setSidebarMode('stitch');
                     }}
-                    className="flex items-center gap-3 text-sm py-2 px-3 rounded-md hover:bg-[var(--g-surface-hover)] text-gray-300 transition-colors w-full text-left"
+                    className="flex items-center gap-3 text-sm py-2 px-3 rounded-md hover:bg-[var(--g-surface-hover)] text-[var(--g-text)] transition-colors w-full text-left"
                   >
-                    <LayoutTemplate size={16} className="text-blue-400" /> Atelier Studio
+                    <LayoutTemplate size={16} className="text-[var(--g-info)]" /> Atelier Studio
                   </button>
                   <div className="h-px bg-[var(--g-outline)] my-2" />
                   <button
                     onClick={() => setView('iam')}
-                    className={`flex items-center gap-3 text-sm py-2 px-3 rounded-md transition-colors w-full text-left ${view === 'iam' ? 'bg-[var(--g-outline)] text-white font-medium' : 'text-gray-300 hover:bg-[var(--g-surface-hover)]'}`}
+                    className={`flex items-center gap-3 text-sm py-2 px-3 rounded-md transition-colors w-full text-left ${view === 'iam' ? 'bg-[var(--g-outline)] text-white font-medium' : 'text-[var(--g-text)] hover:bg-[var(--g-surface-hover)]'}`}
                   >
                     <Cloud size={16} /> IAM &amp; Admin
                   </button>
                   <button
                     onClick={() => setView('billing')}
-                    className={`flex items-center gap-3 text-sm py-2 px-3 rounded-md transition-colors w-full text-left ${view === 'billing' ? 'bg-[var(--g-outline)] text-white font-medium' : 'text-gray-300 hover:bg-[var(--g-surface-hover)]'}`}
+                    className={`flex items-center gap-3 text-sm py-2 px-3 rounded-md transition-colors w-full text-left ${view === 'billing' ? 'bg-[var(--g-outline)] text-white font-medium' : 'text-[var(--g-text)] hover:bg-[var(--g-surface-hover)]'}`}
                   >
                     <CreditCard size={16} /> Quotas &amp; Billing
                   </button>
                   <button
                     onClick={() => setView('models')}
-                    className={`flex items-center gap-3 text-sm py-2 px-3 rounded-md transition-colors w-full text-left ${view === 'models' ? 'bg-[var(--g-outline)] text-white font-medium' : 'text-gray-300 hover:bg-[var(--g-surface-hover)]'}`}
+                    className={`flex items-center gap-3 text-sm py-2 px-3 rounded-md transition-colors w-full text-left ${view === 'models' ? 'bg-[var(--g-outline)] text-white font-medium' : 'text-[var(--g-text)] hover:bg-[var(--g-surface-hover)]'}`}
                   >
                     <History size={16} /> Model Registry
                   </button>
@@ -404,7 +404,7 @@ export default function StitchClientShell() {
                   </div>
                   <button
                     onClick={() => setIsMobileSidebarOpen(false)}
-                    className="p-1 text-gray-400 hover:text-white rounded-md"
+                    className="p-1 text-[var(--g-text-muted)] hover:text-white rounded-md"
                     aria-label="Close sidebar"
                   >
                     <X size={18} />
@@ -449,14 +449,14 @@ export default function StitchClientShell() {
                                     `/studio/${proj.id}?brief=${encodeURIComponent(proj.brief)}&model=${selectedModel}&device=${deviceType}`
                                   );
                                 }}
-                                className="text-left text-sm py-2 px-3 rounded-md hover:bg-[var(--g-surface-hover)] text-gray-300 truncate transition-colors w-full block text-left"
+                                className="text-left text-sm py-2 px-3 rounded-md hover:bg-[var(--g-surface-hover)] text-[var(--g-text)] truncate transition-colors w-full block text-left"
                                 title={proj.brief}
                               >
                                 {prettifyProjectName(proj.brief, proj.id)}
                               </button>
                             ))}
                             {projects.length === 0 && (
-                              <div className="text-left text-xs py-2 px-3 text-gray-500 italic">
+                              <div className="text-left text-xs py-2 px-3 text-[var(--g-text-muted)] italic">
                                 No projects built yet
                               </div>
                             )}
@@ -478,9 +478,10 @@ export default function StitchClientShell() {
                             setSidebarMode('stitch');
                             setIsMobileSidebarOpen(false);
                           }}
-                          className="flex items-center gap-3 text-sm py-2 px-3 rounded-md hover:bg-[var(--g-surface-hover)] text-gray-300 transition-colors w-full text-left"
+                          className="flex items-center gap-3 text-sm py-2 px-3 rounded-md hover:bg-[var(--g-surface-hover)] text-[var(--g-text)] transition-colors w-full text-left"
                         >
-                          <LayoutTemplate size={16} className="text-blue-400" /> Atelier Studio
+                          <LayoutTemplate size={16} className="text-[var(--g-info)]" /> Atelier
+                          Studio
                         </button>
                         <div className="h-px bg-[var(--g-outline)] my-2" />
                         <button
@@ -488,7 +489,7 @@ export default function StitchClientShell() {
                             setView('iam');
                             setIsMobileSidebarOpen(false);
                           }}
-                          className={`flex items-center gap-3 text-sm py-2 px-3 rounded-md transition-colors w-full text-left ${view === 'iam' ? 'bg-[var(--g-outline)] text-white font-medium' : 'text-gray-300 hover:bg-[var(--g-surface-hover)]'}`}
+                          className={`flex items-center gap-3 text-sm py-2 px-3 rounded-md transition-colors w-full text-left ${view === 'iam' ? 'bg-[var(--g-outline)] text-white font-medium' : 'text-[var(--g-text)] hover:bg-[var(--g-surface-hover)]'}`}
                         >
                           <Cloud size={16} /> IAM &amp; Admin
                         </button>
@@ -497,7 +498,7 @@ export default function StitchClientShell() {
                             setView('billing');
                             setIsMobileSidebarOpen(false);
                           }}
-                          className={`flex items-center gap-3 text-sm py-2 px-3 rounded-md transition-colors w-full text-left ${view === 'billing' ? 'bg-[var(--g-outline)] text-white font-medium' : 'text-gray-300 hover:bg-[var(--g-surface-hover)]'}`}
+                          className={`flex items-center gap-3 text-sm py-2 px-3 rounded-md transition-colors w-full text-left ${view === 'billing' ? 'bg-[var(--g-outline)] text-white font-medium' : 'text-[var(--g-text)] hover:bg-[var(--g-surface-hover)]'}`}
                         >
                           <CreditCard size={16} /> Quotas &amp; Billing
                         </button>
@@ -506,7 +507,7 @@ export default function StitchClientShell() {
                             setView('models');
                             setIsMobileSidebarOpen(false);
                           }}
-                          className={`flex items-center gap-3 text-sm py-2 px-3 rounded-md transition-colors w-full text-left ${view === 'models' ? 'bg-[var(--g-outline)] text-white font-medium' : 'text-gray-300 hover:bg-[var(--g-surface-hover)]'}`}
+                          className={`flex items-center gap-3 text-sm py-2 px-3 rounded-md transition-colors w-full text-left ${view === 'models' ? 'bg-[var(--g-outline)] text-white font-medium' : 'text-[var(--g-text)] hover:bg-[var(--g-surface-hover)]'}`}
                         >
                           <History size={16} /> Model Registry
                         </button>
@@ -525,7 +526,7 @@ export default function StitchClientShell() {
           <header className="h-16 flex items-center justify-between md:justify-end px-6 border-b border-[var(--g-outline)] bg-transparent">
             <button
               onClick={() => setIsMobileSidebarOpen(true)}
-              className="md:hidden p-2 text-gray-400 hover:text-white hover:bg-[var(--g-surface-hover)] rounded-md focus:outline-none focus:ring-1 focus:ring-[var(--g-primary-blue)] transition-colors"
+              className="md:hidden p-2 text-[var(--g-text-muted)] hover:text-white hover:bg-[var(--g-surface-hover)] rounded-md focus:outline-none focus:ring-1 focus:ring-[var(--g-primary-blue)] transition-colors"
               aria-label="Open sidebar"
             >
               <Menu size={20} />
@@ -554,7 +555,7 @@ export default function StitchClientShell() {
                         setIsSettingsOpen(true);
                         setIsMenuOpen(false);
                       }}
-                      className="w-full flex items-center gap-2 px-3 py-1.5 rounded text-left text-xs text-gray-200 hover:bg-[var(--g-surface-hover)] hover:text-white transition-colors cursor-pointer"
+                      className="w-full flex items-center gap-2 px-3 py-1.5 rounded text-left text-xs text-[var(--g-text)] hover:bg-[var(--g-surface-hover)] hover:text-white transition-colors cursor-pointer"
                     >
                       <Settings size={12} className="text-[var(--g-text-muted)]" />
                       Account Settings
@@ -563,7 +564,7 @@ export default function StitchClientShell() {
                       href="https://atelier.autonomous-agent.dev/docs"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-full flex items-center gap-2 px-3 py-1.5 rounded text-left text-xs text-gray-200 hover:bg-[var(--g-surface-hover)] hover:text-white transition-colors cursor-pointer"
+                      className="w-full flex items-center gap-2 px-3 py-1.5 rounded text-left text-xs text-[var(--g-text)] hover:bg-[var(--g-surface-hover)] hover:text-white transition-colors cursor-pointer"
                     >
                       <BookOpen size={12} className="text-[var(--g-text-muted)]" />
                       Documentation
@@ -572,7 +573,7 @@ export default function StitchClientShell() {
                       href="/terms"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-full flex items-center gap-2 px-3 py-1.5 rounded text-left text-xs text-gray-200 hover:bg-[var(--g-surface-hover)] hover:text-white transition-colors cursor-pointer"
+                      className="w-full flex items-center gap-2 px-3 py-1.5 rounded text-left text-xs text-[var(--g-text)] hover:bg-[var(--g-surface-hover)] hover:text-white transition-colors cursor-pointer"
                     >
                       <FileText size={12} className="text-[var(--g-text-muted)]" />
                       Terms of Service
@@ -581,14 +582,14 @@ export default function StitchClientShell() {
                       href="/privacy"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-full flex items-center gap-2 px-3 py-1.5 rounded text-left text-xs text-gray-200 hover:bg-[var(--g-surface-hover)] hover:text-white transition-colors cursor-pointer"
+                      className="w-full flex items-center gap-2 px-3 py-1.5 rounded text-left text-xs text-[var(--g-text)] hover:bg-[var(--g-surface-hover)] hover:text-white transition-colors cursor-pointer"
                     >
                       <Shield size={12} className="text-[var(--g-text-muted)]" />
                       Privacy Policy
                     </a>
                     <a
                       href="mailto:support@atelier.autonomous-agent.dev"
-                      className="w-full flex items-center gap-2 px-3 py-1.5 rounded text-left text-xs text-gray-200 hover:bg-[var(--g-surface-hover)] hover:text-white transition-colors cursor-pointer"
+                      className="w-full flex items-center gap-2 px-3 py-1.5 rounded text-left text-xs text-[var(--g-text)] hover:bg-[var(--g-surface-hover)] hover:text-white transition-colors cursor-pointer"
                     >
                       <LifeBuoy size={12} className="text-[var(--g-text-muted)]" />
                       Help &amp; Support
@@ -599,7 +600,7 @@ export default function StitchClientShell() {
 
                   <button
                     onClick={handleLogout}
-                    className="w-full flex items-center gap-2 px-3 py-1.5 rounded text-left text-xs text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors cursor-pointer"
+                    className="w-full flex items-center gap-2 px-3 py-1.5 rounded text-left text-xs text-[var(--g-error)] hover:bg-[var(--g-error)]/10 hover:text-red-300 transition-colors cursor-pointer"
                   >
                     <LogOut size={12} />
                     Logout
@@ -654,13 +655,13 @@ export default function StitchClientShell() {
                       <div className="flex items-center bg-[var(--g-bg)] rounded-full border border-[var(--g-outline)] overflow-hidden">
                         <button
                           onClick={() => setDeviceType('app')}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm transition-colors ${deviceType === 'app' ? 'bg-[var(--g-outline)] text-white' : 'text-gray-400 hover:text-white'}`}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm transition-colors ${deviceType === 'app' ? 'bg-[var(--g-outline)] text-white' : 'text-[var(--g-text-muted)] hover:text-white'}`}
                         >
                           <Smartphone size={14} /> App
                         </button>
                         <button
                           onClick={() => setDeviceType('web')}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm transition-colors ${deviceType === 'web' ? 'bg-[var(--g-outline)] text-white' : 'text-gray-400 hover:text-white'}`}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm transition-colors ${deviceType === 'web' ? 'bg-[var(--g-outline)] text-white' : 'text-[var(--g-text-muted)] hover:text-white'}`}
                         >
                           <Monitor size={14} /> Web
                         </button>
@@ -672,31 +673,37 @@ export default function StitchClientShell() {
                         <select
                           value={selectedModel}
                           onChange={(e) => setSelectedModel(e.target.value)}
-                          className="appearance-none h-8 px-3 pr-8 rounded-full border border-[var(--g-outline)] bg-transparent text-xs sm:text-sm text-gray-300 hover:bg-[var(--g-surface-hover)] focus:outline-none focus:ring-1 focus:ring-[var(--g-primary-blue)] cursor-pointer transition-colors"
+                          className="appearance-none h-8 px-3 pr-8 rounded-full border border-[var(--g-outline)] bg-transparent text-xs sm:text-sm text-[var(--g-text)] hover:bg-[var(--g-surface-hover)] focus:outline-none focus:ring-1 focus:ring-[var(--g-primary-blue)] cursor-pointer transition-colors"
                           aria-label="Select Model"
                         >
-                          <option value="gemini-2.5-pro" className="bg-[#1e1f22] text-white">
+                          <option
+                            value="gemini-2.5-pro"
+                            className="bg-[var(--g-surface)] text-white"
+                          >
                             Gemini 2.5 Pro
                           </option>
-                          <option value="gemini-2.5-flash" className="bg-[#1e1f22] text-white">
+                          <option
+                            value="gemini-2.5-flash"
+                            className="bg-[var(--g-surface)] text-white"
+                          >
                             Gemini 2.5 Flash
                           </option>
                         </select>
                         <ChevronDown
                           size={14}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--g-text-muted)] pointer-events-none"
                         />
                       </div>
                       <div className="relative">
                         <button
                           onClick={toggleVoiceInput}
-                          className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${isRecording ? 'text-red-500 bg-red-500/10 animate-pulse border border-red-500/40 shadow-[0_0_12px_rgba(239,68,68,0.2)]' : 'text-gray-400 hover:text-white hover:bg-[var(--g-surface-hover)]'}`}
+                          className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${isRecording ? 'text-red-500 bg-[var(--g-error)]/10 animate-pulse border border-red-500/40 shadow-[0_0_12px_rgba(239,68,68,0.2)]' : 'text-[var(--g-text-muted)] hover:text-white hover:bg-[var(--g-surface-hover)]'}`}
                           aria-label={isRecording ? 'Stop voice input' : 'Start voice input'}
                         >
                           <Mic size={18} />
                         </button>
                         {voiceUnsupported && (
-                          <div className="absolute bottom-10 right-0 whitespace-nowrap text-[10px] text-amber-400 bg-[var(--g-surface)] border border-[var(--g-outline)] rounded px-2 py-1 shadow-lg pointer-events-none">
+                          <div className="absolute bottom-10 right-0 whitespace-nowrap text-[10px] text-[var(--g-warning)] bg-[var(--g-surface)] border border-[var(--g-outline)] rounded px-2 py-1 shadow-lg pointer-events-none">
                             Voice input requires Chrome
                           </div>
                         )}
@@ -716,11 +723,11 @@ export default function StitchClientShell() {
             )}
 
             {view === 'iam' && (
-              <div className="w-full max-w-4xl p-6 bg-[var(--g-surface)] rounded-xl border border-[var(--g-outline)] shadow-xl text-left">
+              <div className="w-full max-w-4xl p-6 bg-[var(--g-surface)] rounded-lg border border-[var(--g-outline)] shadow-xl text-left">
                 <div className="flex justify-between items-center mb-6">
                   <div>
                     <h2 className="text-2xl font-semibold text-white flex items-center gap-2">
-                      <Cloud className="text-blue-400" size={24} /> IAM &amp; Admin
+                      <Cloud className="text-[var(--g-info)]" size={24} /> IAM &amp; Admin
                     </h2>
                     <p className="text-sm text-[var(--g-text-muted)] mt-1">
                       Manage organization workspace members, access controls, and developer API
@@ -729,7 +736,7 @@ export default function StitchClientShell() {
                   </div>
                   <button
                     onClick={() => setView('generate')}
-                    className="px-4 py-2 text-xs font-semibold rounded bg-[var(--g-outline)] hover:bg-[#3d3f44] text-white transition-colors"
+                    className="px-4 py-2 text-xs font-semibold rounded bg-[var(--g-outline)] hover:bg-[var(--g-surface-hover)] text-white transition-colors"
                   >
                     Back to Studio
                   </button>
@@ -740,13 +747,13 @@ export default function StitchClientShell() {
                   <div className="overflow-hidden rounded-lg border border-[var(--g-outline)] bg-black/20">
                     <table className="w-full border-collapse text-left text-xs">
                       <thead>
-                        <tr className="border-b border-[var(--g-outline)] bg-white/5 text-gray-400">
+                        <tr className="border-b border-[var(--g-outline)] bg-[var(--g-surface-hover)]/10 text-[var(--g-text-muted)]">
                           <th className="px-4 py-3">Member</th>
                           <th className="px-4 py-3">Role</th>
                           <th className="px-4 py-3">Status</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-[var(--g-outline)] text-gray-300">
+                      <tbody className="divide-y divide-[var(--g-outline)] text-[var(--g-text)]">
                         <tr>
                           <td className="px-4 py-3.5 flex items-center gap-3">
                             <div className="w-7 h-7 rounded-full bg-[var(--g-primary-blue)] flex items-center justify-center text-[10px] font-bold text-white">
@@ -756,14 +763,16 @@ export default function StitchClientShell() {
                               <div className="font-medium text-white">
                                 {user.displayName || 'Daniel Manzela'}
                               </div>
-                              <div className="text-[10px] text-gray-500">{user.email}</div>
+                              <div className="text-[10px] text-[var(--g-text-muted)]">
+                                {user.email}
+                              </div>
                             </div>
                           </td>
-                          <td className="px-4 py-3.5 font-medium text-blue-400">
+                          <td className="px-4 py-3.5 font-medium text-[var(--g-info)]">
                             Organization Owner
                           </td>
                           <td className="px-4 py-3.5">
-                            <span className="px-2 py-0.5 rounded-full text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                            <span className="px-2 py-0.5 rounded-full text-[9px] bg-[var(--g-success)]/20 text-[var(--g-success)] border border-[var(--g-success)]/30">
                               Active
                             </span>
                           </td>
@@ -775,14 +784,14 @@ export default function StitchClientShell() {
                             </div>
                             <div>
                               <div className="font-medium text-white">Atelier Agent</div>
-                              <div className="text-[10px] text-gray-500">
+                              <div className="text-[10px] text-[var(--g-text-muted)]">
                                 agent@atelier.autonomous-agent.dev
                               </div>
                             </div>
                           </td>
                           <td className="px-4 py-3.5">Autonomous Specialist</td>
                           <td className="px-4 py-3.5">
-                            <span className="px-2 py-0.5 rounded-full text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                            <span className="px-2 py-0.5 rounded-full text-[9px] bg-[var(--g-success)]/20 text-[var(--g-success)] border border-[var(--g-success)]/30">
                               Active
                             </span>
                           </td>
@@ -801,7 +810,7 @@ export default function StitchClientShell() {
                       <div className="text-xs font-semibold text-white">
                         Production Agent API Key
                       </div>
-                      <div className="text-xs font-mono text-gray-500 mt-1 select-all">
+                      <div className="text-xs font-mono text-[var(--g-text-muted)] mt-1 select-all">
                         at_live_••••••••••••••••••••••••••••••••3a5f9d
                       </div>
                     </div>
@@ -810,7 +819,7 @@ export default function StitchClientShell() {
                         navigator.clipboard.writeText(`at_live_${user.token.substring(0, 32)}`);
                         alert('API credential copied to clipboard.');
                       }}
-                      className="px-3.5 py-1.5 text-xs font-medium rounded border border-[var(--g-outline)] hover:bg-[var(--g-surface-hover)] text-gray-300 transition-colors"
+                      className="px-3.5 py-1.5 text-xs font-medium rounded border border-[var(--g-outline)] hover:bg-[var(--g-surface-hover)] text-[var(--g-text)] transition-colors"
                     >
                       Copy Key
                     </button>
@@ -820,11 +829,11 @@ export default function StitchClientShell() {
             )}
 
             {view === 'billing' && (
-              <div className="w-full max-w-4xl p-6 bg-[var(--g-surface)] rounded-xl border border-[var(--g-outline)] shadow-xl text-left">
+              <div className="w-full max-w-4xl p-6 bg-[var(--g-surface)] rounded-lg border border-[var(--g-outline)] shadow-xl text-left">
                 <div className="flex justify-between items-center mb-6">
                   <div>
                     <h2 className="text-2xl font-semibold text-white flex items-center gap-2">
-                      <CreditCard className="text-blue-400" size={24} /> Quotas &amp; Billing
+                      <CreditCard className="text-[var(--g-info)]" size={24} /> Quotas &amp; Billing
                     </h2>
                     <p className="text-sm text-[var(--g-text-muted)] mt-1">
                       Monitor your organization token allocation, real-time consumption quotas, and
@@ -833,65 +842,72 @@ export default function StitchClientShell() {
                   </div>
                   <button
                     onClick={() => setView('generate')}
-                    className="px-4 py-2 text-xs font-semibold rounded bg-[var(--g-outline)] hover:bg-[#3d3f44] text-white transition-colors"
+                    className="px-4 py-2 text-xs font-semibold rounded bg-[var(--g-outline)] hover:bg-[var(--g-surface-hover)] text-white transition-colors"
                   >
                     Back to Studio
                   </button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                  <div className="p-4 rounded-xl border border-[var(--g-outline)] bg-black/20">
-                    <h3 className="text-xs text-gray-400 font-semibold mb-1">Lifetime Token Cap</h3>
+                  <div className="p-4 rounded-lg border border-[var(--g-outline)] bg-black/20">
+                    <h3 className="text-xs text-[var(--g-text-muted)] font-semibold mb-1">
+                      Lifetime Token Cap
+                    </h3>
                     <div className="text-2xl font-bold text-white font-mono mt-2">5,000,000</div>
-                    <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden mt-3">
-                      <div className="h-full rounded-full bg-emerald-500" style={{ width: '4%' }} />
+                    <div className="w-full h-1.5 rounded-full bg-[var(--g-outline)]/20 overflow-hidden mt-3">
+                      <div
+                        className="h-full rounded-full bg-[var(--g-success)]"
+                        style={{ width: '4%' }}
+                      />
                     </div>
-                    <p className="text-[10px] text-gray-500 mt-2">
+                    <p className="text-[10px] text-[var(--g-text-muted)] mt-2">
                       Approximately 200,000 tokens consumed (4.0%)
                     </p>
                   </div>
 
-                  <div className="p-4 rounded-xl border border-[var(--g-outline)] bg-black/20">
-                    <h3 className="text-xs text-gray-400 font-semibold mb-1">
+                  <div className="p-4 rounded-lg border border-[var(--g-outline)] bg-black/20">
+                    <h3 className="text-xs text-[var(--g-text-muted)] font-semibold mb-1">
                       Rate Limits (Quota)
                     </h3>
                     <div className="text-lg font-bold text-white font-mono mt-2">1,000 RPM</div>
-                    <p className="text-[10px] text-gray-500 mt-1">
+                    <p className="text-[10px] text-[var(--g-text-muted)] mt-1">
                       Gemini 2.5 Pro: 1,000 requests / min
                     </p>
                     <div className="text-lg font-bold text-white font-mono mt-1">2,000 RPM</div>
-                    <p className="text-[10px] text-gray-500 mt-1">
+                    <p className="text-[10px] text-[var(--g-text-muted)] mt-1">
                       Gemini 2.5 Flash: 2,000 requests / min
                     </p>
                   </div>
 
-                  <div className="p-4 rounded-xl border border-blue-500/30 bg-blue-500/5 relative overflow-hidden">
-                    <div className="absolute right-0 top-0 w-16 h-16 bg-blue-500/10 rounded-full blur-xl pointer-events-none" />
-                    <h3 className="text-xs text-blue-400 font-semibold mb-1">Active Plan</h3>
+                  <div className="p-4 rounded-lg border border-[var(--g-info)]/30 bg-[var(--g-info)]/5 relative overflow-hidden">
+                    <div className="absolute right-0 top-0 w-16 h-16 bg-[var(--g-info)]/10 rounded-full blur-xl pointer-events-none" />
+                    <h3 className="text-xs text-[var(--g-info)] font-semibold mb-1">Active Plan</h3>
                     <div className="text-xl font-bold text-white mt-2">Enterprise Plus</div>
-                    <p className="text-[10px] text-gray-400 mt-1">Tier-1 GenAI Workspace</p>
-                    <div className="mt-4 flex items-center gap-1 text-[10px] text-emerald-400 font-semibold">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Account in Good
-                      Standing
+                    <p className="text-[10px] text-[var(--g-text-muted)] mt-1">
+                      Tier-1 GenAI Workspace
+                    </p>
+                    <div className="mt-4 flex items-center gap-1 text-[10px] text-[var(--g-success)] font-semibold">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[var(--g-success)]" /> Account in
+                      Good Standing
                     </div>
                   </div>
                 </div>
 
-                <div className="p-5 rounded-xl border border-[var(--g-outline)] bg-black/30 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="p-5 rounded-lg border border-[var(--g-outline)] bg-black/30 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
                     <h4 className="text-sm font-semibold text-white">Payment Method</h4>
                     <p className="text-xs text-[var(--g-text-muted)] mt-1">
                       Default payment card for API overages.
                     </p>
-                    <div className="flex items-center gap-2 mt-3 text-xs text-gray-300">
-                      <div className="px-2 py-0.5 bg-white/10 rounded text-[10px] font-bold font-mono tracking-widest text-white">
+                    <div className="flex items-center gap-2 mt-3 text-xs text-[var(--g-text)]">
+                      <div className="px-2 py-0.5 bg-[var(--g-outline)]/20 rounded text-[10px] font-bold font-mono tracking-widest text-white">
                         VISA
                       </div>
                       <span className="font-mono">•••• •••• •••• 5542</span>
-                      <span className="text-gray-500">Exp 08/29</span>
+                      <span className="text-[var(--g-text-muted)]">Exp 08/29</span>
                     </div>
                   </div>
-                  <button className="px-4 py-2 text-xs font-semibold rounded border border-[var(--g-outline)] hover:bg-[var(--g-surface-hover)] text-gray-300 transition-colors">
+                  <button className="px-4 py-2 text-xs font-semibold rounded border border-[var(--g-outline)] hover:bg-[var(--g-surface-hover)] text-[var(--g-text)] transition-colors">
                     Manage Invoices
                   </button>
                 </div>
@@ -899,11 +915,11 @@ export default function StitchClientShell() {
             )}
 
             {view === 'models' && (
-              <div className="w-full max-w-4xl p-6 bg-[var(--g-surface)] rounded-xl border border-[var(--g-outline)] shadow-xl text-left">
+              <div className="w-full max-w-4xl p-6 bg-[var(--g-surface)] rounded-lg border border-[var(--g-outline)] shadow-xl text-left">
                 <div className="flex justify-between items-center mb-6">
                   <div>
                     <h2 className="text-2xl font-semibold text-white flex items-center gap-2">
-                      <History className="text-blue-400" size={24} /> Model Registry
+                      <History className="text-[var(--g-info)]" size={24} /> Model Registry
                     </h2>
                     <p className="text-sm text-[var(--g-text-muted)] mt-1">
                       Overview of calibrated Large Language Models deployed across the Atelier
@@ -912,52 +928,52 @@ export default function StitchClientShell() {
                   </div>
                   <button
                     onClick={() => setView('generate')}
-                    className="px-4 py-2 text-xs font-semibold rounded bg-[var(--g-outline)] hover:bg-[#3d3f44] text-white transition-colors"
+                    className="px-4 py-2 text-xs font-semibold rounded bg-[var(--g-outline)] hover:bg-[var(--g-surface-hover)] text-white transition-colors"
                   >
                     Back to Studio
                   </button>
                 </div>
 
                 <div className="space-y-4">
-                  <div className="p-4 rounded-xl border border-[var(--g-outline)] bg-black/20 flex justify-between items-start gap-4">
+                  <div className="p-4 rounded-lg border border-[var(--g-outline)] bg-black/20 flex justify-between items-start gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold text-white">Gemini 2.5 Pro</span>
-                        <span className="px-2 py-0.5 rounded-full text-[9px] bg-blue-500/20 text-blue-400 border border-blue-500/30 font-semibold font-mono">
+                        <span className="px-2 py-0.5 rounded-full text-[9px] bg-[var(--g-info)]/20 text-[var(--g-info)] border border-[var(--g-info)]/30 font-semibold font-mono">
                           Calibrated (Pro)
                         </span>
                       </div>
-                      <p className="text-xs text-gray-400 mt-2 leading-relaxed">
+                      <p className="text-xs text-[var(--g-text-muted)] mt-2 leading-relaxed">
                         Optimal model for high-complexity structural reasoning, UX research,
                         consensus gatekeeping, and multi-variable critique audits.
                       </p>
                     </div>
                     <div className="text-right text-xs shrink-0">
-                      <div className="text-gray-400">Rate Limit</div>
+                      <div className="text-[var(--g-text-muted)]">Rate Limit</div>
                       <div className="font-semibold text-white font-mono mt-0.5">1,000 RPM</div>
                     </div>
                   </div>
 
-                  <div className="p-4 rounded-xl border border-[var(--g-outline)] bg-black/20 flex justify-between items-start gap-4">
+                  <div className="p-4 rounded-lg border border-[var(--g-outline)] bg-black/20 flex justify-between items-start gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold text-white">Gemini 2.5 Flash</span>
-                        <span className="px-2 py-0.5 rounded-full text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-semibold font-mono">
+                        <span className="px-2 py-0.5 rounded-full text-[9px] bg-[var(--g-success)]/20 text-[var(--g-success)] border border-[var(--g-success)]/30 font-semibold font-mono">
                           Calibrated (Flash)
                         </span>
                       </div>
-                      <p className="text-xs text-gray-400 mt-2 leading-relaxed">
+                      <p className="text-xs text-[var(--g-text-muted)] mt-2 leading-relaxed">
                         Highly responsive and latency-optimized model deployed for HTML canvas
                         candidate design, layout variations, and rapid CSS structure fixes.
                       </p>
                     </div>
                     <div className="text-right text-xs shrink-0">
-                      <div className="text-gray-400">Rate Limit</div>
+                      <div className="text-[var(--g-text-muted)]">Rate Limit</div>
                       <div className="font-semibold text-white font-mono mt-0.5">2,000 RPM</div>
                     </div>
                   </div>
 
-                  <div className="p-4 rounded-xl border border-[var(--g-outline)] bg-black/20 flex justify-between items-start gap-4">
+                  <div className="p-4 rounded-lg border border-[var(--g-outline)] bg-black/20 flex justify-between items-start gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold text-white">
@@ -967,13 +983,13 @@ export default function StitchClientShell() {
                           Calibrated (Lite)
                         </span>
                       </div>
-                      <p className="text-xs text-gray-400 mt-2 leading-relaxed">
+                      <p className="text-xs text-[var(--g-text-muted)] mt-2 leading-relaxed">
                         Ultra-low latency inference engine configured for cheap style token
                         extraction, semantic parsing, and DOM text alignments.
                       </p>
                     </div>
                     <div className="text-right text-xs shrink-0">
-                      <div className="text-gray-400">Rate Limit</div>
+                      <div className="text-[var(--g-text-muted)]">Rate Limit</div>
                       <div className="font-semibold text-white font-mono mt-0.5">4,000 RPM</div>
                     </div>
                   </div>
@@ -1003,7 +1019,7 @@ export default function StitchClientShell() {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 10 }}
               transition={{ type: 'spring', duration: 0.4 }}
-              className="relative w-full max-w-2xl bg-[#131416]/95 border border-[var(--g-outline)] rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
+              className="relative w-full max-w-2xl bg-[var(--g-bg)]/95 border border-[var(--g-outline)] rounded-lg shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
             >
               {/* Header */}
               <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--g-outline)] bg-black/20">
@@ -1013,7 +1029,7 @@ export default function StitchClientShell() {
                 </div>
                 <button
                   onClick={() => setIsSettingsOpen(false)}
-                  className="text-gray-400 hover:text-white p-1 rounded-md hover:bg-white/5 transition-colors cursor-pointer"
+                  className="text-[var(--g-text-muted)] hover:text-white p-1 rounded-md hover:bg-[var(--g-surface-hover)]/10 transition-colors cursor-pointer"
                   aria-label="Close settings"
                 >
                   <X size={16} />
@@ -1024,16 +1040,20 @@ export default function StitchClientShell() {
               <div className="flex-1 overflow-y-auto p-6 space-y-6">
                 {/* User Profile Info */}
                 <div className="bg-black/20 rounded-lg border border-[var(--g-outline)] p-4 space-y-3 text-left">
-                  <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                  <h3 className="text-xs font-semibold text-[var(--g-text-muted)] uppercase tracking-wider">
                     User Profile
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                     <div>
-                      <label className="text-gray-500 block mb-0.5">Display Name</label>
+                      <label className="text-[var(--g-text-muted)] block mb-0.5">
+                        Display Name
+                      </label>
                       <div className="font-medium text-white">{user?.displayName || '—'}</div>
                     </div>
                     <div>
-                      <label className="text-gray-500 block mb-0.5">Email Address</label>
+                      <label className="text-[var(--g-text-muted)] block mb-0.5">
+                        Email Address
+                      </label>
                       <div className="font-medium text-white">{user?.email || '—'}</div>
                     </div>
                   </div>
@@ -1041,19 +1061,21 @@ export default function StitchClientShell() {
                   <div className="pt-2 border-t border-[var(--g-outline)]/50 space-y-2 text-xs">
                     <div className="flex justify-between items-center">
                       <div>
-                        <label className="text-gray-500 block mb-0.5">User ID (UID)</label>
-                        <div className="font-mono text-gray-300 select-all truncate max-w-[280px] md:max-w-[400px]">
+                        <label className="text-[var(--g-text-muted)] block mb-0.5">
+                          User ID (UID)
+                        </label>
+                        <div className="font-mono text-[var(--g-text)] select-all truncate max-w-[280px] md:max-w-[400px]">
                           {user?.uid || '—'}
                         </div>
                       </div>
                       {user?.uid && (
                         <button
                           onClick={() => handleCopy(user.uid, 'uid')}
-                          className="shrink-0 p-1.5 rounded hover:bg-white/5 text-gray-400 hover:text-white transition-colors cursor-pointer"
+                          className="shrink-0 p-1.5 rounded hover:bg-[var(--g-surface-hover)]/10 text-[var(--g-text-muted)] hover:text-white transition-colors cursor-pointer"
                           title="Copy UID"
                         >
                           {copiedField === 'uid' ? (
-                            <Check size={14} className="text-emerald-400" />
+                            <Check size={14} className="text-[var(--g-success)]" />
                           ) : (
                             <Copy size={14} />
                           )}
@@ -1063,19 +1085,19 @@ export default function StitchClientShell() {
 
                     <div className="flex justify-between items-center pt-2 border-t border-[var(--g-outline)]/50">
                       <div>
-                        <label className="text-gray-500 block mb-0.5">Tenant ID</label>
-                        <div className="font-mono text-gray-300 select-all truncate max-w-[280px] md:max-w-[400px]">
+                        <label className="text-[var(--g-text-muted)] block mb-0.5">Tenant ID</label>
+                        <div className="font-mono text-[var(--g-text)] select-all truncate max-w-[280px] md:max-w-[400px]">
                           {user?.tenant_id || '—'}
                         </div>
                       </div>
                       {user?.tenant_id && (
                         <button
                           onClick={() => handleCopy(user.tenant_id, 'tenant')}
-                          className="shrink-0 p-1.5 rounded hover:bg-white/5 text-gray-400 hover:text-white transition-colors cursor-pointer"
+                          className="shrink-0 p-1.5 rounded hover:bg-[var(--g-surface-hover)]/10 text-[var(--g-text-muted)] hover:text-white transition-colors cursor-pointer"
                           title="Copy Tenant ID"
                         >
                           {copiedField === 'tenant' ? (
-                            <Check size={14} className="text-emerald-400" />
+                            <Check size={14} className="text-[var(--g-success)]" />
                           ) : (
                             <Copy size={14} />
                           )}
@@ -1087,35 +1109,45 @@ export default function StitchClientShell() {
 
                 {/* GCP & Platform Config */}
                 <div className="bg-black/20 rounded-lg border border-[var(--g-outline)] p-4 space-y-3 text-left">
-                  <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                  <h3 className="text-xs font-semibold text-[var(--g-text-muted)] uppercase tracking-wider">
                     Workspace &amp; GCP Environment
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                     <div className="flex items-center justify-between pr-2">
                       <div>
-                        <label className="text-gray-500 block mb-0.5">GCP Project</label>
-                        <span className="font-mono text-gray-200">atelier-build-2026</span>
+                        <label className="text-[var(--g-text-muted)] block mb-0.5">
+                          GCP Project
+                        </label>
+                        <span className="font-mono text-[var(--g-text)]">atelier-build-2026</span>
                       </div>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className="px-2 py-0.5 rounded-full text-[10px] bg-[var(--g-success)]/10 text-[var(--g-success)] border border-[var(--g-success)]/20 font-medium flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--g-success)] animate-pulse" />
                         Connected
                       </span>
                     </div>
                     <div>
-                      <label className="text-gray-500 block mb-0.5">Active Billing Tier</label>
+                      <label className="text-[var(--g-text-muted)] block mb-0.5">
+                        Active Billing Tier
+                      </label>
                       <div className="font-medium text-white flex items-center gap-1.5">
                         <span>Enterprise AI Developer (Self-Serve)</span>
                       </div>
                     </div>
                     <div>
-                      <label className="text-gray-500 block mb-0.5">Base API URL</label>
-                      <span className="font-mono text-gray-300 truncate block max-w-[280px]">
+                      <label className="text-[var(--g-text-muted)] block mb-0.5">
+                        Base API URL
+                      </label>
+                      <span className="font-mono text-[var(--g-text)] truncate block max-w-[280px]">
                         https://atelier-dashboard-537337457799.us-central1.run.app/
                       </span>
                     </div>
                     <div>
-                      <label className="text-gray-500 block mb-0.5">Platform Status</label>
-                      <span className="text-emerald-400 font-medium">All Services Operational</span>
+                      <label className="text-[var(--g-text-muted)] block mb-0.5">
+                        Platform Status
+                      </label>
+                      <span className="text-[var(--g-success)] font-medium">
+                        All Services Operational
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -1123,7 +1155,7 @@ export default function StitchClientShell() {
                 {/* Token Allocation & Usage */}
                 <div className="bg-black/20 rounded-lg border border-[var(--g-outline)] p-4 space-y-4 text-left">
                   <div className="flex justify-between items-center">
-                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    <h3 className="text-xs font-semibold text-[var(--g-text-muted)] uppercase tracking-wider">
                       Token Allocation &amp; Usage
                     </h3>
                     <span className="px-2 py-0.5 rounded text-[10px] bg-[var(--g-primary-blue)]/20 text-[var(--g-primary-blue)] border border-[var(--g-primary-blue)]/30 font-mono">
@@ -1137,13 +1169,17 @@ export default function StitchClientShell() {
                     const pct = Math.min(100, (cumulative / TOKEN_CAP) * 100);
                     const remaining = TOKEN_CAP - cumulative;
                     const barColor =
-                      pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-amber-500' : 'bg-emerald-500';
+                      pct >= 90
+                        ? 'bg-[var(--g-error)]'
+                        : pct >= 70
+                          ? 'bg-[var(--g-warning)]'
+                          : 'bg-[var(--g-success)]';
 
                     return (
                       <div className="space-y-4">
                         <div>
                           <div className="flex justify-between items-baseline mb-1.5 text-xs">
-                            <span className="text-gray-400">Cumulative Usage</span>
+                            <span className="text-[var(--g-text-muted)]">Cumulative Usage</span>
                             <span className="font-mono text-white">
                               {cumulative.toLocaleString()} / {TOKEN_CAP.toLocaleString()} (
                               {pct.toFixed(1)}%)
@@ -1151,7 +1187,7 @@ export default function StitchClientShell() {
                           </div>
 
                           {/* Progress bar */}
-                          <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden mb-2">
+                          <div className="w-full h-2 rounded-full bg-[var(--g-outline)]/20 overflow-hidden mb-2">
                             <div
                               className={`h-full rounded-full transition-all duration-500 ${barColor}`}
                               style={{ width: `${pct}%` }}
@@ -1159,9 +1195,9 @@ export default function StitchClientShell() {
                           </div>
 
                           <div className="flex justify-between items-baseline text-xs">
-                            <span className="text-gray-500">Available Headroom</span>
+                            <span className="text-[var(--g-text-muted)]">Available Headroom</span>
                             <span
-                              className={`font-mono font-bold ${pct >= 90 ? 'text-red-400' : pct >= 70 ? 'text-amber-400' : 'text-emerald-400'}`}
+                              className={`font-mono font-bold ${pct >= 90 ? 'text-[var(--g-error)]' : pct >= 70 ? 'text-[var(--g-warning)]' : 'text-[var(--g-success)]'}`}
                             >
                               {remaining.toLocaleString()} tokens
                             </span>
@@ -1179,8 +1215,10 @@ export default function StitchClientShell() {
                               key={label}
                               className="bg-black/30 border border-[var(--g-outline)] rounded p-2 text-center"
                             >
-                              <div className="text-[10px] text-gray-500 block mb-0.5">{label}</div>
-                              <div className="text-xs font-mono font-semibold text-gray-200">
+                              <div className="text-[10px] text-[var(--g-text-muted)] block mb-0.5">
+                                {label}
+                              </div>
+                              <div className="text-xs font-mono font-semibold text-[var(--g-text)]">
                                 {val != null ? val.toLocaleString() : '0'}
                               </div>
                             </div>
@@ -1196,7 +1234,7 @@ export default function StitchClientShell() {
               <div className="px-6 py-4 border-t border-[var(--g-outline)] bg-black/20 flex justify-end gap-3">
                 <button
                   onClick={() => setIsSettingsOpen(false)}
-                  className="px-4 py-1.5 rounded-md border border-[var(--g-outline)] text-xs font-medium text-gray-300 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+                  className="px-4 py-1.5 rounded-md border border-[var(--g-outline)] text-xs font-medium text-[var(--g-text)] hover:text-white hover:bg-[var(--g-surface-hover)]/10 transition-colors cursor-pointer"
                 >
                   Close
                 </button>

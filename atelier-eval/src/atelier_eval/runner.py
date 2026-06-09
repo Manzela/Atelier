@@ -29,14 +29,7 @@ class EvalRunner:
         self,
         generated_outputs: dict[str, str],
     ) -> list[EvalResult]:
-        """Run Design2Code evaluation on generated outputs.
-
-        Args:
-            generated_outputs: Mapping of task_id → generated HTML string.
-
-        Returns:
-            List of EvalResult for each evaluated task.
-        """
+        """Run Design2Code evaluation on generated outputs."""
         from atelier_eval.adapters.design2code import (  # noqa: PLC0415
             evaluate_design2code_visual_similarity,
             load_design2code_tasks,
@@ -47,6 +40,74 @@ class EvalRunner:
         for task in tasks:
             if task.task_id in generated_outputs:
                 result = evaluate_design2code_visual_similarity(
+                    task=task,
+                    generated_html=generated_outputs[task.task_id],
+                    data_dir=self.data_dir,
+                )
+                results.append(result)
+        self.results.extend(results)
+        return results
+
+    def run_web2code(
+        self,
+        generated_outputs: dict[str, str],
+    ) -> list[EvalResult]:
+        """Run Web2Code evaluation on generated outputs."""
+        from atelier_eval.adapters.web2code import (  # noqa: PLC0415
+            evaluate_web2code_visual_similarity,
+            load_web2code_tasks,
+        )
+
+        tasks = load_web2code_tasks(self.data_dir)
+        results: list[EvalResult] = []
+        for task in tasks:
+            if task.task_id in generated_outputs:
+                result = evaluate_web2code_visual_similarity(
+                    task=task,
+                    generated_html=generated_outputs[task.task_id],
+                    data_dir=self.data_dir,
+                )
+                results.append(result)
+        self.results.extend(results)
+        return results
+
+    def run_screenspot(
+        self,
+        predicted_bboxes: dict[str, list[float]],
+    ) -> list[EvalResult]:
+        """Run ScreenSpot grounding evaluation."""
+        from atelier_eval.adapters.screenspot import (  # noqa: PLC0415
+            evaluate_screenspot_grounding,
+            load_screenspot_tasks,
+        )
+
+        tasks = load_screenspot_tasks(self.data_dir)
+        results: list[EvalResult] = []
+        for task in tasks:
+            if task.task_id in predicted_bboxes:
+                result = evaluate_screenspot_grounding(
+                    task=task,
+                    predicted_bbox=predicted_bboxes[task.task_id],
+                )
+                results.append(result)
+        self.results.extend(results)
+        return results
+
+    def run_webgen_bench(
+        self,
+        generated_outputs: dict[str, str],
+    ) -> list[EvalResult]:
+        """Run WebGen-Bench evaluation on generated outputs."""
+        from atelier_eval.adapters.webgen_bench import (  # noqa: PLC0415
+            evaluate_webgen_bench,
+            load_webgen_bench_tasks,
+        )
+
+        tasks = load_webgen_bench_tasks(self.data_dir)
+        results: list[EvalResult] = []
+        for task in tasks:
+            if task.task_id in generated_outputs:
+                result = evaluate_webgen_bench(
                     task=task,
                     generated_html=generated_outputs[task.task_id],
                     data_dir=self.data_dir,

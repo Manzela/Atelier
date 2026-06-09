@@ -90,7 +90,7 @@ export default function TopologyGraph({ specialistTraces, error }: TopologyGraph
       data-testid="topology-graph"
       className="rounded-lg border border-[var(--g-outline)] bg-black/20 p-4 mb-4"
     >
-      <h4 className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider font-semibold text-gray-500 mb-4">
+      <h4 className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider font-semibold text-[var(--g-text-muted)] mb-4">
         <span className="relative flex h-2 w-2">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--g-info)] opacity-75"></span>
           <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--g-info)]"></span>
@@ -120,7 +120,7 @@ export default function TopologyGraph({ specialistTraces, error }: TopologyGraph
                 data-testid={`topology-node-${node.role}`}
                 className={`relative flex flex-row lg:flex-col items-center gap-3 lg:gap-2 p-3 lg:p-2.5 rounded-lg border w-full lg:w-36 text-left lg:text-center transition-all duration-300 ${
                   state === 'done'
-                    ? 'border-emerald-500/30 bg-emerald-950/10 hover:border-emerald-500/50'
+                    ? 'border-[var(--g-success)]/30 bg-[var(--g-success)]/5 hover:border-[var(--g-success)]/50'
                     : state === 'active'
                       ? 'border-[var(--g-info)] bg-[var(--g-info)]/10 ring-1 ring-[var(--g-info)] animate-pulse'
                       : state === 'error'
@@ -132,32 +132,38 @@ export default function TopologyGraph({ specialistTraces, error }: TopologyGraph
               >
                 {/* Node Status Indicator */}
                 <div className="absolute top-1.5 right-1.5">
-                  {state === 'done' && <CheckCircle2 size={12} className="text-emerald-400" />}
+                  {state === 'done' && (
+                    <CheckCircle2 size={12} className="text-[var(--g-success)]" />
+                  )}
                   {state === 'active' && (
                     <Play size={10} className="text-[var(--g-info)] animate-bounce" />
                   )}
                   {state === 'error' && <AlertCircle size={12} className="text-rose-400" />}
-                  {state === 'idle' && <HelpCircle size={12} className="text-gray-600" />}
+                  {state === 'idle' && (
+                    <HelpCircle size={12} className="text-[var(--g-text-muted)]" />
+                  )}
                 </div>
 
                 {/* Icon wrapper */}
                 <div
                   className={`p-2 rounded-full ${
                     state === 'done'
-                      ? 'bg-emerald-950/30 text-emerald-400'
+                      ? 'bg-[var(--g-success)]/20 text-[var(--g-success)]'
                       : state === 'active'
                         ? 'bg-[var(--g-info)]/20 text-[var(--g-info)]'
                         : state === 'error'
                           ? 'bg-rose-950/30 text-rose-400'
-                          : 'bg-black/40 text-gray-500'
+                          : 'bg-black/40 text-[var(--g-text-muted)]'
                   }`}
                 >
                   <Icon size={16} />
                 </div>
 
                 <div className="flex flex-col">
-                  <span className="text-[11px] font-semibold text-gray-200">{node.label}</span>
-                  <span className="text-[9px] text-gray-500 line-clamp-1 lg:line-clamp-2">
+                  <span className="text-[11px] font-semibold text-[var(--g-text)]">
+                    {node.label}
+                  </span>
+                  <span className="text-[9px] text-[var(--g-text-muted)] line-clamp-1 lg:line-clamp-2">
                     {node.description}
                   </span>
                 </div>
@@ -167,7 +173,7 @@ export default function TopologyGraph({ specialistTraces, error }: TopologyGraph
               {index < NODES.length - 1 && (
                 <div
                   className={`flex items-center justify-center shrink-0 ${
-                    state === 'done' ? 'text-emerald-500/40' : 'text-gray-700'
+                    state === 'done' ? 'text-[var(--g-success)]/40' : 'text-[var(--g-outline)]'
                   }`}
                   aria-hidden="true"
                 >

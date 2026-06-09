@@ -322,10 +322,10 @@ export default function ApprovalCard({
                 return (
                   <div key={i} className="space-y-2">
                     <div className="flex items-start gap-2.5 pl-6">
-                      <div className="w-5 h-5 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center shrink-0">
+                      <div className="w-5 h-5 rounded-full bg-[var(--g-warning)]/10 border border-[var(--g-warning)]/30 flex items-center justify-center shrink-0">
                         <HelpCircle size={10} className="text-amber-500" />
                       </div>
-                      <div className="rounded-md bg-amber-500/5 border border-amber-500/10 p-2.5 text-[12px] text-[var(--g-text-muted)] flex-1">
+                      <div className="rounded-md bg-[var(--g-warning)]/5 border border-amber-500/10 p-2.5 text-[12px] text-[var(--g-text-muted)] flex-1">
                         {q}
                       </div>
                     </div>

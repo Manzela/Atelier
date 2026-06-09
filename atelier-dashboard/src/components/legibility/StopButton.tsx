@@ -65,7 +65,7 @@ export default function StopButton({
       onClick={handleStop}
       disabled={disabled}
       aria-label={stopped ? 'Run stopped' : 'Stop generation'}
-      className="inline-flex items-center gap-1.5 rounded-md border border-red-500/50 bg-red-950/30 px-3 py-1.5 text-xs font-medium text-red-300 transition-colors hover:bg-red-900/40 hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-50"
+      className="inline-flex items-center gap-1.5 rounded-md border border-[var(--g-error)]/50 bg-red-950/30 px-3 py-1.5 text-xs font-medium text-red-300 transition-colors hover:bg-red-900/40 hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-50"
     >
       {pending ? (
         <Loader2 size={13} className="animate-spin" aria-hidden="true" />

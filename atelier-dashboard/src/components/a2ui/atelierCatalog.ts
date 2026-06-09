@@ -249,29 +249,29 @@ function ariaLabelOf(accessibility: { label?: unknown } | undefined): string | u
   return typeof label === 'string' && label.length > 0 ? label : undefined;
 }
 
+/**
+ * Strips a single outer <p> wrapper from the rendered HTML string. Markdown-it
+ * wraps even single-line text in <p> when calling `.render()`; we strip it
+ * when we are already wrapping the content in a semantic block element (like
+ * <h1> or <small>) to prevent invalid nesting like <h1><p>...</h1>.
+ */
+function stripParagraphWrapper(html: string): string {
+  const pOpen = '<p>';
+  const pClose = '</p>';
+  if (html.startsWith(pOpen) && html.endsWith(pClose)) {
+    // Only strip if there's exactly one <p> pair at the start and end.
+    // If there are multiple paragraphs, we keep them as-is (degrading to
+    // invalid nesting but preserving the content's block structure).
+    if (html.indexOf(pOpen, pOpen.length) === -1) {
+      return html.slice(pOpen.length, -pClose.length);
+    }
+  }
+  return html;
+}
+
 // ---------------------------------------------------------------------------
 // Component implementations — semantic HTML + a11y by construction.
 // ---------------------------------------------------------------------------
-
-/** Maps a Text `variant` to the markdown prefix upstream uses (`index.js:236-253`). */
-function variantToMarkdown(text: string, variant: string | undefined): string {
-  switch (variant) {
-    case 'h1':
-      return `# ${text}`;
-    case 'h2':
-      return `## ${text}`;
-    case 'h3':
-      return `### ${text}`;
-    case 'h4':
-      return `#### ${text}`;
-    case 'h5':
-      return `##### ${text}`;
-    case 'caption':
-      return `*${text}*`;
-    default:
-      return text;
-  }
-}
 
 /**
  * Async markdown → HTML, mirroring the upstream `useMarkdown` hook
@@ -313,12 +313,15 @@ function useRenderedMarkdown(markdown: string): string | null {
  * Content is markdown-rendered via the context renderer (same as upstream); the
  * caption keeps an emphasis treatment so `a2ui-theme.css`'s `.a2ui-host em`
  * mono-styling for token values continues to apply (we render `<small>` whose
- * inner markdown `*...*` yields `<em>` — coordinated with the theme CSS).
+ * values — keep this `<small>`+`<em>` pairing in sync with the theme CSS.
  */
 const Text: ReactComponentImplementation = createComponentImplementation(TextApi, ({ props }) => {
   const text = typeof props.text === 'string' ? props.text : String(props.text ?? '');
   const variant = props.variant;
-  const markdown = variantToMarkdown(text, variant);
+  // G4: unlike upstream, we do NOT prefix headings with '#' or wrap captions in
+  // '*' in `variantToMarkdown` because we wrap the output in semantic HTML tags
+  // (<h1>, <small>) below. We pass the raw text as markdown.
+  const markdown = variant === 'caption' ? `*${text}*` : text;
   const renderedHtml = useRenderedMarkdown(markdown);
   const ariaLabel = ariaLabelOf(props.accessibility);
   const style: React.CSSProperties = {
@@ -330,7 +333,7 @@ const Text: ReactComponentImplementation = createComponentImplementation(TextApi
   // Either inject the rendered HTML, or fall back to the raw markdown string.
   const contentProps: React.HTMLAttributes<HTMLElement> =
     renderedHtml !== null
-      ? { dangerouslySetInnerHTML: { __html: renderedHtml } }
+      ? { dangerouslySetInnerHTML: { __html: stripParagraphWrapper(renderedHtml) } }
       : { children: markdown };
 
   const common: React.HTMLAttributes<HTMLElement> = {
@@ -425,8 +428,13 @@ const List: ReactComponentImplementation = createComponentImplementation(
       boxSizing: 'border-box',
     };
     return React.createElement(
-      'ul',
-      { 'aria-label': ariaLabel, style },
+      props.listStyle === 'ordered' ? 'ol' : 'ul',
+      {
+        'aria-label': ariaLabel,
+        style,
+        // A11y: ordered lists should have their type set if needed, but the
+        // theme manages numerals.
+      },
       renderChildrenAsListItems(props.children, buildChild)
     );
   }
@@ -445,8 +453,8 @@ const Card: ReactComponentImplementation = createComponentImplementation(
       border: 'var(--a2ui-card-border, var(--a2ui-border))',
       borderRadius: 'var(--a2ui-card-border-radius, var(--a2ui-border-radius, 8px))',
       padding: 'var(--a2ui-card-padding, var(--a2ui-spacing-m, 16px))',
-      background: 'var(--a2ui-card-background, var(--a2ui-color-surface, #fff))',
-      color: 'var(--a2ui-color-on-surface, #333)',
+      background: 'var(--a2ui-card-background, var(--a2ui-color-surface, var(--g-surface)))',
+      color: 'var(--a2ui-color-on-surface, var(--g-text))',
       boxShadow: 'var(--a2ui-card-box-shadow, 0 2px 4px rgba(0,0,0,0.1))',
       margin: 'var(--a2ui-card-margin, var(--a2ui-spacing-m))',
     };
@@ -471,7 +479,7 @@ const Divider: ReactComponentImplementation = createComponentImplementation(
     const isVertical = props.axis === 'vertical';
     const style: React.CSSProperties = {
       border: 'none',
-      backgroundColor: 'var(--a2ui-color-border, #ccc)',
+      backgroundColor: 'var(--a2ui-color-border, var(--g-outline))',
       boxSizing: 'border-box',
     };
     if (isVertical) {
@@ -484,6 +492,7 @@ const Divider: ReactComponentImplementation = createComponentImplementation(
       style.margin = 'var(--a2ui-divider-spacing, var(--a2ui-spacing-m, 0.5rem)) 0';
     }
     return React.createElement('hr', {
+      role: 'separator',
       'aria-orientation': isVertical ? 'vertical' : 'horizontal',
       'aria-label': ariaLabel,
       style,
