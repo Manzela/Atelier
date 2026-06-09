@@ -23,16 +23,17 @@ test.describe('Landing Page (Studio Shell)', () => {
     await expect(page.getByText('Last 30 days')).toBeVisible();
   });
 
-  test('sidebar toggles to GCP Console mode', async ({ authenticatedPage: page }) => {
+  test('sidebar toggles to Agent Platform mode', async ({ authenticatedPage: page }) => {
     await page.goto('/');
     await page.getByLabel('Toggle sidebar mode').click();
-    await expect(page.getByText('GCP Console')).toBeVisible();
+    await expect(page.getByText('Agent Platform')).toBeVisible();
+    await expect(page.getByText('Optimize')).toBeVisible();
   });
 
   test('sidebar toggles back to Studio mode', async ({ authenticatedPage: page }) => {
     await page.goto('/');
     await page.getByLabel('Toggle sidebar mode').click();
-    await expect(page.getByText('GCP Console')).toBeVisible();
+    await expect(page.getByText('Agent Platform')).toBeVisible();
     await page.getByLabel('Toggle sidebar mode').click();
     await expect(page.getByText('Atelier Studio')).toBeVisible();
   });

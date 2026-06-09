@@ -20,14 +20,27 @@ import {
   Copy,
   Menu,
   LayoutTemplate,
+  Hammer,
+  Server,
+  ShieldCheck,
+  LineChart,
+  ChevronRight,
+  KanbanSquare,
+  Bot,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { onIdTokenChanged } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { prettifyProjectName } from '@/lib/project-utils';
+import PillarBuild from '@/components/platform/PillarBuild';
+import PillarScale from '@/components/platform/PillarScale';
+import PillarGovern from '@/components/platform/PillarGovern';
+import PillarOptimize from '@/components/platform/PillarOptimize';
+import { getAgents } from '@/lib/api';
+import type { AgentSummary } from '@/lib/api';
 
-type SidebarMode = 'stitch' | 'gcp';
-type DashboardView = 'generate';
+type SidebarMode = 'stitch' | 'platform';
+type DashboardView = 'generate' | 'build' | 'scale' | 'govern' | 'optimize';
 
 interface Project {
   id: string;
@@ -91,6 +104,186 @@ function useClientAuth() {
   }, []);
 
   return { user, initRef };
+}
+
+// ---------------------------------------------------------------------------
+// Pillar metadata (drives sidebar nav and header label)
+// ---------------------------------------------------------------------------
+
+const PILLARS: {
+  id: DashboardView & ('build' | 'scale' | 'govern' | 'optimize');
+  label: string;
+  icon: React.ReactNode;
+}[] = [
+  { id: 'build', label: 'Build', icon: <Hammer size={15} /> },
+  { id: 'scale', label: 'Scale', icon: <Server size={15} /> },
+  { id: 'govern', label: 'Govern', icon: <ShieldCheck size={15} /> },
+  { id: 'optimize', label: 'Optimize', icon: <LineChart size={15} /> },
+];
+
+// ---------------------------------------------------------------------------
+// Platform sidebar nav
+// ---------------------------------------------------------------------------
+
+function PlatformNav({
+  view,
+  onNavigate,
+  onClose,
+}: {
+  view: DashboardView;
+  onNavigate: (v: DashboardView) => void;
+  onClose?: () => void;
+}) {
+  // `userExpanded` is the user's explicit toggle; the effective expansion also
+  // honors the active pillar. Deriving it during render (rather than committing
+  // it in an effect) keeps this pure and avoids a setState-in-effect.
+  const [userExpanded, setUserExpanded] = useState(false);
+  const buildExpanded = userExpanded || view === 'build';
+  const setBuildExpanded = setUserExpanded;
+  const [agents, setAgents] = useState<AgentSummary[]>([]);
+  const [agentsLoaded, setAgentsLoaded] = useState(false);
+
+  // Load agent roster once when Build expands. All state transitions run inside
+  // the async closure (never synchronously in the effect body).
+  useEffect(() => {
+    if (!buildExpanded || agentsLoaded) return;
+
+    const run = async () => {
+      let token: string | null = null;
+      try {
+        const raw = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+        token = raw ? (JSON.parse(raw) as { token: string }).token : null;
+      } catch {
+        token = null;
+      }
+      if (!token) {
+        setAgentsLoaded(true);
+        return;
+      }
+      try {
+        const res = await getAgents(token);
+        // /agents returns an envelope { available, agents } — guard before use.
+        setAgents(res.available ? res.agents : []);
+      } catch {
+        // Swallow — the roster is a non-critical sidebar affordance.
+      } finally {
+        setAgentsLoaded(true);
+      }
+    };
+
+    void run();
+  }, [buildExpanded, agentsLoaded]);
+
+  const nav = (v: DashboardView) => {
+    onNavigate(v);
+    onClose?.();
+  };
+
+  return (
+    <div className="flex flex-col gap-0.5">
+      {/* Atelier Studio link */}
+      <button
+        onClick={() => nav('generate')}
+        className={`flex items-center gap-2.5 text-sm py-2 px-3 rounded-md transition-colors w-full text-left ${
+          view === 'generate'
+            ? 'bg-[var(--g-info)]/10 text-[var(--g-info)]'
+            : 'text-[var(--g-text)] hover:bg-[var(--g-surface-hover)]'
+        }`}
+      >
+        <LayoutTemplate
+          size={15}
+          className={view === 'generate' ? 'text-[var(--g-info)]' : 'text-[var(--g-text-muted)]'}
+        />
+        Atelier Studio
+      </button>
+
+      {/* Pipeline Board link */}
+      <a
+        href="/board"
+        onClick={() => onClose?.()}
+        className="flex items-center gap-2.5 text-sm py-2 px-3 rounded-md transition-colors w-full text-left text-[var(--g-text)] hover:bg-[var(--g-surface-hover)]"
+      >
+        <KanbanSquare size={15} className="text-[var(--g-text-muted)]" />
+        Pipeline Board
+      </a>
+
+      {/* Divider + Platform label */}
+      <div className="h-px bg-[var(--g-outline)] my-2" />
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--g-text-muted)] px-3 mb-1">
+        Platform
+      </p>
+
+      {/* Four pillars */}
+      {PILLARS.map((p) => (
+        <React.Fragment key={p.id}>
+          <button
+            onClick={() => {
+              if (p.id === 'build') {
+                setBuildExpanded((e) => !e);
+              }
+              nav(p.id);
+            }}
+            className={`flex items-center justify-between gap-2.5 text-sm py-2 px-3 rounded-md transition-colors w-full text-left ${
+              view === p.id
+                ? 'bg-[var(--g-info)]/10 text-[var(--g-info)]'
+                : 'text-[var(--g-text)] hover:bg-[var(--g-surface-hover)]'
+            }`}
+          >
+            <span className="flex items-center gap-2.5">
+              <span
+                className={view === p.id ? 'text-[var(--g-info)]' : 'text-[var(--g-text-muted)]'}
+              >
+                {p.icon}
+              </span>
+              {p.label}
+            </span>
+            {p.id === 'build' && (
+              <ChevronRight
+                size={12}
+                className={`transition-transform ${buildExpanded ? 'rotate-90' : ''} ${view === p.id ? 'text-[var(--g-info)]' : 'text-[var(--g-text-muted)]'}`}
+              />
+            )}
+          </button>
+
+          {/* Build > nested Agents */}
+          {p.id === 'build' && buildExpanded && agents.length > 0 && (
+            <div className="ml-6 flex flex-col gap-0.5">
+              {agents.map((agent) => (
+                <button
+                  key={agent.id}
+                  onClick={() => nav('build')}
+                  className="flex items-center gap-2 text-xs py-1.5 px-3 rounded-md transition-colors w-full text-left text-[var(--g-text-muted)] hover:text-[var(--g-text)] hover:bg-[var(--g-surface-hover)]"
+                  title={`${agent.task_type ?? agent.kind} — ${agent.model_id}`}
+                >
+                  <Bot size={11} className="shrink-0" />
+                  <span className="truncate">{agent.name}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </React.Fragment>
+      ))}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Pillar label for the header breadcrumb
+// ---------------------------------------------------------------------------
+
+function getPillarLabel(view: DashboardView): string {
+  switch (view) {
+    case 'build':
+      return 'Platform > Build';
+    case 'scale':
+      return 'Platform > Scale';
+    case 'govern':
+      return 'Platform > Govern';
+    case 'optimize':
+      return 'Platform > Optimize';
+    default:
+      return 'Atelier Studio';
+  }
 }
 
 export default function StitchClientShell() {
@@ -252,7 +445,7 @@ export default function StitchClientShell() {
         >
           <div className="h-16 flex items-center px-4 border-b border-[var(--g-outline)]">
             <button
-              onClick={() => setSidebarMode((prev) => (prev === 'stitch' ? 'gcp' : 'stitch'))}
+              onClick={() => setSidebarMode((prev) => (prev === 'stitch' ? 'platform' : 'stitch'))}
               className="p-2 rounded-full hover:bg-[var(--g-surface-hover)] transition-colors"
               aria-label="Toggle sidebar mode"
             >
@@ -262,7 +455,7 @@ export default function StitchClientShell() {
               {sidebarMode === 'stitch' && (
                 <span className="w-2.5 h-2.5 rounded-full bg-[var(--g-primary-blue)]" />
               )}
-              {sidebarMode === 'stitch' ? 'Atelier Studio' : 'GCP Console'}
+              {sidebarMode === 'stitch' ? 'Atelier Studio' : 'Agent Platform'}
             </span>
           </div>
 
@@ -318,22 +511,19 @@ export default function StitchClientShell() {
                 </m.div>
               ) : (
                 <m.div
-                  key="gcp-nav"
+                  key="platform-nav"
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 10 }}
                   transition={{ duration: 0.2 }}
-                  className="flex flex-col gap-1"
                 >
-                  <button
-                    onClick={() => {
-                      setView('generate');
-                      setSidebarMode('stitch');
+                  <PlatformNav
+                    view={view}
+                    onNavigate={(v) => {
+                      setView(v);
+                      if (v === 'generate') setSidebarMode('stitch');
                     }}
-                    className="flex items-center gap-3 text-sm py-2 px-3 rounded-md hover:bg-[var(--g-surface-hover)] text-[var(--g-text)] transition-colors w-full text-left"
-                  >
-                    <LayoutTemplate size={16} className="text-[var(--g-info)]" /> Atelier Studio
-                  </button>
+                  />
                 </m.div>
               )}
             </AnimatePresence>
@@ -366,7 +556,7 @@ export default function StitchClientShell() {
                   <div className="flex items-center">
                     <button
                       onClick={() =>
-                        setSidebarMode((prev) => (prev === 'stitch' ? 'gcp' : 'stitch'))
+                        setSidebarMode((prev) => (prev === 'stitch' ? 'platform' : 'stitch'))
                       }
                       className="mr-2 p-1.5 rounded-md hover:bg-[var(--g-surface-hover)] transition-colors text-[var(--g-text-muted)] hover:text-white"
                       aria-label="Toggle sidebar mode"
@@ -377,7 +567,7 @@ export default function StitchClientShell() {
                       {sidebarMode === 'stitch' && (
                         <span className="w-2.5 h-2.5 rounded-full bg-[var(--g-primary-blue)]" />
                       )}
-                      {sidebarMode === 'stitch' ? 'Atelier Studio' : 'GCP Console'}
+                      {sidebarMode === 'stitch' ? 'Atelier Studio' : 'Agent Platform'}
                     </span>
                   </div>
                   <button
@@ -443,24 +633,20 @@ export default function StitchClientShell() {
                       </m.div>
                     ) : (
                       <m.div
-                        key="gcp-nav-mobile"
+                        key="platform-nav-mobile"
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: 10 }}
                         transition={{ duration: 0.2 }}
-                        className="flex flex-col gap-1"
                       >
-                        <button
-                          onClick={() => {
-                            setView('generate');
-                            setSidebarMode('stitch');
-                            setIsMobileSidebarOpen(false);
+                        <PlatformNav
+                          view={view}
+                          onNavigate={(v) => {
+                            setView(v);
+                            if (v === 'generate') setSidebarMode('stitch');
                           }}
-                          className="flex items-center gap-3 text-sm py-2 px-3 rounded-md hover:bg-[var(--g-surface-hover)] text-[var(--g-text)] transition-colors w-full text-left"
-                        >
-                          <LayoutTemplate size={16} className="text-[var(--g-info)]" /> Atelier
-                          Studio
-                        </button>
+                          onClose={() => setIsMobileSidebarOpen(false)}
+                        />
                       </m.div>
                     )}
                   </AnimatePresence>
@@ -561,115 +747,130 @@ export default function StitchClientShell() {
           </header>
 
           {/* Center Stage */}
-          {/* Center Stage */}
-          <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 overflow-y-auto">
+          <div className="flex-1 flex flex-col overflow-y-auto">
+            {/* Platform pillars — full-width scrollable panel */}
+            {(view === 'build' || view === 'scale' || view === 'govern' || view === 'optimize') && (
+              <div className="flex-1 p-6">
+                <h2 className="text-xs font-semibold uppercase tracking-widest text-[var(--g-text-muted)] mb-5">
+                  {getPillarLabel(view)}
+                </h2>
+                {view === 'build' && <PillarBuild />}
+                {view === 'scale' && <PillarScale />}
+                {view === 'govern' && <PillarGovern />}
+                {view === 'optimize' && <PillarOptimize />}
+              </div>
+            )}
+
+            {/* Atelier Studio — centered generate form */}
             {view === 'generate' && (
-              <>
-                <m.h1
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.1, duration: 0.6, ease: 'easeOut' }}
-                  className="text-[32px] sm:text-[44px] md:text-[56px] font-medium mb-10 text-center text-white"
-                >
-                  Welcome to Atelier.
-                </m.h1>
+              <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8">
+                <>
+                  <m.h1
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.1, duration: 0.6, ease: 'easeOut' }}
+                    className="text-[32px] sm:text-[44px] md:text-[56px] font-medium mb-10 text-center text-white"
+                  >
+                    Welcome to Atelier.
+                  </m.h1>
 
-                <m.div
-                  initial={{ y: 30, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.2, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                  className={`w-full max-w-3xl g-card flex flex-col transition-all duration-300 ease-in-out ${isFocused ? 'ring-1 ring-[var(--g-primary-blue)] shadow-[0_0_24px_rgba(26,115,232,0.15)] !bg-[var(--g-surface-hover)]' : ''}`}
-                >
-                  <div className="p-5">
-                    <textarea
-                      value={prompt}
-                      onChange={(e) => setPrompt(e.target.value)}
-                      onFocus={() => setIsFocused(true)}
-                      onBlur={() => setIsFocused(false)}
-                      placeholder="What native mobile app shall we design?"
-                      className="w-full bg-transparent text-[17px] text-white placeholder-[var(--g-text-muted)] outline-none resize-none overflow-hidden min-h-[60px]"
-                      style={{ height: Math.max(60, prompt.split('\n').length * 24 + 12) + 'px' }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          handleGenerate();
-                        }
-                      }}
-                    />
-                  </div>
+                  <m.div
+                    initial={{ y: 30, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.2, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                    className={`w-full max-w-3xl g-card flex flex-col transition-all duration-300 ease-in-out ${isFocused ? 'ring-1 ring-[var(--g-primary-blue)] shadow-[0_0_24px_rgba(26,115,232,0.15)] !bg-[var(--g-surface-hover)]' : ''}`}
+                  >
+                    <div className="p-5">
+                      <textarea
+                        value={prompt}
+                        onChange={(e) => setPrompt(e.target.value)}
+                        onFocus={() => setIsFocused(true)}
+                        onBlur={() => setIsFocused(false)}
+                        placeholder="What native mobile app shall we design?"
+                        className="w-full bg-transparent text-[17px] text-white placeholder-[var(--g-text-muted)] outline-none resize-none overflow-hidden min-h-[60px]"
+                        style={{ height: Math.max(60, prompt.split('\n').length * 24 + 12) + 'px' }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleGenerate();
+                          }
+                        }}
+                      />
+                    </div>
 
-                  {/* Bottom Control Bar */}
-                  <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-t border-[var(--g-outline)] bg-transparent">
-                    <div className="flex items-center gap-2">
-                      {/* App/Web Toggle */}
-                      <div className="flex items-center bg-[var(--g-bg)] rounded-full border border-[var(--g-outline)] overflow-hidden">
+                    {/* Bottom Control Bar */}
+                    <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-t border-[var(--g-outline)] bg-transparent">
+                      <div className="flex items-center gap-2">
+                        {/* App/Web Toggle */}
+                        <div className="flex items-center bg-[var(--g-bg)] rounded-full border border-[var(--g-outline)] overflow-hidden">
+                          <button
+                            onClick={() => setDeviceType('app')}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm transition-colors ${deviceType === 'app' ? 'bg-[var(--g-outline)] text-white' : 'text-[var(--g-text-muted)] hover:text-white'}`}
+                          >
+                            <Smartphone size={14} /> App
+                          </button>
+                          <button
+                            onClick={() => setDeviceType('web')}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm transition-colors ${deviceType === 'web' ? 'bg-[var(--g-outline)] text-white' : 'text-[var(--g-text-muted)] hover:text-white'}`}
+                          >
+                            <Monitor size={14} /> Web
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <div className="relative">
+                          <select
+                            value={selectedModel}
+                            onChange={(e) => setSelectedModel(e.target.value)}
+                            className="appearance-none h-8 px-3 pr-8 rounded-full border border-[var(--g-outline)] bg-transparent text-xs sm:text-sm text-[var(--g-text)] hover:bg-[var(--g-surface-hover)] focus:outline-none focus:ring-1 focus:ring-[var(--g-primary-blue)] cursor-pointer transition-colors"
+                            aria-label="Select Model"
+                          >
+                            <option
+                              value="gemini-2.5-pro"
+                              className="bg-[var(--g-surface)] text-white"
+                            >
+                              Gemini 2.5 Pro
+                            </option>
+                            <option
+                              value="gemini-2.5-flash"
+                              className="bg-[var(--g-surface)] text-white"
+                            >
+                              Gemini 2.5 Flash
+                            </option>
+                          </select>
+                          <ChevronDown
+                            size={14}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--g-text-muted)] pointer-events-none"
+                          />
+                        </div>
+                        <div className="relative">
+                          <button
+                            onClick={toggleVoiceInput}
+                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${isRecording ? 'text-red-500 bg-[var(--g-error)]/10 animate-pulse border border-red-500/40 shadow-[0_0_12px_rgba(239,68,68,0.2)]' : 'text-[var(--g-text-muted)] hover:text-white hover:bg-[var(--g-surface-hover)]'}`}
+                            aria-label={isRecording ? 'Stop voice input' : 'Start voice input'}
+                          >
+                            <Mic size={18} />
+                          </button>
+                          {voiceUnsupported && (
+                            <div className="absolute bottom-10 right-0 whitespace-nowrap text-[10px] text-[var(--g-warning)] bg-[var(--g-surface)] border border-[var(--g-outline)] rounded px-2 py-1 shadow-lg pointer-events-none">
+                              Voice input requires Chrome
+                            </div>
+                          )}
+                        </div>
                         <button
-                          onClick={() => setDeviceType('app')}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm transition-colors ${deviceType === 'app' ? 'bg-[var(--g-outline)] text-white' : 'text-[var(--g-text-muted)] hover:text-white'}`}
+                          onClick={handleGenerate}
+                          disabled={!prompt.trim()}
+                          className="w-8 h-8 rounded-full flex items-center justify-center bg-[var(--g-primary-blue)] text-white hover:bg-[var(--g-primary-blue-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          aria-label="Generate"
                         >
-                          <Smartphone size={14} /> App
-                        </button>
-                        <button
-                          onClick={() => setDeviceType('web')}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm transition-colors ${deviceType === 'web' ? 'bg-[var(--g-outline)] text-white' : 'text-[var(--g-text-muted)] hover:text-white'}`}
-                        >
-                          <Monitor size={14} /> Web
+                          <Send size={16} className="ml-0.5" />
                         </button>
                       </div>
                     </div>
-
-                    <div className="flex items-center gap-2">
-                      <div className="relative">
-                        <select
-                          value={selectedModel}
-                          onChange={(e) => setSelectedModel(e.target.value)}
-                          className="appearance-none h-8 px-3 pr-8 rounded-full border border-[var(--g-outline)] bg-transparent text-xs sm:text-sm text-[var(--g-text)] hover:bg-[var(--g-surface-hover)] focus:outline-none focus:ring-1 focus:ring-[var(--g-primary-blue)] cursor-pointer transition-colors"
-                          aria-label="Select Model"
-                        >
-                          <option
-                            value="gemini-2.5-pro"
-                            className="bg-[var(--g-surface)] text-white"
-                          >
-                            Gemini 2.5 Pro
-                          </option>
-                          <option
-                            value="gemini-2.5-flash"
-                            className="bg-[var(--g-surface)] text-white"
-                          >
-                            Gemini 2.5 Flash
-                          </option>
-                        </select>
-                        <ChevronDown
-                          size={14}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--g-text-muted)] pointer-events-none"
-                        />
-                      </div>
-                      <div className="relative">
-                        <button
-                          onClick={toggleVoiceInput}
-                          className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${isRecording ? 'text-red-500 bg-[var(--g-error)]/10 animate-pulse border border-red-500/40 shadow-[0_0_12px_rgba(239,68,68,0.2)]' : 'text-[var(--g-text-muted)] hover:text-white hover:bg-[var(--g-surface-hover)]'}`}
-                          aria-label={isRecording ? 'Stop voice input' : 'Start voice input'}
-                        >
-                          <Mic size={18} />
-                        </button>
-                        {voiceUnsupported && (
-                          <div className="absolute bottom-10 right-0 whitespace-nowrap text-[10px] text-[var(--g-warning)] bg-[var(--g-surface)] border border-[var(--g-outline)] rounded px-2 py-1 shadow-lg pointer-events-none">
-                            Voice input requires Chrome
-                          </div>
-                        )}
-                      </div>
-                      <button
-                        onClick={handleGenerate}
-                        disabled={!prompt.trim()}
-                        className="w-8 h-8 rounded-full flex items-center justify-center bg-[var(--g-primary-blue)] text-white hover:bg-[var(--g-primary-blue-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        aria-label="Generate"
-                      >
-                        <Send size={16} className="ml-0.5" />
-                      </button>
-                    </div>
-                  </div>
-                </m.div>
-              </>
+                  </m.div>
+                </>
+              </div>
             )}
           </div>
         </main>

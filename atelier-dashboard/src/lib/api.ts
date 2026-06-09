@@ -542,3 +542,624 @@ export async function requestStopRun(sessionId: string, token: string | null): P
     return false;
   }
 }
+
+// =============================================================================
+// Platform API — /v1/platform/*
+//
+// Typed client for the GCP-native operator dashboard (Build / Scale / Govern /
+// Optimize pillars). All endpoints are authenticated GET requests. Interfaces
+// mirror the Pydantic response models field-for-field following the PlanData /
+// CompleteData convention established above.
+// =============================================================================
+
+// ---------------------------------------------------------------------------
+// Shared transport
+// ---------------------------------------------------------------------------
+
+/**
+ * Authenticated GET helper for all /v1/platform/* endpoints.
+ *
+ * Passes the Firebase ID token as a Bearer credential. On non-2xx responses,
+ * throws an Error with the status code and server detail string so callers can
+ * surface a typed failure without parsing the HTTP layer themselves.
+ *
+ * The platform surface is fail-soft: an unavailable source returns HTTP 200 with
+ * `{ available: false, reason }` (NOT a non-2xx), so this helper does NOT throw
+ * in that case — callers MUST check the `available` flag(s) before rendering.
+ *
+ * An optional `AbortSignal` is forwarded to `fetch` so the caller (e.g.
+ * `usePlatformData`) can cancel an in-flight request on unmount or refetch.
+ *
+ * Type parameter T is the expected JSON response shape — the caller supplies
+ * the matching interface so the return is narrowed at the call site.
+ */
+export async function authedGet<T>(path: string, token: string, signal?: AbortSignal): Promise<T> {
+  const url = `${getApiUrl()}${path}`;
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/json',
+    },
+    signal,
+  });
+  if (!response.ok) {
+    let detail = '';
+    try {
+      const body = (await response.json()) as Record<string, unknown>;
+      detail = typeof body.detail === 'string' ? body.detail : JSON.stringify(body);
+    } catch {
+      detail = await response.text();
+    }
+    throw new Error(`HTTP ${response.status}: ${detail}`);
+  }
+  return response.json() as Promise<T>;
+}
+
+// ---------------------------------------------------------------------------
+// AgentDescriptor — mirrors GET /v1/platform/agents/{id}
+// ---------------------------------------------------------------------------
+
+/**
+ * Full descriptor for a single agent in the specialist DAG.
+ *
+ * Mirrors the backend `AgentDescriptor` Pydantic model field-for-field.
+ * `available` is false when the id is not recognised — callers should treat
+ * the remaining fields as absent in that case.
+ */
+export interface AgentDescriptor {
+  /** Agent identifier (stable slug, e.g. "ux_research"). */
+  id: string;
+  /** Display name rendered in the Agent Registry card. */
+  name: string;
+  /**
+   * Broad agent kind. Known values: "specialist", "orchestrator",
+   * "evaluator", "router". Extensible — treat unknown values as "specialist".
+   */
+  kind: string;
+  /**
+   * Google ADK agent type. Known values: "LlmAgent", "SequentialAgent",
+   * "ParallelAgent", "LoopAgent". Extensible.
+   */
+  adk_type: string;
+  /** One-sentence description of the agent's responsibility. */
+  description: string;
+  /** Served model identifier (e.g. "gemini-2.5-pro"). */
+  model_id: string;
+  /**
+   * Canonical task type label (e.g. "UX Research", "Wireframing"), or null when
+   * the agent carries no TaskType (the backend serializes `task_type` as null).
+   */
+  task_type: string | null;
+  /** MCP / function tools available to this agent. */
+  tools: string[];
+  /**
+   * System-prompt excerpt (truncated server-side for display).
+   * Absent when the backend withholds it for security reasons.
+   */
+  prompt?: string;
+  /**
+   * Human-readable provenance of the system prompt
+   * (e.g. "atelier-core/prompts/ux_research.md").
+   */
+  prompt_source?: string;
+  /**
+   * State-bag keys this agent reads from upstream nodes.
+   * Empty for the first node in a chain.
+   */
+  upstream_keys: string[];
+  /** State-bag key this agent writes its output under. */
+  output_key: string;
+  /**
+   * Parent agent id when this agent is nested inside an orchestrator.
+   * Null for top-level agents.
+   */
+  subagent_of: string | null;
+}
+
+/**
+ * Compact roster row returned in the `agents` array of GET /v1/platform/agents.
+ *
+ * Mirrors the backend `_descriptor_summary` projection field-for-field: it is
+ * the full `AgentDescriptor` MINUS the prompt body, `upstream_keys`, and
+ * `output_key` (those are only on the per-agent `_descriptor_full` view).
+ */
+export interface AgentSummary {
+  id: string;
+  name: string;
+  kind: string;
+  adk_type: string;
+  description: string;
+  model_id: string;
+  /** Null when the agent carries no TaskType (serialized as null by the API). */
+  task_type: string | null;
+  tools: string[];
+  prompt_source: string;
+  /** Parent agent id when nested in an orchestrator; null for top-level. */
+  subagent_of: string | null;
+}
+
+/**
+ * Response envelope for GET /v1/platform/agents.
+ *
+ * The endpoint returns an OBJECT — not a bare array. `available` is always true
+ * for this fixed-roster endpoint; callers guard on it for shape uniformity with
+ * the other fail-soft platform surfaces. `counts_by_kind` maps each agent
+ * `kind` to its count; `agents` is the roster of summary rows.
+ */
+export interface AgentsResponse {
+  available: boolean;
+  count: number;
+  counts_by_kind: Record<string, number>;
+  agents: AgentSummary[];
+}
+
+/**
+ * Response envelope for GET /v1/platform/agents/{id}.
+ *
+ * `available` is false (with `reason: "agent_not_found"`) when the id is not in
+ * the fixed roster; otherwise `agent` carries the full descriptor. Callers MUST
+ * guard on `available` before reading `agent`.
+ */
+export interface AgentDetailResponse {
+  available: boolean;
+  reason?: string;
+  agent?: AgentDescriptor;
+}
+
+// ---------------------------------------------------------------------------
+// Topology — mirrors GET /v1/platform/topology
+// ---------------------------------------------------------------------------
+
+/** A single node in the static specialist DAG. */
+export interface TopologyNode {
+  /** Stable node id (matches AgentDescriptor.id). */
+  id: string;
+  /** Human-readable display label. */
+  label: string;
+  /**
+   * Node kind — aligns with AgentDescriptor.kind.
+   * Drives icon / colour selection in the renderer.
+   */
+  kind: string;
+  /** Served model id (task-type value), null for non-LLM nodes. */
+  model?: string | null;
+}
+
+/** A directed edge between two nodes in the static specialist DAG. */
+export interface TopologyEdge {
+  from: string;
+  to: string;
+}
+
+/**
+ * System topology graph spec returned by GET /v1/platform/topology.
+ *
+ * This is the STATIC specialist DAG — the wiring of agents in the pipeline
+ * at design time. It is NOT a per-run span tree (use ReplaySpan for that).
+ * Mirrors the backend `/topology` response body field-for-field.
+ */
+export interface TopologyGraphSpec {
+  available: boolean;
+  /** Discriminator — "static_pipeline_dag". */
+  kind?: string;
+  /** Honesty note: this is the static hand-off DAG, not a per-run span tree. */
+  note?: string;
+  nodes: TopologyNode[];
+  edges: TopologyEdge[];
+}
+
+// ---------------------------------------------------------------------------
+// Replay — mirrors GET /v1/replay/{session_id}
+// ---------------------------------------------------------------------------
+
+/**
+ * A single execution span in a session replay.
+ *
+ * The backend notes that `parent_span_id` and `duration_ms` are not
+ * pre-populated from the BQ trajectory schema — callers must compute
+ * durations client-side from `started_at` / `ended_at` and treat the
+ * tree as flat (ordered by `started_at`).
+ *
+ * Mirrors `atelier-core` `SpanNode` (replay.py).
+ */
+export interface ReplaySpan {
+  span_id: string;
+  parent_span_id: string | null;
+  node_name: string;
+  /** ISO-8601 timestamp string. */
+  started_at: string;
+  /** ISO-8601 timestamp string. */
+  ended_at: string;
+  /**
+   * Pre-computed duration in milliseconds. Set to 0.0 by the backend when
+   * not available — compute client-side from started_at / ended_at.
+   */
+  duration_ms: number;
+  model_id: string | null;
+  input_tokens: number;
+  output_tokens: number;
+  cost_usd: number;
+  /** "ok" | "error" | other extensible status strings. */
+  status: string;
+}
+
+/** Memory recall event in a session replay (semantic or procedural tier). */
+export interface MemoryRecall {
+  tier: string;
+  query_text: string;
+  passage: string;
+  similarity: number;
+  source_event_ids: string[];
+}
+
+/** Single gate / judge score in the AND-Gate scorecard for a replay. */
+export interface GateScore {
+  axis: string;
+  score: number;
+  confidence_low: number;
+  confidence_high: number;
+  judge_model: string;
+  reasoning: string;
+}
+
+/**
+ * Full replay payload for a session.
+ *
+ * Mirrors `atelier-core` `SessionReplayPayload` (replay.py) field-for-field.
+ * Includes the AT-027 read-only optimize surfaces (`route_decisions`,
+ * `dreaming_artifacts`) threaded through the trace.
+ */
+export interface SessionReplayPayload {
+  session_id: string;
+  tenant_id: string;
+  project_id: string;
+  started_at: string;
+  ended_at: string;
+  /** "completed" | "stopped" | "degraded" | other extensible outcome strings. */
+  outcome: string;
+  composite_score: number;
+  degradation_reason: string | null;
+  user_message: string | null;
+  spans: ReplaySpan[];
+  memory_recalls: MemoryRecall[];
+  gate_scores: GateScore[];
+  /** Read-only MoE routing decisions threaded through the trace (AT-027). */
+  route_decisions: RouteDecisionData[];
+  /** Read-only dreaming / DPO artifacts threaded through the trace (AT-027). */
+  dreaming_artifacts: DreamingArtifactData[];
+  total_cost_usd: number;
+  total_input_tokens: number;
+  total_output_tokens: number;
+  candidate_count: number;
+  iteration: number;
+}
+
+// ---------------------------------------------------------------------------
+// Platform pillars — Build / Scale / Govern / Optimize
+// ---------------------------------------------------------------------------
+
+/**
+ * Agent-card skill entry in the Build pillar.
+ *
+ * One declared capability read from the repo-root `agent_card.json` and surfaced
+ * read-only. Mirrors the backend projection in `/build`: `{ id, name,
+ * description, tags }`. The backend reads these straight from the card, so any
+ * field may be absent/null when the card omits it.
+ */
+export interface AgentCardSkill {
+  id: string | null;
+  name: string | null;
+  description: string | null;
+  /** Free-form capability tags declared on the skill (e.g. "design"). */
+  tags: string[];
+}
+
+/**
+ * MCP toolset entry in the Build pillar.
+ *
+ * Derived from the registry's tool labels: one row per distinct tool label,
+ * carrying the sorted ids of the agents that hold it. Mirrors the backend
+ * `/build` `mcp_toolsets` shape: `{ toolset, agents }`.
+ */
+export interface McpToolset {
+  /** The tool/toolset label (e.g. "stitch_mcp"). */
+  toolset: string;
+  /** Sorted ids of the agents wired to this toolset. */
+  agents: string[];
+}
+
+/** Agent-card metadata block on the Build pillar (`agent_card` key). */
+export interface AgentCardMeta {
+  /** False when the repo-root agent_card.json is absent/unparseable. */
+  available: boolean;
+  name?: string | null;
+  version?: string | null;
+  protocolVersion?: string | null;
+  protocols?: Record<string, unknown>;
+}
+
+/** Aggregate counts block on the Build pillar (`counts` key). */
+export interface BuildCounts {
+  agents_total: number;
+  /** Agent count grouped by kind. */
+  by_kind: Record<string, number>;
+  skills: number;
+  mcp_toolsets: number;
+}
+
+/**
+ * Build pillar response — GET /v1/platform/build.
+ *
+ * Agent-card metadata, A2A skills, MCP toolset inventory, and aggregate counts.
+ * Mirrors the backend `/build` response body field-for-field.
+ */
+export interface PlatformBuild {
+  available: boolean;
+  agent_card: AgentCardMeta;
+  skills: AgentCardSkill[];
+  mcp_toolsets: McpToolset[];
+  counts: BuildCounts;
+}
+
+/** Served model catalog entry (Scale pillar). Mirrors `ModelCatalogEntry`. */
+export interface ModelCatalogEntry {
+  model_id: string;
+  /** Human-readable label for the model. */
+  display_name: string;
+  /** Tier string — "pro" | "flash" | "flash_lite". */
+  tier: string;
+  /** Per-user lifetime token cap for this tier. */
+  token_cap: number;
+  /** TaskType value strings this model id is statically routed to. */
+  task_types: string[];
+}
+
+/**
+ * Model catalog block on the Scale pillar (`model_catalog` key).
+ *
+ * Fail-soft: when the catalog cannot be built, `available` is false and
+ * `models` is absent — callers MUST guard before reading `models`.
+ */
+export interface ModelCatalogBlock {
+  available: boolean;
+  reason?: string;
+  models?: ModelCatalogEntry[];
+}
+
+/**
+ * Agent Engine deploy configuration block on the Scale pillar
+ * (`deploy_config` key). Fail-soft: `available` is false when the config lookup
+ * raises; the remaining fields are absent in that case.
+ */
+export interface DeployConfigBlock {
+  available: boolean;
+  reason?: string;
+  project?: string;
+  location?: string;
+  display_name?: string;
+  description?: string;
+  staging_bucket?: string;
+}
+
+/** Serving-stack health block on the Scale pillar (`health` key). */
+export interface ScaleHealth {
+  available: boolean;
+  /** "healthy" | other extensible status strings. */
+  status: string;
+  service: string;
+}
+
+/**
+ * Scale pillar response — GET /v1/platform/scale.
+ *
+ * Model routing catalog, the session/usage backend modes (plain strings), the
+ * Agent Engine deploy config, and a health rollup. Each sub-block is
+ * independently fail-soft. Mirrors the backend `/scale` response body.
+ */
+export interface PlatformScale {
+  available: boolean;
+  model_catalog: ModelCatalogBlock;
+  /** Session/memory backend mode — e.g. "vertex" | "memory". */
+  session_backend: string;
+  /** Usage-counter backend — e.g. "firestore" | "memory" | "unknown". */
+  usage_backend: string;
+  deploy_config: DeployConfigBlock;
+  health: ScaleHealth;
+}
+
+/** Caller identity block on the Govern pillar (`identity` key). */
+export interface GovernIdentity {
+  /** Firebase UID of the authenticated caller. */
+  uid: string;
+  /** Tenant id of the authenticated caller. */
+  tenant_id: string;
+  email_verified: boolean;
+}
+
+/** Per-tier token counters within the Govern usage block. */
+export interface TierUsage {
+  used: number;
+  cap: number;
+  remaining: number;
+}
+
+/**
+ * Per-tier usage block on the Govern pillar (`usage` key).
+ *
+ * `tiers` is a MAP keyed by tier name (NOT an array). Fail-soft: when the usage
+ * store read fails, `available` is false and `tiers`/`total_tokens` are absent.
+ */
+export interface GovernUsage {
+  available: boolean;
+  reason?: string;
+  /** Map of tier name -> its used/cap/remaining counters. */
+  tiers?: Record<string, TierUsage>;
+  total_tokens?: number;
+}
+
+/** Deterministic injection-guard summary within the Model Armor block. */
+export interface InjectionGuard {
+  always_on: boolean;
+  marker_count: number;
+}
+
+/**
+ * Model Armor safety block on the Govern pillar (`model_armor` key).
+ *
+ * Fail-soft: `available` is false when the marker set cannot be loaded.
+ */
+export interface ModelArmorBlock {
+  available: boolean;
+  reason?: string;
+  deterministic_injection_guard?: InjectionGuard;
+  vertex_model_armor_template?: { enabled: boolean };
+}
+
+/** Rate-limit thresholds within the Govern thresholds block. */
+export interface RateLimitThresholds {
+  max_requests: number;
+  window_seconds: number;
+}
+
+/** Circuit-breaker thresholds within the Govern thresholds block. */
+export interface CircuitBreakerThresholds {
+  global_token_budget_per_window: number;
+  window_seconds: number;
+  cooldown_seconds: number;
+  enabled: boolean;
+}
+
+/**
+ * Rate-limit + circuit-breaker thresholds block on the Govern pillar
+ * (`thresholds` key). Fail-soft: `available` is false when the live store
+ * cannot be read; the nested blocks are absent in that case.
+ */
+export interface ThresholdConfig {
+  available: boolean;
+  reason?: string;
+  rate_limit?: RateLimitThresholds;
+  circuit_breaker?: CircuitBreakerThresholds;
+}
+
+/**
+ * Govern pillar response — GET /v1/platform/govern.
+ *
+ * Caller identity, per-tier usage (a MAP), Model Armor safety summary, and the
+ * in-force rate-limit + circuit-breaker thresholds. Every sub-block is
+ * fail-soft. Mirrors the backend `/govern` response body field-for-field.
+ */
+export interface PlatformGovern {
+  available: boolean;
+  identity: GovernIdentity;
+  usage: GovernUsage;
+  /** Usage-counter backend mode — e.g. "firestore" | "memory" | "unknown". */
+  usage_backend: string;
+  model_armor: ModelArmorBlock;
+  thresholds: ThresholdConfig;
+}
+
+/**
+ * One recent-run telemetry row (Optimize pillar). Mirrors the backend
+ * `RecentRun` Pydantic model field-for-field — the latest trajectory record per
+ * session, deep-linking to the full replay. There is NO `started_at` and NO
+ * `surface_count`; the run header carries only `ended_at` and the cost/token
+ * totals below.
+ */
+export interface RecentRun {
+  session_id: string;
+  ended_at: string;
+  /** "completed" | "stopped" | "degraded" | other extensible outcome strings. */
+  outcome: string;
+  composite_score: number;
+  total_cost_usd: number;
+  total_input_tokens: number;
+  total_output_tokens: number;
+  iteration: number;
+  /** Absolute path to the full replay: /v1/replay/{session_id} */
+  replay_url: string;
+}
+
+/**
+ * Optimize pillar response — GET /v1/platform/optimize.
+ *
+ * Recent run telemetry. Fail-soft: when BigQuery is unavailable, `available` is
+ * false (with `reason`) and `runs` is absent — callers MUST guard before
+ * reading `runs`. `spend_caps_enforced` is always false (RR-05 honesty): the
+ * cost figures are observed telemetry, NOT an enforced spend cap.
+ */
+export interface PlatformOptimize {
+  available: boolean;
+  reason?: string;
+  spend_caps_enforced: boolean;
+  note?: string;
+  count?: number;
+  runs?: RecentRun[];
+}
+
+// ---------------------------------------------------------------------------
+// Fetcher functions
+// ---------------------------------------------------------------------------
+
+/** Fetch the Build pillar data (agent card, skills, MCP toolsets, counts). */
+export function getPlatformBuild(token: string): Promise<PlatformBuild> {
+  return authedGet<PlatformBuild>('/v1/platform/build', token);
+}
+
+/** Fetch the Scale pillar data (model catalog, backends, deploy config). */
+export function getPlatformScale(token: string): Promise<PlatformScale> {
+  return authedGet<PlatformScale>('/v1/platform/scale', token);
+}
+
+/** Fetch the Govern pillar data (usage, identity, Model Armor, thresholds). */
+export function getPlatformGovern(token: string): Promise<PlatformGovern> {
+  return authedGet<PlatformGovern>('/v1/platform/govern', token);
+}
+
+/** Fetch the Optimize pillar data (recent runs with replay deep-links). */
+export function getPlatformOptimize(token: string): Promise<PlatformOptimize> {
+  return authedGet<PlatformOptimize>('/v1/platform/optimize', token);
+}
+
+/**
+ * Fetch the static system topology graph (specialist DAG wiring).
+ *
+ * Returns the data-driven node/edge spec. Pass this to a generalised
+ * topology renderer; the existing legibility TopologyGraph feeds on the
+ * specialist subgraph from SpecialistTraceData and is a separate surface.
+ */
+export function getPlatformTopology(token: string): Promise<TopologyGraphSpec> {
+  return authedGet<TopologyGraphSpec>('/v1/platform/topology', token);
+}
+
+/**
+ * Fetch the agent roster (GET /v1/platform/agents).
+ *
+ * Returns the `{ available, count, counts_by_kind, agents }` ENVELOPE — not a
+ * bare array. Callers read `.agents` for the roster rows.
+ */
+export function getAgents(token: string): Promise<AgentsResponse> {
+  return authedGet<AgentsResponse>('/v1/platform/agents', token);
+}
+
+/**
+ * Fetch a single agent's full descriptor (GET /v1/platform/agents/{id}).
+ *
+ * Returns the `{ available, agent?, reason? }` envelope. `available` is false
+ * (with `reason: "agent_not_found"`) when the id is not in the roster — the
+ * caller MUST guard on `available` before reading `agent`.
+ */
+export function getAgent(id: string, token: string): Promise<AgentDetailResponse> {
+  return authedGet<AgentDetailResponse>(`/v1/platform/agents/${encodeURIComponent(id)}`, token);
+}
+
+/**
+ * Fetch the full session replay payload.
+ *
+ * The backend may return 404 when BigQuery is unavailable (fail-soft). This
+ * function throws an Error in that case (HTTP 404: ...) — callers should catch
+ * and render a "replay unavailable" fallback rather than crashing.
+ */
+export function getReplay(sessionId: string, token: string): Promise<SessionReplayPayload> {
+  return authedGet<SessionReplayPayload>(`/v1/replay/${encodeURIComponent(sessionId)}`, token);
+}

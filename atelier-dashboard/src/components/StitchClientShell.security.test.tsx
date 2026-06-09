@@ -64,11 +64,24 @@ export function runStitchShellSecurityContract(): void {
     'hardcoded mock consumption copy must not appear in the source'
   );
 
-  // (c) The three mock views are removed from the DashboardView union — the only
-  //     reachable view is 'generate'.
+  // (c) The three mock views are removed from the DashboardView union.
+  //     Phase D expands the union to include the four operator pillars
+  //     (build/scale/govern/optimize) — that is intentional and expected.
+  //     What must NOT appear is any of the original fabricated views (iam,
+  //     billing, models).  The generate view must still be present.
+  assert(/type DashboardView =/.test(source), 'DashboardView type alias must be declared');
+  assert(source.includes("'generate'"), "DashboardView union must still include 'generate'");
   assert(
-    /type DashboardView = 'generate';/.test(source),
-    "DashboardView union must collapse to exactly 'generate' (no iam/billing/models)"
+    !/DashboardView.*'iam'/.test(source) && !/'iam'.*DashboardView/.test(source),
+    "DashboardView union must not include the deleted 'iam' view"
+  );
+  assert(
+    !/DashboardView.*'billing'/.test(source) && !/'billing'.*DashboardView/.test(source),
+    "DashboardView union must not include the deleted 'billing' view"
+  );
+  assert(
+    !/DashboardView.*'models'/.test(source) && !/'models'.*DashboardView/.test(source),
+    "DashboardView union must not include the deleted 'models' view"
   );
 
   // (d) No render branch or nav handler references the deleted views.
