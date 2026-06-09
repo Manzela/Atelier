@@ -27,9 +27,11 @@ const scriptSrc = [
 const connectSrc = [
   "connect-src 'self'",
   'https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com',
-  // Cloud Run is scoped to this project's services (project number 537337457799)
-  // rather than the org-wide *.run.app, which would allow any tenant's service.
-  'https://*-537337457799.us-central1.run.app https://*.autonomous-agent.dev https://accounts.google.com',
+  // Cloud Run scoped to the us-central1 region (a CSP host wildcard must be a
+  // whole leftmost label, so a project-number wildcard like
+  // *-537337457799.us-central1.run.app is invalid and silently ignored). The API
+  // is reached via the custom domain below; this keeps a valid run.app fallback.
+  'https://*.us-central1.run.app https://*.autonomous-agent.dev https://accounts.google.com',
   'wss://*.firebaseio.com',
   isDev ? 'http://localhost:*' : '',
 ]
