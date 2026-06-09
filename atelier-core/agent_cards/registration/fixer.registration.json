@@ -1,0 +1,28 @@
+{
+  "_target": {
+    "parent": "projects/${GOOGLE_CLOUD_PROJECT}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/assistants/${ASSISTANT_ID}",
+    "agentId": "fixer",
+    "method": "CreateAgent (POST {parent}/agents)"
+  },
+  "displayName": "atelier_fixer",
+  "description": "Analyzes gate failures and low axis scores and proposes a FixerDirective (mutations + prompt amendments) for the next iteration.",
+  "icon": {
+    "uri": ""
+  },
+  "a2aAgentDefinition": {
+    "jsonAgentCard": "{\"authentication\": {\"schemes\": [{\"description\": \"Firebase ID token from Identity Platform\", \"type\": \"bearer\"}, {\"description\": \"API key for service-to-service communication\", \"in\": \"header\", \"name\": \"X-Atelier-API-Key\", \"type\": \"apiKey\"}]}, \"capabilities\": {\"multiTurn\": false, \"pushNotifications\": false, \"stateTransitionHistory\": true, \"streaming\": false}, \"defaultInputModes\": [\"text\"], \"defaultOutputModes\": [\"text\"], \"description\": \"Analyzes gate failures and low axis scores and proposes a FixerDirective (mutations + prompt amendments) for the next iteration.\", \"name\": \"atelier_fixer\", \"protocolVersion\": \"0.3.0\", \"protocols\": {\"a2a\": \"0.3.0\", \"adk\": \"2.1\"}, \"provider\": {\"organization\": \"Manzela\", \"url\": \"https://manzela.com\"}, \"skills\": [{\"description\": \"Analyzes gate failures and low axis scores; proposes a FixerDirective (mutations + prompt amendments) for the next iteration.\", \"id\": \"fix-directive\", \"inputModes\": [\"text\"], \"name\": \"Fix Directive\", \"outputModes\": [\"text\"], \"tags\": [\"fixer\", \"iteration\", \"gate-failure\"]}], \"url\": \"https://atelier.autonomous-agent.dev/.well-known/agents/fixer/agent-card.json\", \"version\": \"0.2.0a0\"}"
+  },
+  "_adkAgentDefinitionTemplate": {
+    "provisionedReasoningEngine": {
+      "reasoningEngine": "projects/${GOOGLE_CLOUD_PROJECT}/locations/${LOCATION}/reasoningEngines/${REASONING_ENGINE_ID}"
+    }
+  },
+  "authorizations": [
+    "projects/${GOOGLE_CLOUD_PROJECT}/locations/${LOCATION}/authorizations/${AUTHORIZATION_ID}"
+  ],
+  "_provenance": {
+    "sourceCard": "agent_cards/fixer.agent-card.json",
+    "protocolVersion": "0.3.0",
+    "skills": ["fix-directive"]
+  }
+}

@@ -7,7 +7,9 @@ pointer for each.
 
 Source of truth for resource names and variables:
 `atelier-deploy/terraform/{main.tf,alb.tf,dns.tf,variables.tf}`. Recovery
-procedures: [`rollback.md`](rollback.md).
+procedures: [`rollback.md`](rollback.md). Full Agent Engine deploy procedure
+(prerequisites, 18 A2A card registration, Gallery verification):
+[`agent-engine-deploy.md`](agent-engine-deploy.md).
 
 Canonical coordinates: project `atelier-build-2026`, region `us-central1`,
 domain `atelier.autonomous-agent.dev`.

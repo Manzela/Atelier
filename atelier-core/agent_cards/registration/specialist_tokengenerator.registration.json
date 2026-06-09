@@ -1,0 +1,28 @@
+{
+  "_target": {
+    "parent": "projects/${GOOGLE_CLOUD_PROJECT}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/assistants/${ASSISTANT_ID}",
+    "agentId": "specialist-tokengenerator",
+    "method": "CreateAgent (POST {parent}/agents)"
+  },
+  "displayName": "TokenGenerator",
+  "description": "Extracts the design into a DTCG-shaped, semantically-named design-token set.",
+  "icon": {
+    "uri": ""
+  },
+  "a2aAgentDefinition": {
+    "jsonAgentCard": "{\"authentication\": {\"schemes\": [{\"description\": \"Firebase ID token from Identity Platform\", \"type\": \"bearer\"}, {\"description\": \"API key for service-to-service communication\", \"in\": \"header\", \"name\": \"X-Atelier-API-Key\", \"type\": \"apiKey\"}]}, \"capabilities\": {\"multiTurn\": true, \"pushNotifications\": false, \"stateTransitionHistory\": true, \"streaming\": false}, \"defaultInputModes\": [\"text\"], \"defaultOutputModes\": [\"text\"], \"description\": \"Extracts the design into a DTCG-shaped, semantically-named design-token set.\", \"name\": \"TokenGenerator\", \"protocolVersion\": \"0.3.0\", \"protocols\": {\"a2a\": \"0.3.0\", \"adk\": \"2.1\"}, \"provider\": {\"organization\": \"Manzela\", \"url\": \"https://manzela.com\"}, \"skills\": [{\"description\": \"Extracts the design into a DTCG-shaped, semantically-named design-token set.\", \"id\": \"ddlc-tokens\", \"inputModes\": [\"text\"], \"name\": \"TokenGenerator\", \"outputModes\": [\"text\"], \"tags\": [\"design-tokens\", \"dtcg\", \"token-extraction\"]}], \"url\": \"https://atelier.autonomous-agent.dev/.well-known/agents/specialist_tokengenerator/agent-card.json\", \"version\": \"0.2.0a0\"}"
+  },
+  "_adkAgentDefinitionTemplate": {
+    "provisionedReasoningEngine": {
+      "reasoningEngine": "projects/${GOOGLE_CLOUD_PROJECT}/locations/${LOCATION}/reasoningEngines/${REASONING_ENGINE_ID}"
+    }
+  },
+  "authorizations": [
+    "projects/${GOOGLE_CLOUD_PROJECT}/locations/${LOCATION}/authorizations/${AUTHORIZATION_ID}"
+  ],
+  "_provenance": {
+    "sourceCard": "agent_cards/specialist_tokengenerator.agent-card.json",
+    "protocolVersion": "0.3.0",
+    "skills": ["ddlc-tokens"]
+  }
+}

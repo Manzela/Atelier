@@ -1,0 +1,28 @@
+{
+  "_target": {
+    "parent": "projects/${GOOGLE_CLOUD_PROJECT}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/assistants/${ASSISTANT_ID}",
+    "agentId": "planner",
+    "method": "CreateAgent (POST {parent}/agents)"
+  },
+  "displayName": "atelier_planner",
+  "description": "Dynamic DAG router: analyzes the brief and emits a PlanStep that drives downstream routing (WRAI, ensemble_k, axis weights, constitution, surfaces).",
+  "icon": {
+    "uri": ""
+  },
+  "a2aAgentDefinition": {
+    "jsonAgentCard": "{\"authentication\": {\"schemes\": [{\"description\": \"Firebase ID token from Identity Platform\", \"type\": \"bearer\"}, {\"description\": \"API key for service-to-service communication\", \"in\": \"header\", \"name\": \"X-Atelier-API-Key\", \"type\": \"apiKey\"}]}, \"capabilities\": {\"multiTurn\": false, \"pushNotifications\": false, \"stateTransitionHistory\": true, \"streaming\": false}, \"defaultInputModes\": [\"text\"], \"defaultOutputModes\": [\"text\"], \"description\": \"Dynamic DAG router: analyzes the brief and emits a PlanStep that drives downstream routing (WRAI, ensemble_k, axis weights, constitution, surfaces).\", \"name\": \"atelier_planner\", \"protocolVersion\": \"0.3.0\", \"protocols\": {\"a2a\": \"0.3.0\", \"adk\": \"2.1\"}, \"provider\": {\"organization\": \"Manzela\", \"url\": \"https://manzela.com\"}, \"skills\": [{\"description\": \"Analyzes a design brief and emits a PlanStep that drives downstream DAG routing (WRAI, ensemble_k, axis weights, constitution, surfaces).\", \"id\": \"plan-generation\", \"inputModes\": [\"text\"], \"name\": \"Plan Generation\", \"outputModes\": [\"text\"], \"tags\": [\"planning\", \"dag-routing\", \"orchestration\"]}], \"url\": \"https://atelier.autonomous-agent.dev/.well-known/agents/planner/agent-card.json\", \"version\": \"0.2.0a0\"}"
+  },
+  "_adkAgentDefinitionTemplate": {
+    "provisionedReasoningEngine": {
+      "reasoningEngine": "projects/${GOOGLE_CLOUD_PROJECT}/locations/${LOCATION}/reasoningEngines/${REASONING_ENGINE_ID}"
+    }
+  },
+  "authorizations": [
+    "projects/${GOOGLE_CLOUD_PROJECT}/locations/${LOCATION}/authorizations/${AUTHORIZATION_ID}"
+  ],
+  "_provenance": {
+    "sourceCard": "agent_cards/planner.agent-card.json",
+    "protocolVersion": "0.3.0",
+    "skills": ["plan-generation"]
+  }
+}

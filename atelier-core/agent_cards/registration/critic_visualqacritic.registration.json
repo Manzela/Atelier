@@ -1,0 +1,28 @@
+{
+  "_target": {
+    "parent": "projects/${GOOGLE_CLOUD_PROJECT}/locations/${LOCATION}/collections/default_collection/engines/${ENGINE_ID}/assistants/${ASSISTANT_ID}",
+    "agentId": "critic-visualqacritic",
+    "method": "CreateAgent (POST {parent}/agents)"
+  },
+  "displayName": "VisualQACritic",
+  "description": "Advisory visual-quality read (rhythm, hierarchy, balance) — never gates.",
+  "icon": {
+    "uri": ""
+  },
+  "a2aAgentDefinition": {
+    "jsonAgentCard": "{\"authentication\": {\"schemes\": [{\"description\": \"Firebase ID token from Identity Platform\", \"type\": \"bearer\"}, {\"description\": \"API key for service-to-service communication\", \"in\": \"header\", \"name\": \"X-Atelier-API-Key\", \"type\": \"apiKey\"}]}, \"capabilities\": {\"multiTurn\": true, \"pushNotifications\": false, \"stateTransitionHistory\": true, \"streaming\": false}, \"defaultInputModes\": [\"text\"], \"defaultOutputModes\": [\"text\"], \"description\": \"Advisory visual-quality read (rhythm, hierarchy, balance) — never gates.\", \"name\": \"VisualQACritic\", \"protocolVersion\": \"0.3.0\", \"protocols\": {\"a2a\": \"0.3.0\", \"adk\": \"2.1\"}, \"provider\": {\"organization\": \"Manzela\", \"url\": \"https://manzela.com\"}, \"skills\": [{\"description\": \"Advisory visual-quality read (rhythm, hierarchy, balance) — never gates.\", \"id\": \"critic-visualqacritic\", \"inputModes\": [\"text\"], \"name\": \"VisualQACritic\", \"outputModes\": [\"text\"], \"tags\": [\"qa\", \"visual\", \"design-quality\"]}], \"url\": \"https://atelier.autonomous-agent.dev/.well-known/agents/critic_visualqacritic/agent-card.json\", \"version\": \"0.2.0a0\"}"
+  },
+  "_adkAgentDefinitionTemplate": {
+    "provisionedReasoningEngine": {
+      "reasoningEngine": "projects/${GOOGLE_CLOUD_PROJECT}/locations/${LOCATION}/reasoningEngines/${REASONING_ENGINE_ID}"
+    }
+  },
+  "authorizations": [
+    "projects/${GOOGLE_CLOUD_PROJECT}/locations/${LOCATION}/authorizations/${AUTHORIZATION_ID}"
+  ],
+  "_provenance": {
+    "sourceCard": "agent_cards/critic_visualqacritic.agent-card.json",
+    "protocolVersion": "0.3.0",
+    "skills": ["critic-visualqacritic"]
+  }
+}
