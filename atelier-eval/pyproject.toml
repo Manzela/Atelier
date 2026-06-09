@@ -31,3 +31,24 @@ dev = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/atelier_eval"]
+
+# Playwright ships no type stubs; the competitive_audit module integrates it at
+# the async boundary. Scope the unavoidable untyped-import diagnostics to that
+# module rather than relaxing --strict for the whole package.
+[[tool.mypy.overrides]]
+module = ["playwright.*", "playwright.async_api"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["atelier_eval.competitive_audit.*"]
+disable_error_code = ["no-any-unimported"]
+
+# scikit-image ships no type stubs; treat it as untyped so strict callers do not
+# trip no-untyped-call on its functions.
+[[tool.mypy.overrides]]
+module = ["skimage.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["atelier_eval.metrics.*"]
+disable_error_code = ["no-untyped-call"]
