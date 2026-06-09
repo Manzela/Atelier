@@ -39,6 +39,12 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 COPY atelier-core/requirements.lock atelier-core/requirements.lock
 COPY atelier-core/pyproject.toml atelier-core/pyproject.toml
 COPY atelier-core/src/ atelier-core/src/
+# atelier-core/pyproject.toml declares readme = "README.md" and
+# license = { file = "../LICENSE" }; the editable metadata build below reads
+# both, so the package README and the root LICENSE (one level up from
+# /app/atelier-core) must be present in the image.
+COPY atelier-core/README.md atelier-core/README.md
+COPY LICENSE LICENSE
 
 # Install ALL locked dependencies then the package itself (no-deps keeps
 # the lockfile as the sole resolver — no floating transitive resolution).

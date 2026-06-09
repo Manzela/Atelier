@@ -152,16 +152,15 @@ jobs:
         working-directory: atelier-${{ matrix.suite }}
         run: |
           python -m pip install --upgrade pip
-          # Resolve the suite's OWN lockfile. The root ../requirements.lock is the
-          # atelier-core dependency tree (uv pip compile atelier-core/pyproject.toml);
-          # it does NOT pin the eval scientific stack (scikit-image, scipy, pillow,
-          # imageio). The eval leg therefore installs atelier-eval/requirements.lock
-          # (its local lock) so those deps are pinned and reproducible, instead of
-          # resolving them unpinned after `pip install -e`. Core keeps the root lock
-          # it has always been validated against.
-          if [ "${{ matrix.suite }}" = "eval" ] && [ -f "requirements.lock" ]; then
-            pip install -r requirements.lock
-          elif [ -f "../requirements.lock" ]; then
+          # The root ../requirements.lock pins the atelier-core tree. The eval
+          # suite's scientific stack (scikit-image, scipy, pillow, imageio) is
+          # resolved by `pip install -e .[dev]` below. Note: the committed
+          # atelier-eval/requirements.lock is currently resolved for Python 3.12
+          # (it pins tifffile==2026.5.15, which requires >=3.12) and is NOT yet
+          # validated against this 3.11 CI, so it is intentionally not installed
+          # here. Regenerating that lock against 3.11 to pin the eval stack is a
+          # tracked follow-up (audit finding: eval scientific-stack pinning).
+          if [ -f "../requirements.lock" ]; then
             pip install -r ../requirements.lock
           fi
           pip install -e ".[dev]" || pip install -e .
