@@ -23,15 +23,27 @@ Integration points:
 
 FastAPI usage::
 
-    from atelier.auth.firebase import require_auth, OptionalAuth, FirebaseUser
+    from atelier.auth.firebase import (
+        require_auth,
+        require_auth_strict,
+        OptionalAuth,
+        FirebaseUser,
+    )
 
     @router.post("/v1/generate")
-    async def generate(user: FirebaseUser = Depends(require_auth)) -> ...:
+    async def generate(user: FirebaseUser = Depends(require_auth_strict)) -> ...:
+        # Spend/sensitive routes use require_auth_strict so a revoked token
+        # (sign-out, credential compromise) is rejected before paid Vertex
+        # spend is triggered.
         tenant_ctx = TenantContext(
             tenant_id=user.tenant_id,
             user_id=user.uid,
             ...
         )
+
+    @router.get("/v1/topology")
+    async def topology(user: FirebaseUser = Depends(require_auth)) -> ...:
+        ...  # read-only route: standard verification (no revocation round-trip)
 
     @router.get("/v1/health")
     async def health(user: FirebaseUser | None = Depends(OptionalAuth)) -> ...:
@@ -43,8 +55,16 @@ Security model:
         2. ``iss`` claim == ``accounts.google.com`` or the Firebase project
         3. ``aud`` claim == Firebase project ID
         4. ``exp`` claim (not expired)
-    - Revocation check is opt-in (``check_revoked=True``) — enabled for
-      sensitive operations (account deletion, plan changes).
+    - Revocation check is opt-in (``check_revoked=True``). The standard
+      ``require_auth`` / ``optional_auth`` dependencies verify signature,
+      issuer, audience, and expiry but do NOT check revocation (no Firebase
+      round-trip, sub-1ms). The ``require_auth_strict`` dependency flips
+      ``check_revoked=True`` and is applied to spend/sensitive routes — the
+      dream router (``/v1/dream``, ``/v1/dream/promote``), synchronous and
+      streaming generation (``/v1/generate``, ``/v1/generate/stream``), and
+      the A2A ``SendMessage`` path — so a revoked credential (sign-out,
+      forced password reset, compromise) is rejected before paid Vertex
+      spend is triggered.
     - Tenant isolation: every BigQuery query is scoped to ``user.uid``.
       Cross-tenant data access is structurally impossible.
 
@@ -182,7 +202,7 @@ def _decode_token(token: str, *, check_revoked: bool = False) -> dict[str, Any]:
     # any other unexpected failures, all of which produce HTTP 401.
     try:
         _init_firebase()
-        from firebase_admin import auth as fb_auth  # noqa: PLC0415,I001  # type: ignore[import-not-found]
+        from firebase_admin import auth as fb_auth  # noqa: PLC0415
 
         decoded: dict[str, Any] = fb_auth.verify_id_token(token, check_revoked=check_revoked)
     except Exception as exc:
@@ -282,6 +302,46 @@ async def require_auth(
         )
 
     decoded = _decode_token(credentials.credentials)
+    return _user_from_token(decoded)
+
+
+async def require_auth_strict(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer_scheme)],
+) -> FirebaseUser:
+    """FastAPI dependency for spend/sensitive routes — verifies revocation.
+
+    Identical to :func:`require_auth` except the ID token is verified with
+    ``check_revoked=True``. This adds one Firebase round-trip per call, so it
+    is reserved for routes that trigger paid Vertex spend or otherwise
+    sensitive side effects (the dream/DPO tuning routes, ``/v1/generate`` and
+    its streaming variant, and the A2A ``SendMessage`` path).
+
+    A token that has been revoked — via sign-out, forced password reset, or
+    credential compromise — is rejected with HTTP 401 (error code
+    ``token_revoked``) before the route body runs. ``require_auth``, by
+    contrast, would still accept a revoked-but-unexpired token because it
+    skips the revocation round-trip.
+
+    Use as ``user: FirebaseUser = Depends(require_auth_strict)``.
+
+    Raises HTTP 401 if the token is absent, invalid, expired, or revoked.
+    """
+    if _BYPASS_AUTH:
+        logger.debug("Auth bypass active (dev mode) — strict revocation check skipped")
+        return _dev_user()
+
+    if credentials is None or credentials.scheme.lower() != "bearer":
+        raise HTTPException(
+            status_code=401,
+            detail={
+                "error": "missing_token",
+                "title": "Authentication required",
+                "detail": "Provide a Firebase ID token in the Authorization: Bearer header.",
+                "user_action": "Sign in at /auth/signin to obtain an ID token.",
+            },
+        )
+
+    decoded = _decode_token(credentials.credentials, check_revoked=True)
     return _user_from_token(decoded)
 
 

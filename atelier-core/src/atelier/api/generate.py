@@ -31,7 +31,7 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 
-from atelier.auth.firebase import FirebaseUser, require_auth
+from atelier.auth.firebase import FirebaseUser, require_auth, require_auth_strict
 from atelier.orchestrator.governor import TOKEN_CAP_DEFAULT
 from atelier.utils.log_sanitizer import sanitize
 
@@ -470,7 +470,7 @@ def _build_response(
 )
 async def generate(
     request: GenerateRequest,
-    user: Annotated[FirebaseUser, Depends(require_auth)],
+    user: Annotated[FirebaseUser, Depends(require_auth_strict)],
 ) -> GenerateResponse:
     """Run the full design pipeline for the authenticated user.
 
@@ -858,7 +858,7 @@ def _build_run_verdict(payload: dict[str, Any]) -> dict[str, Any] | None:
 )
 async def generate_stream(  # noqa: C901, PLR0915 — SSE orchestrator: nested pipeline + cap/rate-limit handling
     request: GenerateRequest,
-    user: Annotated[FirebaseUser, Depends(require_auth)],
+    user: Annotated[FirebaseUser, Depends(require_auth_strict)],
 ) -> StreamingResponse:
     """Run the pipeline and stream events in real-time.
 

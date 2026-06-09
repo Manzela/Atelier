@@ -8,7 +8,10 @@ Endpoints:
     POST /v1/dream         — Trigger a full post-flight Dreaming Module run.
     POST /v1/dream/promote — Evaluate κ on a completed tuning job and promote.
 
-Both endpoints require Firebase Authentication. Tuning jobs run synchronously
+Both endpoints require Firebase Authentication with revocation checking
+(``require_auth_strict``): because they trigger paid Vertex AI tuning spend, a
+revoked credential is rejected before any job is submitted. Tuning jobs run
+synchronously
 within the request lifetime (fire for local dev / testing); production callers
 should dispatch via Cloud Tasks and treat the response as a job receipt.
 
@@ -24,7 +27,7 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from atelier.auth.firebase import FirebaseUser, require_auth
+from atelier.auth.firebase import FirebaseUser, require_auth_strict
 
 logger: Any = structlog.get_logger("atelier.api.dream")
 
@@ -108,7 +111,7 @@ class PromoteResponse(BaseModel):
     response_model=DreamResponse,
 )
 async def trigger_dreaming_module(
-    user: Annotated[FirebaseUser, Depends(require_auth)],
+    user: Annotated[FirebaseUser, Depends(require_auth_strict)],
     body: DreamRequest,
 ) -> DreamResponse:
     """Mine DPO pairs and optionally submit a Vertex AI PREFERENCE_TUNING job.
@@ -181,7 +184,7 @@ async def trigger_dreaming_module(
     response_model=PromoteResponse,
 )
 async def promote_tuned_model(
-    user: Annotated[FirebaseUser, Depends(require_auth)],
+    user: Annotated[FirebaseUser, Depends(require_auth_strict)],
     body: PromoteRequest,
 ) -> PromoteResponse:
     """Evaluate κ against the calibration seed and promote the tuned model.

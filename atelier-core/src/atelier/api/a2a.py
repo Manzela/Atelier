@@ -20,7 +20,7 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, ConfigDict, Field
 
-from atelier.auth.firebase import FirebaseUser, require_auth
+from atelier.auth.firebase import FirebaseUser, require_auth_strict
 
 logger = logging.getLogger(__name__)
 
@@ -223,7 +223,7 @@ _METHOD_HANDLERS = {
 )
 async def a2a_rpc(
     request: JsonRpcRequest,
-    user: Annotated[FirebaseUser, Depends(require_auth)],
+    user: Annotated[FirebaseUser, Depends(require_auth_strict)],
 ) -> JsonRpcResponse:
     """Process an A2A v1.0 JSON-RPC request.
 
