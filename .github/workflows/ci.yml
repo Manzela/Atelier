@@ -498,9 +498,10 @@ jobs:
         with:
           sarif_file: semgrep-results.sarif
       - name: Trivy FS scan (Vulnerabilities + Misconfigurations)
-        # Pinned to a released tag (v0.33.1) rather than the moving @master, and
-        # exit-code:1 so CRITICAL/HIGH findings fail the job (RR-03).
-        uses: aquasecurity/trivy-action@v0.33.1
+        # Pinned to a released tag (v0.36.0, clear of GHSA-69fq-xp46-6x23 and
+        # GHSA-9p44-j4g5-cfx5 which affect 0.31.0-0.34.x) rather than the moving
+        # @master, and exit-code:1 so CRITICAL/HIGH findings fail the job (RR-03).
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: 'fs'
           ignore-unfixed: true
