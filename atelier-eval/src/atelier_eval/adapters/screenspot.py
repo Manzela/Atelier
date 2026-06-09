@@ -69,7 +69,8 @@ def evaluate_screenspot_grounding(
         area1 = (y2 - y1) * (x2 - x1)
         area2 = (y4 - y3) * (x4 - x3)
 
-        return inter_area / float(area1 + area2 - inter_area)
+        union = area1 + area2 - inter_area
+        return 0.0 if union <= 0 else inter_area / float(union)
 
     iou = compute_iou(task.target_bbox, predicted_bbox)
     return EvalResult(
