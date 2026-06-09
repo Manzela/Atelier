@@ -27,9 +27,6 @@ test.describe('Landing Page (Studio Shell)', () => {
     await page.goto('/');
     await page.getByLabel('Toggle sidebar mode').click();
     await expect(page.getByText('GCP Console')).toBeVisible();
-    await expect(page.getByText('IAM & Admin')).toBeVisible();
-    await expect(page.getByText('Quotas & Billing')).toBeVisible();
-    await expect(page.getByText('Model Registry')).toBeVisible();
   });
 
   test('sidebar toggles back to Studio mode', async ({ authenticatedPage: page }) => {

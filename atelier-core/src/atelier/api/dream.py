@@ -253,7 +253,7 @@ async def promote_tuned_model(
     def _staging_generate_fn(brief: str) -> float:
         import hashlib  # noqa: PLC0415
 
-        digest = int(hashlib.md5(brief.encode()).hexdigest()[:4], 16)  # noqa: S324
+        digest = int(hashlib.md5(brief.encode(), usedforsecurity=False).hexdigest()[:4], 16)
         return 0.78 + (digest % 100) / 1000  # 0.780-0.879, always above 0.70 gate
 
     report = compute_and_promote(
