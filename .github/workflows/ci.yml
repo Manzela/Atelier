@@ -478,26 +478,38 @@ jobs:
       - name: Install security tools
         run: pip install bandit[sarif] semgrep
       - name: Bandit scan (Python)
-        run: bandit -r atelier-core/src -f sarif -o bandit-results.sarif || true
+        # Emit SARIF for the security tab AND gate the job: a finding at
+        # MEDIUM+ severity and confidence exits non-zero (RR-03). The `|| true`
+        # that silently swallowed every finding is removed. `if: always()` on
+        # the upload below still publishes the SARIF even when this fails.
+        run: bandit -r atelier-core/src -f sarif -o bandit-results.sarif --severity-level medium --confidence-level medium
       - name: Upload Bandit results
+        if: always()
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: bandit-results.sarif
       - name: Semgrep scan
-        run: semgrep scan --config auto --sarif --output semgrep-results.sarif || true
+        # `--error` makes semgrep exit non-zero when its ruleset finds a match,
+        # so a hit fails the job instead of being swallowed by `|| true`.
+        run: semgrep scan --config auto --error --sarif --output semgrep-results.sarif
       - name: Upload Semgrep results
+        if: always()
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: semgrep-results.sarif
       - name: Trivy FS scan (Vulnerabilities + Misconfigurations)
-        uses: aquasecurity/trivy-action@master
+        # Pinned to a released tag (v0.33.1) rather than the moving @master, and
+        # exit-code:1 so CRITICAL/HIGH findings fail the job (RR-03).
+        uses: aquasecurity/trivy-action@v0.33.1
         with:
           scan-type: 'fs'
           ignore-unfixed: true
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
+          exit-code: '1'
       - name: Upload Trivy results
+        if: always()
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-results.sarif
@@ -535,6 +547,14 @@ jobs:
           fi
           if [[ "${{ needs.reviewer-envelope-gate.result }}" != "success" ]]; then
             echo "reviewer-envelope-gate failed: ${{ needs.reviewer-envelope-gate.result }}"
+            exit 1
+          fi
+          # Security is a hard gate (RR-03): a failed or cancelled security
+          # audit must fail ci-success. `skipped` is acceptable — the security
+          # job's own `if:` self-skips on PRs that touch neither core nor
+          # ci_config, and a skip is the absence of a finding, not a pass.
+          if [[ "${{ needs.security.result }}" == "failure" || "${{ needs.security.result }}" == "cancelled" ]]; then
+            echo "security failed: ${{ needs.security.result }}"
             exit 1
           fi
           for j_name in "python" "docs-links" "tokens" "dashboard" "dashboard-e2e" "a2ui-skew" "firestore-rules" "docker-build"; do

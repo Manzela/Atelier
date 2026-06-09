@@ -45,6 +45,7 @@ const UID_B = 'user-bob';
 const TENANT_A = 'tenant-acme';
 const TENANT_B = 'tenant-globex';
 const PROJECT = 'redesign-2026-q3';
+const RUN = 'run-2026-q3-001';
 // B2C user: no atelier_tenant claim -> tenantOf() falls back to this uid, so the
 // user's tenant subtree IS /tenants/{UID_B2C}/...
 const UID_B2C = 'user-carol-b2c';
@@ -102,6 +103,14 @@ before(async () => {
       doc(db, `tenants/${UID_B2C}/projects/${PROJECT}/tasks/task-1`),
       { title: 'Carol task', status: 'todo', order: 1 }
     );
+    // AT-031 run sign-off doc (the forge-guarded run lifecycle home).
+    await setDoc(doc(db, `tenants/${TENANT_A}/runs/${RUN}`), {
+      signoff_status: 'AWAITING_SIGNOFF',
+    });
+    // Server-written design system (Admin SDK); client is READ-only.
+    await setDoc(doc(db, `tenants/${TENANT_A}/design_systems/${RUN}`), {
+      tokens: { color: '#000' },
+    });
   });
 });
 
@@ -246,6 +255,98 @@ describe('B2C uid-fallback tenant identity (no atelier_tenant claim)', () => {
     const db = authedAs(UID_A, TENANT_A);
     await assertFails(
       getDoc(doc(db, `tenants/${UID_B2C}/projects/${PROJECT}/tasks/task-1`))
+    );
+  });
+});
+
+describe('run sign-off forge-guard (/tenants/{tenantId}/runs/{runId})', () => {
+  // (a) The legitimate human sign-off: a tenant member sets signoff_status to a
+  // valid lifecycle value and stamps approved_by with ITS OWN uid. This is the
+  // single client mutation that unblocks the AT-031 gate; it MUST succeed.
+  it('member CAN approve with approved_by == own uid', async () => {
+    const db = authedAs(UID_A, TENANT_A);
+    await assertSucceeds(
+      setDoc(doc(db, `tenants/${TENANT_A}/runs/${RUN}`), {
+        signoff_status: 'APPROVED',
+        approved_by: UID_A,
+      })
+    );
+  });
+
+  // (b) Forgery: the same member tries to stamp approved_by with ANOTHER user's
+  // uid (claiming someone else approved). The forge-guard pins approved_by to
+  // request.auth.uid, so this MUST fail. Before the wildcard was removed this
+  // write would have been re-granted by the recursive `{document=**}` allow and
+  // SUCCEEDED — this case is the regression pin for the P0.
+  it('member CANNOT forge approved_by == another uid', async () => {
+    const db = authedAs(UID_A, TENANT_A);
+    await assertFails(
+      setDoc(doc(db, `tenants/${TENANT_A}/runs/${RUN}`), {
+        signoff_status: 'APPROVED',
+        approved_by: UID_B,
+      })
+    );
+  });
+
+  // Defense-in-depth: an out-of-lifecycle signoff_status is rejected even when
+  // approved_by is the caller's own uid (the lifecycle allow-list is enforced).
+  it('member CANNOT set an out-of-lifecycle signoff_status', async () => {
+    const db = authedAs(UID_A, TENANT_A);
+    await assertFails(
+      setDoc(doc(db, `tenants/${TENANT_A}/runs/${RUN}`), {
+        signoff_status: 'PWNED',
+        approved_by: UID_A,
+      })
+    );
+  });
+
+  // A tenant member still CANNOT touch another tenant's run doc.
+  it('member CANNOT write another tenant run doc', async () => {
+    const db = authedAs(UID_A, TENANT_A);
+    await assertFails(
+      setDoc(doc(db, `tenants/${TENANT_B}/runs/${RUN}`), {
+        signoff_status: 'APPROVED',
+        approved_by: UID_A,
+      })
+    );
+  });
+});
+
+describe('server-write-only design systems (/tenants/{tenantId}/design_systems)', () => {
+  it('member CAN read its tenant design system (dashboard read)', async () => {
+    const db = authedAs(UID_A, TENANT_A);
+    await assertSucceeds(
+      getDoc(doc(db, `tenants/${TENANT_A}/design_systems/${RUN}`))
+    );
+  });
+
+  // (c) The old recursive `{document=**}` wildcard would have allowed this
+  // arbitrary tenant-scoped write. design_systems is server-WRITE-only, so a
+  // client write MUST now fail (closes the wildcard over-grant).
+  it('member CANNOT write a design system doc (server-write-only)', async () => {
+    const db = authedAs(UID_A, TENANT_A);
+    await assertFails(
+      setDoc(doc(db, `tenants/${TENANT_A}/design_systems/${RUN}`), {
+        tokens: { color: '#fff' },
+      })
+    );
+  });
+
+  // (c, continued) An ARBITRARY un-enumerated tenant subcollection that the old
+  // wildcard would have granted read+write to is now closed by the
+  // deny-by-default floor. This is the direct regression pin for removing the
+  // catch-all `match /{document=**}` under /tenants/{tenantId}.
+  it('member CANNOT write an arbitrary un-enumerated tenant subcollection', async () => {
+    const db = authedAs(UID_A, TENANT_A);
+    await assertFails(
+      setDoc(doc(db, `tenants/${TENANT_A}/arbitrary_evil/doc-1`), { x: 1 })
+    );
+  });
+
+  it('member CANNOT read an arbitrary un-enumerated tenant subcollection', async () => {
+    const db = authedAs(UID_A, TENANT_A);
+    await assertFails(
+      getDoc(doc(db, `tenants/${TENANT_A}/arbitrary_evil/doc-1`))
     );
   });
 });
