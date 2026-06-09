@@ -66,6 +66,26 @@ class TestExtractHtmlDocument:
         assert "Here is the corrected" not in out
         assert "`<aside>`" not in out  # the backticked prose mention is gone
 
+    def test_strips_dangling_open_fence_on_truncated_document(self) -> None:
+        # Live regression: max_output_tokens truncates mid-fence — an opening
+        # ```html with a <!DOCTYPE doc but no closing </html> or ```. The literal
+        # ```html must not render above the design in the canvas.
+        raw = (
+            '```html\n<!DOCTYPE html>\n<html lang="en"><head>'
+            "<title>Board</title></head><body><main>cols"
+        )
+        out = _extract_html_document(raw)
+        assert out.startswith("<!DOCTYPE html>")
+        assert "```" not in out
+
+    def test_truncated_full_document_without_close_is_kept_from_doctype(self) -> None:
+        # A truncated document (no </html>) must still be sliced from the doctype,
+        # never returned with whatever preamble preceded it.
+        raw = "Here is the code:\n<!DOCTYPE html>\n<html><body><main>partial"
+        out = _extract_html_document(raw)
+        assert out.startswith("<!DOCTYPE html>")
+        assert "Here is the code" not in out
+
 
 @pytest.mark.unit
 class TestCompleteColorTokenPalette:

@@ -166,31 +166,47 @@ def _extract_html_document(raw: str) -> str:
     document does not start with a doctype/``<html>``) and axe-core render a
     malformed page, so every candidate is rejected and the run never converges.
 
-    Extraction is layered so it is safe for already-clean output:
-      1. peel a `````html`` / ``````` fence if one is present, then
-      2. slice from the first ``<!doctype>``/``<html>`` to the last ``</html>``.
-    If no HTML document is found, the de-fenced, stripped text is returned
-    unchanged (a fragment still flows through the gates as before).
+    Extraction is layered so it is safe for already-clean output and robust to
+    the partial output ``max_output_tokens`` truncation produces:
+      1. peel a fenced block — a complete ```` ```html … ``` ```` block, or a
+         DANGLING opener/closer the model left when truncated mid-fence;
+      2. if a ``<!doctype>``/``<html>`` is present, slice from it to the last
+         ``</html>`` — or to end-of-string when the closing tag was truncated;
+      3. otherwise (a document-less fragment) slice from the first structural
+         tag that begins a line, dropping any narrated preamble.
+    If none of these match, the de-fenced, stripped text is returned unchanged
+    (a fragment still flows through the gates as before). Every branch guarantees
+    the result never carries a leading ```` ``` ```` marker or prose preamble,
+    which would otherwise render as literal text above the design in the Studio
+    canvas on the non-converged fallback path (surfaced by the live E2E).
     """
     text = raw.strip()
     fence = re.search(r"```(?:html)?\s*\n(.*?)```", text, re.DOTALL | re.IGNORECASE)
     if fence:
         text = fence.group(1).strip()
+    else:
+        # No complete fence. The generator sometimes opens ```html and is then
+        # truncated by max_output_tokens before the closing fence — strip the
+        # dangling opener (and a trailing closer if one is present) so the literal
+        # ``` marker never survives into the rendered preview.
+        text = re.sub(r"^```(?:html)?[ \t]*\r?\n", "", text, count=1, flags=re.IGNORECASE)
+        text = re.sub(r"\r?\n```[ \t]*$", "", text, count=1).strip()
 
     lower = text.lower()
     start = lower.find("<!doctype")
     if start == -1:
         start = lower.find("<html")
-    end = lower.rfind("</html>")
-    if start != -1 and end != -1 and end > start:
-        return text[start : end + len("</html>")]
+    if start != -1:
+        # Slice to the closing </html> when present; otherwise (truncated mid-
+        # document) take everything from the doctype/<html> to the end — a
+        # browser renders a truncated document fine, but never the preamble.
+        end = lower.rfind("</html>")
+        return text[start : end + len("</html>")] if end > start else text[start:]
     # No full document (a fragment). The Fixer / UI Designer often narrate "Here
     # is the corrected HTML ..." — with backticked tag mentions like `<aside>` —
     # BEFORE the real markup. Strip that preamble by slicing from the first
     # structural tag that begins a LINE: prose references tags mid-sentence or in
-    # backticks, real markup opens them at a line start. Without this, the
-    # non-converged fallback renders its prose preamble as text above the design
-    # in the Studio canvas (surfaced by the live Linear-app E2E).
+    # backticks, real markup opens them at a line start.
     fragment = _LINE_START_STRUCTURAL_TAG.search(text)
     if fragment:
         return text[fragment.start() :].strip()
