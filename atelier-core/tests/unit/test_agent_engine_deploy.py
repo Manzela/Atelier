@@ -49,6 +49,26 @@ _EXPECTED_SUB_AGENTS = {
 }
 
 
+@pytest.fixture
+def _offline_vertex_auth(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Let ``AdkApp`` construct offline, without Application Default Credentials.
+
+    Wrapping the root agent in ``AdkApp`` lazily resolves Vertex credentials via
+    ``google.auth.default()``; CI has no ADC, so the real call raises
+    ``GoogleAuthError``. Inject anonymous credentials plus a fake project — no
+    network call happens at construction (no ``create()``), so this keeps the
+    AdkApp-wrapping assertions running in CI instead of skipping them.
+    """
+    import google.auth
+    from google.auth.credentials import AnonymousCredentials
+
+    monkeypatch.setattr(
+        google.auth,
+        "default",
+        lambda *_args, **_kwargs: (AnonymousCredentials(), "atelier-test"),
+    )
+
+
 def test_deployment_requirements_match_at002_pins() -> None:
     # Exact constraint strings — must stay in lockstep with pyproject.toml so a
     # dependency bump that drifts the deploy sandbox is caught here.
@@ -137,6 +157,7 @@ def test_build_root_agent_leaves_keep_output_schema() -> None:
     assert not by_name["atelier_fixer"].sub_agents
 
 
+@pytest.mark.usefixtures("_offline_vertex_auth")
 def test_build_agent_engine_app_returns_valid_offline_config() -> None:
     # The hermetic core: a frozen AgentEngineApp with the AdkApp wrapping the
     # exact root agent, the pinned requirements, and tracing — no create() call.
@@ -153,6 +174,7 @@ def test_build_agent_engine_app_returns_valid_offline_config() -> None:
     assert tmpl.get("enable_tracing") is True
 
 
+@pytest.mark.usefixtures("_offline_vertex_auth")
 def test_build_agent_engine_app_honours_supplied_config() -> None:
     spec = build_agent_engine_app(
         {
