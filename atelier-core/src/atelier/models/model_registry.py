@@ -35,10 +35,13 @@ ADR Reference: 0007 (Gemini-only model strategy)
 
 from __future__ import annotations
 
+import logging
 import os
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Final
+
+logger = logging.getLogger(__name__)
 
 #: AT-024 (§22 D5 / G13) — GA Gemini Pro model id, operator-pinned 2026-05-31.
 #: Override per-env via GEMINI_MODEL_ID (overrides ALL calibrated models — used
@@ -184,10 +187,31 @@ def fetch_calibrated_model_from_remote_config(task_type: TaskType) -> str | None
             if isinstance(val, str):
                 cleaned = val.strip()
                 if cleaned:
-                    return cleaned
-    except Exception:  # noqa: BLE001, S110
-        # Fail-soft: ignore failures to connect or verify
-        pass
+                    normalized = normalize_model_id(cleaned)
+                    # A Remote Config value flows straight into LlmAgent(model=...);
+                    # only honor it when it names a known model id. An unrecognized
+                    # string must fall back to the pinned route, never be served.
+                    allowed = ALL_MODEL_IDS | {
+                        DEFAULT_GEMINI_MODEL_ID,
+                        GEMINI_FLASH_MODEL_ID,
+                        GEMINI_FLASH_LITE_MODEL_ID,
+                    }
+                    if normalized in allowed:
+                        return normalized
+                    logger.warning(
+                        "Remote Config model_routing_%s=%r is not an allow-listed "
+                        "model id; ignoring and using the pinned route.",
+                        task_type.value,
+                        cleaned,
+                    )
+    except Exception:  # noqa: BLE001
+        # Fail-soft: a Remote Config outage must not break routing, but log it
+        # rather than swallow silently so the degradation is observable.
+        logger.warning(
+            "Remote Config model lookup for %s failed; using the pinned route.",
+            task_type.value,
+            exc_info=True,
+        )
     return None
 
 

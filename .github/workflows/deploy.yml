@@ -95,6 +95,7 @@ jobs:
             --image=us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/atelier-images/atelier-api:latest \
             --region=${{ env.REGION }} \
             --project=${{ env.PROJECT_ID }} \
+            --concurrency=1 \
             --service-account=atelier-api-sa@${{ env.PROJECT_ID }}.iam.gserviceaccount.com
 
           # Get API URL
@@ -185,6 +186,7 @@ jobs:
             --image=us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/atelier-images/atelier-api:latest \
             --region=${{ env.REGION }} \
             --project=${{ env.PROJECT_ID }} \
+            --concurrency=1 \
             --service-account=atelier-api-sa@${{ env.PROJECT_ID }}.iam.gserviceaccount.com
 
           # Get API URL

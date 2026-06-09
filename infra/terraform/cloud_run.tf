@@ -73,8 +73,13 @@ resource "google_cloud_run_v2_service" "atelier_api" {
         value = "false"
       }
       env {
+        # The per-user lifetime token cap (AT-095) and fleet circuit-breaker
+        # (AT-097) must hold across instances and survive scale-to-zero. The
+        # Firestore backend uses atomic firestore.Increment, so a counter shared
+        # by every instance enforces the cap; the in-memory backend is per-instance
+        # process state and fails open on a public, autoscaled, min=0 service.
         name  = "ATELIER_USAGE_BACKEND"
-        value = "memory"
+        value = "firestore"
       }
       env {
         name  = "GOOGLE_CLOUD_LOCATION"
