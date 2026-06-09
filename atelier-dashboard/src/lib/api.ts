@@ -517,7 +517,8 @@ function triggerCallback(event: string, data: Record<string, unknown>, callbacks
       callbacks.onStop?.(data as unknown as StopData);
       break;
     default:
-      console.log(`Unhandled SSE event: ${event}`, data);
+      // nosemgrep: javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring -- template literal, not a printf-style format string; no format-specifier injection is possible.
+      console.warn(`Unhandled SSE event: ${event}`, data);
   }
 }
 

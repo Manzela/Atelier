@@ -42,7 +42,9 @@ def extract_and_upload(project_id: str, bucket_name: str) -> None:
 
         logger.info("Fetching %s...", dataset)
         try:
-            # URL is built from the trusted BASE_URL constant (https only).
+            # URL is built from the trusted BASE_URL constant (https only) and a
+            # value from the hardcoded DATASETS list — no attacker-reachable input.
+            # nosemgrep
             with urllib.request.urlopen(url) as response:  # noqa: S310
                 content = response.read()
                 blob.upload_from_string(content, content_type="text/csv")

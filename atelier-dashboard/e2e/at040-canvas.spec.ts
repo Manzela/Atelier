@@ -142,6 +142,7 @@ test('layer click scrolls the framed section via postMessage', async ({
   const delivered = await page.locator('iframe[title="Converged design output"]').evaluate((el) => {
     const win = (el as HTMLIFrameElement).contentWindow;
     if (!win) return false;
+    // nosemgrep: javascript.browser.security.wildcard-postmessage-configuration.wildcard-postmessage-configuration -- test-only; exercises the same opaque-origin iframe path as the app with a non-sensitive payload.
     win.postMessage({ type: 'atelier:scroll-to-layer', id: null, index: 0 }, '*');
     return true;
   });

@@ -16,6 +16,7 @@
  */
 
 window.__FIREBASE_CONFIG__ = {
+  // nosemgrep: generic.secrets.security.detected-generic-api-key.detected-generic-api-key -- Firebase web apiKey is a public client identifier by design (see header); secrecy is not the control surface.
   apiKey: 'AIzaSyCviGMimUnuCUpJKO0uXbhQDdlfMvby2i0',
   authDomain: 'atelier-build-2026.firebaseapp.com',
   projectId: 'atelier-build-2026',

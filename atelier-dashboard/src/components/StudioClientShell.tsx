@@ -654,6 +654,7 @@ export default function StudioClientShell({ id }: { id: string }) {
     // The framed doc has an opaque origin under the hardened sandbox, so the only
     // valid targetOrigin for a cross-origin post is the wildcard. The payload is
     // non-sensitive (a layer id + index) and the listener ignores everything else.
+    // nosemgrep: javascript.browser.security.wildcard-postmessage-configuration.wildcard-postmessage-configuration
     targetWindow.postMessage(
       {
         type: 'atelier:scroll-to-layer',
