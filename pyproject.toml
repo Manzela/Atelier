@@ -297,7 +297,7 @@ module = "atelier.agent_engine_deploy"
 ignore_errors = true
 
 [[tool.mypy.overrides]]
-module = "skimage.*"
+module = ["skimage.*", "PIL", "PIL.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
