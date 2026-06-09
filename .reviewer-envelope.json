@@ -61,7 +61,7 @@
     "atelier-dashboard/src/components/legibility/dorav.ts": "7c43323870a4ccffafd2d96203a394df25db7a76c73adccc37f2fde6dd928005",
     "atelier-dashboard/src/lib/api.ts": "c5b9e093366b4642a63bdd9474ddac83cb2f5bd6c62326cd47daaf585ddefdcc",
     "atelier-dashboard/src/lib/approval-listener.ts": "c630aea435e3d5f989ab09ff033d6ef9cc37da77ccaeeb347746967049c6b1bf",
-    "atelier-dashboard/src/lib/firebase.ts": "4699ec49d7de23521fe7a9fdc14d1f6056f0cdee15744754cef13a747c596448",
+    "atelier-dashboard/src/lib/firebase.ts": "7d30de25a25e3422cdb942a04328c7635a99d000e06ce41be37643801b56ad83",
     "atelier-dashboard/src/lib/firestore-board.ts": "389aebfa4354194feec0113e7eb93e2a0d281420f31a9a03526839c875b5f714",
     "atelier-dashboard/src/lib/lexorank.ts": "b32a47645a95ca9c00d073d14b6b90ed4965400e1a6b3c5a987ef909a1680ce2",
     "atelier-dashboard/src/lib/optimize-trace.ts": "a8d2dc98d24dbab7939001358507be6db1b669c43862232c5ee5ad10789f16b7",
