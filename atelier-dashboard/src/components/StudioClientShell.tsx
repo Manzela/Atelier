@@ -107,6 +107,41 @@ const A2uiDesignSystemPanel = dynamic(() => import('./a2ui/A2uiDesignSystemPanel
  */
 const A2UI_RENDER_ENABLED = process.env.NEXT_PUBLIC_A2UI_RENDER === '1';
 
+/**
+ * P0 (iframe-xss): scroll bridge injected into the preview srcDoc.
+ *
+ * The preview iframe is sandboxed WITHOUT `allow-same-origin`, so the framed
+ * agent HTML runs in an opaque origin and the parent cannot reach its
+ * `contentDocument` to scroll a section into view. This self-contained listener
+ * runs INSIDE the framed doc and performs the scroll on the parent's behalf, so
+ * the cross-origin DOM reach is replaced by a narrow, audited postMessage
+ * contract. It accepts ONLY messages whose `data.type` is the exact Atelier
+ * sentinel, resolves a section by id (falling back to positional index over the
+ * same selector the parent's layer list uses), and scrolls it — nothing else.
+ * It is sandbox-safe: it touches only its own document, never `window.parent`.
+ */
+const ATELIER_SCROLL_BOOTSTRAP =
+  '<script>(function(){window.addEventListener("message",function(e){' +
+  'var d=e&&e.data;if(!d||d.type!=="atelier:scroll-to-layer")return;' +
+  'var t=null;if(d.id){t=document.getElementById(d.id);}' +
+  'if(!t){var els=document.querySelectorAll("header, section, footer, [id]");' +
+  'if(typeof d.index==="number"&&els[d.index])t=els[d.index];}' +
+  'if(t)t.scrollIntoView({behavior:"smooth",block:"start"});});})();<\/script>';
+
+/**
+ * P0 (iframe-xss): inject the scroll bridge into the composed srcDoc. Placed
+ * before `</body>` (else `</head>`, else appended) so the listener is live once
+ * the framed doc parses. Pure string op — no same-origin access required.
+ */
+function withScrollBridge(html: string): string {
+  if (!html) return html;
+  if (/<\/body>/i.test(html))
+    return html.replace(/<\/body>/i, `${ATELIER_SCROLL_BOOTSTRAP}</body>`);
+  if (/<\/head>/i.test(html))
+    return html.replace(/<\/head>/i, `${ATELIER_SCROLL_BOOTSTRAP}</head>`);
+  return html + ATELIER_SCROLL_BOOTSTRAP;
+}
+
 interface UserSession {
   uid: string;
   email: string;
@@ -604,30 +639,29 @@ export default function StudioClientShell({ id }: { id: string }) {
     }
   }, [convergedHtml]);
 
+  // P0 (iframe-xss): the preview iframe is sandboxed WITHOUT `allow-same-origin`,
+  // so the framed document runs in an OPAQUE origin and the parent can no longer
+  // reach `iframe.contentDocument` (a security feature — it denies the untrusted
+  // agent HTML a same-origin context from which it could read the Firebase ID
+  // token in localStorage). Layer-scroll therefore crosses the boundary via
+  // postMessage: the parent posts the scroll target; the bootstrap listener we
+  // inject into the srcDoc (ATELIER_SCROLL_BOOTSTRAP) resolves the element and
+  // scrolls it. `contentWindow.postMessage` works across opaque origins, where
+  // direct `contentDocument` DOM reach does not.
   const handleLayerClick = (layer: Layer, index: number) => {
-    if (!iframeRef.current) return;
-    try {
-      const iframeDoc =
-        iframeRef.current.contentDocument || iframeRef.current.contentWindow?.document;
-      if (!iframeDoc) return;
-
-      let targetEl = null;
-      if (layer.id && !layer.id.startsWith('section-layer-')) {
-        targetEl = iframeDoc.getElementById(layer.id);
-      }
-      if (!targetEl) {
-        const elements = iframeDoc.querySelectorAll('header, section, footer, [id]');
-        if (elements[index]) {
-          targetEl = elements[index];
-        }
-      }
-
-      if (targetEl) {
-        targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    } catch (e) {
-      console.error('Failed to scroll to layer inside iframe:', e);
-    }
+    const targetWindow = iframeRef.current?.contentWindow;
+    if (!targetWindow) return;
+    // The framed doc has an opaque origin under the hardened sandbox, so the only
+    // valid targetOrigin for a cross-origin post is the wildcard. The payload is
+    // non-sensitive (a layer id + index) and the listener ignores everything else.
+    targetWindow.postMessage(
+      {
+        type: 'atelier:scroll-to-layer',
+        id: layer.id && !layer.id.startsWith('section-layer-') ? layer.id : null,
+        index,
+      },
+      '*'
+    );
   };
 
   const [dorav, setDorav] = useState<DoravScores | null>(null);
@@ -734,6 +768,12 @@ export default function StudioClientShell({ id }: { id: string }) {
         : convergedHtml,
     [hasDesignSystemOverrides, convergedHtml, effectiveDesignSystem]
   );
+  // P0 (iframe-xss): the bytes actually loaded into the (opaque-origin) preview
+  // iframe. The design HTML is byte-exact (effectiveSrcDoc); we append ONLY the
+  // audited scroll bridge so layer-click scroll keeps working without granting
+  // the frame a same-origin context. Empty in → empty out (no bridge on a blank
+  // canvas, so the byte-exact design invariant holds when there is no design).
+  const framedSrcDoc = useMemo(() => withScrollBridge(effectiveSrcDoc), [effectiveSrcDoc]);
   const handleEditToken = useCallback((path: string, value: TokenValue) => {
     setTokenEdits((prev) => ({ ...prev, [path]: value }));
   }, []);
@@ -1923,11 +1963,17 @@ export default function StudioClientShell({ id }: { id: string }) {
               )}
 
               {/* ── Converged state — render iframe ──────────────────── */}
+              {/* P0 (iframe-xss): sandbox is `allow-scripts` WITHOUT
+                  `allow-same-origin`, so the untrusted agent HTML runs in an
+                  opaque origin and CANNOT read the Firebase ID token in the
+                  parent's localStorage. Layer-scroll crosses the boundary via
+                  postMessage (see handleLayerClick + ATELIER_SCROLL_BOOTSTRAP),
+                  not direct contentDocument reach. */}
               {status === 'converged' && convergedHtml && (
                 <iframe
                   ref={iframeRef}
-                  sandbox="allow-scripts allow-same-origin"
-                  srcDoc={effectiveSrcDoc}
+                  sandbox="allow-scripts"
+                  srcDoc={framedSrcDoc}
                   title="Converged design output"
                   className="w-full h-full border-0"
                 />
@@ -1936,12 +1982,14 @@ export default function StudioClientShell({ id }: { id: string }) {
               {/* ── Degraded state — show output + degradation banner ── */}
               {status === 'degraded' && (
                 <div data-testid="state-degraded" className="w-full h-full relative">
-                  {/* Still render the best available output behind the banner */}
+                  {/* Still render the best available output behind the banner.
+                      P0 (iframe-xss): same hardened sandbox as the converged
+                      iframe — `allow-scripts` only, opaque origin, no token reach. */}
                   {convergedHtml && (
                     <iframe
                       ref={iframeRef}
-                      sandbox="allow-scripts allow-same-origin"
-                      srcDoc={effectiveSrcDoc}
+                      sandbox="allow-scripts"
+                      srcDoc={framedSrcDoc}
                       title="Degraded design output"
                       className="w-full h-full border-0"
                     />

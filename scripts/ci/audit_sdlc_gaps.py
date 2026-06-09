@@ -6,6 +6,8 @@ import re
 import sys
 from pathlib import Path
 
+import yaml
+
 # Add project root to sys.path for imports
 sys.path.append(str(Path.cwd() / "atelier-core/src"))
 
@@ -53,20 +55,70 @@ def audit_rr02_prompt_injection():
     return False
 
 
-def audit_rr03_ci_gates():
-    """Verify CI/CD gates."""
-    print("Auditing RR-03: CI/CD Gates...")
-    path = Path(".github/workflows/ci.yml")
-    if not path.exists():
-        print(f"  Error: {path} not found")
-        return False
+def _collect_run_text(job: dict) -> str:
+    """Concatenate every step's `run:` body in a parsed workflow job."""
+    parts: list[str] = []
+    for step in job.get("steps", []) or []:
+        if isinstance(step, dict) and isinstance(step.get("run"), str):
+            parts.append(step["run"])
+    return "\n".join(parts)
 
-    content = path.read_text()
-    if "security:" in content and "security" in content.split("ci-success:")[1]:
-        print("  PASS: Security job found and required by ci-success gate.")
-        return True
-    print("  FAIL: Security job missing or not required by ci-success.")
-    return False
+
+def _load_workflow(path: Path) -> tuple[dict | None, str | None]:
+    """Parse a workflow file, returning (workflow, error_reason)."""
+    if not path.exists():
+        return None, f"{path} not found"
+    try:
+        return (yaml.safe_load(path.read_text()) or {}), None
+    except yaml.YAMLError as exc:
+        return None, f"ci.yml is not valid YAML: {exc}"
+
+
+def _rr03_failure_reason(path: Path) -> str | None:
+    """Return the first reason the RR-03 gate is unsound, or None if sound.
+
+    The security job is only a real gate if `ci-success` BOTH lists it in
+    `needs` AND its verify step actually inspects `needs.security.result`.
+    Substring-matching the file (the previous tautological check) passes even
+    when the verify loop ignores the security result, so parse the YAML and
+    assert the dependency *and* the result reference explicitly.
+    """
+    workflow, error = _load_workflow(path)
+    if error is not None:
+        return error
+
+    jobs = workflow.get("jobs", {})
+    ci_success = jobs.get("ci-success")
+    if "security" not in jobs:
+        return "no `security` job defined in ci.yml."
+    if not isinstance(ci_success, dict):
+        return "no `ci-success` job defined in ci.yml."
+
+    # `needs` may be a scalar or a list; normalize to a set of job names.
+    needs = ci_success.get("needs", [])
+    if isinstance(needs, str):
+        needs = [needs]
+    if "security" not in set(needs or []):
+        return "ci-success does not list `security` in needs."
+
+    if "needs.security.result" not in _collect_run_text(ci_success):
+        return (
+            "ci-success never inspects needs.security.result — "
+            "a failed security job would not fail the gate."
+        )
+
+    return None
+
+
+def audit_rr03_ci_gates():
+    """Verify CI/CD gates (security job is a real gate, not a tautology)."""
+    print("Auditing RR-03: CI/CD Gates...")
+    reason = _rr03_failure_reason(Path(".github/workflows/ci.yml"))
+    if reason is not None:
+        print(f"  FAIL: {reason}")
+        return False
+    print("  PASS: ci-success requires `security` and gates on needs.security.result.")
+    return True
 
 
 def audit_rr04_sycophancy():
