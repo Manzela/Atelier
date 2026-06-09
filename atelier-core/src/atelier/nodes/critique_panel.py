@@ -286,6 +286,19 @@ if tuple(critic.output_key for critic in _CRITICS) != CRITIQUE_OUTPUT_KEYS:
         "QA critic drift: _CRITICS output_keys do not match CRITIQUE_OUTPUT_KEYS in order"
     )
 
+
+def get_critic_specs() -> tuple[_CriticSpec, ...]:
+    """Return the frozen QA critic roster (read-only single source of truth).
+
+    Public accessor over the module-private :data:`_CRITICS` tuple so the agent
+    registry (and any future introspection surface) can enumerate the critics'
+    identity, role brief, advisory flag, and output key without reaching into a
+    private name or duplicating the data. The tuple and each :class:`_CriticSpec`
+    are frozen, so the returned value is safe to expose directly.
+    """
+    return _CRITICS
+
+
 #: The converged design the critics read from shared session state (the UI
 #: Designer's output_key, AT-020). Critics fall back to the user message when absent.
 _DESIGN_STATE_KEY: Final[str] = "ui_design"

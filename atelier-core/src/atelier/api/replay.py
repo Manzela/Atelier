@@ -486,6 +486,121 @@ def _assemble_payload(
 
 
 # ---------------------------------------------------------------------------
+# Recent-runs list (tenant-scoped) — backs the /v1/platform/optimize surface
+# ---------------------------------------------------------------------------
+
+
+class RecentRun(BaseModel):
+    """One row of the tenant's recent-runs list (a compact replay header).
+
+    A deliberately small projection of the latest record per session — enough
+    for a list row that deep-links to ``/v1/replay/{session_id}`` for the full
+    trajectory. The optimize surface that consumes this does NOT claim spend
+    caps are enforced (RR-05 is not fixed); these are read-only telemetry rows.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    session_id: str
+    ended_at: str
+    outcome: str
+    composite_score: float
+    total_cost_usd: float
+    total_input_tokens: int
+    total_output_tokens: int
+    iteration: int
+    replay_url: str
+
+
+async def list_recent_runs(
+    tenant_id: str,
+    limit: int = 20,
+    *,
+    bq_client: Any | None = None,
+) -> list[RecentRun] | None:
+    """Return the tenant's most recent runs (one row per session), or None.
+
+    Tenant-scoped by construction: ``tenant_id`` is pushed into the SQL WHERE
+    clause as a parameterised value — never interpolated, never client-trusted
+    (the caller takes it from the verified ``FirebaseUser.tenant_id``). One row
+    is emitted per session (the latest trajectory record by ``ts``), newest
+    first, capped at ``limit``.
+
+    Fail-soft (PRD §21): returns ``None`` — never raises, never 500s — when the
+    BigQuery SDK is absent or the query fails, so the optimize surface degrades
+    to ``{"available": false, ...}`` rather than erroring. The returned cost
+    figures are observed telemetry, NOT an enforced budget (RR-05 open).
+
+    Args:
+        tenant_id: The verified tenant id (from the authed JWT).
+        limit: Max number of session rows to return (clamped to [1, 100]).
+        bq_client: Optional pre-constructed BQ client (test injection).
+
+    Returns:
+        A list of :class:`RecentRun` (possibly empty), or ``None`` if BQ is
+        unavailable / the query failed.
+    """
+    try:
+        from google.cloud import bigquery  # noqa: PLC0415  # type: ignore[attr-defined]
+    except ImportError:
+        logger.warning("BigQuery SDK not installed; recent-runs unavailable")
+        return None
+
+    client = bq_client if bq_client is not None else _make_bq_client()
+    if client is None:
+        return None
+
+    capped = max(1, min(int(limit), 100))
+    try:
+        # One row per session: the latest trajectory record (by ts) per
+        # session_id, scoped to the tenant. Parameterised throughout.
+        fqn = _TRAJECTORY_TABLE
+        query = (
+            "SELECT t.* FROM ("  # noqa: S608
+            f"  SELECT *, ROW_NUMBER() OVER ("
+            "    PARTITION BY session_id ORDER BY ts DESC"
+            "  ) AS _rn"
+            f"  FROM `{fqn}` WHERE tenant_id = @tenant_id"
+            ") AS t WHERE t._rn = 1 "
+            "ORDER BY t.ts DESC LIMIT @limit"
+        )
+        params: list[Any] = [
+            bigquery.ScalarQueryParameter("tenant_id", "STRING", tenant_id),
+            bigquery.ScalarQueryParameter("limit", "INT64", capped),
+        ]
+        job_config = bigquery.QueryJobConfig(query_parameters=params)
+        query_job = client.query(query, job_config=job_config)
+        loop = asyncio.get_running_loop()
+        result_rows = await loop.run_in_executor(None, query_job.result)
+        rows = [dict(r) for r in result_rows]
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(
+            "Failed to list recent runs from BQ (fail-soft): %s: %s",
+            type(exc).__name__,
+            sanitize(str(exc)[:200]),
+        )
+        return None
+
+    runs: list[RecentRun] = []
+    for row in rows:
+        session_id = str(row.get("session_id", ""))
+        runs.append(
+            RecentRun(
+                session_id=session_id,
+                ended_at=str(row.get("ended_at", "")),
+                outcome=str(row.get("outcome", "completed")),
+                composite_score=float(row.get("composite_score", 0.0)),
+                total_cost_usd=float(row.get("total_cost_usd", 0.0)),
+                total_input_tokens=int(row.get("total_input_tokens", 0)),
+                total_output_tokens=int(row.get("total_output_tokens", 0)),
+                iteration=int(row.get("iteration", 0)),
+                replay_url=f"/v1/replay/{session_id}",
+            )
+        )
+    return runs
+
+
+# ---------------------------------------------------------------------------
 # API endpoint
 # ---------------------------------------------------------------------------
 

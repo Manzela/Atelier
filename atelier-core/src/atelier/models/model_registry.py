@@ -398,3 +398,84 @@ ALL_REGIONS: frozenset[str] = frozenset(
     for spec in [*JUDGE_MODEL_CONFIG.values(), *NODE_MODEL_CONFIG.values()]
     for region in (spec.region, *spec.fallback_regions)
 )
+
+
+# ---------------------------------------------------------------------------
+# Model catalog — model-id-centric view of TASK_MODEL_ROUTING
+# ---------------------------------------------------------------------------
+
+#: Human-readable display name per GA model id, used by the model catalog and
+#: any dashboard/agent-registry surface. Keyed by the *static* routing target so
+#: the catalog has a stable label even when ``calibrate_model`` resolves a
+#: Remote-Config override at runtime.
+_MODEL_DISPLAY_NAMES: Final[dict[str, str]] = {
+    DEFAULT_GEMINI_MODEL_ID: "Gemini 2.5 Pro",
+    GEMINI_FLASH_MODEL_ID: "Gemini 2.5 Flash",
+    GEMINI_FLASH_LITE_MODEL_ID: "Gemini 2.5 Flash-Lite",
+}
+
+
+@dataclass(frozen=True)
+class ModelCatalogEntry:
+    """One model id grouped with the tasks it serves and its cost envelope.
+
+    A model-id-centric inversion of :data:`TASK_MODEL_ROUTING`: instead of
+    "which model does this task use", this answers "which tasks does this model
+    serve, at what tier, with what lifetime token cap". Consumed by the agent
+    registry and any read-only model/usage dashboard.
+
+    Attributes:
+        model_id: The Vertex AI Gemini model id (the static routing target).
+        display_name: Human-readable label for logging/dashboard.
+        tier: Tier string from :func:`model_tier_for_id` (``pro`` / ``flash`` /
+            ``flash_lite``) — the same key used by :data:`TIER_TOKEN_CAPS`.
+        token_cap: Per-user lifetime token cap for this tier
+            (:data:`TIER_TOKEN_CAPS`).
+        task_types: Sorted tuple of :class:`TaskType` values statically routed
+            to this model id.
+    """
+
+    model_id: str
+    display_name: str
+    tier: str
+    token_cap: int
+    task_types: tuple[TaskType, ...]
+
+
+def get_model_catalog() -> tuple[ModelCatalogEntry, ...]:
+    """Group :data:`TASK_MODEL_ROUTING` by model id (read-only catalog view).
+
+    Single source of truth for "which Gemini models does Atelier route to, and
+    what does each serve". Built purely from :data:`TASK_MODEL_ROUTING` so it
+    can never drift from the routing table; each entry attaches the tier
+    (:func:`model_tier_for_id`), the per-tier lifetime cap
+    (:data:`TIER_TOKEN_CAPS`), and a stable display name.
+
+    Returns:
+        A tuple of :class:`ModelCatalogEntry`, one per distinct model id,
+        ordered by tier cost (Pro, then Flash, then Flash-Lite) and then by
+        model id for determinism.
+    """
+    by_model: dict[str, list[TaskType]] = {}
+    for task_type, model_id in TASK_MODEL_ROUTING.items():
+        by_model.setdefault(model_id, []).append(task_type)
+
+    # Order Pro -> Flash -> Flash-Lite (most to least expensive) for a stable,
+    # human-meaningful catalog ordering.
+    tier_order: dict[str, int] = {"pro": 0, "flash": 1, "flash_lite": 2}
+
+    entries: list[ModelCatalogEntry] = []
+    for model_id, task_types in by_model.items():
+        tier = model_tier_for_id(model_id)
+        entries.append(
+            ModelCatalogEntry(
+                model_id=model_id,
+                display_name=_MODEL_DISPLAY_NAMES.get(model_id, model_id),
+                tier=tier,
+                token_cap=TIER_TOKEN_CAPS[tier],
+                task_types=tuple(sorted(task_types, key=lambda t: t.value)),
+            )
+        )
+
+    entries.sort(key=lambda e: (tier_order.get(e.tier, 99), e.model_id))
+    return tuple(entries)
