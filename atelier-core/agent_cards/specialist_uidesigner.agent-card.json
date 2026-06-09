@@ -1,0 +1,47 @@
+{
+  "name": "UIDesigner",
+  "description": "Generates the high-fidelity, self-contained HTML/CSS for the screen (Stitch-first).",
+  "version": "0.2.0a0",
+  "protocolVersion": "0.3.0",
+  "url": "https://atelier.autonomous-agent.dev/.well-known/agents/specialist_uidesigner/agent-card.json",
+  "provider": {
+    "organization": "Manzela",
+    "url": "https://manzela.com"
+  },
+  "skills": [
+    {
+      "id": "ddlc-ui-design",
+      "name": "UIDesigner",
+      "description": "Generates the high-fidelity, self-contained HTML/CSS for the screen (Stitch-first).",
+      "inputModes": ["text"],
+      "outputModes": ["text"],
+      "tags": ["ui-generation", "html", "css", "stitch-mcp", "wcag-aa"]
+    }
+  ],
+  "protocols": {
+    "a2a": "0.3.0",
+    "adk": "2.1"
+  },
+  "authentication": {
+    "schemes": [
+      {
+        "type": "bearer",
+        "description": "Firebase ID token from Identity Platform"
+      },
+      {
+        "type": "apiKey",
+        "description": "API key for service-to-service communication",
+        "in": "header",
+        "name": "X-Atelier-API-Key"
+      }
+    ]
+  },
+  "capabilities": {
+    "streaming": false,
+    "pushNotifications": false,
+    "stateTransitionHistory": true,
+    "multiTurn": true
+  },
+  "defaultInputModes": ["text"],
+  "defaultOutputModes": ["text"]
+}

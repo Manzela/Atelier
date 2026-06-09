@@ -344,6 +344,7 @@ def create_app() -> FastAPI:  # noqa: C901, PLR0915 — handler-registration fac
     from atelier.api.evaluate import router as evaluate_router  # noqa: PLC0415
     from atelier.api.generate import router as generate_router  # noqa: PLC0415
     from atelier.api.generate import stop_router  # noqa: PLC0415
+    from atelier.api.platform import router as platform_router  # noqa: PLC0415
     from atelier.api.replay import router as replay_router  # noqa: PLC0415
 
     application.include_router(generate_router)
@@ -352,6 +353,7 @@ def create_app() -> FastAPI:  # noqa: C901, PLR0915 — handler-registration fac
     application.include_router(dream_router)
     application.include_router(evaluate_router)  # AT-027: POST /v1/evaluate
     application.include_router(a2a_router)
+    application.include_router(platform_router)  # Phase B: GET /v1/platform/* (read-only)
 
     # --- A2A v1.0 agent card discovery ────────────────────────────────────────
     # Serves the agent card at the canonical well-known path for A2A discovery.
@@ -386,6 +388,63 @@ def create_app() -> FastAPI:  # noqa: C901, PLR0915 — handler-registration fac
 
         return JSONResponse(
             content=card_data,
+            headers={"Cache-Control": "public, max-age=3600"},
+        )
+
+    # --- Per-agent A2A 0.3.0 AgentCard well-known endpoints ──────────────────
+    # Serves GET /.well-known/agents/{agent_id}/agent-card.json for every agent
+    # in the registry.  Cards are generated from the same live registry that
+    # drives /v1/platform/agents — single source, zero drift.
+    #
+    # Fail-soft: an unknown agent_id returns {"available": false, ...} with
+    # HTTP 200 (mirrors the platform.py pattern).  An unexpected card-build
+    # error also returns a soft 200 body (never a 500 or raw exception string).
+    #
+    # GET-only, unauthenticated (A2A discovery is a public well-known surface).
+    # Cache-Control: public, max-age=3600 — same as the top-level card.
+    @application.get(
+        "/.well-known/agents/{agent_id}/agent-card.json",
+        tags=["a2a"],
+        summary="Per-agent A2A 0.3.0 AgentCard",
+        response_model=None,
+    )
+    async def per_agent_card(agent_id: str) -> Response:
+        """Serve the A2A 0.3.0 AgentCard for one specific Atelier agent.
+
+        Cards are generated from the live agent registry (single source of
+        truth — the committed artifacts under agent_cards/ are the drift guard).
+        Unknown agent_id values return a fail-soft ``{"available": false}``
+        body with HTTP 200 rather than a 404, consistent with the platform
+        surface convention.
+        """
+        from atelier.orchestrator.agent_cards import build_agent_cards  # noqa: PLC0415
+        from atelier.orchestrator.agent_registry import get_agent_registry  # noqa: PLC0415
+
+        try:
+            registry = get_agent_registry()
+            cards = build_agent_cards(registry)
+        except Exception as exc:  # noqa: BLE001
+            return JSONResponse(
+                content={
+                    "available": False,
+                    "reason": type(exc).__name__,
+                },
+                headers={"Cache-Control": "no-store"},
+            )
+
+        card = cards.get(agent_id)
+        if card is None:
+            return JSONResponse(
+                content={
+                    "available": False,
+                    "reason": "agent_not_found",
+                    "requested_id": agent_id,
+                },
+                headers={"Cache-Control": "no-store"},
+            )
+
+        return JSONResponse(
+            content=card,
             headers={"Cache-Control": "public, max-age=3600"},
         )
 
