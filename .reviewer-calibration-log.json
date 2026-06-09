@@ -24,5 +24,14 @@
       "files_touched_sha['atelier-dashboard/src/components/legibility/TopologyGraph.tsx']: claimed=07d630960d6e..., re-computed=204c14bd007b...",
       "files_touched_sha['atelier-dashboard/src/components/StitchClientShell.tsx']: claimed=576190d682aa..., re-computed=dd481c5f50b0..."
     ]
+  },
+  {
+    "verdict": "auto-REJECTED",
+    "reasons": [
+      "pytest_exit: claimed=0, re-run=1",
+      "files_touched_sha['atelier-dashboard/src/components/StudioClientShell.tsx']: claimed=5ce80fc2e248..., re-computed=20a16bec8c7d...",
+      "files_touched_sha['atelier-dashboard/src/app/login/page.tsx']: claimed=315f53353f46..., re-computed=c8bb4968eeff...",
+      "files_touched_sha['atelier-dashboard/src/components/StitchClientShell.tsx']: claimed=dd481c5f50b0..., re-computed=6844639bd27b..."
+    ]
   }
 ]

@@ -54,7 +54,7 @@
     "atelier-dashboard/src/components/KanbanCard.tsx": "0964fd0b7cc76e5c1d843efcfd57f39cb376f379c60c102c92a87797ebda7399",
     "atelier-dashboard/src/components/KanbanColumn.tsx": "ef9000a748fe20d62efaf89651391fcaf93c025610c25e5cf41da108a87424a4",
     "atelier-dashboard/src/components/OptimizeArtifactCard.tsx": "bb25d0f9c2ee001472da8c55a13ef26df2ddb7b06c7a4cef1dafae229208572e",
-    "atelier-dashboard/src/components/StudioClientShell.tsx": "5ce80fc2e248c0622bca11e994c02f421fd7757b5fbc0de1c332cd80c232744c",
+    "atelier-dashboard/src/components/StudioClientShell.tsx": "20a16bec8c7def8c7ab46bb2164ce6b02c3aa0605752a805e5fde87dc817c53b",
     "atelier-dashboard/src/components/legibility/AttributionView.tsx": "d157877bd26d827d4fa785ba285c70ba4aea5d4fd5d7b00ff05cca5bc330dec8",
     "atelier-dashboard/src/components/legibility/StopButton.tsx": "182d9d667c2edd14d0690695e1ae4e339a09ec0dcb5ed2cfadb9cec5aa871c53",
     "atelier-dashboard/src/components/legibility/TracePanel.tsx": "272a097d4f3c79e62cc5adefc2f8333ba407dfaa12ceb0b7602032e33da61dfd",
@@ -68,8 +68,8 @@
     "atelier-core/src/atelier/intake/brief_parser.py": "91bd5e5fa6d2fff042cea6b0014e6c2c9a0e945d0ac7f7738f8910ca680e9641",
     "atelier-core/src/atelier/models/model_registry.py": "21fedb1f664c71ed41b62f1846e1ad26f3717e202a368d9a2363c77589707723",
     "atelier-core/src/atelier/nodes/critique_panel.py": "01c3d170e857260e928cd304c6be55f51a138a84e7906c90ede460fa35a8f376",
-    "atelier-dashboard/src/app/login/page.tsx": "315f53353f461c341dc69f141f076934252431b3b91956a9d85d8d77e8a4daea",
+    "atelier-dashboard/src/app/login/page.tsx": "c8bb4968eeff4801d398e5b30f7d91f08a84fa123b1abfee50cb5a55c57df245",
     "atelier-dashboard/src/components/legibility/TopologyGraph.tsx": "204c14bd007bb4279cc4907e5a9e162d84b71e05e11503cce7ba964b0034b666",
-    "atelier-dashboard/src/components/StitchClientShell.tsx": "dd481c5f50b0b77332849956871cf5f15dd683924a27988730d46ed65cb4c2e0"
+    "atelier-dashboard/src/components/StitchClientShell.tsx": "6844639bd27b091c4160b49d085c6a4303f4cd599c5b91ce3ce1771facefda54"
   }
 }
