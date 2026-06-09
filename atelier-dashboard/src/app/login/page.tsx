@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth, googleProvider, isFirebaseConfigured } from '@/lib/firebase';
-import { signInWithPopup } from 'firebase/auth';
+import { signInWithPopup, onIdTokenChanged } from 'firebase/auth';
 import { m, LazyMotion, domAnimation } from 'framer-motion';
 
 export default function LoginPage() {
@@ -58,6 +58,29 @@ export default function LoginPage() {
     }
   }, [router, redirectPath]);
 
+  // Re-sync tenant_id when the Firebase ID token changes (e.g. a token refresh
+  // after the `atelier_tenant` custom claim is provisioned). The server derives
+  // tenant from the SAME claim (`decoded.atelier_tenant or uid`), so the stored
+  // session must track it or the client and server disagree and the board reads
+  // an empty tenant. No-op in the dev-bypass path (no real `auth`).
+  useEffect(() => {
+    if (!auth) return;
+    const unsubscribe = onIdTokenChanged(auth, async (fbUser) => {
+      if (!fbUser) return;
+      const userStr = localStorage.getItem('user');
+      if (!userStr) return; // only resync an established session, never create one
+      try {
+        const { token, claims } = await fbUser.getIdTokenResult();
+        const tenant_id = (claims.atelier_tenant as string | undefined) ?? fbUser.uid;
+        const user = JSON.parse(userStr);
+        localStorage.setItem('user', JSON.stringify({ ...user, token, tenant_id }));
+      } catch {
+        // A token-refresh failure leaves the prior session untouched.
+      }
+    });
+    return unsubscribe;
+  }, []);
+
   const handleGoogleSignIn = async () => {
     setLoading(true);
     setError(null);
@@ -69,7 +92,10 @@ export default function LoginPage() {
         email: 'developer@atelier.dev',
         displayName: 'Local Developer',
         token: 'dev-bypass-token',
-        tenant_id: 't1',
+        // Mirror the server's own dev/emulator default — a real, non-'t1' tenant
+        // value (the prod server derives `atelier_tenant or uid`; 't1' is a stale
+        // fixture id that maps to a dead board for actual users).
+        tenant_id: 'dev-tenant',
       };
       localStorage.setItem('user', JSON.stringify(mockUser));
       setLoading(false);
@@ -86,13 +112,18 @@ export default function LoginPage() {
         return;
       }
       const result = await signInWithPopup(auth, googleProvider);
-      const token = await result.user.getIdToken();
+      // Derive tenant from the verified token's claims, matching the server
+      // EXACTLY (atelier-core auth/firebase.py: `decoded.atelier_tenant or uid`).
+      // Persisting a hardcoded 't1' here made the client disagree with the
+      // JWT-derived tenant on the server, dead-ending every real user's board.
+      const { token, claims } = await result.user.getIdTokenResult();
+      const tenant_id = (claims.atelier_tenant as string | undefined) ?? result.user.uid;
       const userPayload = {
         uid: result.user.uid,
         email: result.user.email,
         displayName: result.user.displayName,
         token: token,
-        tenant_id: 't1',
+        tenant_id: tenant_id,
       };
       localStorage.setItem('user', JSON.stringify(userPayload));
       router.push(redirectPath);

@@ -134,10 +134,28 @@ service cloud.firestore {
              );
       }
 
-      // Any other tenant-scoped subcollection inherits tenant-member access.
-      match /{document=**} {
-        allow read, write: if isTenantMember(tenantId);
+      // ---- Persisted design systems (AT design_system_persister) ----------
+      // /tenants/{tenantId}/design_systems/{docId}  (incl. the "_current" pointer)
+      //   Written ONLY by the server (firebase-admin Admin SDK, which bypasses
+      //   these rules) in design_system_persister.py; the dashboard READS the
+      //   current design system. Same trust boundary as the AT-095 counter:
+      //   tenant-member READ, server-WRITE-only. A client write must be denied
+      //   so a tenant member cannot forge/replace another run's design system.
+      match /design_systems/{docId} {
+        allow read: if isTenantMember(tenantId);
+        allow write: if false;
       }
+
+      // NOTE: there is intentionally NO `match /{document=**}` catch-all under
+      // /tenants/{tenantId}. A recursive wildcard here would re-grant
+      // unconstrained read+write to every tenant-scoped doc — including
+      // /runs/{runId} — and Firestore has NO deny-override: because access is
+      // granted when ANY matching allow is true, that wildcard would OVERRIDE
+      // the runs/ forge-guard above (approved_by self-stamp + signoff lifecycle)
+      // and let a member forge another user's approval or set an arbitrary
+      // signoff_status. Every real tenant subcollection is enumerated above with
+      // its own constraints; anything not enumerated falls through to the
+      // deny-by-default floor below.
     }
 
     // ---- Deny-by-default floor ----------------------------------------

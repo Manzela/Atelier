@@ -19,10 +19,7 @@ import {
   Check,
   Copy,
   Menu,
-  Cloud,
-  CreditCard,
   LayoutTemplate,
-  History,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { onIdTokenChanged } from 'firebase/auth';
@@ -30,7 +27,7 @@ import { auth } from '@/lib/firebase';
 import { prettifyProjectName } from '@/lib/project-utils';
 
 type SidebarMode = 'stitch' | 'gcp';
-type DashboardView = 'generate' | 'iam' | 'billing' | 'models';
+type DashboardView = 'generate';
 
 interface Project {
   id: string;
@@ -337,25 +334,6 @@ export default function StitchClientShell() {
                   >
                     <LayoutTemplate size={16} className="text-[var(--g-info)]" /> Atelier Studio
                   </button>
-                  <div className="h-px bg-[var(--g-outline)] my-2" />
-                  <button
-                    onClick={() => setView('iam')}
-                    className={`flex items-center gap-3 text-sm py-2 px-3 rounded-md transition-colors w-full text-left ${view === 'iam' ? 'bg-[var(--g-outline)] text-white font-medium' : 'text-[var(--g-text)] hover:bg-[var(--g-surface-hover)]'}`}
-                  >
-                    <Cloud size={16} /> IAM &amp; Admin
-                  </button>
-                  <button
-                    onClick={() => setView('billing')}
-                    className={`flex items-center gap-3 text-sm py-2 px-3 rounded-md transition-colors w-full text-left ${view === 'billing' ? 'bg-[var(--g-outline)] text-white font-medium' : 'text-[var(--g-text)] hover:bg-[var(--g-surface-hover)]'}`}
-                  >
-                    <CreditCard size={16} /> Quotas &amp; Billing
-                  </button>
-                  <button
-                    onClick={() => setView('models')}
-                    className={`flex items-center gap-3 text-sm py-2 px-3 rounded-md transition-colors w-full text-left ${view === 'models' ? 'bg-[var(--g-outline)] text-white font-medium' : 'text-[var(--g-text)] hover:bg-[var(--g-surface-hover)]'}`}
-                  >
-                    <History size={16} /> Model Registry
-                  </button>
                 </m.div>
               )}
             </AnimatePresence>
@@ -482,34 +460,6 @@ export default function StitchClientShell() {
                         >
                           <LayoutTemplate size={16} className="text-[var(--g-info)]" /> Atelier
                           Studio
-                        </button>
-                        <div className="h-px bg-[var(--g-outline)] my-2" />
-                        <button
-                          onClick={() => {
-                            setView('iam');
-                            setIsMobileSidebarOpen(false);
-                          }}
-                          className={`flex items-center gap-3 text-sm py-2 px-3 rounded-md transition-colors w-full text-left ${view === 'iam' ? 'bg-[var(--g-outline)] text-white font-medium' : 'text-[var(--g-text)] hover:bg-[var(--g-surface-hover)]'}`}
-                        >
-                          <Cloud size={16} /> IAM &amp; Admin
-                        </button>
-                        <button
-                          onClick={() => {
-                            setView('billing');
-                            setIsMobileSidebarOpen(false);
-                          }}
-                          className={`flex items-center gap-3 text-sm py-2 px-3 rounded-md transition-colors w-full text-left ${view === 'billing' ? 'bg-[var(--g-outline)] text-white font-medium' : 'text-[var(--g-text)] hover:bg-[var(--g-surface-hover)]'}`}
-                        >
-                          <CreditCard size={16} /> Quotas &amp; Billing
-                        </button>
-                        <button
-                          onClick={() => {
-                            setView('models');
-                            setIsMobileSidebarOpen(false);
-                          }}
-                          className={`flex items-center gap-3 text-sm py-2 px-3 rounded-md transition-colors w-full text-left ${view === 'models' ? 'bg-[var(--g-outline)] text-white font-medium' : 'text-[var(--g-text)] hover:bg-[var(--g-surface-hover)]'}`}
-                        >
-                          <History size={16} /> Model Registry
                         </button>
                       </m.div>
                     )}
@@ -720,281 +670,6 @@ export default function StitchClientShell() {
                   </div>
                 </m.div>
               </>
-            )}
-
-            {view === 'iam' && (
-              <div className="w-full max-w-4xl p-6 bg-[var(--g-surface)] rounded-lg border border-[var(--g-outline)] shadow-xl text-left">
-                <div className="flex justify-between items-center mb-6">
-                  <div>
-                    <h2 className="text-2xl font-semibold text-white flex items-center gap-2">
-                      <Cloud className="text-[var(--g-info)]" size={24} /> IAM &amp; Admin
-                    </h2>
-                    <p className="text-sm text-[var(--g-text-muted)] mt-1">
-                      Manage organization workspace members, access controls, and developer API
-                      credentials.
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setView('generate')}
-                    className="px-4 py-2 text-xs font-semibold rounded bg-[var(--g-outline)] hover:bg-[var(--g-surface-hover)] text-white transition-colors"
-                  >
-                    Back to Studio
-                  </button>
-                </div>
-
-                <div className="mb-8">
-                  <h3 className="text-sm font-semibold text-white mb-4">Workspace Members</h3>
-                  <div className="overflow-hidden rounded-lg border border-[var(--g-outline)] bg-black/20">
-                    <table className="w-full border-collapse text-left text-xs">
-                      <thead>
-                        <tr className="border-b border-[var(--g-outline)] bg-[var(--g-surface-hover)]/10 text-[var(--g-text-muted)]">
-                          <th className="px-4 py-3">Member</th>
-                          <th className="px-4 py-3">Role</th>
-                          <th className="px-4 py-3">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[var(--g-outline)] text-[var(--g-text)]">
-                        <tr>
-                          <td className="px-4 py-3.5 flex items-center gap-3">
-                            <div className="w-7 h-7 rounded-full bg-[var(--g-primary-blue)] flex items-center justify-center text-[10px] font-bold text-white">
-                              DM
-                            </div>
-                            <div>
-                              <div className="font-medium text-white">
-                                {user.displayName || 'Daniel Manzela'}
-                              </div>
-                              <div className="text-[10px] text-[var(--g-text-muted)]">
-                                {user.email}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3.5 font-medium text-[var(--g-info)]">
-                            Organization Owner
-                          </td>
-                          <td className="px-4 py-3.5">
-                            <span className="px-2 py-0.5 rounded-full text-[9px] bg-[var(--g-success)]/20 text-[var(--g-success)] border border-[var(--g-success)]/30">
-                              Active
-                            </span>
-                          </td>
-                        </tr>
-                        <tr>
-                          <td className="px-4 py-3.5 flex items-center gap-3">
-                            <div className="w-7 h-7 rounded-full bg-purple-600 flex items-center justify-center text-[10px] font-bold text-white">
-                              AA
-                            </div>
-                            <div>
-                              <div className="font-medium text-white">Atelier Agent</div>
-                              <div className="text-[10px] text-[var(--g-text-muted)]">
-                                agent@atelier.autonomous-agent.dev
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3.5">Autonomous Specialist</td>
-                          <td className="px-4 py-3.5">
-                            <span className="px-2 py-0.5 rounded-full text-[9px] bg-[var(--g-success)]/20 text-[var(--g-success)] border border-[var(--g-success)]/30">
-                              Active
-                            </span>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-sm font-semibold text-white mb-4">
-                    Workspace API Credentials
-                  </h3>
-                  <div className="p-4 rounded-lg border border-[var(--g-outline)] bg-black/20 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <div className="flex-1">
-                      <div className="text-xs font-semibold text-white">
-                        Production Agent API Key
-                      </div>
-                      <div className="text-xs font-mono text-[var(--g-text-muted)] mt-1 select-all">
-                        at_live_••••••••••••••••••••••••••••••••3a5f9d
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(`at_live_${user.token.substring(0, 32)}`);
-                        alert('API credential copied to clipboard.');
-                      }}
-                      className="px-3.5 py-1.5 text-xs font-medium rounded border border-[var(--g-outline)] hover:bg-[var(--g-surface-hover)] text-[var(--g-text)] transition-colors"
-                    >
-                      Copy Key
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {view === 'billing' && (
-              <div className="w-full max-w-4xl p-6 bg-[var(--g-surface)] rounded-lg border border-[var(--g-outline)] shadow-xl text-left">
-                <div className="flex justify-between items-center mb-6">
-                  <div>
-                    <h2 className="text-2xl font-semibold text-white flex items-center gap-2">
-                      <CreditCard className="text-[var(--g-info)]" size={24} /> Quotas &amp; Billing
-                    </h2>
-                    <p className="text-sm text-[var(--g-text-muted)] mt-1">
-                      Monitor your organization token allocation, real-time consumption quotas, and
-                      billing status.
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setView('generate')}
-                    className="px-4 py-2 text-xs font-semibold rounded bg-[var(--g-outline)] hover:bg-[var(--g-surface-hover)] text-white transition-colors"
-                  >
-                    Back to Studio
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                  <div className="p-4 rounded-lg border border-[var(--g-outline)] bg-black/20">
-                    <h3 className="text-xs text-[var(--g-text-muted)] font-semibold mb-1">
-                      Lifetime Token Cap
-                    </h3>
-                    <div className="text-2xl font-bold text-white font-mono mt-2">5,000,000</div>
-                    <div className="w-full h-1.5 rounded-full bg-[var(--g-outline)]/20 overflow-hidden mt-3">
-                      <div
-                        className="h-full rounded-full bg-[var(--g-success)]"
-                        style={{ width: '4%' }}
-                      />
-                    </div>
-                    <p className="text-[10px] text-[var(--g-text-muted)] mt-2">
-                      Approximately 200,000 tokens consumed (4.0%)
-                    </p>
-                  </div>
-
-                  <div className="p-4 rounded-lg border border-[var(--g-outline)] bg-black/20">
-                    <h3 className="text-xs text-[var(--g-text-muted)] font-semibold mb-1">
-                      Rate Limits (Quota)
-                    </h3>
-                    <div className="text-lg font-bold text-white font-mono mt-2">1,000 RPM</div>
-                    <p className="text-[10px] text-[var(--g-text-muted)] mt-1">
-                      Gemini 2.5 Pro: 1,000 requests / min
-                    </p>
-                    <div className="text-lg font-bold text-white font-mono mt-1">2,000 RPM</div>
-                    <p className="text-[10px] text-[var(--g-text-muted)] mt-1">
-                      Gemini 2.5 Flash: 2,000 requests / min
-                    </p>
-                  </div>
-
-                  <div className="p-4 rounded-lg border border-[var(--g-info)]/30 bg-[var(--g-info)]/5 relative overflow-hidden">
-                    <div className="absolute right-0 top-0 w-16 h-16 bg-[var(--g-info)]/10 rounded-full blur-xl pointer-events-none" />
-                    <h3 className="text-xs text-[var(--g-info)] font-semibold mb-1">Active Plan</h3>
-                    <div className="text-xl font-bold text-white mt-2">Enterprise Plus</div>
-                    <p className="text-[10px] text-[var(--g-text-muted)] mt-1">
-                      Tier-1 GenAI Workspace
-                    </p>
-                    <div className="mt-4 flex items-center gap-1 text-[10px] text-[var(--g-success)] font-semibold">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[var(--g-success)]" /> Account in
-                      Good Standing
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-5 rounded-lg border border-[var(--g-outline)] bg-black/30 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <div>
-                    <h4 className="text-sm font-semibold text-white">Payment Method</h4>
-                    <p className="text-xs text-[var(--g-text-muted)] mt-1">
-                      Default payment card for API overages.
-                    </p>
-                    <div className="flex items-center gap-2 mt-3 text-xs text-[var(--g-text)]">
-                      <div className="px-2 py-0.5 bg-[var(--g-outline)]/20 rounded text-[10px] font-bold font-mono tracking-widest text-white">
-                        VISA
-                      </div>
-                      <span className="font-mono">•••• •••• •••• 5542</span>
-                      <span className="text-[var(--g-text-muted)]">Exp 08/29</span>
-                    </div>
-                  </div>
-                  <button className="px-4 py-2 text-xs font-semibold rounded border border-[var(--g-outline)] hover:bg-[var(--g-surface-hover)] text-[var(--g-text)] transition-colors">
-                    Manage Invoices
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {view === 'models' && (
-              <div className="w-full max-w-4xl p-6 bg-[var(--g-surface)] rounded-lg border border-[var(--g-outline)] shadow-xl text-left">
-                <div className="flex justify-between items-center mb-6">
-                  <div>
-                    <h2 className="text-2xl font-semibold text-white flex items-center gap-2">
-                      <History className="text-[var(--g-info)]" size={24} /> Model Registry
-                    </h2>
-                    <p className="text-sm text-[var(--g-text-muted)] mt-1">
-                      Overview of calibrated Large Language Models deployed across the Atelier
-                      specialist pipeline.
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setView('generate')}
-                    className="px-4 py-2 text-xs font-semibold rounded bg-[var(--g-outline)] hover:bg-[var(--g-surface-hover)] text-white transition-colors"
-                  >
-                    Back to Studio
-                  </button>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="p-4 rounded-lg border border-[var(--g-outline)] bg-black/20 flex justify-between items-start gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-white">Gemini 2.5 Pro</span>
-                        <span className="px-2 py-0.5 rounded-full text-[9px] bg-[var(--g-info)]/20 text-[var(--g-info)] border border-[var(--g-info)]/30 font-semibold font-mono">
-                          Calibrated (Pro)
-                        </span>
-                      </div>
-                      <p className="text-xs text-[var(--g-text-muted)] mt-2 leading-relaxed">
-                        Optimal model for high-complexity structural reasoning, UX research,
-                        consensus gatekeeping, and multi-variable critique audits.
-                      </p>
-                    </div>
-                    <div className="text-right text-xs shrink-0">
-                      <div className="text-[var(--g-text-muted)]">Rate Limit</div>
-                      <div className="font-semibold text-white font-mono mt-0.5">1,000 RPM</div>
-                    </div>
-                  </div>
-
-                  <div className="p-4 rounded-lg border border-[var(--g-outline)] bg-black/20 flex justify-between items-start gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-white">Gemini 2.5 Flash</span>
-                        <span className="px-2 py-0.5 rounded-full text-[9px] bg-[var(--g-success)]/20 text-[var(--g-success)] border border-[var(--g-success)]/30 font-semibold font-mono">
-                          Calibrated (Flash)
-                        </span>
-                      </div>
-                      <p className="text-xs text-[var(--g-text-muted)] mt-2 leading-relaxed">
-                        Highly responsive and latency-optimized model deployed for HTML canvas
-                        candidate design, layout variations, and rapid CSS structure fixes.
-                      </p>
-                    </div>
-                    <div className="text-right text-xs shrink-0">
-                      <div className="text-[var(--g-text-muted)]">Rate Limit</div>
-                      <div className="font-semibold text-white font-mono mt-0.5">2,000 RPM</div>
-                    </div>
-                  </div>
-
-                  <div className="p-4 rounded-lg border border-[var(--g-outline)] bg-black/20 flex justify-between items-start gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-white">
-                          Gemini 2.5 Flash-Lite
-                        </span>
-                        <span className="px-2 py-0.5 rounded-full text-[9px] bg-purple-500/20 text-purple-400 border border-purple-500/30 font-semibold font-mono">
-                          Calibrated (Lite)
-                        </span>
-                      </div>
-                      <p className="text-xs text-[var(--g-text-muted)] mt-2 leading-relaxed">
-                        Ultra-low latency inference engine configured for cheap style token
-                        extraction, semantic parsing, and DOM text alignments.
-                      </p>
-                    </div>
-                    <div className="text-right text-xs shrink-0">
-                      <div className="text-[var(--g-text-muted)]">Rate Limit</div>
-                      <div className="font-semibold text-white font-mono mt-0.5">4,000 RPM</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
             )}
           </div>
         </main>
