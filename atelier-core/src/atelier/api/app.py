@@ -100,6 +100,14 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
     init_tracing()
 
+    # Warm the Firebase Remote Config model-routing cache once, here. The
+    # hot-path calibrate_model() then reads it synchronously — no per-lookup
+    # network call. Fully fail-soft: a Remote Config outage leaves the pinned
+    # TASK_MODEL_ROUTING table in effect and never blocks startup.
+    from atelier.models.model_registry import warm_remote_config_routes  # noqa: PLC0415
+
+    await warm_remote_config_routes()
+
     yield
     await logger.ainfo("atelier.shutdown")
 
