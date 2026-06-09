@@ -150,7 +150,7 @@ export default function LoginPage() {
             <m.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
-              className="mb-6 p-4 rounded-lg bg-red-900/20 border border-red-500/30 text-xs text-red-400"
+              className="mb-6 p-4 rounded-lg bg-[var(--g-error)]/20 border border-[var(--g-error)]/30 text-xs text-[var(--g-error)]"
             >
               {error}
             </m.div>
@@ -161,7 +161,7 @@ export default function LoginPage() {
               id="google-signin-btn"
               onClick={handleGoogleSignIn}
               disabled={loading}
-              className="w-full py-3.5 px-4 rounded-xl bg-white hover:bg-gray-100 text-gray-900 font-medium text-[15px] transition-all flex items-center justify-center gap-3 cursor-pointer shadow-md disabled:opacity-50 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
+              className="w-full py-3.5 px-4 rounded-lg bg-white hover:bg-[var(--g-surface-hover)] text-gray-900 font-medium text-[15px] transition-all flex items-center justify-center gap-3 cursor-pointer shadow-md disabled:opacity-50 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24" width="24" height="24">
                 <path

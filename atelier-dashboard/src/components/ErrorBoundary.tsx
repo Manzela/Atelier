@@ -34,7 +34,7 @@ export default class ErrorBoundary extends Component<Props, State> {
       return (
         <div className="flex items-center justify-center h-screen w-screen bg-[var(--g-bg)] text-[var(--g-text)]">
           <div className="g-card p-8 max-w-md text-center">
-            <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-4">
+            <div className="w-12 h-12 rounded-full bg-[var(--g-error)]/20 flex items-center justify-center mx-auto mb-4">
               <span className="text-2xl">⚠</span>
             </div>
             <h2 className="text-lg font-medium text-white mb-2">Something went wrong</h2>

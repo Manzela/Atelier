@@ -42,30 +42,41 @@ function CriterionRow({ c }: { c: CriterionVerdict }) {
       data-testid={`attribution-criterion-${c.criterion_id}`}
       data-verdict={c.verdict ? 'pass' : 'fail'}
       className={`rounded border px-2.5 py-2 ${
-        c.verdict ? 'border-emerald-500/40 bg-emerald-950/20' : 'border-red-500/50 bg-red-950/25'
+        c.verdict
+          ? 'border-[var(--g-success)]/40 bg-[var(--g-success)]/10'
+          : 'border-[var(--g-error)]/50 bg-[var(--g-error)]/10'
       }`}
     >
       <div className="flex items-start gap-2">
         {c.verdict ? (
-          <CheckCircle2 size={14} className="mt-0.5 shrink-0 text-emerald-400" aria-hidden="true" />
+          <CheckCircle2
+            size={14}
+            className="mt-0.5 shrink-0 text-[var(--g-success)]"
+            aria-hidden="true"
+          />
         ) : (
-          <XCircle size={14} className="mt-0.5 shrink-0 text-red-400" aria-hidden="true" />
+          <XCircle size={14} className="mt-0.5 shrink-0 text-[var(--g-error)]" aria-hidden="true" />
         )}
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-medium text-gray-200 truncate" title={c.criterion_id}>
+            <span
+              className="text-[11px] font-medium text-[var(--g-text)] truncate"
+              title={c.criterion_id}
+            >
               {c.target}
             </span>
             <span
               className={`shrink-0 text-[9px] font-mono uppercase tracking-wider ${
-                c.verdict ? 'text-emerald-400' : 'text-red-400'
+                c.verdict ? 'text-[var(--g-success)]' : 'text-[var(--g-error)]'
               }`}
             >
               {c.verdict ? 'pass' : 'fail'}
             </span>
           </div>
-          <p className="mt-0.5 text-[10px] text-gray-400 break-words">{c.evidence_ref}</p>
-          <span className="mt-1 inline-block rounded-full border border-[var(--g-outline)] px-1.5 py-0.5 text-[9px] font-mono text-gray-500">
+          <p className="mt-0.5 text-[10px] text-[var(--g-text-muted)] break-words">
+            {c.evidence_ref}
+          </p>
+          <span className="mt-1 inline-block rounded-full border border-[var(--g-outline)] px-1.5 py-0.5 text-[9px] font-mono text-[var(--g-text-muted)]">
             {sourceLabel(c.source)}
             {c.source.startsWith('standard:') ? `: ${c.source.slice('standard:'.length)}` : ''}
           </span>
@@ -85,7 +96,7 @@ export default function AttributionView({ runVerdict, onAmend }: AttributionView
       <div className="h-px bg-[var(--g-outline)] my-4" />
       <h4
         id="attribution-heading"
-        className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider font-semibold text-gray-500 mb-3"
+        className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider font-semibold text-[var(--g-text-muted)] mb-3"
       >
         <ClipboardCheck size={12} className="text-[var(--g-info)]" aria-hidden="true" />
         Acceptance Verdict
@@ -95,8 +106,8 @@ export default function AttributionView({ runVerdict, onAmend }: AttributionView
             data-complete={runVerdict.complete ? 'true' : 'false'}
             className={`ml-auto px-1.5 py-0.5 rounded text-[9px] font-mono border ${
               runVerdict.complete
-                ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                ? 'bg-[var(--g-success)]/20 text-[var(--g-success)] border-[var(--g-success)]/30'
+                : 'bg-[var(--g-warning)]/20 text-[var(--g-warning)] border-[var(--g-warning)]/30'
             }`}
           >
             {runVerdict.complete ? 'COMPLETE' : 'INCOMPLETE'}
@@ -108,9 +119,13 @@ export default function AttributionView({ runVerdict, onAmend }: AttributionView
         <div
           data-testid="attribution-unavailable"
           role="status"
-          className="flex items-start gap-2 rounded border border-[var(--g-outline)] bg-black/20 px-2.5 py-2 text-gray-400"
+          className="flex items-start gap-2 rounded border border-[var(--g-outline)] bg-black/20 px-2.5 py-2 text-[var(--g-text-muted)]"
         >
-          <AlertCircle size={14} className="mt-0.5 shrink-0 text-gray-500" aria-hidden="true" />
+          <AlertCircle
+            size={14}
+            className="mt-0.5 shrink-0 text-[var(--g-text-muted)]"
+            aria-hidden="true"
+          />
           <span className="text-[10px]">
             Acceptance verdict unavailable for this run — the run-oracle could not evaluate the
             surfaces.

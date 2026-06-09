@@ -263,7 +263,10 @@ function DesignSystemTokenRow({
           aria-hidden="true"
         />
       )}
-      <span className="text-[10px] font-mono text-gray-400 flex-1 truncate" title={token.path}>
+      <span
+        className="text-[10px] font-mono text-[var(--g-text-muted)] flex-1 truncate"
+        title={token.path}
+      >
         {token.path}
       </span>
       {isColor ? (
@@ -281,7 +284,7 @@ function DesignSystemTokenRow({
           type="text"
           value={display}
           onChange={(e) => onEdit(token.path, e.target.value)}
-          className="shrink-0 w-24 text-[10px] font-mono text-gray-200 bg-black/30 border border-[var(--g-outline)] rounded px-1.5 py-0.5"
+          className="shrink-0 w-24 text-[10px] font-mono text-[var(--g-text)] bg-black/30 border border-[var(--g-outline)] rounded px-1.5 py-0.5"
           aria-label={`Edit ${token.path}`}
         />
       )}
@@ -315,7 +318,9 @@ function GeneratedControlRow({
       >
         <div className="flex justify-between items-center mb-1.5">
           <span className="text-[11px] text-[var(--g-info)] font-medium">{control.label}</span>
-          <span className="text-[10px] font-mono text-gray-400">{Math.round(hue)}&deg;</span>
+          <span className="text-[10px] font-mono text-[var(--g-text-muted)]">
+            {Math.round(hue)}&deg;
+          </span>
         </div>
         <input
           data-testid={`ds-generated-input-${control.id}`}
@@ -343,7 +348,9 @@ function GeneratedControlRow({
     >
       <div className="flex justify-between items-center mb-1.5">
         <span className="text-[11px] text-[var(--g-info)] font-medium">{control.label}</span>
-        <span className="text-[10px] font-mono text-gray-400">{scale.toFixed(2)}&times;</span>
+        <span className="text-[10px] font-mono text-[var(--g-text-muted)]">
+          {scale.toFixed(2)}&times;
+        </span>
       </div>
       <input
         data-testid={`ds-generated-input-${control.id}`}
@@ -376,7 +383,7 @@ function DesignSystemPanel({
   return (
     <div data-testid="ds-panel">
       <div className="h-px bg-[var(--g-outline)] my-4" />
-      <h4 className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider font-semibold text-gray-500 mb-3">
+      <h4 className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider font-semibold text-[var(--g-text-muted)] mb-3">
         <Palette size={12} className="text-[var(--g-info)]" />
         Design System
         <span
@@ -1101,14 +1108,14 @@ export default function StudioClientShell({ id }: { id: string }) {
     <div className="flex flex-col h-full">
       <div className="p-3 border-b border-[var(--g-outline)] flex items-center justify-between lg:justify-start gap-2">
         <div className="flex items-center gap-2">
-          <Layout size={14} className="text-gray-400" />
-          <span className="text-xs font-semibold text-gray-300 uppercase tracking-wider">
+          <Layout size={14} className="text-[var(--g-text-muted)]" />
+          <span className="text-xs font-semibold text-[var(--g-text)] uppercase tracking-wider">
             Layers
           </span>
         </div>
         <button
           onClick={() => setIsLeftSidebarOpen(false)}
-          className="lg:hidden p-1 hover:bg-white/10 rounded text-gray-400 hover:text-white transition-colors"
+          className="lg:hidden p-1 hover:bg-[var(--g-outline)]/20 rounded text-[var(--g-text-muted)] hover:text-white transition-colors"
           aria-label="Close layers panel"
         >
           <X size={14} />
@@ -1122,17 +1129,19 @@ export default function StudioClientShell({ id }: { id: string }) {
               handleLayerClick(layer, i);
               setIsLeftSidebarOpen(false);
             }}
-            className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-[var(--g-surface-hover)] text-xs text-gray-400 cursor-pointer group transition-colors"
+            className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-[var(--g-surface-hover)] text-xs text-[var(--g-text-muted)] cursor-pointer group transition-colors"
           >
             <Box
               size={14}
-              className="text-gray-500 group-hover:text-[var(--g-info)] transition-colors"
+              className="text-[var(--g-text-muted)] group-hover:text-[var(--g-info)] transition-colors"
             />
             <span className="truncate">{layer.name}</span>
           </div>
         ))}
         {layers.length === 0 && (
-          <div className="p-3 text-xs text-gray-500 italic text-center">No layers generated</div>
+          <div className="p-3 text-xs text-[var(--g-text-muted)] italic text-center">
+            No layers generated
+          </div>
         )}
       </div>
     </div>
@@ -1156,7 +1165,7 @@ export default function StudioClientShell({ id }: { id: string }) {
         </div>
         <button
           onClick={() => setIsRightSidebarOpen(false)}
-          className="xl:hidden p-1 hover:bg-white/10 rounded text-gray-400 hover:text-white transition-colors"
+          className="xl:hidden p-1 hover:bg-[var(--g-outline)]/20 rounded text-[var(--g-text-muted)] hover:text-white transition-colors"
           aria-label="Close settings panel"
         >
           <X size={16} />
@@ -1167,7 +1176,7 @@ export default function StudioClientShell({ id }: { id: string }) {
         <div className="space-y-4">
           <div>
             <div className="flex justify-between text-xs mb-1.5">
-              <span className="text-gray-400">Temperature</span>
+              <span className="text-[var(--g-text-muted)]">Temperature</span>
               <span className="text-white font-mono">{temperature.toFixed(2)}</span>
             </div>
             <input
@@ -1183,7 +1192,7 @@ export default function StudioClientShell({ id }: { id: string }) {
           </div>
           <div>
             <div className="flex justify-between text-xs mb-1.5">
-              <span className="text-gray-400">Top-K</span>
+              <span className="text-[var(--g-text-muted)]">Top-K</span>
               <span className="text-white font-mono">{topK}</span>
             </div>
             <input
@@ -1198,7 +1207,7 @@ export default function StudioClientShell({ id }: { id: string }) {
           </div>
           <div>
             <div className="flex justify-between text-xs mb-1.5">
-              <span className="text-gray-400">Max Tokens</span>
+              <span className="text-[var(--g-text-muted)]">Max Tokens</span>
               <span className="text-white font-mono">{maxTokens}</span>
             </div>
             <input
@@ -1218,7 +1227,7 @@ export default function StudioClientShell({ id }: { id: string }) {
 
         {/* AT-093: D-O-R-A-V Scorecard — animates per-iteration during generation */}
         <div data-testid="dorav-scorecard" data-iteration={currentIteration ?? ''}>
-          <h4 className="text-[11px] uppercase tracking-wider font-semibold text-gray-500 mb-3">
+          <h4 className="text-[11px] uppercase tracking-wider font-semibold text-[var(--g-text-muted)] mb-3">
             D-O-R-A-V Scorecard
             {currentIteration != null && (
               <span className="ml-2 px-1.5 py-0.5 rounded text-[9px] bg-[var(--g-info)]/20 text-[var(--g-info)] font-mono border border-[var(--g-info)]/30 align-middle">
@@ -1228,9 +1237,9 @@ export default function StudioClientShell({ id }: { id: string }) {
           </h4>
           {/* Composite headline */}
           <div className="bg-black/40 p-3 rounded border border-[var(--g-info)]/30 flex justify-between items-center mb-3">
-            <span className="text-xs text-gray-300 font-semibold">Composite</span>
+            <span className="text-xs text-[var(--g-text)] font-semibold">Composite</span>
             <span
-              className={`text-sm font-mono font-bold ${liveDorav?.composite != null ? 'text-[var(--g-info)]' : 'text-gray-600'}`}
+              className={`text-sm font-mono font-bold ${liveDorav?.composite != null ? 'text-[var(--g-info)]' : 'text-[var(--g-text-muted)]'}`}
             >
               {liveDorav?.composite != null ? (
                 <AnimatedScoreValue value={liveDorav.composite} />
@@ -1255,20 +1264,22 @@ export default function StudioClientShell({ id }: { id: string }) {
                   }`}
                 >
                   <span
-                    className={`text-xs ${isFailing ? 'text-amber-300 font-semibold' : 'text-gray-400'}`}
+                    className={`text-xs ${isFailing ? 'text-amber-300 font-semibold' : 'text-[var(--g-text-muted)]'}`}
                   >
                     {label}
                     {isFailing && (
-                      <span className="ml-1 text-[9px] text-amber-400 font-mono">↓ low</span>
+                      <span className="ml-1 text-[9px] text-[var(--g-warning)] font-mono">
+                        ↓ low
+                      </span>
                     )}
                   </span>
                   <span
                     className={`text-xs font-mono font-bold ${
                       isFailing
-                        ? 'text-amber-400'
+                        ? 'text-[var(--g-warning)]'
                         : val != null
-                          ? 'text-emerald-400'
-                          : 'text-gray-600'
+                          ? 'text-[var(--g-success)]'
+                          : 'text-[var(--g-text-muted)]'
                     }`}
                   >
                     {val != null ? <AnimatedScoreValue value={val} /> : '—'}
@@ -1314,7 +1325,12 @@ export default function StudioClientShell({ id }: { id: string }) {
           const cumulative = tokenUsage?.cumulative_user_tokens ?? 0;
           const pct = Math.min(100, (cumulative / TOKEN_CAP) * 100);
           const remaining = TOKEN_CAP - cumulative;
-          const barColor = pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-amber-500' : 'bg-emerald-500';
+          const barColor =
+            pct >= 90
+              ? 'bg-[var(--g-error)]'
+              : pct >= 70
+                ? 'bg-[var(--g-warning)]'
+                : 'bg-[var(--g-success)]';
           return (
             <>
               {/* Soft warning banner — dismissible, non-blocking, shown once */}
@@ -1330,7 +1346,7 @@ export default function StudioClientShell({ id }: { id: string }) {
                     <span>You&apos;re approaching this account&apos;s usage limit (90%).</span>
                     <button
                       onClick={() => setSoftWarnDismissed(true)}
-                      className="shrink-0 p-0.5 rounded hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+                      className="shrink-0 p-0.5 rounded hover:bg-[var(--g-outline)]/20 text-[var(--g-text-muted)] hover:text-white transition-colors"
                       aria-label="Dismiss token warning"
                     >
                       <X size={12} />
@@ -1338,28 +1354,28 @@ export default function StudioClientShell({ id }: { id: string }) {
                   </div>
                 )}
               <div data-testid="token-meter" data-cumulative={cumulative} data-cap={TOKEN_CAP}>
-                <h4 className="text-[11px] uppercase tracking-wider font-semibold text-gray-500 mb-2">
+                <h4 className="text-[11px] uppercase tracking-wider font-semibold text-[var(--g-text-muted)] mb-2">
                   Token Usage
                 </h4>
                 {/* Hero: remaining headroom */}
                 <div className="bg-black/40 p-3 rounded border border-[var(--g-outline)] mb-2">
                   <div className="flex justify-between items-baseline mb-1.5">
-                    <span className="text-[10px] text-gray-400">Used</span>
+                    <span className="text-[10px] text-[var(--g-text-muted)]">Used</span>
                     <span className="text-xs font-mono text-white">
                       {cumulative.toLocaleString()} / {TOKEN_CAP.toLocaleString()}
                     </span>
                   </div>
                   {/* Progress bar */}
-                  <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden mb-1.5">
+                  <div className="w-full h-1.5 rounded-full bg-[var(--g-outline)]/20 overflow-hidden mb-1.5">
                     <div
                       className={`h-full rounded-full transition-all duration-500 ${barColor}`}
                       style={{ width: `${pct}%` }}
                     />
                   </div>
                   <div className="flex justify-between items-baseline">
-                    <span className="text-[10px] text-gray-500">Remaining</span>
+                    <span className="text-[10px] text-[var(--g-text-muted)]">Remaining</span>
                     <span
-                      className={`text-xs font-mono font-bold ${pct >= 90 ? 'text-red-400' : pct >= 70 ? 'text-amber-400' : 'text-emerald-400'}`}
+                      className={`text-xs font-mono font-bold ${pct >= 90 ? 'text-[var(--g-error)]' : pct >= 70 ? 'text-[var(--g-warning)]' : 'text-[var(--g-success)]'}`}
                     >
                       {remaining.toLocaleString()}
                     </span>
@@ -1385,8 +1401,8 @@ export default function StudioClientShell({ id }: { id: string }) {
                       data-testid={testid}
                       className="flex justify-between items-center px-2 py-1 rounded bg-black/20 border border-[var(--g-outline)]"
                     >
-                      <span className="text-[10px] text-gray-500">{label}</span>
-                      <span className="text-[10px] font-mono text-gray-300">
+                      <span className="text-[10px] text-[var(--g-text-muted)]">{label}</span>
+                      <span className="text-[10px] font-mono text-[var(--g-text)]">
                         {val != null ? val.toLocaleString() : '—'}
                       </span>
                     </div>
@@ -1401,11 +1417,11 @@ export default function StudioClientShell({ id }: { id: string }) {
         {(status === 'converged' || nielsen.length > 0) && (
           <div>
             <div className="h-px bg-[var(--g-outline)] my-4" />
-            <h4 className="text-[11px] uppercase tracking-wider font-semibold text-gray-500 mb-3">
+            <h4 className="text-[11px] uppercase tracking-wider font-semibold text-[var(--g-text-muted)] mb-3">
               Nielsen Heuristics
             </h4>
             {nielsen.length === 0 ? (
-              <p className="text-xs text-gray-600 italic">No heuristic data</p>
+              <p className="text-xs text-[var(--g-text-muted)] italic">No heuristic data</p>
             ) : (
               <div className="space-y-1.5">
                 {nielsen.map((item) => (
@@ -1414,13 +1430,13 @@ export default function StudioClientShell({ id }: { id: string }) {
                     className="flex items-center gap-2 px-2 py-1.5 rounded bg-black/20 border border-[var(--g-outline)]"
                   >
                     <span
-                      className={`shrink-0 w-2 h-2 rounded-full ${item.present ? 'bg-emerald-400' : 'bg-gray-600'}`}
+                      className={`shrink-0 w-2 h-2 rounded-full ${item.present ? 'bg-[var(--g-success)]' : 'bg-gray-600'}`}
                       aria-label={item.present ? 'present' : 'absent'}
                     />
-                    <span className="text-[10px] text-gray-400 flex-1 truncate capitalize">
+                    <span className="text-[10px] text-[var(--g-text-muted)] flex-1 truncate capitalize">
                       {item.heuristic.replace(/_/g, ' ')}
                     </span>
-                    <span className="text-[10px] font-mono text-gray-500 shrink-0">
+                    <span className="text-[10px] font-mono text-[var(--g-text-muted)] shrink-0">
                       {item.votes}/3
                     </span>
                   </div>
@@ -1475,7 +1491,7 @@ export default function StudioClientShell({ id }: { id: string }) {
               <button
                 data-testid="competitor-contrast-dismiss"
                 onClick={() => setIsBeatDismissed(true)}
-                className="absolute top-2 right-2 p-1 rounded hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+                className="absolute top-2 right-2 p-1 rounded hover:bg-[var(--g-outline)]/20 text-[var(--g-text-muted)] hover:text-white transition-colors"
                 aria-label="Dismiss competitor beat"
               >
                 <X size={14} />
@@ -1483,7 +1499,7 @@ export default function StudioClientShell({ id }: { id: string }) {
               <h4 className="text-[11px] uppercase tracking-wider font-semibold text-[var(--g-info)] mb-2">
                 Why Atelier
               </h4>
-              <p className="text-xs text-gray-300 leading-relaxed pr-4">
+              <p className="text-xs text-[var(--g-text)] leading-relaxed pr-4">
                 Atelier enforces an absolute deterministic structure gate (reject+halt on skeletons)
                 before the LLM judge evaluates the design. While competitors apply brand consistency
                 probabilistically, Atelier guarantees it.
@@ -1520,7 +1536,7 @@ export default function StudioClientShell({ id }: { id: string }) {
             </button>
             <button
               onClick={() => setIsLeftSidebarOpen(!isLeftSidebarOpen)}
-              className="lg:hidden p-1.5 hover:bg-[var(--g-surface-hover)] rounded-md transition-colors text-gray-400 hover:text-white"
+              className="lg:hidden p-1.5 hover:bg-[var(--g-surface-hover)] rounded-md transition-colors text-[var(--g-text-muted)] hover:text-white"
               aria-label="Toggle layers panel"
             >
               <Layout size={18} />
@@ -1555,8 +1571,8 @@ export default function StudioClientShell({ id }: { id: string }) {
                       isSelected
                         ? 'bg-[var(--g-outline)] text-white shadow-sm'
                         : isAvailable
-                          ? 'text-gray-400 hover:text-white cursor-pointer'
-                          : 'text-gray-600 cursor-default'
+                          ? 'text-[var(--g-text-muted)] hover:text-white cursor-pointer'
+                          : 'text-[var(--g-text-muted)] cursor-default'
                     }`}
                   >
                     {surf}
@@ -1577,16 +1593,16 @@ export default function StudioClientShell({ id }: { id: string }) {
                 className="appearance-none bg-black/20 border border-[var(--g-outline)] rounded-md px-3 py-1.5 pr-8 text-xs text-white font-medium focus:outline-none focus:ring-1 focus:ring-[var(--g-primary-blue)] cursor-pointer"
                 aria-label="Select Model"
               >
-                <option value="gemini-2.5-pro" className="bg-[#1e1f22] text-white">
+                <option value="gemini-2.5-pro" className="bg-[var(--g-surface)] text-white">
                   Gemini 2.5 Pro
                 </option>
-                <option value="gemini-2.5-flash" className="bg-[#1e1f22] text-white">
+                <option value="gemini-2.5-flash" className="bg-[var(--g-surface)] text-white">
                   Gemini 2.5 Flash
                 </option>
               </select>
               <ChevronDown
                 size={12}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--g-text-muted)] pointer-events-none"
               />
             </div>
             {/* AT-026 (R13): the user Stop control — only while a run is in flight. */}
@@ -1617,7 +1633,7 @@ export default function StudioClientShell({ id }: { id: string }) {
             {/* Settings Toggle Button on mobile */}
             <button
               onClick={() => setIsRightSidebarOpen(!isRightSidebarOpen)}
-              className="xl:hidden p-1.5 hover:bg-[var(--g-surface-hover)] rounded-md transition-colors text-gray-400 hover:text-white"
+              className="xl:hidden p-1.5 hover:bg-[var(--g-surface-hover)] rounded-md transition-colors text-[var(--g-text-muted)] hover:text-white"
               aria-label="Toggle settings panel"
             >
               <SlidersHorizontal size={18} />
@@ -1651,7 +1667,7 @@ export default function StudioClientShell({ id }: { id: string }) {
                           setIsSettingsOpen(true);
                           setIsMenuOpen(false);
                         }}
-                        className="w-full flex items-center gap-2 px-3 py-1.5 rounded text-left text-xs text-gray-200 hover:bg-[var(--g-surface-hover)] hover:text-white transition-colors"
+                        className="w-full flex items-center gap-2 px-3 py-1.5 rounded text-left text-xs text-[var(--g-text)] hover:bg-[var(--g-surface-hover)] hover:text-white transition-colors"
                       >
                         <Settings size={12} className="text-[var(--g-text-muted)]" />
                         Account Settings
@@ -1660,7 +1676,7 @@ export default function StudioClientShell({ id }: { id: string }) {
                         href="https://atelier.autonomous-agent.dev/docs"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="w-full flex items-center gap-2 px-3 py-1.5 rounded text-left text-xs text-gray-200 hover:bg-[var(--g-surface-hover)] hover:text-white transition-colors"
+                        className="w-full flex items-center gap-2 px-3 py-1.5 rounded text-left text-xs text-[var(--g-text)] hover:bg-[var(--g-surface-hover)] hover:text-white transition-colors"
                       >
                         <BookOpen size={12} className="text-[var(--g-text-muted)]" />
                         Documentation
@@ -1669,7 +1685,7 @@ export default function StudioClientShell({ id }: { id: string }) {
                         href="/terms"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="w-full flex items-center gap-2 px-3 py-1.5 rounded text-left text-xs text-gray-200 hover:bg-[var(--g-surface-hover)] hover:text-white transition-colors"
+                        className="w-full flex items-center gap-2 px-3 py-1.5 rounded text-left text-xs text-[var(--g-text)] hover:bg-[var(--g-surface-hover)] hover:text-white transition-colors"
                       >
                         <FileText size={12} className="text-[var(--g-text-muted)]" />
                         Terms of Service
@@ -1678,14 +1694,14 @@ export default function StudioClientShell({ id }: { id: string }) {
                         href="/privacy"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="w-full flex items-center gap-2 px-3 py-1.5 rounded text-left text-xs text-gray-200 hover:bg-[var(--g-surface-hover)] hover:text-white transition-colors"
+                        className="w-full flex items-center gap-2 px-3 py-1.5 rounded text-left text-xs text-[var(--g-text)] hover:bg-[var(--g-surface-hover)] hover:text-white transition-colors"
                       >
                         <Shield size={12} className="text-[var(--g-text-muted)]" />
                         Privacy Policy
                       </a>
                       <a
                         href="mailto:support@atelier.autonomous-agent.dev"
-                        className="w-full flex items-center gap-2 px-3 py-1.5 rounded text-left text-xs text-gray-200 hover:bg-[var(--g-surface-hover)] hover:text-white transition-colors"
+                        className="w-full flex items-center gap-2 px-3 py-1.5 rounded text-left text-xs text-[var(--g-text)] hover:bg-[var(--g-surface-hover)] hover:text-white transition-colors"
                       >
                         <LifeBuoy size={12} className="text-[var(--g-text-muted)]" />
                         Help &amp; Support
@@ -1696,7 +1712,7 @@ export default function StudioClientShell({ id }: { id: string }) {
 
                     <button
                       onClick={handleLogout}
-                      className="w-full flex items-center gap-2 px-3 py-1.5 rounded text-left text-xs text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"
+                      className="w-full flex items-center gap-2 px-3 py-1.5 rounded text-left text-xs text-[var(--g-error)] hover:bg-[var(--g-error)]/10 hover:text-red-300 transition-colors"
                     >
                       <LogOut size={12} />
                       Logout
@@ -1749,7 +1765,7 @@ export default function StudioClientShell({ id }: { id: string }) {
               <button
                 data-testid="device-390"
                 aria-label="Mobile 390px"
-                className={`p-1.5 rounded transition-colors ${deviceWidth === 390 ? 'bg-[var(--g-info)]/30 text-[var(--g-info)]' : 'hover:bg-[var(--g-surface-hover)] text-gray-400 hover:text-white'}`}
+                className={`p-1.5 rounded transition-colors ${deviceWidth === 390 ? 'bg-[var(--g-info)]/30 text-[var(--g-info)]' : 'hover:bg-[var(--g-surface-hover)] text-[var(--g-text-muted)] hover:text-white'}`}
                 onClick={() => setDeviceWidth(390)}
               >
                 <Smartphone size={16} />
@@ -1757,7 +1773,7 @@ export default function StudioClientShell({ id }: { id: string }) {
               <button
                 data-testid="device-768"
                 aria-label="Tablet 768px"
-                className={`p-1.5 rounded transition-colors ${deviceWidth === 768 ? 'bg-[var(--g-info)]/30 text-[var(--g-info)]' : 'hover:bg-[var(--g-surface-hover)] text-gray-400 hover:text-white'}`}
+                className={`p-1.5 rounded transition-colors ${deviceWidth === 768 ? 'bg-[var(--g-info)]/30 text-[var(--g-info)]' : 'hover:bg-[var(--g-surface-hover)] text-[var(--g-text-muted)] hover:text-white'}`}
                 onClick={() => setDeviceWidth(768)}
               >
                 <Tablet size={16} />
@@ -1765,24 +1781,24 @@ export default function StudioClientShell({ id }: { id: string }) {
               <button
                 data-testid="device-1280"
                 aria-label="Desktop 1280px"
-                className={`p-1.5 rounded transition-colors ${deviceWidth === 1280 ? 'bg-[var(--g-info)]/30 text-[var(--g-info)]' : 'hover:bg-[var(--g-surface-hover)] text-gray-400 hover:text-white'}`}
+                className={`p-1.5 rounded transition-colors ${deviceWidth === 1280 ? 'bg-[var(--g-info)]/30 text-[var(--g-info)]' : 'hover:bg-[var(--g-surface-hover)] text-[var(--g-text-muted)] hover:text-white'}`}
                 onClick={() => setDeviceWidth(1280)}
               >
                 <Monitor size={16} />
               </button>
               <div className="w-px h-4 bg-[var(--g-outline)] mx-1" />
               <button
-                className="p-1.5 rounded hover:bg-[var(--g-surface-hover)] text-gray-400 hover:text-white transition-colors"
+                className="p-1.5 rounded hover:bg-[var(--g-surface-hover)] text-[var(--g-text-muted)] hover:text-white transition-colors"
                 onClick={() => handleZoom(-0.1)}
                 aria-label="Zoom out"
               >
                 <ZoomOut size={16} />
               </button>
-              <span className="text-xs font-mono w-12 text-center text-gray-300">
+              <span className="text-xs font-mono w-12 text-center text-[var(--g-text)]">
                 {Math.round(scale * 100)}%
               </span>
               <button
-                className="p-1.5 rounded hover:bg-[var(--g-surface-hover)] text-gray-400 hover:text-white transition-colors"
+                className="p-1.5 rounded hover:bg-[var(--g-surface-hover)] text-[var(--g-text-muted)] hover:text-white transition-colors"
                 onClick={() => handleZoom(0.1)}
                 aria-label="Zoom in"
               >
@@ -1790,7 +1806,7 @@ export default function StudioClientShell({ id }: { id: string }) {
               </button>
               <div className="w-px h-4 bg-[var(--g-outline)] mx-1" />
               <button
-                className="p-1.5 rounded hover:bg-[var(--g-surface-hover)] text-gray-400 hover:text-white transition-colors"
+                className="p-1.5 rounded hover:bg-[var(--g-surface-hover)] text-[var(--g-text-muted)] hover:text-white transition-colors"
                 onClick={() => setScale(1)}
                 aria-label="Reset zoom"
               >
@@ -1811,7 +1827,10 @@ export default function StudioClientShell({ id }: { id: string }) {
               {/* \u2500\u2500 Empty (idle) state \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */}
               {/* Offline state (AT-094 / R9) — skeleton + acknowledgement banner. */}
               {showOffline && (
-                <div data-testid="state-offline" className="w-full h-full relative bg-gray-50">
+                <div
+                  data-testid="state-offline"
+                  className="w-full h-full relative bg-[var(--g-bg)]"
+                >
                   {/* Skeleton: muted placeholder blocks pulse under the banner so the
                       surface reads as "waiting for connection", not broken/empty. */}
                   <div
@@ -1857,16 +1876,16 @@ export default function StudioClientShell({ id }: { id: string }) {
               {status === 'idle' && !showOffline && (
                 <div
                   data-testid="state-empty"
-                  className="w-full h-full flex flex-col items-center justify-center bg-gray-50 gap-4 px-8"
+                  className="w-full h-full flex flex-col items-center justify-center bg-[var(--g-bg)] gap-4 px-8"
                 >
                   <MousePointer2 size={40} className="text-[var(--g-info)]" aria-hidden="true" />
-                  <h2 className="text-lg font-semibold text-gray-700 text-center">
+                  <h2 className="text-lg font-semibold text-[var(--g-text)] text-center">
                     Ready to generate
                   </h2>
-                  <p className="text-sm text-gray-600 text-center max-w-xs">
+                  <p className="text-sm text-[var(--g-text-muted)] text-center max-w-xs">
                     Configure your brief in the URL and click{' '}
-                    <strong className="text-gray-800">Run</strong> to start the Vertex AI
-                    Convergence Loop.
+                    <strong className="text-[var(--g-info)] font-semibold">Run</strong> to start the
+                    Vertex AI Convergence Loop.
                   </p>
                 </div>
               )}
@@ -1889,15 +1908,15 @@ export default function StudioClientShell({ id }: { id: string }) {
                   role="status"
                   aria-live="polite"
                   aria-label="Generating design \u2014 please wait"
-                  className="w-full h-full flex flex-col items-center justify-center bg-gray-50 gap-4"
+                  className="w-full h-full flex flex-col items-center justify-center bg-[var(--g-bg)] gap-4"
                 >
                   <Loader2
                     size={40}
                     className="text-[var(--g-info)] animate-spin"
                     aria-hidden="true"
                   />
-                  <h2 className="text-lg font-semibold text-gray-700">Generating…</h2>
-                  <p className="text-sm text-gray-600">
+                  <h2 className="text-lg font-semibold text-[var(--g-text)]">Generating…</h2>
+                  <p className="text-sm text-[var(--g-text-muted)]">
                     Vertex AI Convergence Loop is running. This may take a moment.
                   </p>
                 </div>
@@ -1931,7 +1950,7 @@ export default function StudioClientShell({ id }: { id: string }) {
                   <div
                     role="status"
                     aria-live="polite"
-                    className="absolute top-0 left-0 right-0 flex items-start gap-3 bg-amber-50 border-b-2 border-amber-400 px-4 py-3"
+                    className="absolute top-0 left-0 right-0 flex items-start gap-3 bg-[var(--g-warning)]/10 border-b-2 border-[var(--g-warning)] px-4 py-3"
                   >
                     <AlertTriangle
                       size={20}
@@ -1955,11 +1974,11 @@ export default function StudioClientShell({ id }: { id: string }) {
                 <div
                   data-testid="state-error"
                   role="alert"
-                  className="w-full h-full flex flex-col items-center justify-center bg-gray-50 gap-4 px-8"
+                  className="w-full h-full flex flex-col items-center justify-center bg-[var(--g-bg)] gap-4 px-8"
                 >
-                  <XCircle size={40} className="text-red-400" aria-hidden="true" />
-                  <h2 className="text-lg font-semibold text-red-700">Pipeline error</h2>
-                  <p className="text-sm text-gray-500 text-center max-w-xs">
+                  <XCircle size={40} className="text-[var(--g-error)]" aria-hidden="true" />
+                  <h2 className="text-lg font-semibold text-[var(--g-error)]">Pipeline error</h2>
+                  <p className="text-sm text-[var(--g-text-muted)] text-center max-w-xs">
                     The generation pipeline encountered an error. Check the log below for details,
                     then try again.
                   </p>
@@ -1979,11 +1998,15 @@ export default function StudioClientShell({ id }: { id: string }) {
                   data-testid="state-stopped"
                   role="status"
                   aria-live="polite"
-                  className="w-full h-full flex flex-col items-center justify-center bg-gray-50 gap-4 px-8"
+                  className="w-full h-full flex flex-col items-center justify-center bg-[var(--g-bg)] gap-4 px-8"
                 >
-                  <Square size={40} className="text-red-400 fill-current" aria-hidden="true" />
-                  <h2 className="text-lg font-semibold text-gray-700">Generation stopped</h2>
-                  <p className="text-sm text-gray-600 text-center max-w-xs">
+                  <Square
+                    size={40}
+                    className="text-[var(--g-error)] fill-current"
+                    aria-hidden="true"
+                  />
+                  <h2 className="text-lg font-semibold text-[var(--g-text)]">Generation stopped</h2>
+                  <p className="text-sm text-[var(--g-text-muted)] text-center max-w-xs">
                     You stopped this run. Progress was checkpointed before the next model call
                     &mdash; no further tokens were spent. Run again to start a fresh design.
                   </p>
@@ -2001,14 +2024,16 @@ export default function StudioClientShell({ id }: { id: string }) {
                 <div
                   data-testid="state-cap-reached"
                   role="alert"
-                  className="w-full h-full flex flex-col items-center justify-center bg-gray-50 gap-4 px-8"
+                  className="w-full h-full flex flex-col items-center justify-center bg-[var(--g-bg)] gap-4 px-8"
                 >
-                  <ZapOff size={40} className="text-orange-400" aria-hidden="true" />
-                  <h2 className="text-lg font-semibold text-orange-700">Token cap reached</h2>
+                  <ZapOff size={40} className="text-[var(--g-warning)]" aria-hidden="true" />
+                  <h2 className="text-lg font-semibold text-[var(--g-warning)]">
+                    Token cap reached
+                  </h2>
                   {/* AT-094 (R9): the SPEC-EXACT stop string (PRD §13.2). The live
                       backend sends it as `capReachedDetail`; the constant is the
                       byte-identical fail-soft fallback — never a paraphrase. */}
-                  <p className="text-sm text-gray-600 text-center max-w-xs">
+                  <p className="text-sm text-[var(--g-text-muted)] text-center max-w-xs">
                     {capReachedDetail || TOKEN_CAP_MESSAGE}
                   </p>
                 </div>
@@ -2057,36 +2082,36 @@ export default function StudioClientShell({ id }: { id: string }) {
                 animate={{ y: 0 }}
                 exit={{ y: '100%' }}
                 transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
-                className="absolute bottom-0 left-0 lg:left-56 right-0 xl:right-72 h-64 bg-[#1e1f22] border-t border-[var(--g-outline)] shadow-2xl flex flex-col z-30"
+                className="absolute bottom-0 left-0 lg:left-56 right-0 xl:right-72 h-64 bg-[var(--g-surface)] border-t border-[var(--g-outline)] shadow-2xl flex flex-col z-30"
               >
-                <div className="h-10 bg-[#2d2f31] flex items-center justify-between px-4 border-b border-[var(--g-outline)]">
-                  <div className="flex items-center gap-2 text-xs text-gray-300 font-medium">
-                    <Terminal size={14} className="text-blue-400" />
+                <div className="h-10 bg-[var(--g-surface-hover)] flex items-center justify-between px-4 border-b border-[var(--g-outline)]">
+                  <div className="flex items-center gap-2 text-xs text-[var(--g-text)] font-medium">
+                    <Terminal size={14} className="text-[var(--g-info)]" />
                     Cloud Log Explorer
                   </div>
                   <button
                     onClick={() => setIsDrawerOpen(false)}
-                    className="p-1 hover:bg-black/20 rounded text-gray-400 hover:text-white transition-colors"
+                    className="p-1 hover:bg-black/20 rounded text-[var(--g-text-muted)] hover:text-white transition-colors"
                     aria-label="Close log drawer"
                   >
                     <ChevronDown size={16} />
                   </button>
                 </div>
-                <div className="flex-1 p-4 overflow-y-auto font-mono text-[11px] space-y-1.5 bg-[#0f1013]">
+                <div className="flex-1 p-4 overflow-y-auto font-mono text-[11px] space-y-1.5 bg-[var(--g-bg)]">
                   {logs.length === 0 ? (
-                    <p className="text-gray-600 italic">
+                    <p className="text-[var(--g-text-muted)] italic">
                       No logs available. Start a generation run.
                     </p>
                   ) : (
                     logs.map((log) => (
                       <div key={log.id} className="flex gap-3">
-                        <span className="text-gray-500 shrink-0">{log.time}</span>
+                        <span className="text-[var(--g-text-muted)] shrink-0">{log.time}</span>
                         <span
-                          className={`shrink-0 w-12 ${log.level === 'SUCCESS' ? 'text-emerald-400' : log.level === 'ERROR' ? 'text-red-400' : log.level === 'WARN' ? 'text-amber-400' : 'text-blue-400'}`}
+                          className={`shrink-0 w-12 ${log.level === 'SUCCESS' ? 'text-[var(--g-success)]' : log.level === 'ERROR' ? 'text-[var(--g-error)]' : log.level === 'WARN' ? 'text-[var(--g-warning)]' : 'text-[var(--g-info)]'}`}
                         >
                           {log.level}
                         </span>
-                        <span className="text-gray-300">{log.msg}</span>
+                        <span className="text-[var(--g-text)]">{log.msg}</span>
                       </div>
                     ))
                   )}
@@ -2100,7 +2125,7 @@ export default function StudioClientShell({ id }: { id: string }) {
             {!isDrawerOpen && (
               <button
                 onClick={() => setIsDrawerOpen(true)}
-                className="bg-[var(--g-surface)] border border-[var(--g-outline)] shadow-lg rounded-full px-4 py-1.5 flex items-center gap-2 text-xs font-medium text-gray-400 hover:text-white transition-colors"
+                className="bg-[var(--g-surface)] border border-[var(--g-outline)] shadow-lg rounded-full px-4 py-1.5 flex items-center gap-2 text-xs font-medium text-[var(--g-text-muted)] hover:text-white transition-colors"
               >
                 <Terminal size={14} /> View Logs <ChevronUp size={14} className="ml-1" />
               </button>
@@ -2128,7 +2153,7 @@ export default function StudioClientShell({ id }: { id: string }) {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 10 }}
               transition={{ type: 'spring', duration: 0.4 }}
-              className="relative w-full max-w-2xl bg-[#131416]/95 border border-[var(--g-outline)] rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
+              className="relative w-full max-w-2xl bg-[var(--g-bg)]/95 border border-[var(--g-outline)] rounded-lg shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
             >
               {/* Header */}
               <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--g-outline)] bg-black/20 text-left">
@@ -2138,7 +2163,7 @@ export default function StudioClientShell({ id }: { id: string }) {
                 </div>
                 <button
                   onClick={() => setIsSettingsOpen(false)}
-                  className="text-gray-400 hover:text-white p-1 rounded-md hover:bg-white/5 transition-colors cursor-pointer"
+                  className="text-[var(--g-text-muted)] hover:text-white p-1 rounded-md hover:bg-[var(--g-surface-hover)]/10 transition-colors cursor-pointer"
                   aria-label="Close settings"
                 >
                   <X size={16} />
@@ -2149,16 +2174,20 @@ export default function StudioClientShell({ id }: { id: string }) {
               <div className="flex-1 overflow-y-auto p-6 space-y-6 text-left">
                 {/* User Profile Info */}
                 <div className="bg-black/20 rounded-lg border border-[var(--g-outline)] p-4 space-y-3">
-                  <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                  <h3 className="text-xs font-semibold text-[var(--g-text-muted)] uppercase tracking-wider">
                     User Profile
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                     <div>
-                      <label className="text-gray-500 block mb-0.5">Display Name</label>
+                      <label className="text-[var(--g-text-muted)] block mb-0.5">
+                        Display Name
+                      </label>
                       <div className="font-medium text-white">{user?.displayName || '—'}</div>
                     </div>
                     <div>
-                      <label className="text-gray-500 block mb-0.5">Email Address</label>
+                      <label className="text-[var(--g-text-muted)] block mb-0.5">
+                        Email Address
+                      </label>
                       <div className="font-medium text-white">{user?.email || '—'}</div>
                     </div>
                   </div>
@@ -2166,19 +2195,21 @@ export default function StudioClientShell({ id }: { id: string }) {
                   <div className="pt-2 border-t border-[var(--g-outline)]/50 space-y-2 text-xs">
                     <div className="flex justify-between items-center">
                       <div>
-                        <label className="text-gray-500 block mb-0.5">User ID (UID)</label>
-                        <div className="font-mono text-gray-300 select-all truncate max-w-[280px] md:max-w-[400px]">
+                        <label className="text-[var(--g-text-muted)] block mb-0.5">
+                          User ID (UID)
+                        </label>
+                        <div className="font-mono text-[var(--g-text)] select-all truncate max-w-[280px] md:max-w-[400px]">
                           {user?.uid || '—'}
                         </div>
                       </div>
                       {user?.uid && (
                         <button
                           onClick={() => handleCopy(user.uid, 'uid')}
-                          className="shrink-0 p-1.5 rounded hover:bg-white/5 text-gray-400 hover:text-white transition-colors cursor-pointer"
+                          className="shrink-0 p-1.5 rounded hover:bg-[var(--g-surface-hover)]/10 text-[var(--g-text-muted)] hover:text-white transition-colors cursor-pointer"
                           title="Copy UID"
                         >
                           {copiedField === 'uid' ? (
-                            <Check size={14} className="text-emerald-400" />
+                            <Check size={14} className="text-[var(--g-success)]" />
                           ) : (
                             <Copy size={14} />
                           )}
@@ -2188,19 +2219,19 @@ export default function StudioClientShell({ id }: { id: string }) {
 
                     <div className="flex justify-between items-center pt-2 border-t border-[var(--g-outline)]/50">
                       <div>
-                        <label className="text-gray-500 block mb-0.5">Tenant ID</label>
-                        <div className="font-mono text-gray-300 select-all truncate max-w-[280px] md:max-w-[400px]">
+                        <label className="text-[var(--g-text-muted)] block mb-0.5">Tenant ID</label>
+                        <div className="font-mono text-[var(--g-text)] select-all truncate max-w-[280px] md:max-w-[400px]">
                           {user?.tenant_id || '—'}
                         </div>
                       </div>
                       {user?.tenant_id && (
                         <button
                           onClick={() => handleCopy(user.tenant_id, 'tenant')}
-                          className="shrink-0 p-1.5 rounded hover:bg-white/5 text-gray-400 hover:text-white transition-colors cursor-pointer"
+                          className="shrink-0 p-1.5 rounded hover:bg-[var(--g-surface-hover)]/10 text-[var(--g-text-muted)] hover:text-white transition-colors cursor-pointer"
                           title="Copy Tenant ID"
                         >
                           {copiedField === 'tenant' ? (
-                            <Check size={14} className="text-emerald-400" />
+                            <Check size={14} className="text-[var(--g-success)]" />
                           ) : (
                             <Copy size={14} />
                           )}
@@ -2212,35 +2243,45 @@ export default function StudioClientShell({ id }: { id: string }) {
 
                 {/* GCP & Platform Config */}
                 <div className="bg-black/20 rounded-lg border border-[var(--g-outline)] p-4 space-y-3">
-                  <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                  <h3 className="text-xs font-semibold text-[var(--g-text-muted)] uppercase tracking-wider">
                     Workspace &amp; GCP Environment
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                     <div className="flex items-center justify-between pr-2">
                       <div>
-                        <label className="text-gray-500 block mb-0.5">GCP Project</label>
-                        <span className="font-mono text-gray-200">atelier-build-2026</span>
+                        <label className="text-[var(--g-text-muted)] block mb-0.5">
+                          GCP Project
+                        </label>
+                        <span className="font-mono text-[var(--g-text)]">atelier-build-2026</span>
                       </div>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className="px-2 py-0.5 rounded-full text-[10px] bg-[var(--g-success)]/10 text-[var(--g-success)] border border-[var(--g-success)]/20 font-medium flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--g-success)] animate-pulse" />
                         Connected
                       </span>
                     </div>
                     <div>
-                      <label className="text-gray-500 block mb-0.5">Active Billing Tier</label>
+                      <label className="text-[var(--g-text-muted)] block mb-0.5">
+                        Active Billing Tier
+                      </label>
                       <div className="font-medium text-white flex items-center gap-1.5">
                         <span>Enterprise AI Developer (Self-Serve)</span>
                       </div>
                     </div>
                     <div>
-                      <label className="text-gray-500 block mb-0.5">Base API URL</label>
-                      <span className="font-mono text-gray-300 truncate block max-w-[280px]">
+                      <label className="text-[var(--g-text-muted)] block mb-0.5">
+                        Base API URL
+                      </label>
+                      <span className="font-mono text-[var(--g-text)] truncate block max-w-[280px]">
                         https://atelier-dashboard-537337457799.us-central1.run.app/
                       </span>
                     </div>
                     <div>
-                      <label className="text-gray-500 block mb-0.5">Platform Status</label>
-                      <span className="text-emerald-400 font-medium">All Services Operational</span>
+                      <label className="text-[var(--g-text-muted)] block mb-0.5">
+                        Platform Status
+                      </label>
+                      <span className="text-[var(--g-success)] font-medium">
+                        All Services Operational
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -2248,7 +2289,7 @@ export default function StudioClientShell({ id }: { id: string }) {
                 {/* Token Allocation & Usage */}
                 <div className="bg-black/20 rounded-lg border border-[var(--g-outline)] p-4 space-y-4">
                   <div className="flex justify-between items-center">
-                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    <h3 className="text-xs font-semibold text-[var(--g-text-muted)] uppercase tracking-wider">
                       Token Allocation &amp; Usage
                     </h3>
                     <span className="px-2 py-0.5 rounded text-[10px] bg-[var(--g-primary-blue)]/20 text-[var(--g-primary-blue)] border border-[var(--g-primary-blue)]/30 font-mono">
@@ -2262,13 +2303,17 @@ export default function StudioClientShell({ id }: { id: string }) {
                     const pct = Math.min(100, (cumulative / TOKEN_CAP) * 100);
                     const remaining = TOKEN_CAP - cumulative;
                     const barColor =
-                      pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-amber-500' : 'bg-emerald-500';
+                      pct >= 90
+                        ? 'bg-[var(--g-error)]'
+                        : pct >= 70
+                          ? 'bg-[var(--g-warning)]'
+                          : 'bg-[var(--g-success)]';
 
                     return (
                       <div className="space-y-4">
                         <div>
                           <div className="flex justify-between items-baseline mb-1.5 text-xs">
-                            <span className="text-gray-400">Cumulative Usage</span>
+                            <span className="text-[var(--g-text-muted)]">Cumulative Usage</span>
                             <span className="font-mono text-white">
                               {cumulative.toLocaleString()} / {TOKEN_CAP.toLocaleString()} (
                               {pct.toFixed(1)}%)
@@ -2276,7 +2321,7 @@ export default function StudioClientShell({ id }: { id: string }) {
                           </div>
 
                           {/* Progress bar */}
-                          <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden mb-2">
+                          <div className="w-full h-2 rounded-full bg-[var(--g-outline)]/20 overflow-hidden mb-2">
                             <div
                               className={`h-full rounded-full transition-all duration-500 ${barColor}`}
                               style={{ width: `${pct}%` }}
@@ -2284,9 +2329,9 @@ export default function StudioClientShell({ id }: { id: string }) {
                           </div>
 
                           <div className="flex justify-between items-baseline text-xs">
-                            <span className="text-gray-500">Available Headroom</span>
+                            <span className="text-[var(--g-text-muted)]">Available Headroom</span>
                             <span
-                              className={`font-mono font-bold ${pct >= 90 ? 'text-red-400' : pct >= 70 ? 'text-amber-400' : 'text-emerald-400'}`}
+                              className={`font-mono font-bold ${pct >= 90 ? 'text-[var(--g-error)]' : pct >= 70 ? 'text-[var(--g-warning)]' : 'text-[var(--g-success)]'}`}
                             >
                               {remaining.toLocaleString()} tokens
                             </span>
@@ -2304,8 +2349,10 @@ export default function StudioClientShell({ id }: { id: string }) {
                               key={label}
                               className="bg-black/30 border border-[var(--g-outline)] rounded p-2 text-center"
                             >
-                              <div className="text-[10px] text-gray-500 block mb-0.5">{label}</div>
-                              <div className="text-xs font-mono font-semibold text-gray-200">
+                              <div className="text-[10px] text-[var(--g-text-muted)] block mb-0.5">
+                                {label}
+                              </div>
+                              <div className="text-xs font-mono font-semibold text-[var(--g-text)]">
                                 {val != null ? val.toLocaleString() : '0'}
                               </div>
                             </div>
@@ -2321,7 +2368,7 @@ export default function StudioClientShell({ id }: { id: string }) {
               <div className="px-6 py-4 border-t border-[var(--g-outline)] bg-black/20 flex justify-end gap-3">
                 <button
                   onClick={() => setIsSettingsOpen(false)}
-                  className="px-4 py-1.5 rounded-md border border-[var(--g-outline)] text-xs font-medium text-gray-300 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+                  className="px-4 py-1.5 rounded-md border border-[var(--g-outline)] text-xs font-medium text-[var(--g-text)] hover:text-white hover:bg-[var(--g-surface-hover)]/10 transition-colors cursor-pointer"
                 >
                   Close
                 </button>

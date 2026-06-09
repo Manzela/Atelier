@@ -11,7 +11,7 @@ export default function TermsPage() {
     <main className="min-h-screen bg-[var(--g-bg)] stitch-grid-bg py-16 px-6 flex justify-center">
       <div className="w-full max-w-3xl g-card p-10 bg-[var(--g-surface)]/80 backdrop-blur-xl shadow-2xl relative">
         <header className="mb-10 border-b border-[var(--g-outline)] pb-6 flex flex-col gap-4">
-          <div className="w-12 h-12 rounded-xl bg-black flex items-center justify-center border border-neutral-800 shadow-[0_0_16px_rgba(255,255,255,0.05)]">
+          <div className="w-12 h-12 rounded-lg bg-black flex items-center justify-center border border-neutral-800 shadow-[0_0_16px_rgba(255,255,255,0.05)]">
             <svg
               className="w-5 h-5"
               viewBox="0 0 1155 1000"

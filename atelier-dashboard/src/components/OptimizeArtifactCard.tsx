@@ -57,7 +57,7 @@ export default function OptimizeArtifactCard({
       <div className="h-px bg-[var(--g-outline)] my-4" />
       <h4
         id="optimize-artifact-heading"
-        className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider font-semibold text-gray-500 mb-3"
+        className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider font-semibold text-[var(--g-text-muted)] mb-3"
       >
         <Sparkles size={12} className="text-[var(--g-info)]" aria-hidden="true" />
         Optimize
@@ -73,34 +73,37 @@ export default function OptimizeArtifactCard({
           className="mb-3 rounded bg-black/20 border border-[var(--g-outline)] px-2 py-1.5"
         >
           <div className="flex items-center justify-between gap-2">
-            <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-gray-500">
+            <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-[var(--g-text-muted)]">
               <Cpu size={11} className="text-[var(--g-info)]" aria-hidden="true" />
               MoE route
             </span>
             <span
               data-testid="optimize-route-mode"
-              className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-black/30 text-gray-400 border border-[var(--g-outline)]"
+              className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-black/30 text-[var(--g-text-muted)] border border-[var(--g-outline)]"
             >
               {routeDecision.routing_mode}
             </span>
           </div>
           <p
             data-testid="optimize-route-expert"
-            className="mt-1 text-[12px] font-semibold text-emerald-400"
+            className="mt-1 text-[12px] font-semibold text-[var(--g-success)]"
           >
             {formatRouteDecisionLabel(routeDecision)}
           </p>
           <dl className="mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px]">
-            <dt className="text-gray-500">Phase</dt>
-            <dd className="text-gray-300 font-mono text-right">{routeDecision.phase}</dd>
-            <dt className="text-gray-500">Score</dt>
-            <dd data-testid="optimize-route-score" className="text-gray-300 font-mono text-right">
+            <dt className="text-[var(--g-text-muted)]">Phase</dt>
+            <dd className="text-[var(--g-text)] font-mono text-right">{routeDecision.phase}</dd>
+            <dt className="text-[var(--g-text-muted)]">Score</dt>
+            <dd
+              data-testid="optimize-route-score"
+              className="text-[var(--g-text)] font-mono text-right"
+            >
               {fmt(routeDecision.score)}
             </dd>
           </dl>
           {routeDecision.rationale && (
             <p
-              className="mt-1 text-[10px] text-gray-400 line-clamp-2"
+              className="mt-1 text-[10px] text-[var(--g-text-muted)] line-clamp-2"
               title={routeDecision.rationale}
             >
               {routeDecision.rationale}
@@ -111,12 +114,14 @@ export default function OptimizeArtifactCard({
               data-testid="optimize-route-fallback"
               className="mt-1.5 flex items-center gap-1 flex-wrap"
             >
-              <GitBranch size={10} className="text-gray-600" aria-hidden="true" />
-              <span className="text-[9px] uppercase tracking-wider text-gray-600">fallback</span>
+              <GitBranch size={10} className="text-[var(--g-text-muted)]" aria-hidden="true" />
+              <span className="text-[9px] uppercase tracking-wider text-[var(--g-text-muted)]">
+                fallback
+              </span>
               {routeDecision.fallback_chain.map((e) => (
                 <span
                   key={e}
-                  className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-black/30 text-gray-400 border border-[var(--g-outline)]"
+                  className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-black/30 text-[var(--g-text-muted)] border border-[var(--g-outline)]"
                 >
                   {e}
                 </span>
@@ -133,29 +138,38 @@ export default function OptimizeArtifactCard({
           className="rounded bg-black/20 border border-[var(--g-outline)] px-2 py-1.5"
         >
           <div className="flex items-center justify-between gap-2">
-            <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-gray-500">
+            <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-[var(--g-text-muted)]">
               <Sparkles size={11} className="text-[var(--g-info)]" aria-hidden="true" />
               DPO pair
             </span>
-            <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-black/30 text-gray-400 border border-[var(--g-outline)]">
+            <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-black/30 text-[var(--g-text-muted)] border border-[var(--g-outline)]">
               {dreamingArtifact.node_name}
             </span>
           </div>
           <dl className="mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px]">
-            <dt className="text-gray-500">Chosen</dt>
-            <dd data-testid="optimize-dpo-chosen" className="text-emerald-400 font-mono text-right">
+            <dt className="text-[var(--g-text-muted)]">Chosen</dt>
+            <dd
+              data-testid="optimize-dpo-chosen"
+              className="text-[var(--g-success)] font-mono text-right"
+            >
               {fmt(dreamingArtifact.chosen_score)}
             </dd>
-            <dt className="text-gray-500">Rejected</dt>
-            <dd data-testid="optimize-dpo-rejected" className="text-gray-400 font-mono text-right">
+            <dt className="text-[var(--g-text-muted)]">Rejected</dt>
+            <dd
+              data-testid="optimize-dpo-rejected"
+              className="text-[var(--g-text-muted)] font-mono text-right"
+            >
               {fmt(dreamingArtifact.rejected_score)}
             </dd>
-            <dt className="text-gray-500">Margin</dt>
-            <dd data-testid="optimize-dpo-margin" className="text-gray-300 font-mono text-right">
+            <dt className="text-[var(--g-text-muted)]">Margin</dt>
+            <dd
+              data-testid="optimize-dpo-margin"
+              className="text-[var(--g-text)] font-mono text-right"
+            >
               {fmt(dreamingArtifact.margin)}
             </dd>
           </dl>
-          <p className="mt-1 text-[9px] text-gray-600 italic">
+          <p className="mt-1 text-[9px] text-[var(--g-text-muted)] italic">
             Chosen score reflects the anti-sycophancy reward (unjustified praise is down-weighted).
           </p>
         </div>

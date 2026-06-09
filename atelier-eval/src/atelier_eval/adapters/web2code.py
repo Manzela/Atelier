@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Final
+from typing import Any, Final
 
 from atelier_eval.adapters._base import EvalResult
 
@@ -38,7 +38,7 @@ def load_web2code_tasks(data_dir: str | Path) -> list[Web2CodeTask]:
             "Download from https://github.com/zekun-li/Web2Code"
         )
         raise FileNotFoundError(msg)
-    raw: list[dict[str, str]] = json.loads(manifest_path.read_text(encoding="utf-8"))
+    raw: list[dict[str, Any]] = json.loads(manifest_path.read_text(encoding="utf-8"))
     return [
         Web2CodeTask(
             task_id=t["id"],
@@ -59,7 +59,7 @@ def evaluate_web2code_visual_similarity(
 ) -> EvalResult:
     """Compute SSIM between rendered generated HTML and reference screenshot.
 
-    Web2Code tasks are often complex; a 0.65 floor reflects production-grade 
+    Web2Code tasks are often complex; a 0.65 floor reflects production-grade
     visual convergence requirements.
     """
     from atelier_eval.metrics.visual_similarity import (  # noqa: PLC0415
