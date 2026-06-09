@@ -10,7 +10,7 @@ from __future__ import annotations
 import datetime
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Literal
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -150,7 +150,9 @@ class AuditConfig:
     headless: bool = True
     slow_mo_ms: int = 0
     timeout_ms: int = 30_000
-    navigation_wait_until: str = "networkidle"
+    navigation_wait_until: Literal["commit", "domcontentloaded", "load", "networkidle"] = (
+        "networkidle"
+    )
 
     # Lighthouse settings.
     lighthouse_runs: int = 3  # Median of N runs for stability.
@@ -169,5 +171,6 @@ class AuditConfig:
         return [PRODUCTS[key] for key in self.product_keys if key in PRODUCTS]
 
     def __post_init__(self) -> None:
-        if isinstance(self.output_dir, str):
-            self.output_dir = Path(self.output_dir)
+        temp_dir: Any = self.output_dir
+        if isinstance(temp_dir, str):
+            self.output_dir = Path(temp_dir)

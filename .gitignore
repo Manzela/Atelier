@@ -254,3 +254,7 @@ audit/
 
 # Per-feature build/review scratch artifact (reviewer return contract); not product code.
 gaps.md
+
+# Tool / Local development caches
+.playwright-mcp/
+.codegraph/
