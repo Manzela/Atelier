@@ -1,6 +1,9 @@
 # Atelier — .gitignore
 # Comprehensive ignore for Python + Node + GCP + IDE + OS
 
+# ─── Secrets / local MCP config (NEVER commit) ──────────────────────────────
+.mcp.json
+
 # ─── Python ─────────────────────────────────────────────────────────────────
 
 __pycache__/
