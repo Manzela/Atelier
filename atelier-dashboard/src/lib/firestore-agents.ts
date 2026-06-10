@@ -123,7 +123,9 @@ function collapseSnapshot(docs: { id: string; data: DocumentData }[]): AgentActi
  * (`user.tenant_id` from the `localStorage` session) — never a hardcoded string.
  *
  * @param tenantId  Tenant id from the authenticated session (`user.tenant_id`).
- * @param projectId Project id (e.g. the `?project=` query param, defaulting to `"p1"`).
+ * @param projectId Project id — the server-written Firestore path segment from
+ *                  GET /v1/platform/topology `project_id` (or an explicit
+ *                  `?project=` override). Never a hardcoded default.
  * @param onChange  Fired on every live update with the collapsed `AgentActivityMap`.
  * @param onError   Fail-soft: called with structured context on listener error;
  *                  never swallowed silently. The caller acknowledges the degradation.

@@ -92,8 +92,10 @@ export default function PillarGovern() {
   } = usePlatformData<TopologyGraphSpec>('/v1/platform/topology');
 
   // Phase-D: live agent activity — subscribed to the tenant's task docs via
-  // Firestore onSnapshot. Empty map on initial render; no polling.
-  const agentActivity = useAgentActivity();
+  // Firestore onSnapshot. Empty map on initial render; no polling. The project
+  // id is the server-written Firestore path segment surfaced on /topology
+  // (GAP-3): until it loads, the hook stays unsubscribed (nodes render idle).
+  const agentActivity = useAgentActivity(topoData?.project_id);
 
   if (loading) {
     return (

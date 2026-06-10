@@ -181,6 +181,31 @@ def test_topology_edges_match_upstream_keys(client: TestClient) -> None:
         assert to in output_keys
 
 
+def test_topology_exposes_board_project_id_from_env(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """GAP-3 contract: /topology surfaces the GOOGLE_CLOUD_PROJECT board path segment.
+
+    The server-side board emitter writes task docs under
+    ``tenants/{t}/projects/{GOOGLE_CLOUD_PROJECT}/tasks`` (generate.py builds every
+    TenantContext with ``project_id = GOOGLE_CLOUD_PROJECT``). The dashboard's live
+    board / agent-activity subscriptions resolve their project id from THIS field —
+    never a client-side hardcoded default like ``"p1"``.
+    """
+    monkeypatch.setenv("GOOGLE_CLOUD_PROJECT", "board-project-under-test")
+    body = client.get("/v1/platform/topology").json()
+    assert body["project_id"] == "board-project-under-test"
+
+
+def test_topology_board_project_id_default(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Without GOOGLE_CLOUD_PROJECT, the surfaced id is the generate.py default."""
+    monkeypatch.delenv("GOOGLE_CLOUD_PROJECT", raising=False)
+    body = client.get("/v1/platform/topology").json()
+    assert body["project_id"] == "atelier-build-2026"
+
+
 # ---------------------------------------------------------------------------
 # /govern — usage math (used + remaining == cap)
 # ---------------------------------------------------------------------------

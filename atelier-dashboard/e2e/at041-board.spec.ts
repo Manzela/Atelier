@@ -158,11 +158,18 @@ function installBoardShim() {
         ) => Promise<void>;
         __advance: () => void;
         __dump: () => Record<string, TaskDoc>;
+        /** GAP-3 oracle: every (tenant, project) pair the board subscribed with. */
+        __subscriptions: { tenant: string; project: string }[];
       };
     };
 
     w.__ATELIER_FIRESTORE__ = {
-      subscribeTasks(_tenant, _project, cb) {
+      __subscriptions: [],
+      subscribeTasks(tenant, project, cb) {
+        // Record the subscription path so tests can assert the board targets
+        // the SERVER-written `tenants/{t}/projects/{p}/tasks` segment (GAP-3),
+        // not a client-side hardcoded default.
+        w.__ATELIER_FIRESTORE__.__subscriptions.push({ tenant, project });
         listeners.add(cb);
         // onSnapshot fires immediately with the current collection.
         Promise.resolve().then(emit);
@@ -363,4 +370,80 @@ test('AT-041 manual move persists one doc with a between-neighbours LexoRank', a
   expect(newRank > neighbourRank).toBe(true);
 
   await assertAxe(page);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GAP-3: without a `?project=` override, the board resolves its project id from
+// GET /v1/platform/topology (`project_id` — the Firestore path segment the
+// server-side AT-020b emitter actually writes under), NEVER a client-side
+// hardcoded default. The `?project=` override path is exercised by every other
+// test in this file (gotoBoard navigates with `?project=`).
+//
+// bypassCSP: the production-built dashboard ships an S8-hardened CSP whose
+// connect-src deliberately drops http://localhost:* — correct for the deployed
+// app (the API is reached via the *.autonomous-agent.dev origins, which ARE
+// allow-listed), but it blocks this hermetic suite's route-mocked fetch to the
+// e2e default API origin (http://localhost:8000) before page.route can answer.
+// The CSP itself is not the contract under test here; the project-id plumbing is.
+// ─────────────────────────────────────────────────────────────────────────────
+test.describe('AT-041/GAP-3 — board project-id resolution', () => {
+  test.use({ bypassCSP: true });
+
+  test('/board without ?project= subscribes with the server-declared project id', async ({
+    authenticatedPage: page,
+  }) => {
+    const CANONICAL_PROJECT = 'atelier-build-2026';
+
+    // Hermetic platform API: fulfill /v1/platform/topology (and its CORS
+    // preflight — authedGet sends an Authorization header, which forces one)
+    // with the real response shape carrying the server-declared project_id.
+    await page.route('**/v1/platform/topology', async (route) => {
+      if (route.request().method() === 'OPTIONS') {
+        await route.fulfill({
+          status: 204,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, OPTIONS',
+            'Access-Control-Allow-Headers': 'authorization, accept',
+          },
+        });
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        headers: { 'Access-Control-Allow-Origin': '*' },
+        body: JSON.stringify({
+          available: true,
+          kind: 'static_pipeline_dag',
+          project_id: CANONICAL_PROJECT,
+          nodes: [],
+          edges: [],
+        }),
+      });
+    });
+
+    await page.addInitScript(installBoardShim(), {
+      columns: COLUMNS,
+      leadTaskId: 'lead',
+    });
+    await page.goto('/board');
+
+    // The board renders once tenant (localStorage session) + project (topology
+    // fetch) are both resolved — no override, no hardcoded default.
+    await expect(page.getByTestId('kanban-board')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId('kanban-card-lead')).toBeVisible();
+
+    // The real contract: the Firestore subscription targets
+    // tenants/{MOCK_USER.tenant_id}/projects/{server-declared project_id}/tasks.
+    const subscriptions = await page.evaluate(() => {
+      const w = window as unknown as {
+        __ATELIER_FIRESTORE__: { __subscriptions: { tenant: string; project: string }[] };
+      };
+      return w.__ATELIER_FIRESTORE__.__subscriptions;
+    });
+    expect(subscriptions).toContainEqual({ tenant: 't1', project: CANONICAL_PROJECT });
+    // And it never subscribed with the legacy fabricated default.
+    expect(subscriptions.map((s) => s.project)).not.toContain('p1');
+  });
 });

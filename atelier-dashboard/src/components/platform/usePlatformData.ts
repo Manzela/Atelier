@@ -15,6 +15,10 @@ import { authedGet } from '@/lib/api';
  * request without remounting. The hook threads an `AbortController` signal
  * through `authedGet`, so an in-flight request is genuinely cancelled on unmount
  * or refetch (the signal both aborts `fetch` and gates the state updates).
+ *
+ * The optional `enabled` flag (default `true`) lets a caller mount the hook
+ * without issuing the request (hooks cannot be conditional); when disabled the
+ * triple resolves immediately to `{ loading: false, error: null, data: null }`.
  */
 export interface UsePlatformDataResult<T> {
   loading: boolean;
@@ -37,7 +41,7 @@ function getStoredToken(): string | null {
   }
 }
 
-export function usePlatformData<T>(path: string): UsePlatformDataResult<T> {
+export function usePlatformData<T>(path: string, enabled = true): UsePlatformDataResult<T> {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<T | null>(null);
@@ -46,6 +50,12 @@ export function usePlatformData<T>(path: string): UsePlatformDataResult<T> {
   const refetch = useCallback(() => setTick((n) => n + 1), []);
 
   useEffect(() => {
+    // `enabled: false` callers (e.g. the board shell when a `?project=`
+    // override is present) skip the fetch entirely — no request, no error.
+    // No state write here (no setState-in-effect): the returned `loading`
+    // is derived as `enabled && loading` below.
+    if (!enabled) return;
+
     const controller = new AbortController();
     const { signal } = controller;
 
@@ -85,7 +95,7 @@ export function usePlatformData<T>(path: string): UsePlatformDataResult<T> {
     return () => {
       controller.abort();
     };
-  }, [path, tick]);
+  }, [path, tick, enabled]);
 
-  return { loading, error, data, refetch };
+  return { loading: enabled && loading, error, data, refetch };
 }

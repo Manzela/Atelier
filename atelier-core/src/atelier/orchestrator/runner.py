@@ -456,6 +456,32 @@ def _require_user_id(tenant_ctx: TenantContext) -> str:
     return uid
 
 
+def _dev_placeholder_tenant_ctx() -> TenantContext:
+    """Return the local-dev placeholder :class:`TenantContext`, or fail loud.
+
+    ``run()``/``resume()`` accept ``tenant_ctx=None`` purely as a local-dev /
+    hermetic-test convenience. Outside ``ATELIER_ENV=development`` (the same
+    gate the usage counter, board emitter, and design-system persister use), a
+    missing tenant context is a caller wiring bug: silently defaulting to the
+    placeholder tenant ``"t1"`` would bill usage, write board task docs, and
+    persist design systems under a tenant/project path no verified caller owns
+    — the dead-data path the 2026-06-09 code-health audit flagged. The public
+    API (``generate.py``/``a2a.py``) always builds a real context from the
+    verified JWT, so production never hits this branch legitimately.
+    """
+    if os.getenv("ATELIER_ENV", "development") != "development":
+        raise ValueError(
+            "tenant_ctx is required outside ATELIER_ENV=development: refusing to "
+            "default to the placeholder tenant 't1'. Build a TenantContext from "
+            "the verified caller identity (see api/generate.py)."
+        )
+    return TenantContext(
+        tenant_id="t1",
+        user_id="u1",
+        project_id="p1",
+    )
+
+
 def _serialize_checkpoint(
     *,
     brief: BriefSpec,
@@ -1326,8 +1352,11 @@ class AtelierRunner:
 
         Args:
             brief_text: Raw brief text input.
-            tenant_ctx: Tenant context for source resolution. Defaults to a
-                placeholder context for local development.
+            tenant_ctx: Tenant context for source resolution. ``None`` is a
+                local-dev / hermetic-test convenience only: it resolves to the
+                placeholder context in ``ATELIER_ENV=development`` and raises
+                ``ValueError`` in any other environment (fail-loud — see
+                :func:`_dev_placeholder_tenant_ctx`).
             progress_callback: Optional async callback to stream progress events.
             require_signoff: AT-031 opt-in human-in-the-loop gate. When ``True``,
                 the pipeline locks the plan/scope (N0/N1/N2), persists an idempotent
@@ -1351,11 +1380,8 @@ class AtelierRunner:
             ValueError: When brief fails the deterministic gate.
         """
         if tenant_ctx is None:
-            tenant_ctx = TenantContext(
-                tenant_id="t1",
-                user_id="u1",
-                project_id="p1",
-            )
+            # Dev/test convenience ONLY — fails loud outside ATELIER_ENV=development.
+            tenant_ctx = _dev_placeholder_tenant_ctx()
 
         # AT-095 (§13.2 / G16): per-user lifetime token cap, enforced server-side
         # PRE-FLIGHT — before any Vertex call (N1/N2 included). Seed the cumulative
@@ -1659,7 +1685,9 @@ class AtelierRunner:
             confirmation: The human's ``ToolConfirmation``. Fail-closed: only
                 ``confirmed is True`` advances; ``confirmed is False`` (or absent) leaves
                 the run ``AWAITING_SIGNOFF`` and returns the halt sentinel unchanged.
-            tenant_ctx: Tenant context. Defaults to the same placeholder as :meth:`run`.
+            tenant_ctx: Tenant context. ``None`` resolves to the same dev-only
+                placeholder as :meth:`run` (raises ``ValueError`` outside
+                ``ATELIER_ENV=development``).
             progress_callback: Optional async progress callback.
 
         Returns:
@@ -1671,11 +1699,8 @@ class AtelierRunner:
             ValueError: When no AWAITING_SIGNOFF checkpoint exists for ``session_id``.
         """
         if tenant_ctx is None:
-            tenant_ctx = TenantContext(
-                tenant_id="t1",
-                user_id="u1",
-                project_id="p1",
-            )
+            # Dev/test convenience ONLY — fails loud outside ATELIER_ENV=development.
+            tenant_ctx = _dev_placeholder_tenant_ctx()
 
         session = await self._session_service.get_session(
             app_name=_APP_NAME,
