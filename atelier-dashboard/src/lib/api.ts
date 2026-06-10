@@ -431,13 +431,32 @@ export async function runGenerationStream(
     let buffer = '';
 
     // A run ends with exactly one terminal event (complete / error / cap_reached
-    // / stop). If the stream closes WITHOUT one — a proxy/Cloud Run wall-clock
-    // cut, a half-closed socket, or a run that outlives the request budget — the
-    // reader below just `break`s on `done` and, without this guard, the Studio
-    // would sit on the "generating" spinner forever (no onComplete/onError ever
-    // fires). Track whether a terminal event was seen so we can fail honestly.
+    // / stop). If the stream closes WITHOUT one AFTER generation has started
+    // producing surfaces — a proxy/Cloud Run wall-clock cut, a half-closed
+    // socket, or a run that outlives the request budget — the reader below just
+    // `break`s on `done` and, without this guard, the Studio would sit on the
+    // "generating" spinner forever (no onComplete/onError ever fires).
+    //
+    // The guard is scoped to "generation actually progressed": a stream that
+    // closes after ONLY a `plan` event is a legitimate transient (the loading
+    // spinner before the first surface, or a run parked awaiting sign-off) —
+    // not a hung run to error out. We therefore require a generation-progress
+    // event before treating a terminal-less close as a failure, so the honest
+    // error fires for a mid-generation death but never for a pre-generation
+    // pause.
     const TERMINAL_EVENTS = new Set(['complete', 'error', 'cap_reached', 'stop']);
+    const PROGRESS_EVENTS = new Set([
+      'screen_start',
+      'iteration_start',
+      'candidates',
+      'gates_evaluation',
+      'consensus_evaluation',
+      'fixer_directive',
+      'screen_converged',
+      'iteration_score',
+    ]);
     let sawTerminalEvent = false;
+    let sawGenerationProgress = false;
 
     while (true) {
       const { done, value } = await reader.read();
@@ -461,14 +480,16 @@ export async function runGenerationStream(
             console.error('Failed to parse SSE data JSON:', e, dataStr);
           }
           if (TERMINAL_EVENTS.has(currentEvent)) sawTerminalEvent = true;
+          if (PROGRESS_EVENTS.has(currentEvent)) sawGenerationProgress = true;
           currentEvent = '';
         }
       }
     }
 
-    // The server closed the stream cleanly but never sent a terminal event:
-    // surface an honest, retryable failure instead of an eternal spinner.
-    if (!sawTerminalEvent) {
+    // The server closed the stream cleanly mid-generation but never sent a
+    // terminal event: surface an honest, retryable failure instead of an
+    // eternal spinner.
+    if (!sawTerminalEvent && sawGenerationProgress) {
       callbacks.onError?.(
         'The run was interrupted before it finished (the connection closed early). Please retry.'
       );

@@ -59,7 +59,7 @@
     "atelier-dashboard/src/components/legibility/StopButton.tsx": "182d9d667c2edd14d0690695e1ae4e339a09ec0dcb5ed2cfadb9cec5aa871c53",
     "atelier-dashboard/src/components/legibility/TracePanel.tsx": "272a097d4f3c79e62cc5adefc2f8333ba407dfaa12ceb0b7602032e33da61dfd",
     "atelier-dashboard/src/components/legibility/dorav.ts": "7c43323870a4ccffafd2d96203a394df25db7a76c73adccc37f2fde6dd928005",
-    "atelier-dashboard/src/lib/api.ts": "b7221143ce0d33796a07920da94f66004595ea67cee24331a0eca58ddfb2f249",
+    "atelier-dashboard/src/lib/api.ts": "4e35355e34e19e0e00057643243486771a87a67881905e9210da06dc7ba94d38",
     "atelier-dashboard/src/lib/approval-listener.ts": "c630aea435e3d5f989ab09ff033d6ef9cc37da77ccaeeb347746967049c6b1bf",
     "atelier-dashboard/src/lib/firebase.ts": "7d30de25a25e3422cdb942a04328c7635a99d000e06ce41be37643801b56ad83",
     "atelier-dashboard/src/lib/firestore-board.ts": "389aebfa4354194feec0113e7eb93e2a0d281420f31a9a03526839c875b5f714",
