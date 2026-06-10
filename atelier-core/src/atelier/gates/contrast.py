@@ -162,6 +162,24 @@ def _resolve_to_color(raw_value: str, token_map: dict[str, str]) -> tuple[int, i
     return _parse_color(literals[0]) if literals else None
 
 
+def _resolve_bg_colors(raw_value: str, token_map: dict[str, str]) -> list[tuple[int, int, int]]:
+    """Resolve a ``background`` value to EVERY parseable color stop.
+
+    A gradient shorthand (e.g. ``linear-gradient(#fff, #000)``) carries multiple
+    color literals; resolving only the first stop would let text that is
+    unreadable against a later/darker stop pass. Returns every parseable stop so
+    the gate can check the foreground against the WORST (lowest-ratio) one. A
+    single ``var(--x)`` resolves to one color; unparseable literals are skipped.
+    """
+    var_match = _VAR_REF_RE.search(raw_value)
+    if var_match:
+        mapped = token_map.get(var_match.group(1))
+        color = _parse_color(mapped) if mapped else None
+        return [color] if color is not None else []
+    colors = (_parse_color(literal) for literal in _COLOR_LITERAL_PATTERN.findall(raw_value))
+    return [color for color in colors if color is not None]
+
+
 def _required_ratio(rule_body: str) -> float:
     """AA threshold for a rule: 3:1 if its text is 'large', else 4.5:1."""
     size_match = _FONT_SIZE_RE.search(rule_body)
@@ -192,11 +210,14 @@ def check_wcag_contrast(candidate: CandidateUI) -> GateOutcome:
         if not color_match or not bg_match:
             continue
         fg = _resolve_to_color(color_match.group(1), token_map)
-        bg = _resolve_to_color(bg_match.group(1), token_map)
-        if fg is None or bg is None:
+        bg_colors = _resolve_bg_colors(bg_match.group(1), token_map)
+        if fg is None or not bg_colors:
             continue
         pairs_checked += 1
-        ratio = _contrast_ratio(fg, bg)
+        # Worst stop wins: against a gradient, the foreground must clear AA on the
+        # lowest-contrast stop, not merely the first one. Single-color backgrounds
+        # reduce to the one ratio.
+        ratio = min(_contrast_ratio(fg, bg) for bg in bg_colors)
         threshold = _required_ratio(body)
         if ratio < threshold:
             violations.append(

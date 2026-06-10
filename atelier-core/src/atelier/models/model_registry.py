@@ -35,10 +35,14 @@ ADR Reference: 0007 (Gemini-only model strategy)
 
 from __future__ import annotations
 
+import asyncio
+import logging
 import os
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Final
+
+logger = logging.getLogger(__name__)
 
 #: AT-024 (§22 D5 / G13) — GA Gemini Pro model id, operator-pinned 2026-05-31.
 #: Override per-env via GEMINI_MODEL_ID (overrides ALL calibrated models — used
@@ -164,31 +168,113 @@ TASK_MODEL_ROUTING: Final[dict[TaskType, str]] = {
 }
 
 
-def fetch_calibrated_model_from_remote_config(task_type: TaskType) -> str | None:
-    """Fetch the latest model ID for the given task from Firebase Remote Config.
+# ---------------------------------------------------------------------------
+# Dynamic model routing via Firebase Remote Config (operator override)
+# ---------------------------------------------------------------------------
+#
+# Operators can override the pinned TASK_MODEL_ROUTING table without a redeploy
+# by setting ``model_routing_<task>`` parameters in Firebase Remote Config.
+# These are loaded ONCE at application startup (:func:`warm_remote_config_routes`,
+# invoked from the FastAPI lifespan) into a process-local cache; the hot-path
+# :func:`calibrate_model` reads that cache synchronously and never touches the
+# network. firebase-admin 7.x exposes server-side templates via the async
+# ``get_server_template()``; the pre-7.x management ``get_template()`` was removed
+# (calling it raised AttributeError on every lookup — silently disabling overrides
+# and emitting a traceback per model resolution until this was fixed).
 
-    Fail-soft: returns None if Firebase is not initialized, Remote Config is
-    unavailable, or parameter is not present.
+#: Resolved, allow-list-validated overrides keyed by ``TaskType.value``. Empty
+#: until :func:`warm_remote_config_routes` populates it; an empty cache means
+#: every task falls through to its pinned route.
+_REMOTE_ROUTE_CACHE: dict[str, str] = {}
+
+#: Startup-warm timeout. Remote Config must never delay Cloud Run readiness, so a
+#: slow/unreachable backend is abandoned and the pinned routes are used.
+_REMOTE_CONFIG_WARM_TIMEOUT_S: Final[float] = 5.0
+
+
+def _allowed_model_ids() -> frozenset[str]:
+    """Return the set of model ids a Remote Config override may name."""
+    return ALL_MODEL_IDS | {
+        DEFAULT_GEMINI_MODEL_ID,
+        GEMINI_FLASH_MODEL_ID,
+        GEMINI_FLASH_LITE_MODEL_ID,
+    }
+
+
+async def warm_remote_config_routes() -> None:
+    """Load operator model-routing overrides from Firebase Remote Config.
+
+    Called once at application startup (FastAPI lifespan). Fully fail-soft: any
+    error — Firebase uninitialized, no credentials, backend outage, timeout —
+    leaves the cache empty so the pinned :data:`TASK_MODEL_ROUTING` table is
+    used. A misconfigured (non-allow-listed) parameter is logged once here, at
+    warm time, rather than on every hot-path lookup.
     """
     try:
         from firebase_admin import remote_config  # noqa: PLC0415
 
         from atelier.auth.firebase import _init_firebase  # noqa: PLC0415
 
+        # firebase-admin <7 had get_template(); 7.x replaced it with the async
+        # server-side get_server_template(). Guard so neither SDK line errors.
+        if not hasattr(remote_config, "get_server_template"):
+            return
+
         _init_firebase()
-        # Fetch the active template from Firebase Remote Config
-        template = remote_config.get_template()
-        param_name = f"model_routing_{task_type.value}"
-        if param_name in template.parameters:
-            val = template.parameters[param_name].default_value
-            if isinstance(val, str):
-                cleaned = val.strip()
-                if cleaned:
-                    return cleaned
-    except Exception:  # noqa: BLE001, S110
-        # Fail-soft: ignore failures to connect or verify
-        pass
-    return None
+        template = await asyncio.wait_for(
+            remote_config.get_server_template(),
+            timeout=_REMOTE_CONFIG_WARM_TIMEOUT_S,
+        )
+        config = template.evaluate()
+
+        allowed = _allowed_model_ids()
+        resolved: dict[str, str] = {}
+        for task_type in TaskType:
+            param_name = f"model_routing_{task_type.value}"
+            raw = config.get_string(param_name)
+            cleaned = raw.strip() if isinstance(raw, str) else ""
+            if not cleaned:
+                continue
+            normalized = normalize_model_id(cleaned)
+            # A Remote Config value flows straight into LlmAgent(model=...); only
+            # honor it when it names a known model id. An unrecognized string must
+            # fall back to the pinned route, never be served.
+            if normalized in allowed:
+                resolved[task_type.value] = normalized
+            else:
+                logger.warning(
+                    "Remote Config model_routing_%s=%r is not an allow-listed "
+                    "model id; ignoring and using the pinned route.",
+                    task_type.value,
+                    cleaned,
+                )
+
+        _REMOTE_ROUTE_CACHE.clear()
+        _REMOTE_ROUTE_CACHE.update(resolved)
+        if resolved:
+            logger.info(
+                "Remote Config model routing loaded: %d override(s) active.",
+                len(resolved),
+            )
+    except Exception:  # noqa: BLE001
+        # Fail-soft: routing must survive a Remote Config outage. Logged at debug
+        # (not warning-with-traceback) because the pinned table is a correct,
+        # expected fallback — e.g. local/hermetic runs with no Firebase creds.
+        logger.debug(
+            "Remote Config routing warm-up skipped; using pinned routes.",
+            exc_info=True,
+        )
+
+
+def fetch_calibrated_model_from_remote_config(task_type: TaskType) -> str | None:
+    """Return the cached Remote Config model override for a task, if any.
+
+    Pure, synchronous cache read — the cache is populated once at startup by
+    :func:`warm_remote_config_routes`. Never touches the network and never
+    raises, so it is safe in the per-agent-construction hot path. Returns
+    ``None`` when no override is configured (the pinned route is then used).
+    """
+    return _REMOTE_ROUTE_CACHE.get(task_type.value)
 
 
 def normalize_model_id(model_id: str) -> str:

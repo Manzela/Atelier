@@ -90,6 +90,10 @@ from atelier.utils.log_sanitizer import sanitize
 
 logger = logging.getLogger(__name__)
 
+# Expected issuer prefix — Firebase ID tokens carry iss of the form
+# "https://securetoken.google.com/<project_id>".
+_FIREBASE_ISSUER_PREFIX = "https://securetoken.google.com/"
+
 # ---------------------------------------------------------------------------
 # Firebase admin SDK — lazy-initialised at first use
 # ---------------------------------------------------------------------------
@@ -240,6 +244,35 @@ def _decode_token(token: str, *, check_revoked: bool = False) -> dict[str, Any]:
             },
         ) from exc
     else:
+        # Explicit post-decode audience and issuer assertions defend against an
+        # SDK misconfiguration where initialize_app was called without the
+        # correct projectId — tokens minted for a different Firebase project
+        # would otherwise pass SDK signature verification undetected.
+        # firebase-admin already performs these checks, but an in-repo assertion
+        # makes the contract testable and survives SDK version changes.
+        expected_iss = f"{_FIREBASE_ISSUER_PREFIX}{_PROJECT_ID}"
+        actual_aud = decoded.get("aud", "")
+        actual_iss = decoded.get("iss", "")
+        if actual_aud != _PROJECT_ID or actual_iss != expected_iss:
+            # nosemgrep: python.lang.security.audit.logging.logger-credential-leak.python-logger-credential-disclosure -- static format string; interpolated values are the token audience, issuer, and expected project id (public identifiers), not a credential.
+            logger.warning(
+                "Firebase token audience/issuer mismatch [aud=%s iss=%s expected_project=%s]",
+                actual_aud,
+                actual_iss,
+                _PROJECT_ID,
+            )
+            raise HTTPException(
+                status_code=401,
+                detail={
+                    "error": "invalid_token",
+                    "title": "Authentication required",
+                    "detail": (
+                        "The provided credential is missing, invalid, or expired. "
+                        "Sign in again to obtain a fresh ID token."
+                    ),
+                    "user_action": "Sign in at /auth/signin to refresh your credentials.",
+                },
+            )
         return decoded
 
 

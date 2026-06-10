@@ -59,7 +59,11 @@ with sync_playwright() as p:
 PYEOF
     echo "  OK chromium launches"
   else
-    echo "  WARN playwright present but chromium not launchable - run 'playwright install chromium' (AT-011)"
+    # Hard local blocker: playwright is installed but chromium will not launch,
+    # so the real axe-core + visual oracles (AT-011/040) cannot run. This is a
+    # genuine broken prerequisite, not a deferred capability, so fail the gate.
+    echo "  FAIL playwright present but chromium not launchable - run 'playwright install chromium' (AT-011)"
+    hard_fail=$((hard_fail + 1))
   fi
 else
   echo "  SKIP playwright not installed in .venv yet (lands with AT-011)"

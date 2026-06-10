@@ -961,6 +961,15 @@ export default function StudioClientShell({ id }: { id: string }) {
         if (isSignoffPlan && user) {
           setSignoffPlan(data);
           setStatus('awaiting-signoff');
+          // The approval gate is a blocking decision that fills the canvas. On
+          // mobile/tablet (< xl / < lg) the config + log panels are overlay
+          // drawers whose `fixed inset-0 z-40` backdrop would otherwise sit
+          // ABOVE the inline ApprovalCard and swallow its Approve/Steer taps.
+          // Close them here so the gate is always interactable on every screen;
+          // the trace panel re-opens automatically once generation resumes
+          // (handleSignoffSnapshot → setIsRightSidebarOpen(true)).
+          setIsRightSidebarOpen(false);
+          setIsDrawerOpen(false);
           // Subscribe to the run doc: if a cold clone finds it already APPROVED,
           // onSnapshot fires on attach and resumes without showing the card.
           watchSignoff(user.tenant_id, id);
@@ -1948,7 +1957,7 @@ export default function StudioClientShell({ id }: { id: string }) {
                   data-testid="state-loading"
                   role="status"
                   aria-live="polite"
-                  aria-label="Generating design \u2014 please wait"
+                  aria-label="Generating design — please wait"
                   className="w-full h-full flex flex-col items-center justify-center bg-[var(--g-bg)] gap-4"
                 >
                   <Loader2
@@ -2008,7 +2017,7 @@ export default function StudioClientShell({ id }: { id: string }) {
                     />
                     <div>
                       <h2 className="text-sm font-semibold text-amber-800">
-                        Result is degraded \u2014 showing the best available output
+                        Result is degraded — showing the best available output
                       </h2>
                       {degradationReason && (
                         <p className="text-xs text-amber-700 mt-0.5">{degradationReason}</p>

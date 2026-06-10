@@ -27,7 +27,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Annotated, Any, Final
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -768,6 +768,26 @@ def _enrich_complete_payload(payload: dict[str, Any]) -> dict[str, Any]:
     # ------------------------------------------------------------------
     enriched["run_verdict"] = _build_run_verdict(payload)
 
+    # ------------------------------------------------------------------
+    # degraded / degradation_reason: failure-trichotomy honesty (PRD §21).
+    # When the loop did NOT converge, best_html is the strongest SUB-BAR draft,
+    # not a blessed result. The Studio keys its acknowledgment off `degraded`,
+    # so derive it here from the runner's `converged` flag and surface the
+    # already-composed `user_message` (the "strong draft — did not clear every
+    # gate, retry to refine" acknowledgment). Without this the frontend takes
+    # the success branch and reports "All screens converged" over a sub-bar
+    # design — the exact "apparent capability over trust" failure the PRD
+    # forbids. A more specific per-iteration cause (stitch / governor fail-soft)
+    # already in `degradation_reason` is preserved; an explicit upstream
+    # `degraded=True` is never downgraded.
+    if not enriched.get("converged", False) and not enriched.get("degraded", False):
+        enriched["degraded"] = True
+        enriched["degradation_reason"] = (
+            enriched.get("degradation_reason")
+            or enriched.get("user_message")
+            or "This design did not clear every convergence gate; showing the strongest draft."
+        )
+
     return enriched
 
 
@@ -857,12 +877,14 @@ def _build_run_verdict(payload: dict[str, Any]) -> dict[str, Any] | None:
     description="Streams the pipeline progress events (plan, screen_start, candidates, evaluations, fixer, complete) in EventSource format.",
 )
 async def generate_stream(  # noqa: C901, PLR0915 — SSE orchestrator: nested pipeline + cap/rate-limit handling
+    http_request: Request,
     request: GenerateRequest,
     user: Annotated[FirebaseUser, Depends(require_auth_strict)],
 ) -> StreamingResponse:
     """Run the pipeline and stream events in real-time.
 
     Args:
+        http_request: Starlette request object used to detect client disconnect.
         request: Brief text and optional configuration.
         user: Verified Firebase user from Authorization: Bearer header.
 
@@ -881,8 +903,16 @@ async def generate_stream(  # noqa: C901, PLR0915 — SSE orchestrator: nested p
         raise HTTPException(status_code=400, detail=gate_outcome.diagnostic)
 
     queue: asyncio.Queue[tuple[str, Any]] = asyncio.Queue()
+    # Shared container: populated by progress_callback as soon as the runner
+    # emits a payload carrying a session_id.  Used by sse_generator to arm the
+    # cooperative Stop on client disconnect.
+    _session_id_holder: list[str] = []
 
     async def progress_callback(event_type: str, payload: dict[str, Any]) -> None:
+        # Capture session_id from the first event that carries one so the
+        # sse_generator can stop the run on client disconnect.
+        if not _session_id_holder and payload.get("session_id"):
+            _session_id_holder.append(str(payload["session_id"]))
         if event_type == "complete":
             # AT-027: surface the read-only optimize assets (MoE route decision +
             # dreaming/DPO artifact) for THIS run, just BEFORE the complete event so
@@ -900,6 +930,7 @@ async def generate_stream(  # noqa: C901, PLR0915 — SSE orchestrator: nested p
 
     async def _run_pipeline_task() -> None:
         from atelier.models.data_contracts import TenantContext  # noqa: PLC0415
+        from atelier.models.model_armor_callbacks import ModelArmorInputBlocked  # noqa: PLC0415
         from atelier.orchestrator.governor import (  # noqa: PLC0415
             CIRCUIT_BREAKER_MESSAGE,
             TOKEN_CAP_MESSAGE,
@@ -988,15 +1019,70 @@ async def generate_stream(  # noqa: C901, PLR0915 — SSE orchestrator: nested p
                     },
                 )
             )
-        except Exception as e:
-            logger.exception("Error in streaming generation pipeline task")
-            await queue.put(("error", {"detail": str(e)}))
+        except ModelArmorInputBlocked as exc:
+            # The brief itself was a prompt-injection that Model Armor blocked at the
+            # N1 parse boundary. Fail LOUD but HONESTLY: surface the branded safety
+            # acknowledgment as a clean degraded+complete (the same shape as the cap
+            # path), never the generic "internal error" that reads as a crash. The
+            # design thesis is fail-closed safety stated plainly — see PRD §21.
+            logger.warning(
+                "atelier.generate.stream.input_blocked", extra={"uid": sanitize(user.uid)}
+            )
+            await queue.put(("degraded", {"mode": "blocked", "message": exc.user_message}))
+            # The Studio keys its acknowledgment off the complete event's `degraded`
+            # field (there is no separate degraded-event handler), so set it here —
+            # otherwise onComplete takes the success branch over a blocked run. This
+            # direct queue.put bypasses _enrich_complete_payload, so the mapping the
+            # normal path does is applied inline.
+            await queue.put(
+                (
+                    "complete",
+                    {
+                        "degraded": True,
+                        "degradation_reason": exc.user_message,
+                        "user_message": exc.user_message,
+                    },
+                )
+            )
+        except Exception:
+            # Do not leak the raw exception string to the client; return a generic
+            # message plus a correlation id and keep the full detail server-side.
+            correlation_id = uuid4().hex[:12]
+            logger.exception(
+                "Error in streaming generation pipeline task [correlation_id=%s]",
+                correlation_id,
+            )
+            await queue.put(
+                (
+                    "error",
+                    {
+                        "detail": "Internal error during generation.",
+                        "correlation_id": correlation_id,
+                    },
+                )
+            )
 
     async def sse_generator() -> AsyncGenerator[str, None]:
         # Start the pipeline in the background
         task = asyncio.create_task(_run_pipeline_task())
 
         while True:
+            # Check for client disconnect on each keep-alive tick so disconnected
+            # clients do not continue consuming paid Vertex quota.
+            if await http_request.is_disconnected():
+                logger.info(
+                    "atelier.generate.stream.client_disconnected",
+                    extra={"uid": sanitize(user.uid)},
+                )
+                if _session_id_holder:
+                    from atelier.orchestrator.stop_controller import (  # noqa: PLC0415
+                        request_stop,
+                    )
+
+                    request_stop(_session_id_holder[0])
+                task.cancel()
+                break
+
             try:
                 # Wait for an event with a 1.0 second timeout to support keep-alive pinging
                 event_type, payload = await asyncio.wait_for(queue.get(), timeout=1.0)

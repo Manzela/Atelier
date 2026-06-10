@@ -91,6 +91,63 @@ const SSE_BODY = [
   '',
 ].join('\n');
 
+// ── SSE event-vocabulary contract ──────────────────────────────────────────────
+// The hermetic specs intercept /v1/generate/stream with a locally-authored SSE
+// body. That makes them vacuous against backend EVENT-NAME drift: if the backend
+// renamed `iteration_score` the mock would keep emitting the old name and the
+// suite would stay green while the real frontend<->backend contract broke.
+//
+// This is the source-of-truth list of SSE event names the backend emits. Each
+// name is the first argument the orchestrator passes to `progress_callback(...)`
+// and is serialised verbatim as `event: <name>` by the FastAPI sse_generator
+// (atelier-core/src/atelier/api/generate.py — `yield f"event: {event_type}\n..."`).
+// A fixture that uses an event name NOT in this set is asserting against a payload
+// the backend never sends; the contract test below fails fast if SSE_BODY drifts.
+const BACKEND_SSE_EVENTS = new Set<string>([
+  'plan',
+  'clarify',
+  'signoff',
+  'signoff_approved',
+  'screen_start',
+  'iteration_start',
+  'research_query',
+  'specialist_trace',
+  'candidates',
+  'gates_evaluation',
+  'consensus_evaluation',
+  'iteration_score',
+  'fixer_directive',
+  'screen_converged',
+  'token_delta',
+  'degraded',
+  'stop',
+  'complete',
+  'error',
+]);
+
+/** Extract the event names declared in a raw SSE body (`event: <name>` lines). */
+function sseEventNames(body: string): string[] {
+  return body
+    .split('\n')
+    .filter((line) => line.startsWith('event:'))
+    .map((line) => line.slice('event:'.length).trim());
+}
+
+// ── Test 0: the fixture's SSE vocabulary matches the backend's emitted events ──
+// Non-vacuousness for the contract: the fixture below drives the UI off these
+// event names; if any name is not one the backend actually emits, the rendering
+// assertions in tests 1-3 would be proving the UI against an invented payload.
+test('AT-093: SSE fixture event names are a subset of the backend vocabulary', () => {
+  const names = sseEventNames(SSE_BODY);
+  expect(names.length).toBeGreaterThan(0);
+  const unknown = names.filter((name) => !BACKEND_SSE_EVENTS.has(name));
+  expect(
+    unknown,
+    `SSE fixture uses event name(s) the backend never emits: ${unknown.join(', ')}. ` +
+      'Update the fixture or BACKEND_SSE_EVENTS (mirrors api/generate.py) if the contract changed.'
+  ).toEqual([]);
+});
+
 // ── Helper ────────────────────────────────────────────────────────────────────
 async function runWithFixture(page: import('@playwright/test').Page): Promise<void> {
   await page.route('**/v1/generate/stream', (route) =>

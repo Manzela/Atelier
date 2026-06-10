@@ -25,15 +25,40 @@ Design:
 * No silent failure: the registry never swallows — it is pure in-memory state with
   no error surface. A Stop on an unknown session is a harmless no-op (the loop
   simply never observes it), never an exception.
+
+* Bounded + self-healing: each Stop carries the monotonic time it was armed, and
+  entries are evicted on every access once older than ``_STOP_TTL_SECONDS``. The
+  honoring path clears its own entry, but a Stop armed for a run that never
+  reaches (or never completes) the convergence loop — a failed N1/N2, a run that
+  raised before the loop, or a wrong session id — would otherwise leak forever in
+  a long-lived instance and could re-halt a much-later resume that reuses the id.
+  The TTL bounds the registry size and guarantees a stale flag self-expires rather
+  than silently halting a future run at iteration 0.
 """
 
 from __future__ import annotations
 
 import threading
+import time
 
 _LOCK = threading.Lock()
-#: session_ids with a pending Stop. Membership == "halt at the next iteration top".
-_STOP_REQUESTED: set[str] = set()
+#: session_id -> monotonic time the Stop was armed. Presence (within TTL) ==
+#: "halt at the next iteration top".
+_STOP_REQUESTED: dict[str, float] = {}
+#: A Stop older than this (seconds) is treated as expired and evicted. Sized well
+#: above any single run's wall-clock so a legitimate in-flight Stop is always
+#: honored, while a Stop on a run that never reaches/finishes the loop cannot leak
+#: or re-halt a far-later resume.
+_STOP_TTL_SECONDS = 3600.0
+
+
+def _evict_expired_locked(now: float) -> None:
+    """Drop Stops older than the TTL. Caller MUST hold ``_LOCK``."""
+    expired = [
+        sid for sid, armed_at in _STOP_REQUESTED.items() if now - armed_at >= _STOP_TTL_SECONDS
+    ]
+    for sid in expired:
+        del _STOP_REQUESTED[sid]
 
 
 def request_stop(session_id: str) -> None:
@@ -44,15 +69,24 @@ def request_stop(session_id: str) -> None:
     """
     if not session_id:
         return
+    now = time.monotonic()
     with _LOCK:
-        _STOP_REQUESTED.add(session_id)
+        _evict_expired_locked(now)
+        _STOP_REQUESTED[session_id] = now
 
 
 def is_stop_requested(session_id: str) -> bool:
-    """Return whether a Stop is pending for ``session_id`` (zero-I/O, lock-guarded)."""
+    """Return whether a non-expired Stop is pending for ``session_id`` (zero-I/O, lock-guarded).
+
+    An entry past ``_STOP_TTL_SECONDS`` is treated as absent and evicted, so a
+    Stop armed for a run that never honored it cannot re-halt a later resume on a
+    reused session id.
+    """
     if not session_id:
         return False
+    now = time.monotonic()
     with _LOCK:
+        _evict_expired_locked(now)
         return session_id in _STOP_REQUESTED
 
 
@@ -66,4 +100,4 @@ def clear_stop(session_id: str) -> None:
     if not session_id:
         return
     with _LOCK:
-        _STOP_REQUESTED.discard(session_id)
+        _STOP_REQUESTED.pop(session_id, None)

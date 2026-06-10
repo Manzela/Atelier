@@ -167,26 +167,44 @@ _WEIGHT_PRESETS: dict[str, AxisWeights] = {
     ),
 }
 
-# Compliance level multipliers for accessibility axis
+# Compliance level multipliers for accessibility axis.
+# Keys are snake_case; _normalize_key converts kebab-case enum values
+# (ComplianceLevel: "wcag-aa", "wcag-aaa", "none", "regulatory") at lookup time.
 _COMPLIANCE_MULTIPLIERS: dict[str, float] = {
     "wcag_aa": 1.5,
     "wcag_aaa": 2.0,
     "section_508": 1.8,
+    "regulatory": 1.8,
     "none": 0.8,
 }
 
-# Convergence bar multipliers — higher bar = stricter scoring
+# Convergence bar multipliers — higher bar = stricter scoring.
+# Keys are snake_case; _normalize_key converts kebab-case ConvergenceBar enum values
+# ("ship-it", "production", "perfectionist") at lookup time.
 _CONVERGENCE_MULTIPLIERS: dict[str, float] = {
+    "ship_it": 0.85,
     "production": 1.0,
+    "perfectionist": 1.2,
+    # Legacy aliases kept for backward compatibility with existing tests.
     "draft": 0.7,
     "prototype": 0.5,
 }
 
 
+def _normalize_key(value: str) -> str:
+    """Normalize a dict lookup key to snake_case.
+
+    Accepts both kebab-case enum values (e.g. ``"wcag-aa"``) and
+    snake_case legacy strings (e.g. ``"wcag_aa"``); both map to the
+    same entry so callers may pass a ``StrEnum.value`` directly.
+    """
+    return value.lower().strip().replace("-", "_")
+
+
 def compute_axis_weights(
     visual_register: str,
     *,
-    compliance_level: str = "wcag_aa",
+    compliance_level: str = "wcag-aa",
     convergence_bar: str = "production",
 ) -> AxisWeights:
     """Compute axis weights from BriefSpec parameters.
@@ -195,27 +213,38 @@ def compute_axis_weights(
     compliance and convergence multipliers.
 
     Args:
-        visual_register: Design register (e.g., ``"luxury"``, ``"saas"``).
-        compliance_level: Accessibility compliance level.
-        convergence_bar: How strict the convergence criteria should be.
+        visual_register: Design register — accepts ``VisualRegister``
+            enum values (e.g. ``"corporate"``) or their kebab-case
+            ``StrEnum.value`` equivalents.
+        compliance_level: Accessibility compliance level — accepts
+            ``ComplianceLevel`` enum values (e.g. ``"wcag-aa"``,
+            ``"wcag-aaa"``) or their legacy snake_case equivalents.
+        convergence_bar: How strict the convergence criteria should be —
+            accepts ``ConvergenceBar`` enum values (e.g. ``"ship-it"``,
+            ``"production"``, ``"perfectionist"``) or their legacy
+            equivalents.
 
     Returns:
         AxisWeights tuned for the given brief parameters.
     """
     base = _WEIGHT_PRESETS.get(
-        visual_register.lower().strip(),
+        _normalize_key(visual_register),
         AxisWeights(),
     )
 
-    # Apply compliance multiplier to accessibility axis
+    # Apply compliance multiplier to accessibility axis.
+    # _COMPLIANCE_MULTIPLIERS is keyed in snake_case; _normalize_key
+    # converts kebab-case enum values (e.g. "wcag-aa") so they resolve.
     compliance_mult = _COMPLIANCE_MULTIPLIERS.get(
-        compliance_level.lower().strip(),
+        _normalize_key(compliance_level),
         1.0,
     )
 
-    # Apply convergence multiplier to all axes (scales importance)
+    # Apply convergence multiplier to all axes (scales importance).
+    # ConvergenceBar emits kebab-case ("ship-it", "perfectionist");
+    # _normalize_key converts those so the lookup succeeds.
     convergence_mult = _CONVERGENCE_MULTIPLIERS.get(
-        convergence_bar.lower().strip(),
+        _normalize_key(convergence_bar),
         1.0,
     )
 

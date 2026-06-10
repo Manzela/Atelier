@@ -211,6 +211,65 @@ def test_enrich_complete_payload_empty_best_candidate_returns_empty_nielsen() ->
 
 
 @pytest.mark.unit
+def test_enrich_complete_payload_non_converged_is_marked_degraded() -> None:
+    """A non-converged run must surface degraded=True + the acknowledgment.
+
+    Failure-trichotomy honesty (PRD §21): the Studio keys its acknowledgment off
+    `degraded`. Without this derivation the frontend takes the success branch and
+    reports "All screens converged" over a sub-bar draft — the exact regression
+    the live Linear-app E2E surfaced.
+    """
+    from atelier.api.generate import _enrich_complete_payload
+
+    payload: dict[str, Any] = {
+        "best_candidate": _MINIMAL_HTML,
+        "converged": False,
+        "composite_score": 0.0,
+        "evaluations": [],
+        "user_message": "Atelier explored 2 iterations and is showing the strongest draft.",
+    }
+    result = _enrich_complete_payload(payload)
+
+    assert result["degraded"] is True
+    assert result["degradation_reason"] == payload["user_message"]
+
+
+@pytest.mark.unit
+def test_enrich_complete_payload_converged_is_not_degraded() -> None:
+    """A converged run must NOT be marked degraded."""
+    from atelier.api.generate import _enrich_complete_payload
+
+    payload: dict[str, Any] = {
+        "best_candidate": _MINIMAL_HTML,
+        "converged": True,
+        "composite_score": 0.95,
+        "evaluations": _MINIMAL_EVALUATIONS,
+    }
+    result = _enrich_complete_payload(payload)
+
+    assert result.get("degraded", False) is False
+
+
+@pytest.mark.unit
+def test_enrich_complete_payload_preserves_specific_degradation_reason() -> None:
+    """An upstream (stitch/governor) degradation_reason is preferred over the generic."""
+    from atelier.api.generate import _enrich_complete_payload
+
+    payload: dict[str, Any] = {
+        "best_candidate": _MINIMAL_HTML,
+        "converged": False,
+        "composite_score": 0.0,
+        "evaluations": [],
+        "degradation_reason": "Stitch MCP unavailable: ConnectionError",
+        "user_message": "generic draft notice",
+    }
+    result = _enrich_complete_payload(payload)
+
+    assert result["degraded"] is True
+    assert result["degradation_reason"] == "Stitch MCP unavailable: ConnectionError"
+
+
+@pytest.mark.unit
 def test_enrich_complete_payload_dorav_fallback_on_empty_evaluations() -> None:
     """When evaluations list is empty, dorav composite falls back to top-level composite_score."""
     from atelier.api.generate import _enrich_complete_payload

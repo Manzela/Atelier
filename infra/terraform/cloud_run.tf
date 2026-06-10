@@ -15,14 +15,17 @@ resource "google_cloud_run_v2_service" "atelier_api" {
   project             = var.project_id
   deletion_protection = false
 
-  # Explicitly allow all traffic for now (staging). Production should use
-  # INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER with Cloud IAP or IAM auth.
-  ingress = "INGRESS_TRAFFIC_ALL"
+  # Production: restrict to internal+load-balancer traffic only;
+  # staging: allow all traffic for easier developer testing.
+  ingress = var.env == "production" ? "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER" : "INGRESS_TRAFFIC_ALL"
 
   template {
     service_account = "atelier-api-sa@${var.project_id}.iam.gserviceaccount.com"
     containers {
-      image = "${var.region}-docker.pkg.dev/${var.project_id}/atelier-images/atelier-api:latest"
+      # Pin to an immutable digest supplied at plan time via var.api_image.
+      # Never deploy :latest — mutable tags make rollbacks ambiguous and
+      # allow a re-pushed tag to silently change prod behavior.
+      image = var.api_image
       ports {
         container_port = 8080
       }
@@ -73,8 +76,13 @@ resource "google_cloud_run_v2_service" "atelier_api" {
         value = "false"
       }
       env {
+        # The per-user lifetime token cap (AT-095) and fleet circuit-breaker
+        # (AT-097) must hold across instances and survive scale-to-zero. The
+        # Firestore backend uses atomic firestore.Increment, so a counter shared
+        # by every instance enforces the cap; the in-memory backend is per-instance
+        # process state and fails open on a public, autoscaled, min=0 service.
         name  = "ATELIER_USAGE_BACKEND"
-        value = "memory"
+        value = "firestore"
       }
       env {
         name  = "GOOGLE_CLOUD_LOCATION"
@@ -107,13 +115,18 @@ resource "google_cloud_run_v2_service" "atelier_api" {
     }
   }
 
-  lifecycle {
-    ignore_changes = [template[0].containers[0].image]
-  }
-
   depends_on = [
     google_project_service.required
   ]
+
+  lifecycle {
+    # var.api_image pins the plan-time digest, but the live revision is rolled by
+    # `gcloud run deploy` in the deploy workflow. Ignore image drift so a later
+    # `terraform apply` does not revert the running revision to the plan-time
+    # value (restored 2026-06-09: the immutable-digest change dropped this block,
+    # which would otherwise make Terraform fight the deploy pipeline).
+    ignore_changes = [template[0].containers[0].image]
+  }
 }
 
 resource "google_storage_bucket" "rag_datastore_staging" {

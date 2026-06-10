@@ -1,9 +1,6 @@
 # Dependabot — minimum-credit configuration
-# Reduced from initial scaffold: monthly schedule, grouped PRs, only ecosystems
-# with real deps right now. Additional ecosystems added back per ROADMAP as
-# their content lands:
-#   - pip /atelier-eval         → re-enable Phase 2 W2
-#   - npm /atelier-dashboard    → re-enable Phase 2 W2
+# Monthly schedule, grouped PRs, scoped to the dependency files that actually
+# drive production. Ecosystems still pending content land per ROADMAP:
 #   - docker /atelier-deploy    → re-enable Phase 1 D5+
 #   - terraform /atelier-deploy → re-enable Phase 1 D2
 
@@ -32,9 +29,14 @@ updates:
       - dependency-name: '*'
         update-types: ['version-update:semver-major'] # major bumps require manual review
 
-  # ─── npm (workspace root: commitlint + prettier + typescript only) ──
+  # ─── npm (workspace root + atelier-dashboard runtime deps) ──────────
+  # The dashboard is an npm workspace sharing the root package-lock.json. Both
+  # manifests are listed explicitly so Dependabot surfaces the shipped frontend
+  # deps (next, react, firebase, framer-motion, zod) as well as the root devDeps.
   - package-ecosystem: 'npm'
-    directory: '/'
+    directories:
+      - '/'
+      - '/atelier-dashboard'
     schedule:
       interval: 'monthly'
       day: 'monday'
@@ -48,6 +50,28 @@ updates:
       include: 'scope'
     groups:
       npm-all:
+        patterns: ['*']
+        update-types: ['minor', 'patch']
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
+
+  # ─── Python (atelier-eval — scikit-image / scipy / pillow eval stack) ──
+  - package-ecosystem: 'pip'
+    directory: '/atelier-eval'
+    schedule:
+      interval: 'monthly'
+      day: 'monday'
+      time: '08:00'
+      timezone: 'UTC'
+    open-pull-requests-limit: 3
+    labels: ['dependencies', 'python']
+    commit-message:
+      prefix: 'chore(deps)'
+      prefix-development: 'chore(deps-dev)'
+      include: 'scope'
+    groups:
+      python-eval-all:
         patterns: ['*']
         update-types: ['minor', 'patch']
     ignore:

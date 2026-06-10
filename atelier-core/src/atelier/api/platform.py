@@ -242,6 +242,20 @@ async def get_build(
 # ---------------------------------------------------------------------------
 
 
+def _board_project_id() -> str:
+    """Resolve the Firestore board project-path segment the server writes under.
+
+    ``generate.py`` builds every ``TenantContext`` with
+    ``project_id = GOOGLE_CLOUD_PROJECT`` (same default), and the AT-020b board
+    emitter persists task docs at ``tenants/{tenant}/projects/{project_id}/tasks``.
+    The dashboard's live board / agent-activity subscriptions MUST use this value
+    — a client-side hardcoded default would subscribe to a path the server never
+    writes (the GAP-3 contract mismatch). Read per-request so the surfaced value
+    always reflects the env the serving process actually runs with.
+    """
+    return os.environ.get("GOOGLE_CLOUD_PROJECT", "atelier-build-2026")
+
+
 @router.get("/topology", summary="System DAG: specialist nodes + hand-off edges.")
 async def get_topology(
     user: Annotated[FirebaseUser, Depends(require_auth)],  # noqa: ARG001 — auth-gated read
@@ -253,6 +267,10 @@ async def get_topology(
     genuine state hand-offs that make the sequence a pipeline rather than six
     independent prompts. Only edges whose source is itself a specialist output
     are drawn (WRAI ``research_findings`` is an external input, not a node here).
+
+    ``project_id`` is the Firestore board path segment (see
+    :func:`_board_project_id`) — the canonical client-side source for the live
+    board / agent-activity subscriptions that animate this DAG.
 
     NOTE: this is the **static** pipeline DAG. It is NOT a per-run span tree —
     replay spans are flat (the backend does not populate ``parent_span_id`` /
@@ -285,6 +303,7 @@ async def get_topology(
             "Static DDLC hand-off DAG (from specialist upstream_keys). "
             "Not a per-run span tree: replay spans are flat."
         ),
+        "project_id": _board_project_id(),
         "nodes": nodes,
         "edges": edges,
     }

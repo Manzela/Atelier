@@ -745,6 +745,15 @@ export interface TopologyGraphSpec {
   kind?: string;
   /** Honesty note: this is the static hand-off DAG, not a per-run span tree. */
   note?: string;
+  /**
+   * Firestore board project-path segment the server writes task docs under
+   * (`tenants/{tenant}/projects/{project_id}/tasks` — the AT-020b emitter,
+   * with `project_id = GOOGLE_CLOUD_PROJECT` server-side). The canonical
+   * client-side source for the live board / agent-activity subscriptions —
+   * never substitute a hardcoded default. Optional only because older API
+   * deploys predate the field.
+   */
+  project_id?: string;
   nodes: TopologyNode[];
   edges: TopologyEdge[];
 }

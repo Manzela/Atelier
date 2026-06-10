@@ -2,8 +2,13 @@
 
 Implements the Agent-to-Agent protocol v1.0 JSON-RPC interface for
 inter-agent communication. Supports:
-    - ``SendMessage``: delegates to the Atelier pipeline (same as /v1/generate)
-    - ``GetTask``: returns task status (stub; wire to task store when available)
+    - ``SendMessage``: delegates to the Atelier pipeline (same as /v1/generate),
+      running it synchronously and returning a terminal ``COMPLETED`` result.
+
+``GetTask`` is not implemented: SendMessage is synchronous, so there is no
+asynchronous task to poll, and no task store exists yet to back ownership-scoped
+status. The dispatcher therefore returns ``METHOD_NOT_FOUND`` for ``GetTask``
+rather than a stub status that misrepresents a non-existent task store.
 
 References:
     - A2A v1.0 spec: https://github.com/a2aproject/A2A/blob/main/docs/specification.md
@@ -32,6 +37,11 @@ _INVALID_REQUEST = -32600
 _METHOD_NOT_FOUND = -32601
 _INVALID_PARAMS = -32602
 _INTERNAL_ERROR = -32603
+# Server-defined codes (JSON-RPC reserves -32000..-32099 for implementation-defined
+# errors). These let A2A clients distinguish a quota/rate-limit signal (retry later,
+# back off) and a transient capacity fault from a true internal failure.
+_QUOTA_EXCEEDED = -32001
+_SERVICE_UNAVAILABLE = -32002
 
 
 class JsonRpcRequest(BaseModel):
@@ -68,6 +78,76 @@ def _error_response(
     )
 
 
+def _governor_error_response(
+    exc: Exception,
+    *,
+    uid: str,
+    task_id: str,
+    request_id: str | int | None,
+) -> JsonRpcResponse:
+    """Map a Governor quota/rate-limit/breaker exception to a JSON-RPC error.
+
+    Emits the SAME alert-level, abuse-monitoring log the ``app.py``/``/v1/generate``
+    handlers do (with the structured ``uid``/``which_cap``/``reason`` context the
+    breach-alerting relies on), then returns the correct JSON-RPC code so an A2A
+    client can tell a quota/retry signal from a true internal error. Without this,
+    these exceptions were swallowed into a generic ``-32603`` and the alert events
+    never fired on the A2A surface.
+    """
+    from atelier.orchestrator.governor import (  # noqa: PLC0415
+        GovernorCircuitBreakerOpen,
+        GovernorRateLimitExceeded,
+        GovernorTokenCapExceeded,
+        GovernorUsageUnavailable,
+    )
+    from atelier.utils.log_sanitizer import sanitize  # noqa: PLC0415
+
+    safe_uid = sanitize(uid)
+    if isinstance(exc, GovernorTokenCapExceeded):
+        logger.error(
+            "atelier.token_cap_exceeded.a2a",
+            extra={
+                "uid": safe_uid,
+                "task_id": task_id,
+                "which_cap": exc.which_cap,
+                "used_tokens": exc.used_tokens,
+                "cap_tokens": exc.cap_tokens,
+            },
+        )
+        return _error_response(_QUOTA_EXCEEDED, "Token cap reached.", request_id)
+    if isinstance(exc, GovernorCircuitBreakerOpen):
+        logger.error(
+            "atelier.circuit_breaker_open.a2a",
+            extra={
+                "uid": safe_uid,
+                "task_id": task_id,
+                "reason": exc.reason,
+                "retry_after_seconds": exc.retry_after_seconds,
+            },
+        )
+        return _error_response(
+            _SERVICE_UNAVAILABLE, "Service briefly busy; retry shortly.", request_id
+        )
+    if isinstance(exc, GovernorUsageUnavailable):
+        logger.error(
+            "atelier.usage_unavailable.a2a",
+            extra={"uid": safe_uid, "task_id": task_id, "reason": exc.reason},
+        )
+        return _error_response(
+            _SERVICE_UNAVAILABLE, "Usage guard unavailable; retry shortly.", request_id
+        )
+    if isinstance(exc, GovernorRateLimitExceeded):
+        logger.warning(
+            "atelier.rate_limit_exceeded.a2a",
+            extra={"uid": safe_uid, "task_id": task_id},
+        )
+        return _error_response(
+            _QUOTA_EXCEEDED, "Too many requests; please wait a moment.", request_id
+        )
+    # Unreachable: the caller only dispatches the four Governor types above.
+    raise exc
+
+
 async def _handle_send_message(
     params: dict[str, Any],
     request_id: str | int | None,
@@ -100,6 +180,23 @@ async def _handle_send_message(
             request_id,
         )
 
+    # Pre-gate the brief at the A2A layer, mirroring POST /v1/generate. A gate
+    # rejection (injection attempt, empty/too-short/too-long brief) is a CLIENT
+    # input error and must map to JSON-RPC _INVALID_PARAMS, not a generic
+    # internal error. Without this, the gate runs deep inside runner._run_n1_n2
+    # and surfaces as a ValueError caught by the broad handler below, mislabelling
+    # a fixable client fault as a server failure.
+    from atelier.intake.brief_parser import BriefParserGate  # noqa: PLC0415
+    from atelier.models.enums import GateDecision  # noqa: PLC0415
+
+    gate_outcome = BriefParserGate().check(brief_text)
+    if gate_outcome.decision != GateDecision.PASS:
+        return _error_response(
+            _INVALID_PARAMS,
+            f"Brief rejected: {gate_outcome.diagnostic}",
+            request_id,
+        )
+
     # Create a task ID for this A2A request
     task_id = str(uuid4())
 
@@ -123,6 +220,13 @@ async def _handle_send_message(
         tenant_id=user.tenant_id,
         user_id=user.uid,
         project_id=os.environ.get("GOOGLE_CLOUD_PROJECT", "atelier-build-2026"),
+    )
+
+    from atelier.orchestrator.governor import (  # noqa: PLC0415
+        GovernorCircuitBreakerOpen,
+        GovernorRateLimitExceeded,
+        GovernorTokenCapExceeded,
+        GovernorUsageUnavailable,
     )
 
     try:
@@ -153,6 +257,18 @@ async def _handle_send_message(
             },
             id=request_id,
         )
+    except (
+        GovernorTokenCapExceeded,
+        GovernorCircuitBreakerOpen,
+        GovernorUsageUnavailable,
+        GovernorRateLimitExceeded,
+    ) as exc:
+        # Quota / rate-limit / circuit-breaker faults are NOT generic internal
+        # errors. Map each to its proper JSON-RPC code and emit the same
+        # alert-level, abuse-monitoring log the /v1/generate path does, so the
+        # A2A surface is not an unmonitored quota-bypass entry point (the
+        # AT-095/AT-097 controls bind here too).
+        return _governor_error_response(exc, uid=user.uid, task_id=task_id, request_id=request_id)
     except Exception as exc:
         logger.exception("a2a.pipeline.error", extra={"task_id": task_id})
         return _error_response(
@@ -162,54 +278,16 @@ async def _handle_send_message(
         )
 
 
-async def _handle_get_task(
-    params: dict[str, Any],
-    request_id: str | int | None,
-    user: FirebaseUser,  # noqa: ARG001  # auth-gated; per-task ownership lands with the task store
-) -> JsonRpcResponse:
-    """Handle the ``GetTask`` A2A v1.0 RPC method.
-
-    Returns a stub response. Wire to persistent task store when available.
-
-    Args:
-        params: JSON-RPC params containing the task ID.
-        request_id: JSON-RPC request ID.
-
-    Returns:
-        JSON-RPC response with task status.
-    """
-    task_id = params.get("taskId", params.get("task_id"))
-    if not task_id:
-        return _error_response(
-            _INVALID_PARAMS,
-            "GetTask requires a taskId parameter",
-            request_id,
-        )
-
-    return JsonRpcResponse(
-        result={
-            "taskId": task_id,
-            "status": "UNKNOWN",
-            "message": {
-                "role": "agent",
-                "parts": [
-                    {
-                        "text": (
-                            "Task store not yet implemented. "
-                            "Use POST /v1/generate for synchronous execution."
-                        ),
-                    }
-                ],
-            },
-        },
-        id=request_id,
-    )
-
-
-# A2A v1.0 method dispatch (camelCase per spec)
+# A2A v1.0 method dispatch (camelCase per spec).
+#
+# GetTask is intentionally NOT advertised: SendMessage runs the pipeline
+# synchronously and returns a terminal COMPLETED result inline, so there is no
+# asynchronous task to poll. A GetTask stub previously returned status "UNKNOWN"
+# for every taskId, which lies to a spec-following client (it implies a task
+# store that does not exist). Until a real, ownership-enforcing task store lands,
+# GetTask returns METHOD_NOT_FOUND so clients do not build on a phantom status.
 _METHOD_HANDLERS = {
     "SendMessage": _handle_send_message,
-    "GetTask": _handle_get_task,
 }
 
 

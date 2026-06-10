@@ -59,25 +59,33 @@ class TestConstitutionParsing:
 class TestLoadConstitutions:
     """Verify loading constitutions from disk."""
 
+    def test_corpus_is_present(self) -> None:
+        """The committed constitution corpus must exist on disk.
+
+        If this test fails the corpus directory was deleted or moved; restore
+        it from git rather than silently skipping the suite.
+        """
+        assert CONSENSUS_DIR.exists(), (
+            f"consensus/constitutions/ corpus missing at {CONSENSUS_DIR}. "
+            "Restore from git — these YAMLs are required tracked assets."
+        )
+
     def test_load_from_consensus_dir(self) -> None:
-        if not CONSENSUS_DIR.exists():
-            pytest.skip("consensus/constitutions/ not found")
+        assert CONSENSUS_DIR.exists(), f"corpus missing: {CONSENSUS_DIR}"
         constitutions = load_constitutions(CONSENSUS_DIR)
         assert len(constitutions) >= 2
         assert "apple-grade" in constitutions
         assert "brutalist" in constitutions
 
     def test_apple_grade_has_principles(self) -> None:
-        if not CONSENSUS_DIR.exists():
-            pytest.skip("consensus/constitutions/ not found")
+        assert CONSENSUS_DIR.exists(), f"corpus missing: {CONSENSUS_DIR}"
         constitutions = load_constitutions(CONSENSUS_DIR)
         apple = constitutions["apple-grade"]
         assert len(apple.principles) >= 7
         assert apple.scoring.minimum_pass == 0.70
 
     def test_brutalist_applies_to_brutalist(self) -> None:
-        if not CONSENSUS_DIR.exists():
-            pytest.skip("consensus/constitutions/ not found")
+        assert CONSENSUS_DIR.exists(), f"corpus missing: {CONSENSUS_DIR}"
         constitutions = load_constitutions(CONSENSUS_DIR)
         brut = constitutions["brutalist"]
         assert "brutalist" in brut.applies_to
@@ -94,31 +102,27 @@ class TestSelectConstitution:
     """Verify constitution selection by visual register."""
 
     def test_select_luxury(self) -> None:
-        if not CONSENSUS_DIR.exists():
-            pytest.skip("consensus/constitutions/ not found")
+        assert CONSENSUS_DIR.exists(), f"corpus missing: {CONSENSUS_DIR}"
         constitutions = load_constitutions(CONSENSUS_DIR)
         result = select_constitution("luxury", constitutions)
         assert result is not None
         assert result.name == "apple-grade"
 
     def test_select_brutalist(self) -> None:
-        if not CONSENSUS_DIR.exists():
-            pytest.skip("consensus/constitutions/ not found")
+        assert CONSENSUS_DIR.exists(), f"corpus missing: {CONSENSUS_DIR}"
         constitutions = load_constitutions(CONSENSUS_DIR)
         result = select_constitution("brutalist", constitutions)
         assert result is not None
         assert result.name == "brutalist"
 
     def test_select_unknown_returns_none(self) -> None:
-        if not CONSENSUS_DIR.exists():
-            pytest.skip("consensus/constitutions/ not found")
+        assert CONSENSUS_DIR.exists(), f"corpus missing: {CONSENSUS_DIR}"
         constitutions = load_constitutions(CONSENSUS_DIR)
         result = select_constitution("unknown_register", constitutions)
         assert result is None
 
     def test_case_insensitive(self) -> None:
-        if not CONSENSUS_DIR.exists():
-            pytest.skip("consensus/constitutions/ not found")
+        assert CONSENSUS_DIR.exists(), f"corpus missing: {CONSENSUS_DIR}"
         constitutions = load_constitutions(CONSENSUS_DIR)
         result = select_constitution("LUXURY", constitutions)
         assert result is not None

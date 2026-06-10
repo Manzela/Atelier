@@ -10,8 +10,10 @@ from pydantic import BaseModel, ConfigDict
 from atelier.intake.brief_spec import BriefSpec
 from atelier.models.enums import GateDecision
 from atelier.models.model_armor_callbacks import (
+    ModelArmorInputBlocked,
     model_armor_after_callback,
     model_armor_before_callback,
+    was_model_armor_blocked,
 )
 from atelier.models.model_registry import normalize_model_id, resolve_model_id
 from atelier.models.safety import default_model_armor_config
@@ -28,8 +30,8 @@ class BriefGateOutcome(BaseModel):
 # ---------------------------------------------------------------------------
 # Tunable thresholds
 # ---------------------------------------------------------------------------
-MIN_BRIEF_TOKENS: int = 10  # below this → gate FAIL (too vague)
-MAX_BRIEF_TOKENS: int = 4096  # above this → gate FAIL (too large for single call)
+MIN_BRIEF_TOKENS: int = 10  # below this → gate REJECT (too vague)
+MAX_BRIEF_TOKENS: int = 4096  # above this → gate REJECT (too large for single call)
 INJECTION_PATTERNS: tuple[str, ...] = (
     r"<script",
     r"javascript:",
@@ -43,7 +45,12 @@ class BriefParserGate:
     """Deterministic gate — validates raw brief text before LLM parsing."""
 
     def check(self, brief_text: str) -> BriefGateOutcome:
-        """Returns GateDecision.PASS or GateDecision.FAIL with diagnostic."""
+        """Returns GateDecision.PASS or GateDecision.REJECT with diagnostic.
+
+        PASS is returned when the brief passes all length and injection checks.
+        REJECT is returned for empty, too-short, too-long, or injected briefs.
+        The gate never returns DEFER.
+        """
         tokens = brief_text.split()
         if not tokens:
             return BriefGateOutcome(decision=GateDecision.REJECT, diagnostic="Empty brief")
@@ -82,6 +89,14 @@ class BriefParserAgent:
         """Parse validated brief text → BriefSpec. Raises ValueError on parse failure."""
         response = await self._call_llm(brief_text)
         if isinstance(response, str):
+            # Model Armor's before-model callback short-circuits an injection brief
+            # by returning the block sentinel instead of model JSON. Detect it here
+            # and raise the typed block error BEFORE attempting JSON validation —
+            # otherwise the plain-text refusal hits model_validate_json and throws a
+            # generic "Parse failure" that surfaces to the user as an internal crash
+            # rather than the branded "blocked as prompt-injection" acknowledgment.
+            if was_model_armor_blocked([response]):
+                raise ModelArmorInputBlocked
             try:
                 return BriefSpec.model_validate_json(response)
             except Exception as e:

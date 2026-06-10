@@ -23,6 +23,7 @@ PRD Reference: §6.3 (N1-N4), §21 (Failure Trichotomy)
 
 from __future__ import annotations
 
+import asyncio
 import dataclasses
 import json
 import logging
@@ -30,7 +31,7 @@ import os
 import re
 import uuid
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Final, cast
 
 from google.adk.events.event import Event
 from google.adk.events.event_actions import EventActions
@@ -78,7 +79,7 @@ from atelier.models.model_armor_callbacks import (
     MODEL_ARMOR_BLOCK_USER_MESSAGE,
     was_model_armor_blocked,
 )
-from atelier.models.model_registry import normalize_model_id
+from atelier.models.model_registry import calibrate_model, normalize_model_id
 from atelier.nodes.consensus import ConsensusEvaluation, evaluate_candidate
 from atelier.orchestrator.governor import (
     TOKEN_CAP_MESSAGE,
@@ -86,7 +87,7 @@ from atelier.orchestrator.governor import (
     MetacognitiveGovernor,
 )
 from atelier.orchestrator.planner import PlanStep
-from atelier.orchestrator.specialists import create_specialist_pipeline
+from atelier.orchestrator.specialists import create_specialist_pipeline, get_specialist_specs
 from atelier.orchestrator.stop_controller import clear_stop, is_stop_requested
 from atelier.orchestrator.stop_reason import (
     StopReason,
@@ -147,6 +148,14 @@ def _usage_from_event(event: Any) -> tuple[int, int, int]:
     )
 
 
+#: A structural/container tag opening at the START of a line — the mark of real
+#: markup, as opposed to a tag named mid-sentence or in backticks inside prose.
+#: Used to strip a narrated preamble from a document-less HTML fragment.
+_LINE_START_STRUCTURAL_TAG = re.compile(
+    r"(?im)^\s*<(?:div|main|section|aside|header|nav|article|footer|ul|ol|table|form)\b"
+)
+
+
 def _extract_html_document(raw: str) -> str:
     """Return the clean HTML document embedded in a raw generator candidate.
 
@@ -157,25 +166,138 @@ def _extract_html_document(raw: str) -> str:
     document does not start with a doctype/``<html>``) and axe-core render a
     malformed page, so every candidate is rejected and the run never converges.
 
-    Extraction is layered so it is safe for already-clean output:
-      1. peel a `````html`` / ``````` fence if one is present, then
-      2. slice from the first ``<!doctype>``/``<html>`` to the last ``</html>``.
-    If no HTML document is found, the de-fenced, stripped text is returned
-    unchanged (a fragment still flows through the gates as before).
+    Extraction is layered so it is safe for already-clean output and robust to
+    the partial output ``max_output_tokens`` truncation produces:
+      1. peel a fenced block — a complete ```` ```html … ``` ```` block, or a
+         DANGLING opener/closer the model left when truncated mid-fence;
+      2. if a ``<!doctype>``/``<html>`` is present, slice from it to the last
+         ``</html>`` — or to end-of-string when the closing tag was truncated;
+      3. otherwise (a document-less fragment) slice from the first structural
+         tag that begins a line, dropping any narrated preamble.
+    If none of these match, the de-fenced, stripped text is returned unchanged
+    (a fragment still flows through the gates as before). Every branch guarantees
+    the result never carries a leading ```` ``` ```` marker or prose preamble,
+    which would otherwise render as literal text above the design in the Studio
+    canvas on the non-converged fallback path (surfaced by the live E2E).
     """
     text = raw.strip()
     fence = re.search(r"```(?:html)?\s*\n(.*?)```", text, re.DOTALL | re.IGNORECASE)
     if fence:
         text = fence.group(1).strip()
+    else:
+        # No complete fence. The generator sometimes opens ```html and is then
+        # truncated by max_output_tokens before the closing fence — strip the
+        # dangling opener (and a trailing closer if one is present) so the literal
+        # ``` marker never survives into the rendered preview.
+        text = re.sub(r"^```(?:html)?[ \t]*\r?\n", "", text, count=1, flags=re.IGNORECASE)
+        text = re.sub(r"\r?\n```[ \t]*$", "", text, count=1).strip()
 
     lower = text.lower()
     start = lower.find("<!doctype")
     if start == -1:
         start = lower.find("<html")
-    end = lower.rfind("</html>")
-    if start != -1 and end != -1 and end > start:
-        return text[start : end + len("</html>")]
+    if start != -1:
+        # Slice to the closing </html> when present; otherwise (truncated mid-
+        # document) take everything from the doctype/<html> to the end — a
+        # browser renders a truncated document fine, but never the preamble.
+        end = lower.rfind("</html>")
+        return text[start : end + len("</html>")] if end > start else text[start:]
+    # No full document (a fragment). The Fixer / UI Designer often narrate "Here
+    # is the corrected HTML ..." — with backticked tag mentions like `<aside>` —
+    # BEFORE the real markup. Strip that preamble by slicing from the first
+    # structural tag that begins a LINE: prose references tags mid-sentence or in
+    # backticks, real markup opens them at a line start.
+    fragment = _LINE_START_STRUCTURAL_TAG.search(text)
+    if fragment:
+        return text[fragment.start() :].strip()
     return text
+
+
+def _ensure_renderable_document(html: str) -> str:
+    """Wrap a scaffold-less but renderable fragment in a minimal HTML document.
+
+    A Fixer reliably returns a "corrected section" (e.g. a bare ``<section>`` or
+    ``<div>``), and a UI Designer disrupted mid-run (a Stitch MCP drop) can emit a
+    body fragment instead of a full document. Such a fragment passes
+    :func:`_looks_like_html` — so it is eligible to be the non-convergence
+    ``best_partial_html`` — yet has no ``<html>``/``<head>`` for the completion
+    passes to anchor ``lang`` / ``<title>`` onto. The result fails the zero-
+    tolerance axe gate (``html-has-lang``, ``document-title``) even though the
+    design content is sound, and the run reports INCOMPLETE on a perfectly
+    renderable screen (live E2E, 2026-06-10: composite 0.600).
+
+    This closes that gap at the same normalization choke point as the token /
+    accessibility completion: a fragment that is real, renderable UI (a structural
+    opening tag plus a matching close — the :func:`_looks_like_html` bar, so prose
+    that merely *names* tags is never wrapped) is hoisted into a minimal valid
+    document. The downstream ``_complete_color_token_palette`` then hoists its
+    colors into ``:root`` and ``_complete_accessibility`` derives the ``<title>``
+    from the fragment's first ``<h1>`` — so the wrapped fragment clears the gates.
+    A document that already carries ``<!doctype>``/``<html>`` is returned
+    unchanged; non-renderable prose is returned unchanged (and stays filtered out
+    by :func:`_looks_like_html` downstream).
+    """
+    text = html.strip()
+    if not text:
+        return text
+    lower = text.lower()
+    if "<!doctype" in lower or "<html" in lower:
+        return text
+    has_structural = any(tag in lower for tag in _HTML_STRUCTURE_TAGS)
+    if not (has_structural and _HTML_CLOSING_TAG.search(lower)):
+        return text
+    return (
+        '<!DOCTYPE html>\n<html lang="en">\n<head>\n'
+        '<meta charset="utf-8" />\n'
+        '<meta name="viewport" content="width=device-width, initial-scale=1" />\n'
+        f"</head>\n<body>\n{text}\n</body>\n</html>\n"
+    )
+
+
+#: Structural/container tags that mark a candidate as renderable HTML rather than
+#: a specialist's markdown narration (e.g. the Wireframer's prose description).
+_HTML_STRUCTURE_TAGS: Final[tuple[str, ...]] = (
+    "<!doctype",
+    "<html",
+    "<body",
+    "<main",
+    "<section",
+    "<div",
+    "<header",
+    "<nav",
+    "<form",
+    "<ul",
+    "<table",
+)
+
+
+#: A real closing tag (``</div>``, ``</main>`` …). Markdown that *describes*
+#: structure names opening tags in backticks (`` `<main>` ``) but never writes
+#: the matching close, so requiring one separates rendered UI from narration.
+_HTML_CLOSING_TAG = re.compile(r"</[a-z][\w-]*>", re.IGNORECASE)
+
+
+def _looks_like_html(text: str) -> bool:
+    """Return True when ``text`` carries real HTML structure, not markdown prose.
+
+    The non-convergence fallback (:data:`best_partial_html`) must surface an
+    actual renderable design, never a specialist's markdown description — the
+    Wireframer, for instance, emits prose like "Here is the low-fidelity
+    structural wireframe ..." that *names* tags such as ``<main>`` / ``<nav>`` in
+    backticks. When such prose out-scores the failing-but-real HTML on mean gate
+    score, it would otherwise be served as the "design" and render as washed-out
+    text in the Studio canvas.
+
+    A full document (doctype / ``<html``) qualifies outright. Otherwise a
+    candidate must carry BOTH a structural/container opening tag AND a matching
+    closing tag — the closing tag is what distinguishes rendered UI from prose
+    that merely references opening tags.
+    """
+    lower = text.lower()
+    if "<!doctype" in lower or "<html" in lower:
+        return True
+    has_structural = any(tag in lower for tag in _HTML_STRUCTURE_TAGS)
+    return has_structural and bool(_HTML_CLOSING_TAG.search(lower))
 
 
 def _non_convergence_message(iteration: int) -> str:
@@ -373,6 +495,32 @@ def _require_user_id(tenant_ctx: TenantContext) -> str:
             "refusing to bucket usage into a shared anonymous counter."
         )
     return uid
+
+
+def _dev_placeholder_tenant_ctx() -> TenantContext:
+    """Return the local-dev placeholder :class:`TenantContext`, or fail loud.
+
+    ``run()``/``resume()`` accept ``tenant_ctx=None`` purely as a local-dev /
+    hermetic-test convenience. Outside ``ATELIER_ENV=development`` (the same
+    gate the usage counter, board emitter, and design-system persister use), a
+    missing tenant context is a caller wiring bug: silently defaulting to the
+    placeholder tenant ``"t1"`` would bill usage, write board task docs, and
+    persist design systems under a tenant/project path no verified caller owns
+    — the dead-data path the 2026-06-09 code-health audit flagged. The public
+    API (``generate.py``/``a2a.py``) always builds a real context from the
+    verified JWT, so production never hits this branch legitimately.
+    """
+    if os.getenv("ATELIER_ENV", "development") != "development":
+        raise ValueError(
+            "tenant_ctx is required outside ATELIER_ENV=development: refusing to "
+            "default to the placeholder tenant 't1'. Build a TenantContext from "
+            "the verified caller identity (see api/generate.py)."
+        )
+    return TenantContext(
+        tenant_id="t1",
+        user_id="u1",
+        project_id="p1",
+    )
 
 
 def _serialize_checkpoint(
@@ -858,13 +1006,20 @@ class AtelierRunner:
             # otherwise reject every one and the run never converges:
             #   1. extract the bare HTML document (drop prose + ```html fence) so
             #      semantic-HTML / axe see a valid page, not preamble;
-            #   2. complete the color-token palette so stray literals pass the
+            #   2. wrap a scaffold-less-but-renderable fragment (a Fixer's
+            #      "corrected section", or a Stitch-disrupted UI Designer) into a
+            #      minimal document so the completion passes below have an
+            #      <html>/<head> to anchor lang/title onto — otherwise a sound
+            #      design fails axe on html-has-lang/document-title;
+            #   3. complete the color-token palette so stray literals pass the
             #      token-fidelity gate;
-            #   3. remediate the mechanically-fixable axe violations (lang, title,
+            #   4. remediate the mechanically-fixable axe violations (lang, title,
             #      progressbar name, img alt) so the a11y gate passes.
             html_content = _complete_accessibility(
                 _complete_color_token_palette(
-                    _extract_html_document(raw if isinstance(raw, str) else str(raw))
+                    _ensure_renderable_document(
+                        _extract_html_document(raw if isinstance(raw, str) else str(raw))
+                    )
                 )
             )
             if not html_content.strip():
@@ -882,9 +1037,13 @@ class AtelierRunner:
             gate_result = run_gates(candidate, _N3C_GATE_AXES)
             gate_results.append(gate_result)
 
-            # Track the highest mean-gate-score candidate (an HTML design scores
-            # far above a markdown specialist output) for the fallback below.
-            if gate_result.outcomes:
+            # Track the highest mean-gate-score candidate for the non-convergence
+            # fallback below — but ONLY among candidates that are actually HTML.
+            # A markdown specialist output (e.g. the Wireframer's prose) can
+            # out-score failing-but-real HTML on the mean and would then be served
+            # as the "design", rendering as washed-out text in the Studio canvas.
+            # Guarding on _looks_like_html keeps the fallback a renderable screen.
+            if gate_result.outcomes and _looks_like_html(html_content):
                 mean_score = sum(o.score for o in gate_result.outcomes) / len(gate_result.outcomes)
                 if mean_score > best_partial_score:
                     best_partial_score = mean_score
@@ -970,7 +1129,7 @@ class AtelierRunner:
             best_candidate = best_partial_html
             logger.warning(
                 "N4: all candidates failed N3c gates; falling back to best-scoring HTML "
-                "candidate (mean gate score %.1f of %d)",
+                "candidate (mean gate score %.1f/100 across %d candidates)",
                 best_partial_score,
                 len(raw_candidates),
             )
@@ -1241,8 +1400,11 @@ class AtelierRunner:
 
         Args:
             brief_text: Raw brief text input.
-            tenant_ctx: Tenant context for source resolution. Defaults to a
-                placeholder context for local development.
+            tenant_ctx: Tenant context for source resolution. ``None`` is a
+                local-dev / hermetic-test convenience only: it resolves to the
+                placeholder context in ``ATELIER_ENV=development`` and raises
+                ``ValueError`` in any other environment (fail-loud — see
+                :func:`_dev_placeholder_tenant_ctx`).
             progress_callback: Optional async callback to stream progress events.
             require_signoff: AT-031 opt-in human-in-the-loop gate. When ``True``,
                 the pipeline locks the plan/scope (N0/N1/N2), persists an idempotent
@@ -1266,11 +1428,8 @@ class AtelierRunner:
             ValueError: When brief fails the deterministic gate.
         """
         if tenant_ctx is None:
-            tenant_ctx = TenantContext(
-                tenant_id="t1",
-                user_id="u1",
-                project_id="p1",
-            )
+            # Dev/test convenience ONLY — fails loud outside ATELIER_ENV=development.
+            tenant_ctx = _dev_placeholder_tenant_ctx()
 
         # AT-095 (§13.2 / G16): per-user lifetime token cap, enforced server-side
         # PRE-FLIGHT — before any Vertex call (N1/N2 included). Seed the cumulative
@@ -1574,7 +1733,9 @@ class AtelierRunner:
             confirmation: The human's ``ToolConfirmation``. Fail-closed: only
                 ``confirmed is True`` advances; ``confirmed is False`` (or absent) leaves
                 the run ``AWAITING_SIGNOFF`` and returns the halt sentinel unchanged.
-            tenant_ctx: Tenant context. Defaults to the same placeholder as :meth:`run`.
+            tenant_ctx: Tenant context. ``None`` resolves to the same dev-only
+                placeholder as :meth:`run` (raises ``ValueError`` outside
+                ``ATELIER_ENV=development``).
             progress_callback: Optional async progress callback.
 
         Returns:
@@ -1586,11 +1747,8 @@ class AtelierRunner:
             ValueError: When no AWAITING_SIGNOFF checkpoint exists for ``session_id``.
         """
         if tenant_ctx is None:
-            tenant_ctx = TenantContext(
-                tenant_id="t1",
-                user_id="u1",
-                project_id="p1",
-            )
+            # Dev/test convenience ONLY — fails loud outside ATELIER_ENV=development.
+            tenant_ctx = _dev_placeholder_tenant_ctx()
 
         session = await self._session_service.get_session(
             app_name=_APP_NAME,
@@ -1841,10 +1999,11 @@ class AtelierRunner:
                     break
 
                 if self._governor._state.is_over_token_cap():
-                    # AT-095 graceful in-flight stop: the previous iteration's
-                    # completed unit pushed cumulative usage to the cap. Stop cleanly
-                    # BEFORE starting another (expensive) generation — finish-the-unit,
-                    # then a single branded message (never a raw quota error or hang).
+                    # AT-095 graceful in-flight stop: a prior unit (or the in-stream
+                    # check inside _run_ensemble, which aborts the ADK run the moment a
+                    # tier crosses its cap) pushed cumulative usage over the cap. Stop
+                    # cleanly BEFORE starting another (expensive) generation, then a
+                    # single branded message (never a raw quota error or hang).
                     _exceeded = self._governor._state.exceeded_tier()
                     logger.warning(
                         "Convergence loop graceful stop: per-user token cap reached.",
@@ -1881,7 +2040,7 @@ class AtelierRunner:
                 # Also tallies (input, output, thinking) tokens from each ADK event's
                 # usage_metadata for the AT-095 lifetime counter; falls back to a
                 # deterministic estimate when the offline model surface reports none.
-                async def _run_ensemble(  # noqa: C901
+                async def _run_ensemble(  # noqa: C901, PLR0912, PLR0915
                     prompt: str = generator_prompt,
                     screen: str = screen,
                     iteration: int = iteration,
@@ -1902,7 +2061,26 @@ class AtelierRunner:
                     candidates: list[Any] = []
                     usage_in = usage_out = usage_think = 0
                     charged_in = charged_out = charged_think = 0
-                    n3a_model_id = "gemini-2.5-flash"
+
+                    # AT-095 per-tier attribution: charge each ADK event against the
+                    # model the producing specialist actually runs on, not a single
+                    # hardcoded Flash id. The event author equals the specialist name;
+                    # map name -> calibrated model id so Pro/Flash-Lite spend lands in
+                    # the correct per-tier bucket (and its correct cap). When a uniform
+                    # model override is in effect (hermetic tests / pinned model), every
+                    # specialist runs on it, so the map collapses to that single id.
+                    if self._custom_model:
+                        specialist_model_by_author = {
+                            spec.name: self._custom_model for spec in get_specialist_specs()
+                        }
+                    else:
+                        specialist_model_by_author = {
+                            spec.name: calibrate_model(spec.task_type)
+                            for spec in get_specialist_specs()
+                        }
+                    # Fallback for events from a non-specialist author (root coordinator)
+                    # or an unmapped name: charge Flash, the bulk-generation tier.
+                    fallback_model_id = self._custom_model or "gemini-2.5-flash"
 
                     traced_authors: set[str] = set()
                     accumulated_texts: list[str] = []
@@ -1923,6 +2101,15 @@ class AtelierRunner:
                         usage_out += eout
                         usage_think += ethink
 
+                        author = getattr(event, "author", None)
+                        # Attribute this event's tokens to the real model the
+                        # producing specialist runs on (AT-095 per-tier cap).
+                        event_model_id = (
+                            specialist_model_by_author.get(author, fallback_model_id)
+                            if isinstance(author, str)
+                            else fallback_model_id
+                        )
+
                         # Charge tokens dynamically in real-time
                         if ein + eout + ethink > 0:
                             charged_in += ein
@@ -1932,14 +2119,14 @@ class AtelierRunner:
                                 input_tokens=ein,
                                 output_tokens=eout,
                                 thinking_tokens=ethink,
-                                model_id=n3a_model_id,
+                                model_id=event_model_id,
                             )
                             self._usage_store.add(
                                 user_id,
                                 input_tokens=ein,
                                 output_tokens=eout,
                                 thinking_tokens=ethink,
-                                model_id=n3a_model_id,
+                                model_id=event_model_id,
                             )
                             if progress_callback:
                                 await progress_callback(
@@ -1951,8 +2138,25 @@ class AtelierRunner:
                                         "cumulative_user_tokens": self._governor._state.cumulative_user_tokens,
                                     },
                                 )
+                            # AT-095 in-stream cap enforcement (finding: mid-iteration
+                            # overrun): once this event pushes a tier over its cap,
+                            # abort the ADK run immediately rather than letting the rest
+                            # of the specialist pipeline keep spending. The governor's
+                            # run_with_governance wrapper maps the break to a graceful
+                            # degraded stop; the top-of-loop check then halts the loop.
+                            if self._governor._state.is_over_token_cap():
+                                logger.warning(
+                                    "AT-095 in-stream token-cap stop: aborting N3a "
+                                    "mid-pipeline (tier over cap).",
+                                    extra={
+                                        "exceeded_tier": self._governor._state.exceeded_tier(),
+                                        "cumulative_user_tokens": (
+                                            self._governor._state.cumulative_user_tokens
+                                        ),
+                                    },
+                                )
+                                break
 
-                        author = getattr(event, "author", None)
                         if isinstance(author, str) and author:
                             if current_author is not None and author != current_author:
                                 # Handoff: previous specialist completed!
@@ -1994,18 +2198,21 @@ class AtelierRunner:
                     rem_out = usage_out - charged_out
                     rem_think = usage_think - charged_think
                     if rem_in + rem_out + rem_think > 0:
+                        # Estimated-fallback remainder (offline runs with no per-event
+                        # usage metadata): no author signal to split by tier, so charge
+                        # the bulk-generation tier (Flash, or the uniform override).
                         self._governor._state.add_user_tokens(
                             input_tokens=rem_in,
                             output_tokens=rem_out,
                             thinking_tokens=rem_think,
-                            model_id=n3a_model_id,
+                            model_id=fallback_model_id,
                         )
                         self._usage_store.add(
                             user_id,
                             input_tokens=rem_in,
                             output_tokens=rem_out,
                             thinking_tokens=rem_think,
-                            model_id=n3a_model_id,
+                            model_id=fallback_model_id,
                         )
                         if progress_callback:
                             await progress_callback(
@@ -2092,9 +2299,17 @@ class AtelierRunner:
                         "candidates", {"screen": screen, "candidates": raw_candidates}
                     )
 
-                # N3c → N3d → N4: gate filtering + consensus evaluation + best-pick
-                convergence_result = self._run_n3c_n3d_n4(
-                    raw_candidates, brief_text, iteration=iteration, tenant_ctx=tenant_ctx
+                # N3c → N3d → N4: gate filtering + consensus evaluation + best-pick.
+                # This method does blocking I/O (GCS screenshot upload) and joins a
+                # ThreadPoolExecutor of judge calls. Offload it to a worker thread so
+                # the event loop stays responsive (SSE progress, other awaitables) for
+                # the duration of N3c/N3d rather than stalling the single Cloud Run loop.
+                convergence_result = await asyncio.to_thread(
+                    self._run_n3c_n3d_n4,
+                    raw_candidates,
+                    brief_text,
+                    iteration=iteration,
+                    tenant_ctx=tenant_ctx,
                 )
                 # AT-097: charge N3d (D-O-R-A-V judge) token spend to the user's
                 # lifetime counter too — not just N3a. Mirrors the N3a attribution

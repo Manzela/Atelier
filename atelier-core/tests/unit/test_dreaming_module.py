@@ -33,6 +33,21 @@ def _scored(html: str, composite_score: float, candidate_id: str = "c") -> dict[
     }
 
 
+def _scored_with_votes(
+    html: str,
+    composite_score: float,
+    axes: dict[str, float],
+    candidate_id: str = "c",
+) -> dict[str, object]:
+    """A scored_candidates entry carrying per-axis N3d votes (score in [0,1])."""
+    return {
+        "candidate_id": candidate_id,
+        "html": html,
+        "composite_score": composite_score,
+        "votes": {axis: {"score": score} for axis, score in axes.items()},
+    }
+
+
 class TestExtractPairsMidflight:
     def test_returns_pair_when_margin_exceeds_threshold(self) -> None:
         pairs = extract_pairs_midflight(
@@ -136,6 +151,125 @@ class TestExtractPairsMidflight:
         )
         assert len(pairs) == 1
         assert len(pairs[0].prompt) == 2000
+
+    def test_axis_regressing_pair_rejected_despite_passing_margin(self) -> None:
+        """AND-gate axis-regression predicate rejects a margin-passing pair.
+
+        The winner clears the composite-margin floor (0.90 vs 0.70, margin 0.20
+        >= MIN_MARGIN) but regresses on the Accessibility axis: rejected scored
+        0.95 there vs the winner's 0.40 (delta 0.55 > MAX_AXIS_REGRESSION 0.05).
+        Training on this pair would teach the generator that trading away
+        accessibility for aggregate score is rewarded — exactly the Goodhart
+        failure the AND-gate exists to block. The pair must NOT be emitted.
+        """
+        pairs = extract_pairs_midflight(
+            session_id="sess-axis",
+            tenant_id="tenant-alpha",
+            surface_id="surf-axis",
+            brief_text="Brief",
+            scored_candidates=[
+                _scored_with_votes(
+                    "<html>winner</html>",
+                    0.90,
+                    {"Brand": 0.90, "Accessibility": 0.40},
+                    "a",
+                ),
+                _scored_with_votes(
+                    "<html>loser</html>",
+                    0.70,
+                    {"Brand": 0.60, "Accessibility": 0.95},
+                    "b",
+                ),
+            ],
+        )
+        assert pairs == []
+
+    def test_non_regressing_pair_passes_axis_gate(self) -> None:
+        """A pair that clears the margin AND regresses on no axis is emitted.
+
+        Confirms the axis-regression gate is a real filter, not an unconditional
+        reject: the winner leads (or ties within MAX_AXIS_REGRESSION) on every
+        scored axis, so the pair survives.
+        """
+        pairs = extract_pairs_midflight(
+            session_id="sess-axis-ok",
+            tenant_id="tenant-alpha",
+            surface_id="surf-axis-ok",
+            brief_text="Brief",
+            scored_candidates=[
+                _scored_with_votes(
+                    "<html>winner</html>",
+                    0.90,
+                    {"Brand": 0.90, "Accessibility": 0.85},
+                    "a",
+                ),
+                _scored_with_votes(
+                    "<html>loser</html>",
+                    0.70,
+                    {"Brand": 0.60, "Accessibility": 0.70},
+                    "b",
+                ),
+            ],
+        )
+        assert len(pairs) == 1
+        assert pairs[0].chosen_response == "<html>winner</html>"
+
+
+# ---------------------------------------------------------------------------
+# AndGateRewardEngine — authoritative offline gate (all four predicates)
+# ---------------------------------------------------------------------------
+
+
+class TestOfflineAndGate:
+    """End-to-end exercise of the full 4-predicate gate.
+
+    Mid-flight applies only the margin + axis-regression predicates (the inputs
+    that exist per request); the offline gate adds swap_stability and
+    kappa_vs_golden once those signals are computed over the mined corpus. These
+    cases pin the offline contract so the engine is not unreferenced dead code.
+    """
+
+    def test_offline_gate_accepts_when_all_four_predicates_pass(self) -> None:
+        from atelier.reward.composite import AndGateRewardEngine, RewardComponents
+
+        components = RewardComponents(
+            extrinsic=0.20,
+            intrinsic={
+                "Brand": {"chosen": 0.90, "rejected": 0.60},
+                "Accessibility": {"chosen": 0.85, "rejected": 0.70},
+            },
+            outcome=None,
+            swap_stability=0.90,
+            kappa_vs_golden=0.80,
+        )
+        decision = AndGateRewardEngine().evaluate(components)
+        assert decision.dpo_eligible is True
+        assert decision.failed_checks == ()
+
+    def test_offline_gate_rejects_low_kappa_pair_mid_flight_would_admit(self) -> None:
+        """A pair the mid-flight pre-filter would admit (margin clear, no axis
+        regression) is still rejected offline when judge-vs-golden κ is below the
+        calibration floor — the signal mid-flight structurally cannot see.
+        """
+        from atelier.reward.composite import (
+            KAPPA_VS_GOLDEN_FLOOR,
+            AndGateRewardEngine,
+            RewardComponents,
+        )
+
+        components = RewardComponents(
+            extrinsic=0.20,
+            intrinsic={
+                "Brand": {"chosen": 0.90, "rejected": 0.60},
+                "Accessibility": {"chosen": 0.85, "rejected": 0.70},
+            },
+            outcome=None,
+            swap_stability=0.90,
+            kappa_vs_golden=KAPPA_VS_GOLDEN_FLOOR - 0.01,
+        )
+        decision = AndGateRewardEngine().evaluate(components)
+        assert decision.dpo_eligible is False
+        assert decision.failed_checks == ("kappa_vs_golden",)
 
 
 # ---------------------------------------------------------------------------

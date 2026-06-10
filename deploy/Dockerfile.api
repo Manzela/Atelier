@@ -31,36 +31,27 @@ FROM base AS deps
 # Install uv for fast dependency resolution
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-# Copy only dependency files first (Docker cache optimization)
-COPY pyproject.toml ./
+# Copy the lockfile and package manifest so the dep layer is reproducible.
+# atelier-core/requirements.lock is the single source of truth for the
+# production dependency tree; installing from it ensures the running image
+# matches the CI-verified pin set exactly. The pyproject.toml is needed
+# for the editable install (--no-deps) that follows.
+COPY atelier-core/requirements.lock atelier-core/requirements.lock
+COPY atelier-core/pyproject.toml atelier-core/pyproject.toml
 COPY atelier-core/src/ atelier-core/src/
+# atelier-core/pyproject.toml declares readme = "README.md" and
+# license = { file = "../LICENSE" }; the editable metadata build below reads
+# both, so the package README and the root LICENSE (one level up from
+# /app/atelier-core) must be present in the image.
+COPY atelier-core/README.md atelier-core/README.md
+COPY LICENSE LICENSE
 
-# Install dependencies into a virtual environment
+# Install ALL locked dependencies then the package itself (no-deps keeps
+# the lockfile as the sole resolver — no floating transitive resolution).
 RUN uv venv /app/.venv \
     && . /app/.venv/bin/activate \
-    && uv pip install \
-        "google-adk==2.1.0" \
-        "google-cloud-aiplatform>=1.71,<2" \
-        "google-cloud-firestore>=2.18,<3" \
-        "google-cloud-bigquery>=3.25,<4" \
-        "google-cloud-secret-manager>=2.20,<3" \
-        "google-cloud-storage>=3.10,<4" \
-        "opentelemetry-api>=1.27,<2" \
-        "opentelemetry-sdk>=1.27,<2" \
-        "opentelemetry-exporter-gcp-trace>=1.7,<2" \
-        "fastapi>=0.115,<1" \
-        "uvicorn[standard]>=0.30,<1" \
-        "playwright>=1.49,<2" \
-        "axe-playwright-python>=0.1.7,<0.2" \
-        "firebase-admin>=7.4,<8" \
-        "google-genai>=1.0,<3" \
-        "numpy>=1.26" \
-        "mcp>=1.0" \
-        structlog pydantic httpx pyyaml
-# NOTE: this runtime dependency set must stay in sync with the [project]
-# dependencies in atelier-core/pyproject.toml. firebase-admin was missing here,
-# which silently disabled all Firebase token verification at runtime (lazy
-# import) — every authenticated request failed with invalid_token.
+    && uv pip install -r atelier-core/requirements.lock \
+    && uv pip install -e atelier-core --no-deps
 
 # ---------------------------------------------------------------------------
 # Stage 2: Production image

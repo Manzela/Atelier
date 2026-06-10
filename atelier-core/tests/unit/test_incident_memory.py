@@ -1,6 +1,5 @@
 import json
-from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 from uuid import uuid4
 
 import pytest
@@ -8,9 +7,21 @@ from atelier.durability.incident_memory import (
     IncidentMemoryBank,
     serialize_incident,
 )
+from atelier.memory.backends.vertex_semantic import VertexSemanticMemoryBackend
 from atelier.models.data_contracts import GateOutcome
 from atelier.models.enums import GateAxis, GateDecision
 from atelier.nodes.consensus import ConsensusEvaluation
+
+
+def _axe_failure() -> list[GateOutcome]:
+    return [
+        GateOutcome(
+            candidate_id=uuid4(),
+            axis=GateAxis.AXE,
+            decision=GateDecision.REJECT,
+            diagnostic="A11y fail",
+        )
+    ]
 
 
 def test_serialize_incident_only_failures():
@@ -58,127 +69,31 @@ def test_serialize_incident_only_failures():
 
 
 @pytest.mark.asyncio
-async def test_record_incident_semantic():
-    """Verify that record_incident successfully calls write_semantic on memory service."""
-    mock_memory = AsyncMock()
-    mock_memory.write_semantic = AsyncMock(return_value="resource-name")
+async def test_learning_loop_records_and_queries(tmp_path):
+    """End-to-end: record an incident + resolution, then retrieve it.
 
-    bank = IncidentMemoryBank(mock_memory)
-    gate_outcomes = [
-        GateOutcome(
-            candidate_id=uuid4(),
-            axis=GateAxis.AXE,
-            decision=GateDecision.REJECT,
-            diagnostic="A11y fail",
-        )
-    ]
+    Backed by an offline ``VertexSemanticMemoryBackend`` so the AT-080 loop is
+    exercised with real persistence — proving it is no longer a silent no-op.
+    """
+    backend = VertexSemanticMemoryBackend(
+        project_id="atelier-build-2026",
+        persist_dir=str(tmp_path),
+    )
+    bank = IncidentMemoryBank(backend)
+    gate_outcomes = _axe_failure()
 
+    incident_id = "historical-inc-1"
     await bank.record_incident(
         tenant_id="tenant-123",
-        incident_id="incident-456",
+        incident_id=incident_id,
         gate_outcomes=gate_outcomes,
         consensus=None,
     )
-
-    mock_memory.write_semantic.assert_called_once()
-    _, kwargs = mock_memory.write_semantic.call_args
-    assert kwargs["metadata"]["incident_id"] == "incident-456"
-    assert kwargs["metadata"]["type"] == "incident"
-    assert kwargs["scope"].project_id == "tenant-123"
-    assert kwargs["scope"].phase == "incident"
-    assert kwargs["scope"].actor_id == "fixer"
-
-
-@pytest.mark.asyncio
-async def test_record_incident_episodic_fallback():
-    """Verify fallback to write_episodic if write_semantic is missing on memory service."""
-    mock_memory = AsyncMock(spec=["write_episodic"])
-
-    bank = IncidentMemoryBank(mock_memory)
-    gate_outcomes = [
-        GateOutcome(
-            candidate_id=uuid4(),
-            axis=GateAxis.AXE,
-            decision=GateDecision.REJECT,
-            diagnostic="A11y fail",
-        )
-    ]
-
-    await bank.record_incident(
-        tenant_id="tenant-123",
-        incident_id="incident-456",
-        gate_outcomes=gate_outcomes,
-        consensus=None,
-    )
-
-    mock_memory.write_episodic.assert_called_once()
-    event = mock_memory.write_episodic.call_args[0][0]
-    assert event.event_id == "incident-456"
-    assert event.node_name == "FixerIncident"
-
-
-@pytest.mark.asyncio
-async def test_record_resolution():
-    """Verify resolution is recorded properly using write_semantic."""
-    mock_memory = AsyncMock()
-    mock_memory.write_semantic = AsyncMock(return_value="resource-name")
-
-    bank = IncidentMemoryBank(mock_memory)
     await bank.record_resolution(
         tenant_id="tenant-123",
-        incident_id="incident-456",
-        resolution_delta="my-delta-instructions",
+        incident_id=incident_id,
+        resolution_delta="Use an explicit aria-label.",
     )
-
-    mock_memory.write_semantic.assert_called_once()
-    _, kwargs = mock_memory.write_semantic.call_args
-    assert kwargs["metadata"]["incident_id"] == "incident-456"
-    assert kwargs["metadata"]["type"] == "resolution"
-    assert "my-delta-instructions" in kwargs["content"]
-
-
-@pytest.mark.asyncio
-async def test_query_similar_resolutions():
-    """Verify that query retrieves incidents first and then fetches their resolutions."""
-    mock_memory = AsyncMock()
-
-    # Mock similar incident result
-    mock_incident_hit = MagicMock()
-    mock_incident_hit.passage = json.dumps(
-        {
-            "incident_id": "historical-inc-1",
-            "failures": ["gate_fail:axe"],
-        }
-    )
-
-    # Mock resolution result
-    mock_resolution_hit = MagicMock()
-    mock_resolution_hit.passage = json.dumps(
-        {
-            "incident_id": "historical-inc-1",
-            "resolution": "Use an explicit aria-label.",
-        }
-    )
-
-    # Side effect for query_semantic calls
-    async def mock_query_semantic(*args, **kwargs):
-        if "query" in kwargs["query_text"]:  # First call (searching for similar incidents)
-            return (mock_incident_hit,)
-        if "historical-inc-1" in kwargs["query_text"]:  # Second call (searching for resolution)
-            return (mock_resolution_hit,)
-        return ()
-
-    mock_memory.query_semantic.side_effect = mock_query_semantic
-
-    bank = IncidentMemoryBank(mock_memory)
-    gate_outcomes = [
-        GateOutcome(
-            candidate_id=uuid4(),
-            axis=GateAxis.AXE,
-            decision=GateDecision.REJECT,
-            diagnostic="A11y fail",
-        )
-    ]
 
     resolutions = await bank.query_similar_resolutions(
         tenant_id="tenant-123",
@@ -187,4 +102,82 @@ async def test_query_similar_resolutions():
     )
 
     assert resolutions == ["Use an explicit aria-label."]
-    assert mock_memory.query_semantic.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_passthrough_when_service_is_semantic(tmp_path):
+    """A service that already speaks the semantic API is used directly."""
+    backend = VertexSemanticMemoryBackend(
+        project_id="atelier-build-2026",
+        persist_dir=str(tmp_path),
+    )
+    bank = IncidentMemoryBank(backend)
+    assert bank._backend is backend
+
+
+@pytest.mark.asyncio
+async def test_falls_back_for_adk_style_service(monkeypatch, tmp_path, caplog):
+    """An ADK-style service (no write_semantic/query_semantic) triggers a logged fallback.
+
+    This is the silent-no-op bug the fix removes: the resolved backend must be a
+    real ``VertexSemanticMemoryBackend`` and a WARNING must explain the fallback.
+    """
+    monkeypatch.setenv("ATELIER_SEMANTIC_MEMORY_DIR", str(tmp_path))
+
+    class _AdkStyleService:
+        async def add_session_to_memory(self, session):  # pragma: no cover - shape only
+            return None
+
+        async def search_memory(self, *, app_name, user_id, query):  # pragma: no cover
+            return None
+
+    with caplog.at_level("WARNING"):
+        bank = IncidentMemoryBank(_AdkStyleService())
+
+    assert isinstance(bank._backend, VertexSemanticMemoryBackend)
+    assert any("not a semantic backend" in rec.message for rec in caplog.records)
+
+    # And the loop still works through the fallback backend.
+    gate_outcomes = _axe_failure()
+    await bank.record_incident(
+        tenant_id="tenant-x",
+        incident_id="inc-2",
+        gate_outcomes=gate_outcomes,
+        consensus=None,
+    )
+    await bank.record_resolution(
+        tenant_id="tenant-x",
+        incident_id="inc-2",
+        resolution_delta="Add role=button.",
+    )
+    resolutions = await bank.query_similar_resolutions(
+        tenant_id="tenant-x",
+        gate_outcomes=gate_outcomes,
+        consensus=None,
+    )
+    assert resolutions == ["Add role=button."]
+
+
+@pytest.mark.asyncio
+async def test_no_backend_degrades_to_logged_noop(monkeypatch, caplog):
+    """If no semantic backend can be resolved, operations are explicit logged no-ops."""
+    bank = IncidentMemoryBank(object())
+    # Force the degraded path regardless of how resolution went.
+    bank._backend = None
+
+    gate_outcomes = _axe_failure()
+    with caplog.at_level("WARNING"):
+        await bank.record_incident(
+            tenant_id="tenant-x",
+            incident_id="inc-3",
+            gate_outcomes=gate_outcomes,
+            consensus=None,
+        )
+        resolutions = await bank.query_similar_resolutions(
+            tenant_id="tenant-x",
+            gate_outcomes=gate_outcomes,
+            consensus=None,
+        )
+
+    assert resolutions == []
+    assert any("no semantic backend" in rec.message for rec in caplog.records)

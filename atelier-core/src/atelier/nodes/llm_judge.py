@@ -61,6 +61,7 @@ import json
 import math
 import os
 import re
+import threading
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Protocol
@@ -155,6 +156,19 @@ def validate_judge_mode_env() -> str:
             f"{ATELIER_JUDGE_MODE_ENV}={raw!r} is not a valid judge mode; "
             f"valid modes are {sorted(VALID_JUDGE_MODES)}"
         )
+    # Warn when the env var is absent and the heuristic default is applied in a
+    # non-development environment.  The canonical Terraform sets ATELIER_JUDGE_MODE
+    # explicitly; a missing value in staging/production indicates a config slip that
+    # silently degrades D-O-R-A-V scoring from LLM judges to heuristics.
+    if raw is None and mode == JUDGE_MODE_HEURISTIC:
+        atelier_env = os.environ.get("ATELIER_ENV", "development")
+        if atelier_env != "development":
+            logger.warning(
+                "atelier.judge_mode.unset",
+                env=atelier_env,
+                effective_mode=mode,
+                advice=f"Set {ATELIER_JUDGE_MODE_ENV} explicitly to silence this warning",
+            )
     return mode
 
 
@@ -395,7 +409,10 @@ def extract_score_from_response(
             f"Judge response 'score' must be a numeric value, got {type(raw_score).__name__}"
         )
 
-    score = _clamp_unit(float(raw_score))
+    score_float = float(raw_score)
+    if not math.isfinite(score_float):
+        raise LLMJudgeError(f"Judge response 'score' must be a finite number, got {score_float!r}")
+    score = _clamp_unit(score_float)
     reasoning = str(payload.get("reasoning", "")).strip()
 
     evidence_raw = payload.get("evidence", [])
@@ -884,6 +901,9 @@ class VertexAIJudgeClient:
     location: str = "us-central1"
     _model_cache: dict[str, Any] = field(default_factory=dict, repr=False)
     _initialized: bool = field(default=False, init=False, repr=False)
+    _lock: threading.Lock = field(
+        default_factory=threading.Lock, init=False, repr=False, compare=False
+    )
 
     def generate(
         self,
@@ -932,20 +952,21 @@ class VertexAIJudgeClient:
 
         vertexai_mod, generative_models = _import_vertex_sdk()
 
-        if not self._initialized:
-            vertexai_mod.init(project=self.project, location=self.location)
-            # Dataclass mutation is permitted because the class is not frozen;
-            # _initialized is excluded from __init__ to keep the constructor
-            # signature clean.
-            self._initialized = True
+        with self._lock:
+            if not self._initialized:
+                vertexai_mod.init(project=self.project, location=self.location)
+                # Dataclass mutation is permitted because the class is not frozen;
+                # _initialized is excluded from __init__ to keep the constructor
+                # signature clean.
+                self._initialized = True
 
-        model = self._model_cache.get(model_id)
-        if model is None:
-            model = generative_models.GenerativeModel(
-                model_name=model_id,
-                system_instruction=system_prompt,
-            )
-            self._model_cache[model_id] = model
+            model = self._model_cache.get(model_id)
+            if model is None:
+                model = generative_models.GenerativeModel(
+                    model_name=model_id,
+                    system_instruction=system_prompt,
+                )
+                self._model_cache[model_id] = model
 
         generation_config = generative_models.GenerationConfig(
             temperature=temperature,

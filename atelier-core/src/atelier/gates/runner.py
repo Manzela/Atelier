@@ -39,13 +39,28 @@ from atelier.models.enums import GateAxis, GateDecision
 #: The RESPONSIVE axis is intentionally absent from this table: v1.0 implementation does
 #: not ship a responsive-design gate (browser rendering required). Requests
 #: for unsupported axes are reported in :attr:`GateRunResult.unsupported_axes`.
+#:
+#: Gate fidelity is NOT uniform across these axes, and the convergence claim must
+#: be read with that in mind:
+#:   - SEMANTIC_HTML, CSS_VALIDITY, TOKEN_FIDELITY are exact static checks.
+#:   - AXE runs the real axe-core engine in a headless browser (AT-011), with a
+#:     deterministic heuristic fail-soft when chromium is unavailable.
+#:   - LIGHTHOUSE_A11Y and VISUAL_DIFF are still browser-FREE heuristic proxies,
+#:     not the real tools. ``check_lighthouse_stub`` estimates a performance score
+#:     from static HTML/CSS patterns (no render, so no measured LCP/TBT/CLS), and
+#:     ``check_visual_diff_stub`` scores structural-tag coverage, not pixels. Both
+#:     fail CLOSED on empty/skeleton HTML (a structure floor), so they cannot bless
+#:     garbage — but a real-world performance or pixel regression that a true
+#:     Lighthouse run or pixel-diff would catch can still pass these axes. The
+#:     real-tool integrations land in AT-011 (lighthouse-ci) / AT-013 (pixel-diff)
+#:     and swap in here, mirroring the axe_core upgrade.
 _AXIS_TO_GATE: dict[GateAxis, Callable[[CandidateUI], GateOutcome]] = {
     GateAxis.SEMANTIC_HTML: check_semantic_html,
     GateAxis.CSS_VALIDITY: check_css_validity,
     GateAxis.TOKEN_FIDELITY: check_token_fidelity,
-    GateAxis.LIGHTHOUSE_A11Y: check_lighthouse_stub,
+    GateAxis.LIGHTHOUSE_A11Y: check_lighthouse_stub,  # heuristic proxy (no real Lighthouse render); AT-011
     GateAxis.AXE: check_axe,  # AT-011: real axe-core (was check_axe_stub; stub is the fail-soft proxy)
-    GateAxis.VISUAL_DIFF: check_visual_diff_stub,
+    GateAxis.VISUAL_DIFF: check_visual_diff_stub,  # heuristic proxy (structural coverage, not pixels); AT-013
 }
 
 

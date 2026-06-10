@@ -307,10 +307,16 @@ class DesignSystemPersister:
         else:
             data = stamped.to_firestore_dict()
 
-        doc_ref.set(data)
-        # Update the per-tenant CURRENT pointer (last-write-wins) so load() reads
-        # the latest system without a query/order-by.
-        self._current_pointer_ref(record.tenant_id).set({"current_run_id": record.run_id})
+        # Write the record and pointer atomically so the CURRENT pointer can
+        # never reference a missing/stale run under partial failure.
+        client = self._client()
+        batch = client.batch()
+        batch.set(doc_ref, data)
+        batch.set(
+            self._current_pointer_ref(record.tenant_id),
+            {"current_run_id": record.run_id},
+        )
+        batch.commit()
 
     async def _read_firestore(self, tenant_id: str) -> DesignSystemRecord | None:
         pointer = self._current_pointer_ref(tenant_id).get()

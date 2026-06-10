@@ -83,15 +83,17 @@ repos:
     hooks:
       - id: detect-secrets
         args: ['--baseline', '.secrets.baseline']
+        # Keep only specific files/patterns that are confirmed false-positives.
+        # Broad directory exclusions (audit/, fixtures/) were removed so that new
+        # secrets committed under those paths are still flagged.  Per-line
+        # suppressions use `# pragma: allowlist secret` in the source file.
         exclude: |
           (?x)^(
             package-lock\.json|
             package\.json|
-            atelier-core/tests/fixtures/.*|
             \.secrets\.baseline|
             \.reviewer-envelope\.json|
-            \.reviewer-calibration-log\.json|
-            audit/.*
+            \.reviewer-calibration-log\.json
           )$
 
   # ─── Markdown lint ─────────────────────────────────────────────────────────

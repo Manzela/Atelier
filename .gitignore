@@ -258,3 +258,4 @@ gaps.md
 # Tool / Local development caches
 .playwright-mcp/
 .codegraph/
+.lighthouseci/
