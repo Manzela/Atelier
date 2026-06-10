@@ -408,7 +408,12 @@ export async function runGenerationStream(
       let errorDetail = '';
       try {
         const errorJson = await response.json();
-        errorDetail = errorJson.detail || JSON.stringify(errorJson);
+        // FastAPI returns `detail` as a string for HTTPException, but as an OBJECT
+        // (or array) for request-validation errors and some auth failures. A bare
+        // `errorJson.detail` then renders "HTTP 401: [object Object]" via template
+        // coercion — stringify any non-string detail so the user sees real text.
+        errorDetail =
+          typeof errorJson.detail === 'string' ? errorJson.detail : JSON.stringify(errorJson);
       } catch {
         errorDetail = await response.text();
       }
@@ -424,6 +429,15 @@ export async function runGenerationStream(
     const reader = response.body.getReader();
     const decoder = new TextDecoder('utf-8');
     let buffer = '';
+
+    // A run ends with exactly one terminal event (complete / error / cap_reached
+    // / stop). If the stream closes WITHOUT one — a proxy/Cloud Run wall-clock
+    // cut, a half-closed socket, or a run that outlives the request budget — the
+    // reader below just `break`s on `done` and, without this guard, the Studio
+    // would sit on the "generating" spinner forever (no onComplete/onError ever
+    // fires). Track whether a terminal event was seen so we can fail honestly.
+    const TERMINAL_EVENTS = new Set(['complete', 'error', 'cap_reached', 'stop']);
+    let sawTerminalEvent = false;
 
     while (true) {
       const { done, value } = await reader.read();
@@ -446,9 +460,18 @@ export async function runGenerationStream(
           } catch (e) {
             console.error('Failed to parse SSE data JSON:', e, dataStr);
           }
+          if (TERMINAL_EVENTS.has(currentEvent)) sawTerminalEvent = true;
           currentEvent = '';
         }
       }
+    }
+
+    // The server closed the stream cleanly but never sent a terminal event:
+    // surface an honest, retryable failure instead of an eternal spinner.
+    if (!sawTerminalEvent) {
+      callbacks.onError?.(
+        'The run was interrupted before it finished (the connection closed early). Please retry.'
+      );
     }
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
@@ -515,6 +538,14 @@ function triggerCallback(event: string, data: Record<string, unknown>, callbacks
       break;
     case 'stop':
       callbacks.onStop?.(data as unknown as StopData);
+      break;
+    case 'degraded':
+      // The backend emits a `degraded` event (cap / unavailable / blocked) and
+      // ALWAYS follows it with a `complete` event carrying `degraded: true` +
+      // `degradation_reason`. The Studio acknowledges the degradation off that
+      // complete payload (see onComplete), so this event needs no separate
+      // handler — swallow it explicitly rather than logging a misleading
+      // "Unhandled SSE event" warning during an otherwise-honest degraded run.
       break;
     default:
       // nosemgrep: javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring -- template literal, not a printf-style format string; no format-specifier injection is possible.
