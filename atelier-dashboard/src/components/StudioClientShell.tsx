@@ -961,6 +961,15 @@ export default function StudioClientShell({ id }: { id: string }) {
         if (isSignoffPlan && user) {
           setSignoffPlan(data);
           setStatus('awaiting-signoff');
+          // The approval gate is a blocking decision that fills the canvas. On
+          // mobile/tablet (< xl / < lg) the config + log panels are overlay
+          // drawers whose `fixed inset-0 z-40` backdrop would otherwise sit
+          // ABOVE the inline ApprovalCard and swallow its Approve/Steer taps.
+          // Close them here so the gate is always interactable on every screen;
+          // the trace panel re-opens automatically once generation resumes
+          // (handleSignoffSnapshot → setIsRightSidebarOpen(true)).
+          setIsRightSidebarOpen(false);
+          setIsDrawerOpen(false);
           // Subscribe to the run doc: if a cold clone finds it already APPROVED,
           // onSnapshot fires on attach and resumes without showing the card.
           watchSignoff(user.tenant_id, id);
