@@ -70,7 +70,7 @@
     "atelier-core/src/atelier/nodes/critique_panel.py": "fb648008c13e11832341cf537817203b75f08b61b8997674b314b673ba7f587e",
     "atelier-dashboard/src/app/login/page.tsx": "c8bb4968eeff4801d398e5b30f7d91f08a84fa123b1abfee50cb5a55c57df245",
     "atelier-dashboard/src/components/legibility/TopologyGraph.tsx": "2c5dcd3777353575facab9a2370e5c3ed9d53797b69b419ee27da5e05156cb5e",
-    "atelier-dashboard/src/components/StitchClientShell.tsx": "b21c0c28d1be513844676888bbd04c21a956389c6a6de4a33b3b583bfedd5447",
+    "atelier-dashboard/src/components/StitchClientShell.tsx": "b3ab97a7255020e174afb29e2f5fee3eb95c800096a36c1a6d9e1b7db2ed47c4",
     "atelier-core/scripts/rag_extraction.py": "09933feb1e925997202670f630c70f0f28b5de5c4907b9c2825772faec043dbc",
     "atelier-core/src/atelier/auth/firebase.py": "47930716dcefab4f3ed10ce625ebd12e81004b412ceb26ed051a288d44b35d71",
     "atelier-dashboard/src/components/platform/useAgentActivity.ts": "3ba99767ca827c4fea88b4e80e928d768a39527062d51b558b537f6b07dd284b",

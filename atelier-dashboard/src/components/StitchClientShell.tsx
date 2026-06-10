@@ -438,7 +438,7 @@ export default function StitchClientShell() {
       <div className="flex h-screen w-screen overflow-hidden bg-[var(--g-bg)] text-[var(--g-text)] stitch-grid-bg">
         {/* Desktop Sidebar */}
         <m.aside
-          className="hidden md:flex w-64 border-r border-[var(--g-outline)] bg-transparent flex-col"
+          className="hidden lg:flex w-64 border-r border-[var(--g-outline)] bg-transparent flex-col"
           initial={{ x: -20, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
@@ -533,7 +533,7 @@ export default function StitchClientShell() {
         {/* Mobile Sidebar Overlay */}
         <AnimatePresence>
           {isMobileSidebarOpen && (
-            <div className="fixed inset-0 z-40 md:hidden flex">
+            <div className="fixed inset-0 z-40 lg:hidden flex">
               {/* Backdrop */}
               <m.div
                 initial={{ opacity: 0 }}
@@ -659,10 +659,10 @@ export default function StitchClientShell() {
         {/* Main Content Area */}
         <main className="flex-1 flex flex-col relative h-full">
           {/* Top Header */}
-          <header className="h-16 flex items-center justify-between md:justify-end px-6 border-b border-[var(--g-outline)] bg-transparent">
+          <header className="h-16 flex items-center justify-between lg:justify-end px-6 border-b border-[var(--g-outline)] bg-transparent">
             <button
               onClick={() => setIsMobileSidebarOpen(true)}
-              className="md:hidden p-2 text-[var(--g-text-muted)] hover:text-white hover:bg-[var(--g-surface-hover)] rounded-md focus:outline-none focus:ring-1 focus:ring-[var(--g-primary-blue)] transition-colors"
+              className="lg:hidden p-2 text-[var(--g-text-muted)] hover:text-white hover:bg-[var(--g-surface-hover)] rounded-md focus:outline-none focus:ring-1 focus:ring-[var(--g-primary-blue)] transition-colors"
               aria-label="Open sidebar"
             >
               <Menu size={20} />
