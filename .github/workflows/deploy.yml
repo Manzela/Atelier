@@ -258,7 +258,20 @@ jobs:
         run: |
           npx --yes --package firebase-tools firebase deploy --only hosting:dashboard --project=${{ env.PROJECT_ID }}
 
-      # ── Integrated production smoke against the judged domain ──
-      - name: Smoke test (production / canonical)
+      # ── Production smoke against the LIVE services ──
+      # The canonical domain is Cloudflare-fronted; the WAF 403s the CI runner's
+      # datacenter IP on most paths regardless of user-agent (only /.well-known/*
+      # is allowlisted), so probing it from CI is a false negative even though a
+      # real browser/judge gets 200. Verify the LIVE production Cloud Run services
+      # DIRECTLY (post-shift), and sanity-check canonical routing + CDN via the one
+      # WAF-allowlisted path (the agent card). Real-browser canonical health is
+      # verified out-of-band.
+      - name: Smoke test (production / live services)
         run: |
-          bash scripts/ci/smoke_probe.sh "https://atelier.autonomous-agent.dev"
+          api="https://atelier-api-production-${{ env.PROJECT_NUMBER }}.${{ env.REGION }}.run.app"
+          dash="https://atelier-dashboard-production-${{ env.PROJECT_NUMBER }}.${{ env.REGION }}.run.app"
+          bash scripts/ci/smoke_endpoint.sh "$api/health" 200 "prod API health (live)"
+          bash scripts/ci/smoke_endpoint.sh "$api/openapi.json" 404 "prod API spec gated (live)"
+          bash scripts/ci/smoke_endpoint.sh "$api/.well-known/agent-card.json" 200 "prod API agent card (live)"
+          bash scripts/ci/smoke_endpoint.sh "$dash/" 200 "prod dashboard root (live)"
+          bash scripts/ci/smoke_endpoint.sh "https://atelier.autonomous-agent.dev/.well-known/agent-card.json" 200 "canonical routing via Cloudflare (allowlisted path)"
