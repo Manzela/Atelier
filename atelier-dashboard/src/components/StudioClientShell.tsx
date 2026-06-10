@@ -1948,7 +1948,7 @@ export default function StudioClientShell({ id }: { id: string }) {
                   data-testid="state-loading"
                   role="status"
                   aria-live="polite"
-                  aria-label="Generating design \u2014 please wait"
+                  aria-label="Generating design — please wait"
                   className="w-full h-full flex flex-col items-center justify-center bg-[var(--g-bg)] gap-4"
                 >
                   <Loader2
@@ -2008,7 +2008,7 @@ export default function StudioClientShell({ id }: { id: string }) {
                     />
                     <div>
                       <h2 className="text-sm font-semibold text-amber-800">
-                        Result is degraded \u2014 showing the best available output
+                        Result is degraded — showing the best available output
                       </h2>
                       {degradationReason && (
                         <p className="text-xs text-amber-700 mt-0.5">{degradationReason}</p>
