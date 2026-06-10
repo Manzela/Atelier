@@ -1575,27 +1575,27 @@ export default function StudioClientShell({ id }: { id: string }) {
     <LazyMotion features={domAnimation}>
       <div className="h-screen w-screen bg-[var(--g-bg)] text-[var(--g-text)] overflow-hidden flex flex-col font-sans stitch-grid-bg">
         {/* Top Navbar */}
-        <header className="h-14 flex items-center justify-between px-4 border-b border-[var(--g-outline)] bg-[var(--g-surface)]/80 backdrop-blur-md z-40">
-          <div className="flex items-center gap-3">
+        <header className="h-14 flex items-center justify-between px-3 sm:px-4 gap-2 border-b border-[var(--g-outline)] bg-[var(--g-surface)]/80 backdrop-blur-md z-40">
+          <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
             <button
               onClick={() => router.push('/')}
-              className="p-1.5 hover:bg-[var(--g-surface-hover)] rounded-md transition-colors"
+              className="shrink-0 p-1.5 hover:bg-[var(--g-surface-hover)] rounded-md transition-colors"
               aria-label="Back to dashboard"
             >
               <ArrowLeft size={18} className="text-[var(--g-text-muted)]" />
             </button>
             <button
               onClick={() => setIsLeftSidebarOpen(!isLeftSidebarOpen)}
-              className="lg:hidden p-1.5 hover:bg-[var(--g-surface-hover)] rounded-md transition-colors text-[var(--g-text-muted)] hover:text-white"
+              className="lg:hidden shrink-0 p-1.5 hover:bg-[var(--g-surface-hover)] rounded-md transition-colors text-[var(--g-text-muted)] hover:text-white"
               aria-label="Toggle layers panel"
             >
               <Layout size={18} />
             </button>
-            <div className="flex items-center gap-2 max-w-[120px] sm:max-w-none">
+            <div className="flex items-center gap-2 min-w-0">
               <span className="font-semibold text-[13px] text-white tracking-wide truncate">
                 {projectTitle}
               </span>
-              <span className="px-1.5 py-0.5 rounded text-[10px] bg-[var(--g-info)]/20 text-[var(--g-info)] font-mono border border-[var(--g-info)]/30 shrink-0">
+              <span className="hidden sm:inline-block px-1.5 py-0.5 rounded text-[10px] bg-[var(--g-info)]/20 text-[var(--g-info)] font-mono border border-[var(--g-info)]/30 shrink-0">
                 v1.0
               </span>
             </div>
@@ -1635,12 +1635,12 @@ export default function StudioClientShell({ id }: { id: string }) {
             </div>
           )}
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             <div className="relative flex items-center">
               <select
                 value={selectedModel}
                 onChange={(e) => setSelectedModel(e.target.value)}
-                className="appearance-none bg-black/20 border border-[var(--g-outline)] rounded-md px-3 py-1.5 pr-8 text-xs text-white font-medium focus:outline-none focus:ring-1 focus:ring-[var(--g-primary-blue)] cursor-pointer"
+                className="appearance-none bg-black/20 border border-[var(--g-outline)] rounded-md pl-2 pr-7 sm:px-3 sm:pr-8 py-1.5 text-xs text-white font-medium focus:outline-none focus:ring-1 focus:ring-[var(--g-primary-blue)] cursor-pointer max-w-[104px] sm:max-w-none truncate"
                 aria-label="Select Model"
               >
                 <option value="gemini-2.5-pro" className="bg-[var(--g-surface)] text-white">

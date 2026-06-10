@@ -500,6 +500,84 @@ def test_stream_complete_event_contains_best_html_dorav_nielsen(client: TestClie
         assert isinstance(complete_payload["nielsen"], list)
 
 
+def _parse_sse_events(resp: Any) -> list[tuple[str, dict[str, Any]]]:
+    """Parse an SSE response into an ordered list of (event_name, data_dict).
+
+    The stream emits an ``event: <name>`` line followed by its ``data: <json>``
+    line; pair them so a test can assert on a SPECIFIC event's payload (the
+    loose "is this key present" heuristic cannot distinguish a degraded
+    ``complete`` from any other event).
+    """
+    events: list[tuple[str, dict[str, Any]]] = []
+    current_event = ""
+    for line in resp.iter_lines():
+        if line.startswith("event:"):
+            current_event = line.removeprefix("event:").strip()
+        elif line.startswith("data:"):
+            try:
+                payload = json.loads(line.removeprefix("data:").strip())
+            except json.JSONDecodeError:
+                payload = {}
+            events.append((current_event, payload))
+            current_event = ""
+    return events
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    ("exc_factory_name", "message_name"),
+    [
+        ("GovernorTokenCapExceeded", "TOKEN_CAP_MESSAGE"),
+        ("GovernorUsageUnavailable", "USAGE_UNAVAILABLE_MESSAGE"),
+        ("GovernorCircuitBreakerOpen", "CIRCUIT_BREAKER_MESSAGE"),
+    ],
+)
+def test_stream_governor_exception_complete_is_marked_degraded(
+    client: TestClient, exc_factory_name: str, message_name: str
+) -> None:
+    """A governor exception mid-run must emit a `complete` event with degraded=True.
+
+    Regression: the three governor exception paths (token cap, usage-unavailable,
+    circuit-breaker) emit their `complete` event via a direct queue.put that
+    BYPASSES _enrich_complete_payload. When that payload omitted `degraded`, the
+    Studio's onComplete took the SUCCESS branch and rendered "All screens
+    converged" over a run that produced NO output — a false success. The complete
+    payload must carry degraded=True + the BRANDED message so the frontend
+    acknowledges the degradation honestly (PRD §21).
+    """
+    import atelier.orchestrator.governor as gov
+
+    exc_cls = getattr(gov, exc_factory_name)
+    branded = getattr(gov, message_name)
+
+    async def _raise(*_args: Any, **_kwargs: Any) -> dict[str, Any]:
+        raise exc_cls()
+
+    with (
+        patch("atelier.orchestrator.runner.AtelierRunner.run", AsyncMock(side_effect=_raise)),
+        patch("atelier.api.generate._record_trajectory", AsyncMock()),
+    ):
+        resp = client.post(
+            "/v1/generate/stream",
+            json={
+                "brief": "Generate a beautiful luxury brand landing page with pricing widgets.",
+                "budget_usd": 10.0,
+            },
+        )
+        assert resp.status_code == 200
+
+        events = _parse_sse_events(resp)
+        complete_events = [data for name, data in events if name == "complete"]
+        assert complete_events, "governor path must still emit a terminal complete event"
+        payload = complete_events[-1]
+
+        # The honest-degradation contract the frontend keys off (onComplete reads
+        # `degraded`; there is NO separate degraded-event handler).
+        assert payload.get("degraded") is True
+        assert payload.get("degradation_reason") == branded
+        assert payload.get("user_message") == branded
+
+
 # ---------------------------------------------------------------------------
 # AT-093: _build_iteration_dorav helper tests
 # ---------------------------------------------------------------------------

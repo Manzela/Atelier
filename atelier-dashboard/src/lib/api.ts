@@ -408,7 +408,12 @@ export async function runGenerationStream(
       let errorDetail = '';
       try {
         const errorJson = await response.json();
-        errorDetail = errorJson.detail || JSON.stringify(errorJson);
+        // FastAPI returns `detail` as a string for HTTPException, but as an OBJECT
+        // (or array) for request-validation errors and some auth failures. A bare
+        // `errorJson.detail` then renders "HTTP 401: [object Object]" via template
+        // coercion — stringify any non-string detail so the user sees real text.
+        errorDetail =
+          typeof errorJson.detail === 'string' ? errorJson.detail : JSON.stringify(errorJson);
       } catch {
         errorDetail = await response.text();
       }
@@ -424,6 +429,34 @@ export async function runGenerationStream(
     const reader = response.body.getReader();
     const decoder = new TextDecoder('utf-8');
     let buffer = '';
+
+    // A run ends with exactly one terminal event (complete / error / cap_reached
+    // / stop). If the stream closes WITHOUT one AFTER generation has started
+    // producing surfaces — a proxy/Cloud Run wall-clock cut, a half-closed
+    // socket, or a run that outlives the request budget — the reader below just
+    // `break`s on `done` and, without this guard, the Studio would sit on the
+    // "generating" spinner forever (no onComplete/onError ever fires).
+    //
+    // The guard is scoped to "generation actually progressed": a stream that
+    // closes after ONLY a `plan` event is a legitimate transient (the loading
+    // spinner before the first surface, or a run parked awaiting sign-off) —
+    // not a hung run to error out. We therefore require a generation-progress
+    // event before treating a terminal-less close as a failure, so the honest
+    // error fires for a mid-generation death but never for a pre-generation
+    // pause.
+    const TERMINAL_EVENTS = new Set(['complete', 'error', 'cap_reached', 'stop']);
+    const PROGRESS_EVENTS = new Set([
+      'screen_start',
+      'iteration_start',
+      'candidates',
+      'gates_evaluation',
+      'consensus_evaluation',
+      'fixer_directive',
+      'screen_converged',
+      'iteration_score',
+    ]);
+    let sawTerminalEvent = false;
+    let sawGenerationProgress = false;
 
     while (true) {
       const { done, value } = await reader.read();
@@ -446,9 +479,20 @@ export async function runGenerationStream(
           } catch (e) {
             console.error('Failed to parse SSE data JSON:', e, dataStr);
           }
+          if (TERMINAL_EVENTS.has(currentEvent)) sawTerminalEvent = true;
+          if (PROGRESS_EVENTS.has(currentEvent)) sawGenerationProgress = true;
           currentEvent = '';
         }
       }
+    }
+
+    // The server closed the stream cleanly mid-generation but never sent a
+    // terminal event: surface an honest, retryable failure instead of an
+    // eternal spinner.
+    if (!sawTerminalEvent && sawGenerationProgress) {
+      callbacks.onError?.(
+        'The run was interrupted before it finished (the connection closed early). Please retry.'
+      );
     }
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
@@ -515,6 +559,14 @@ function triggerCallback(event: string, data: Record<string, unknown>, callbacks
       break;
     case 'stop':
       callbacks.onStop?.(data as unknown as StopData);
+      break;
+    case 'degraded':
+      // The backend emits a `degraded` event (cap / unavailable / blocked) and
+      // ALWAYS follows it with a `complete` event carrying `degraded: true` +
+      // `degradation_reason`. The Studio acknowledges the degradation off that
+      // complete payload (see onComplete), so this event needs no separate
+      // handler — swallow it explicitly rather than logging a misleading
+      // "Unhandled SSE event" warning during an otherwise-honest degraded run.
       break;
     default:
       // nosemgrep: javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring -- template literal, not a printf-style format string; no format-specifier injection is possible.

@@ -972,7 +972,21 @@ async def generate_stream(  # noqa: C901, PLR0915 — SSE orchestrator: nested p
             await queue.put(
                 ("degraded", {"mode": "unavailable", "message": USAGE_UNAVAILABLE_MESSAGE})
             )
-            await queue.put(("complete", {"user_message": USAGE_UNAVAILABLE_MESSAGE}))
+            # The Studio keys its acknowledgment off the complete event's `degraded`
+            # field (there is no separate degraded-event handler), and this direct
+            # queue.put bypasses _enrich_complete_payload. Without degraded=True the
+            # frontend takes the success branch ("All screens converged") over a run
+            # that produced NO output — a false success. Mark it degraded honestly.
+            await queue.put(
+                (
+                    "complete",
+                    {
+                        "degraded": True,
+                        "degradation_reason": USAGE_UNAVAILABLE_MESSAGE,
+                        "user_message": USAGE_UNAVAILABLE_MESSAGE,
+                    },
+                )
+            )
         except GovernorCircuitBreakerOpen as exc:
             # AT-097: the fleet-wide token breaker is open — a SYSTEM protection,
             # not this user's fault. Acknowledge honestly with a retryable degraded
@@ -989,7 +1003,19 @@ async def generate_stream(  # noqa: C901, PLR0915 — SSE orchestrator: nested p
             await queue.put(
                 ("degraded", {"mode": "unavailable", "message": CIRCUIT_BREAKER_MESSAGE})
             )
-            await queue.put(("complete", {"user_message": CIRCUIT_BREAKER_MESSAGE}))
+            # degraded=True so the frontend acknowledges the breaker honestly rather
+            # than reporting "All screens converged" over a run that never produced
+            # output (the complete event bypasses _enrich_complete_payload).
+            await queue.put(
+                (
+                    "complete",
+                    {
+                        "degraded": True,
+                        "degradation_reason": CIRCUIT_BREAKER_MESSAGE,
+                        "user_message": CIRCUIT_BREAKER_MESSAGE,
+                    },
+                )
+            )
         except GovernorTokenCapExceeded as exc:
             # AT-095: an already-at-cap user hits the run-start pre-flight. Surface
             # the branded message as a clean `degraded` cap event (PRD §7A.6) — never
@@ -1005,7 +1031,19 @@ async def generate_stream(  # noqa: C901, PLR0915 — SSE orchestrator: nested p
                 },
             )
             await queue.put(("degraded", {"mode": "cap", "message": TOKEN_CAP_MESSAGE}))
-            await queue.put(("complete", {"user_message": TOKEN_CAP_MESSAGE}))
+            # degraded=True + the branded cap message so the frontend acknowledges
+            # the cap honestly (the complete event bypasses _enrich_complete_payload;
+            # without this it reports "All screens converged" over a capped run).
+            await queue.put(
+                (
+                    "complete",
+                    {
+                        "degraded": True,
+                        "degradation_reason": TOKEN_CAP_MESSAGE,
+                        "user_message": TOKEN_CAP_MESSAGE,
+                    },
+                )
+            )
         except GovernorRateLimitExceeded:
             logger.warning(
                 "atelier.generate.stream.rate_limited", extra={"uid": sanitize(user.uid)}
