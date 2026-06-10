@@ -35,9 +35,9 @@
   "devDependencies": {
     "@commitlint/cli": "^19.5.0",
     "@commitlint/config-conventional": "^19.5.0",
-    "@types/node": "^20.11.0",
-    "firebase-tools": "^15.18.0",
-    "prettier": "^3.3.3",
+    "@types/node": "^20.19.42",
+    "firebase-tools": "^15.19.1",
+    "prettier": "^3.8.4",
     "style-dictionary": "^4.4.0",
     "typescript": "^5.6.0"
   },
