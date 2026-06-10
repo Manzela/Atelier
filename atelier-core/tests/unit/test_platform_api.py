@@ -252,8 +252,10 @@ def test_scale_reports_model_catalog_and_backends(client: TestClient) -> None:
     by_tier = {m["tier"]: m for m in catalog["models"]}
     assert set(by_tier) == {"pro", "flash", "flash_lite"}
     assert len(by_tier["pro"]["task_types"]) == 3
-    assert len(by_tier["flash"]["task_types"]) == 10
-    assert len(by_tier["flash_lite"]["task_types"]) == 4
+    # Flash-tier was trimmed (research/IA/web-research/fixer moved to Flash-Lite for
+    # 429 QPM headroom); generation + judges stay on Flash.
+    assert len(by_tier["flash"]["task_types"]) == 6
+    assert len(by_tier["flash_lite"]["task_types"]) == 8
     # deploy_config.resolve_config() is pure (env + defaults) — available offline.
     assert body["deploy_config"]["available"] is True
     assert body["session_backend"] == "memory"
