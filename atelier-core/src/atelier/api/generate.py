@@ -263,6 +263,9 @@ async def _record_trajectory(
             outcome = "accepted" if is_best and converged else "rejected"
             candidate_score = float(scored.get("composite_score", 0.0))
 
+            total_input_tokens = int(result.get("total_input_tokens") or 0) if i == 0 else 0
+            total_output_tokens = int(result.get("total_output_tokens") or 0) if i == 0 else 0
+
             record = TrajectoryRecord(
                 trajectory_id=uuid4(),
                 tenant_id=user.tenant_id,
@@ -277,6 +280,8 @@ async def _record_trajectory(
                 outcome=outcome,
                 composite_score=candidate_score,
                 total_cost_usd=0.0,  # AT-095: USD telemetry retired; usage is token-based
+                total_input_tokens=total_input_tokens,
+                total_output_tokens=total_output_tokens,
             )
             records.append(record)
 

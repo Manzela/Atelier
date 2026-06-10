@@ -1943,6 +1943,9 @@ class AtelierRunner:
         # intentionally NOT built here; a2ui_payload / a2ui_governance are threaded
         # solely from the canonical enrich site.
 
+        total_run_input_tokens = 0
+        total_run_output_tokens = 0
+
         for idx, screen in enumerate(surfaces):
             if progress_callback:
                 await progress_callback(
@@ -2280,6 +2283,9 @@ class AtelierRunner:
                     exit_reason = StopReason.GOVERNOR_FAIL_SOFT
                     break
                 raw_candidates, stitch_degraded, _token_usage = governed_result
+                if _token_usage:
+                    total_run_input_tokens += int(_token_usage[0])
+                    total_run_output_tokens += int(_token_usage[1])
                 # AT-031: record the N3a post-signoff stage call on a stable id. This is
                 # the "post-signoff stages" side of the resume oracle — its token count
                 # must be > 0 after approval, while N1/N2 remain frozen at their
@@ -2342,6 +2348,8 @@ class AtelierRunner:
                 judge_in = int(convergence_result.get("judge_input_tokens", 0))
                 judge_out = int(convergence_result.get("judge_output_tokens", 0))
                 judge_think = int(convergence_result.get("judge_thinking_tokens", 0))
+                total_run_input_tokens += judge_in
+                total_run_output_tokens += judge_out
                 if judge_in or judge_out or judge_think:
                     # N3d judge mix: Originality=Pro, Design/Relevance/Visual=Flash,
                     # Accessibility=Flash-Lite. Attribute to Pro (most restrictive cap)
@@ -2646,6 +2654,8 @@ class AtelierRunner:
             # rides this + the per-iteration token_delta events.
             "tokens_used": self._governor._state.cumulative_user_tokens,
             "token_cap": self._governor._state.token_cap,
+            "total_input_tokens": total_run_input_tokens,
+            "total_output_tokens": total_run_output_tokens,
             "web_research": wrai_report,
             "session_id": session_id,
             "plan": plan.model_dump() if hasattr(plan, "model_dump") else {},
