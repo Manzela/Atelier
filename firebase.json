@@ -53,6 +53,18 @@
         {
           "source": "**/*.html",
           "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+        },
+        {
+          "source": "/",
+          "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+        },
+        {
+          "source": "/{login,board,privacy,terms}",
+          "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+        },
+        {
+          "source": "/studio/**",
+          "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
         }
       ],
       "redirects": [
@@ -179,6 +191,18 @@
         },
         {
           "source": "**/*.html",
+          "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+        },
+        {
+          "source": "/",
+          "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+        },
+        {
+          "source": "/{login,board,privacy,terms}",
+          "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+        },
+        {
+          "source": "/studio/**",
           "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
         }
       ],
