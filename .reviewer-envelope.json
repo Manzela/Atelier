@@ -66,7 +66,7 @@
     "atelier-dashboard/src/lib/lexorank.ts": "b32a47645a95ca9c00d073d14b6b90ed4965400e1a6b3c5a987ef909a1680ce2",
     "atelier-dashboard/src/lib/optimize-trace.ts": "a8d2dc98d24dbab7939001358507be6db1b669c43862232c5ee5ad10789f16b7",
     "atelier-core/src/atelier/intake/brief_parser.py": "23f74bc2172b975ea21e9904bb20ee9a84d72fb049147b5b3d8dd07b734d93b1",
-    "atelier-core/src/atelier/models/model_registry.py": "2ddf327dcd85d5b19a469f85c22663e33e07f44dbec28501dbe395e24a9d3c94",
+    "atelier-core/src/atelier/models/model_registry.py": "f87e78eeb8756e78f17f4f2b9674d514581998c432be74f081c2e91006ec014a",
     "atelier-core/src/atelier/nodes/critique_panel.py": "fb648008c13e11832341cf537817203b75f08b61b8997674b314b673ba7f587e",
     "atelier-dashboard/src/app/login/page.tsx": "c8bb4968eeff4801d398e5b30f7d91f08a84fa123b1abfee50cb5a55c57df245",
     "atelier-dashboard/src/components/legibility/TopologyGraph.tsx": "2c5dcd3777353575facab9a2370e5c3ed9d53797b69b419ee27da5e05156cb5e",
