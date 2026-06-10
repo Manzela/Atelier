@@ -18,13 +18,19 @@ set -uo pipefail
 BASE_URL="${1:-${ATELIER_BASE_URL:-https://atelier.autonomous-agent.dev}}"
 fail=0
 
+# Browser-like UA: the canonical domain is fronted by Cloudflare, whose WAF
+# returns 403 to default curl/bot user-agents. A real browser (and a judge) gets
+# 200, so the synthetic probe must present a browser UA to verify true health
+# rather than be blocked by the WAF's bot challenge (a false deploy failure).
+_UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+
 probe_status() {
   # probe_status <path> <expected_status> <reason>
   local path="$1" expected="$2" reason="$3" url status
   url="${BASE_URL}${path}"
   # Retry to absorb Cloud Run cold-starts / CDN propagation right after a fresh
   # revision shift; a genuinely wrong status still fails after the retries.
-  status="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 \
+  status="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 -A "${_UA}" \
     --retry 4 --retry-delay 5 --retry-all-errors "${url}" || echo "000")"
   if [ "${status}" = "${expected}" ]; then
     echo "  OK   ${path} -> ${status} (${reason})"
@@ -38,7 +44,7 @@ probe_contains() {
   # probe_contains <path> <substring> <reason>
   local path="$1" needle="$2" reason="$3" url body
   url="${BASE_URL}${path}"
-  body="$(curl -sS --max-time 20 --retry 4 --retry-delay 5 --retry-all-errors "${url}" || echo "")"
+  body="$(curl -sS --max-time 20 -A "${_UA}" --retry 4 --retry-delay 5 --retry-all-errors "${url}" || echo "")"
   if printf '%s' "${body}" | grep -q -- "${needle}"; then
     echo "  OK   ${path} contains '${needle}' (${reason})"
   else
