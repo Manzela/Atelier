@@ -22,7 +22,10 @@ probe_status() {
   # probe_status <path> <expected_status> <reason>
   local path="$1" expected="$2" reason="$3" url status
   url="${BASE_URL}${path}"
-  status="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "${url}" || echo "000")"
+  # Retry to absorb Cloud Run cold-starts / CDN propagation right after a fresh
+  # revision shift; a genuinely wrong status still fails after the retries.
+  status="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 \
+    --retry 4 --retry-delay 5 --retry-all-errors "${url}" || echo "000")"
   if [ "${status}" = "${expected}" ]; then
     echo "  OK   ${path} -> ${status} (${reason})"
   else
@@ -35,7 +38,7 @@ probe_contains() {
   # probe_contains <path> <substring> <reason>
   local path="$1" needle="$2" reason="$3" url body
   url="${BASE_URL}${path}"
-  body="$(curl -sS --max-time 20 "${url}" || echo "")"
+  body="$(curl -sS --max-time 20 --retry 4 --retry-delay 5 --retry-all-errors "${url}" || echo "")"
   if printf '%s' "${body}" | grep -q -- "${needle}"; then
     echo "  OK   ${path} contains '${needle}' (${reason})"
   else

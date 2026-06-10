@@ -1,71 +1,82 @@
 name: Deploy
 
+# Continuous delivery for Atelier. Every merge to main flows through a single
+# pipeline: build immutable images once, deploy them to a non-canonical STAGING
+# tier automatically, smoke-test it, then hold at a manual operator-approval gate
+# before promoting THE SAME images to PRODUCTION (the canonical judged domain)
+# with verify-before-shift and an integrated canonical smoke test.
+#
+# Authentication is keyless: GitHub OIDC -> Workload Identity Federation, so no
+# long-lived service-account keys live in the repo.
+
 on:
   push:
     branches: [main]
   workflow_dispatch:
 
+# Serialize deploys on a ref; never cancel an in-flight rollout half-way.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: deploy-${{ github.ref }}
   cancel-in-progress: false
 
 permissions:
   contents: read
-  id-token: write
+  id-token: write # mint the OIDC token for Workload Identity Federation
 
 env:
   PROJECT_ID: 'atelier-build-2026'
+  PROJECT_NUMBER: '537337457799'
   REGION: 'us-central1'
   NODE_VERSION: '22.13.0'
+  AR_REPO: 'us-central1-docker.pkg.dev/atelier-build-2026/atelier-images'
+  RUN_SA: 'atelier-api-sa@atelier-build-2026.iam.gserviceaccount.com'
 
 jobs:
-  check-secrets:
-    name: Check for GCP Secrets
+  # ───────────────────────────────────────────────────────────────────────────
+  # Preflight: the pipeline is keyless-auth gated. If WIF is not configured
+  # (e.g. a fork without the secret), every deploy job no-ops instead of failing.
+  # ───────────────────────────────────────────────────────────────────────────
+  preflight:
+    name: Preflight
     runs-on: ubuntu-latest
     outputs:
-      has_secrets: ${{ steps.check.outputs.has_secrets }}
+      deploy_enabled: ${{ steps.check.outputs.enabled }}
+      short_sha: ${{ steps.vars.outputs.short_sha }}
     steps:
       - id: check
         env:
           WIF: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          KEY: ${{ secrets.GCP_SA_KEY }} # pragma: allowlist secret
-        run: | # pragma: allowlist secret
-          if [ -n "$WIF" ] || [ -n "$KEY" ]; then
-            echo "has_secrets=true" >> "$GITHUB_OUTPUT"
+        run: |
+          if [ -n "$WIF" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
           else
-            echo "has_secrets=false" >> "$GITHUB_OUTPUT"
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::GCP_WORKLOAD_IDENTITY_PROVIDER not set — skipping all deploy jobs."
           fi
+      - id: vars
+        run: echo "short_sha=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
 
-  deploy-staging:
-    name: Deploy to Staging
-    needs: check-secrets
-    if: needs.check-secrets.outputs.has_secrets == 'true' # pragma: allowlist secret
+  # ───────────────────────────────────────────────────────────────────────────
+  # Build immutable, commit-SHA-tagged images ONCE.
+  #   * The API image is environment-agnostic (all config is injected as runtime
+  #     env), so it is built once and promoted to BOTH tiers — the exact bytes
+  #     verified in staging are what ship to production.
+  #   * The dashboard inlines NEXT_PUBLIC_API_URL at build time, so it needs one
+  #     image per tier (each baking its own tier's API origin).
+  # ───────────────────────────────────────────────────────────────────────────
+  build:
+    name: Build images
+    needs: preflight
+    if: needs.preflight.outputs.deploy_enabled == 'true'
     runs-on: ubuntu-latest
-    env:
-      GCP_WIF_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-      GCP_WIF_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
-      GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
     steps:
       - uses: actions/checkout@v6
 
-      # Authenticate to GCP using WIF or Fallback Service Account Key
-      - name: Authenticate to Google Cloud via WIF
-        if: ${{ env.GCP_WIF_PROVIDER }}
-        id: auth-wif
+      - name: Authenticate to Google Cloud (WIF)
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: ${{ env.GCP_WIF_PROVIDER }}
-          service_account: ${{ env.GCP_WIF_SERVICE_ACCOUNT }}
-          create_credentials_file: true
-          export_environment_variables: true
-
-      - name: Authenticate to Google Cloud via Key
-        if: ${{ !env.GCP_WIF_PROVIDER && env.GCP_SA_KEY }}
-        id: auth-key
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ env.GCP_SA_KEY }}
-          create_credentials_file: true
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
           export_environment_variables: true
 
       - name: Set up Cloud SDK
@@ -73,98 +84,109 @@ jobs:
         with:
           project_id: ${{ env.PROJECT_ID }}
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
+      # The Firebase web key is inlined into the dashboard at build time; an empty
+      # secret would build green and pass the unauthenticated smokes but break
+      # sign-in at runtime (fails OPEN). Fail the build loudly instead.
+      - name: Verify required build secrets are present
+        env:
+          FB_KEY: ${{ secrets.FIREBASE_API_KEY }}
+        run: |
+          [ -n "$FB_KEY" ] || { echo "::error::FIREBASE_API_KEY secret is empty — dashboard auth would silently break."; exit 1; }
 
-      - name: Install dependencies
-        run: npm ci
-
-      # Build and push API image, tagged with the immutable commit SHA.
-      - name: Build API image
+      - name: Build API image (env-agnostic, build-once / promote-many)
         run: |
           gcloud builds submit --config deploy/cloudbuild.yaml \
             --substitutions=_IMAGE_TAG=${{ github.sha }} \
             --project=${{ env.PROJECT_ID }} .
 
-      # Deploy API service
-      - name: Deploy API to Cloud Run (Staging)
-        id: deploy-api
+      - name: Build staging dashboard image (bakes the staging API origin)
         run: |
-          gcloud run deploy atelier-api-staging \
-            --image=us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/atelier-images/atelier-api:${{ github.sha }} \
-            --region=${{ env.REGION }} \
-            --project=${{ env.PROJECT_ID }} \
-            --concurrency=1 \
-            --timeout=3600 \
-            --service-account=atelier-api-sa@${{ env.PROJECT_ID }}.iam.gserviceaccount.com
-
-          # Get API URL
-          api_url=$(gcloud run services describe atelier-api-staging --region=${{ env.REGION }} --project=${{ env.PROJECT_ID }} --format="value(status.url)")
-          echo "api_url=$api_url" >> $GITHUB_OUTPUT
-
-      # Build and push Dashboard image (Staging config)
-      - name: Build Dashboard image (Staging)
-        run: |
+          api_url="https://atelier-api-staging-${{ env.PROJECT_NUMBER }}.${{ env.REGION }}.run.app"
           gcloud builds submit --config atelier-dashboard/cloudbuild.yaml \
             --project=${{ env.PROJECT_ID }} \
-            --substitutions=_IMAGE_TAG=${{ github.sha }},_API_URL="${{ steps.deploy-api.outputs.api_url }}",_FB_API_KEY="${{ secrets.FIREBASE_API_KEY }}" \
+            --substitutions=_IMAGE_TAG=staging-${{ github.sha }},_API_URL="$api_url",_FB_API_KEY="${{ secrets.FIREBASE_API_KEY }}" \
             .
 
-      # Deploy Dashboard service
-      - name: Deploy Dashboard to Cloud Run (Staging)
+      - name: Build production dashboard image (bakes the production API origin)
         run: |
-          gcloud run deploy atelier-dashboard-staging \
-            --image=us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/atelier-images/atelier-dashboard:${{ github.sha }} \
-            --region=${{ env.REGION }} \
+          api_url="https://atelier-api-production-${{ env.PROJECT_NUMBER }}.${{ env.REGION }}.run.app"
+          gcloud builds submit --config atelier-dashboard/cloudbuild.yaml \
             --project=${{ env.PROJECT_ID }} \
-            --allow-unauthenticated
+            --substitutions=_IMAGE_TAG=production-${{ github.sha }},_API_URL="$api_url",_FB_API_KEY="${{ secrets.FIREBASE_API_KEY }}" \
+            .
 
-      # Deploy to Firebase Hosting Staging target (dashboard)
-      - name: Deploy Staging to Firebase Hosting
-        env:
-          FIREBASE_CLI_PREFILL: ${{ steps.auth-wif.outputs.credentials_file_path || steps.auth-key.outputs.credentials_file_path }}
-        run: |
-          npx firebase deploy --only hosting:dashboard --project=${{ env.PROJECT_ID }}
-
-      # Run Smoke Tests against Staging URL
-      - name: Run Staging Smoke Probe
-        run: |
-          bash scripts/ci/smoke_probe.sh "https://atelier-build-2026-21a9e.web.app"
-
-  deploy-production:
-    name: Deploy to Production
+  # ───────────────────────────────────────────────────────────────────────────
+  # Stage 1 — STAGING (automatic, no approval). Non-canonical tier used to
+  # validate the build before it is allowed near the judged domain.
+  # ───────────────────────────────────────────────────────────────────────────
+  deploy-staging:
+    name: Deploy to Staging
+    needs: [preflight, build]
+    if: needs.preflight.outputs.deploy_enabled == 'true'
     runs-on: ubuntu-latest
-    needs: [check-secrets, deploy-staging]
-    if: needs.check-secrets.outputs.has_secrets == 'true' # pragma: allowlist secret
-    environment: production # Enforces manual approval gate
-    env:
-      GCP_WIF_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-      GCP_WIF_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
-      GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+    environment: staging
     steps:
       - uses: actions/checkout@v6
 
-      # Authenticate to GCP using WIF or Fallback Service Account Key
-      - name: Authenticate to Google Cloud via WIF
-        if: ${{ env.GCP_WIF_PROVIDER }}
-        id: auth-wif
+      - name: Authenticate to Google Cloud (WIF)
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: ${{ env.GCP_WIF_PROVIDER }}
-          service_account: ${{ env.GCP_WIF_SERVICE_ACCOUNT }}
-          create_credentials_file: true
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
           export_environment_variables: true
 
-      - name: Authenticate to Google Cloud via Key
-        if: ${{ !env.GCP_WIF_PROVIDER && env.GCP_SA_KEY }}
-        id: auth-key
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Deploy API to Cloud Run (staging)
+        run: |
+          gcloud run deploy atelier-api-staging \
+            --image=${{ env.AR_REPO }}/atelier-api:${{ github.sha }} \
+            --region=${{ env.REGION }} --project=${{ env.PROJECT_ID }} \
+            --env-vars-file=deploy/api.staging.env.yaml \
+            --timeout=3600 --concurrency=1 --memory=1Gi --cpu=1 \
+            --service-account=${{ env.RUN_SA }}
+
+      - name: Deploy dashboard to Cloud Run (staging)
+        run: |
+          gcloud run deploy atelier-dashboard-staging \
+            --image=${{ env.AR_REPO }}/atelier-dashboard:staging-${{ github.sha }} \
+            --region=${{ env.REGION }} --project=${{ env.PROJECT_ID }} \
+            --allow-unauthenticated
+
+      - name: Smoke test (staging)
+        run: |
+          api="https://atelier-api-staging-${{ env.PROJECT_NUMBER }}.${{ env.REGION }}.run.app"
+          dash="https://atelier-dashboard-staging-${{ env.PROJECT_NUMBER }}.${{ env.REGION }}.run.app"
+          bash scripts/ci/smoke_endpoint.sh "$api/health" 200 "staging API health"
+          bash scripts/ci/smoke_endpoint.sh "$dash/" 200 "staging dashboard root"
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Stage 2 — PRODUCTION (the canonical judged domain). Gated by the `production`
+  # GitHub Environment, which requires a manual operator approval before this job
+  # starts. Promotes THE SAME commit-SHA images verified in staging, using
+  # verify-before-shift on Cloud Run (deploy with --no-traffic + tag, smoke the
+  # tagged revision, only then shift 100%), then an idempotent canonical hosting
+  # deploy + an integrated canonical smoke.
+  # ───────────────────────────────────────────────────────────────────────────
+  deploy-production:
+    name: Deploy to Production
+    needs: [preflight, build, deploy-staging]
+    if: needs.preflight.outputs.deploy_enabled == 'true'
+    runs-on: ubuntu-latest
+    environment: production # ← required-reviewer gate (operator approval)
+    env:
+      TAG: sha-${{ needs.preflight.outputs.short_sha }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Authenticate to Google Cloud (WIF)
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ env.GCP_SA_KEY }}
-          create_credentials_file: true
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
           export_environment_variables: true
 
       - name: Set up Cloud SDK
@@ -176,53 +198,64 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
 
-      - name: Install dependencies
-        run: npm ci
-
-      # Deploy API service to Production — the exact immutable SHA image the
-      # staging job built and verified earlier in this run, never :latest.
-      - name: Deploy API to Cloud Run (Production)
-        id: deploy-api
+      # ── Deploy BOTH candidates with NO traffic, smoke BOTH tagged revisions,
+      # then shift both back-to-back. Verifying both before either takes traffic
+      # removes any new-API + old-dashboard window on the canonical. The tagged
+      # candidate URL is read back via grep -m1 (self-terminating: no | head and
+      # so no SIGPIPE-under-pipefail), and traffic is pinned to the EXACT tag
+      # (--to-tags) rather than --to-latest, immune to any other revision.
+      - name: Deploy API candidate (production, no traffic)
+        id: api
         run: |
           gcloud run deploy atelier-api-production \
-            --image=us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/atelier-images/atelier-api:${{ github.sha }} \
-            --region=${{ env.REGION }} \
-            --project=${{ env.PROJECT_ID }} \
-            --concurrency=1 \
-            --timeout=3600 \
-            --service-account=atelier-api-sa@${{ env.PROJECT_ID }}.iam.gserviceaccount.com
+            --image=${{ env.AR_REPO }}/atelier-api:${{ github.sha }} \
+            --region=${{ env.REGION }} --project=${{ env.PROJECT_ID }} \
+            --env-vars-file=deploy/api.production.env.yaml \
+            --timeout=3600 --concurrency=1 --memory=1Gi --cpu=1 \
+            --service-account=${{ env.RUN_SA }} \
+            --no-traffic --tag="${TAG}"
+          url=$(gcloud run services describe atelier-api-production \
+            --region=${{ env.REGION }} --project=${{ env.PROJECT_ID }} \
+            --format='value(status.traffic.url)' | tr ';,' '\n' | grep -m1 -- "${TAG}---")
+          echo "tag_url=$url" >> "$GITHUB_OUTPUT"
 
-          # Get API URL
-          api_url=$(gcloud run services describe atelier-api-production --region=${{ env.REGION }} --project=${{ env.PROJECT_ID }} --format="value(status.url)")
-          echo "api_url=$api_url" >> $GITHUB_OUTPUT
-
-      # Build and push Dashboard image (Production config)
-      - name: Build Dashboard image (Production)
-        run: |
-          gcloud builds submit --config atelier-dashboard/cloudbuild.yaml \
-            --project=${{ env.PROJECT_ID }} \
-            --substitutions=_IMAGE_TAG=${{ github.sha }},_API_URL="https://atelier.autonomous-agent.dev",_FB_API_KEY="${{ secrets.FIREBASE_API_KEY }}" \
-            .
-
-      # Deploy Dashboard service to Production
-      - name: Deploy Dashboard to Cloud Run (Production)
+      - name: Deploy dashboard candidate (production, no traffic)
+        id: dash
         run: |
           gcloud run deploy atelier-dashboard-production \
-            --image=us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/atelier-images/atelier-dashboard:${{ github.sha }} \
-            --region=${{ env.REGION }} \
-            --project=${{ env.PROJECT_ID }} \
-            --allow-unauthenticated
+            --image=${{ env.AR_REPO }}/atelier-dashboard:production-${{ github.sha }} \
+            --region=${{ env.REGION }} --project=${{ env.PROJECT_ID }} \
+            --allow-unauthenticated \
+            --no-traffic --tag="${TAG}"
+          url=$(gcloud run services describe atelier-dashboard-production \
+            --region=${{ env.REGION }} --project=${{ env.PROJECT_ID }} \
+            --format='value(status.traffic.url)' | tr ';,' '\n' | grep -m1 -- "${TAG}---")
+          echo "tag_url=$url" >> "$GITHUB_OUTPUT"
 
-      # Deploy to Firebase Hosting Production site
-      - name: Deploy Production to Firebase Hosting
-        env:
-          FIREBASE_CLI_PREFILL: ${{ steps.auth-wif.outputs.credentials_file_path || steps.auth-key.outputs.credentials_file_path }}
+      - name: Smoke API candidate (tagged, pre-shift)
         run: |
-          npx firebase deploy --only hosting:atelier-build-2026 --project=${{ env.PROJECT_ID }}
+          bash scripts/ci/smoke_endpoint.sh "${{ steps.api.outputs.tag_url }}/health" 200 "prod API candidate health"
+          bash scripts/ci/smoke_endpoint.sh "${{ steps.api.outputs.tag_url }}/openapi.json" 404 "prod API spec gated"
 
-      # Run Smoke Tests against Production URL
-      - name: Run Production Smoke Probe
+      - name: Smoke dashboard candidate (tagged, pre-shift)
+        run: |
+          bash scripts/ci/smoke_endpoint.sh "${{ steps.dash.outputs.tag_url }}/" 200 "prod dashboard candidate root"
+          bash scripts/ci/smoke_endpoint.sh "${{ steps.dash.outputs.tag_url }}/studio/probe" 200 "prod dashboard studio route"
+
+      - name: Shift production traffic to the verified candidates
+        run: |
+          gcloud run services update-traffic atelier-api-production \
+            --region=${{ env.REGION }} --project=${{ env.PROJECT_ID }} --to-tags="${TAG}=100"
+          gcloud run services update-traffic atelier-dashboard-production \
+            --region=${{ env.REGION }} --project=${{ env.PROJECT_ID }} --to-tags="${TAG}=100"
+
+      # ── Canonical hosting: idempotent (site 21a9e → production services) ──
+      - name: Deploy canonical hosting
+        run: |
+          npx --yes firebase deploy --only hosting:dashboard --project=${{ env.PROJECT_ID }}
+
+      # ── Integrated production smoke against the judged domain ──
+      - name: Smoke test (production / canonical)
         run: |
           bash scripts/ci/smoke_probe.sh "https://atelier.autonomous-agent.dev"
