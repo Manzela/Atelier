@@ -52,8 +52,15 @@ resource "google_cloud_run_v2_service" "atelier_api" {
         value = var.env
       }
       env {
+        # The canonical domain (atelier.autonomous-agent.dev) is served by the
+        # STAGING service via Firebase Hosting (the LIVE-5 topology), so the
+        # staging CORS allowlist MUST include it — otherwise the browser's
+        # cross-origin preflight to the run.app API is rejected ("Disallowed CORS
+        # origin", 400) and every generation from the canonical domain fails with
+        # a "Pipeline error". Both run.app dashboard hosts are listed so the app
+        # also works when opened directly on Cloud Run.
         name  = "ATELIER_DASHBOARD_ORIGIN"
-        value = var.env == "staging" ? "https://atelier-dashboard-537337457799.us-central1.run.app,https://atelier-build-2026-21a9e.web.app" : "https://atelier.autonomous-agent.dev,https://atelier-build-2026.web.app"
+        value = var.env == "staging" ? "https://atelier.autonomous-agent.dev,https://atelier-dashboard-537337457799.us-central1.run.app,https://atelier-dashboard-2h56glloxa-uc.a.run.app,https://atelier-build-2026-21a9e.web.app" : "https://atelier.autonomous-agent.dev,https://atelier-build-2026.web.app,https://atelier-build-2026-21a9e.web.app"
       }
       env {
         name  = "ATELIER_GCP_PROJECT"
