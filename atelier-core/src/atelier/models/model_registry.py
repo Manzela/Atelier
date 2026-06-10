@@ -150,6 +150,11 @@ TASK_MODEL_ROUTING: Final[dict[TaskType, str]] = {
     TaskType.WIREFRAME: GEMINI_FLASH_MODEL_ID,
     TaskType.UI_DESIGN: GEMINI_FLASH_MODEL_ID,
     TaskType.INTERACTION: GEMINI_FLASH_MODEL_ID,
+    # FIXER stays on Flash: it rewrites failing HTML to pass the gates, so its
+    # quality directly drives convergence — a Flash-Lite fixer regressed live runs
+    # to exit_reason=no_improvement (composite 0.0). 429 relief comes from the
+    # research tasks below, not the fixer.
+    TaskType.FIXER: GEMINI_FLASH_MODEL_ID,
     TaskType.JUDGE_DESIGN: GEMINI_FLASH_MODEL_ID,
     TaskType.JUDGE_RELEVANCE: GEMINI_FLASH_MODEL_ID,
     TaskType.JUDGE_VISUAL: GEMINI_FLASH_MODEL_ID,
@@ -161,15 +166,14 @@ TASK_MODEL_ROUTING: Final[dict[TaskType, str]] = {
     TaskType.TOKEN_GEN: GEMINI_FLASH_LITE_MODEL_ID,
     TaskType.COPY_EDITOR: GEMINI_FLASH_LITE_MODEL_ID,
     TaskType.JUDGE_ACCESSIBILITY: GEMINI_FLASH_LITE_MODEL_ID,
-    # Research / IA / web-research / fixer moved to Flash-Lite (60M cap, ~12x Pro
-    # / ~4x Flash QPM headroom) to spread load off Flash and eliminate the
-    # Vertex 429 RESOURCE_EXHAUSTED pressure under load — these reasoning,
-    # research and correction tasks tolerate Flash-Lite; generation + judging
-    # stay on Flash above. Tunable per-task via Firebase Remote Config.
+    # Research / IA / web-research moved to Flash-Lite (60M cap, ~12x Pro / ~4x
+    # Flash QPM headroom) to spread load off Flash and relieve the Vertex 429
+    # RESOURCE_EXHAUSTED pressure under load — these reasoning/research tasks
+    # tolerate Flash-Lite; generation, the fixer, and judging stay on Flash.
+    # Tunable per-task via Firebase Remote Config.
     TaskType.UX_RESEARCH: GEMINI_FLASH_LITE_MODEL_ID,
     TaskType.IA_FLOW: GEMINI_FLASH_LITE_MODEL_ID,
     TaskType.WEB_RESEARCH: GEMINI_FLASH_LITE_MODEL_ID,
-    TaskType.FIXER: GEMINI_FLASH_LITE_MODEL_ID,
 }
 
 

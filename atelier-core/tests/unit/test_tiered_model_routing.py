@@ -60,6 +60,7 @@ def test_calibrate_model_flash_tasks() -> None:
         TaskType.WIREFRAME,
         TaskType.UI_DESIGN,
         TaskType.INTERACTION,
+        TaskType.FIXER,
         TaskType.JUDGE_DESIGN,
         TaskType.JUDGE_RELEVANCE,
         TaskType.JUDGE_VISUAL,
@@ -78,7 +79,6 @@ def test_calibrate_model_flash_lite_tasks() -> None:
         TaskType.UX_RESEARCH,
         TaskType.IA_FLOW,
         TaskType.WEB_RESEARCH,
-        TaskType.FIXER,
     ):
         assert calibrate_model(task) == GEMINI_FLASH_LITE_MODEL_ID, task
 
