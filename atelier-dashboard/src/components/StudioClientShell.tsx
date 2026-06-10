@@ -69,6 +69,10 @@ import ApprovalCard from './ApprovalCard';
 import TracePanel from './legibility/TracePanel';
 import TopologyGraph from './legibility/TopologyGraph';
 import OptimizeArtifactCard from './OptimizeArtifactCard';
+import PillarBuild from './platform/PillarBuild';
+import PillarScale from './platform/PillarScale';
+import PillarGovern from './platform/PillarGovern';
+import PillarOptimize from './platform/PillarOptimize';
 import AttributionView from './legibility/AttributionView';
 import StopButton from './legibility/StopButton';
 import {
@@ -717,6 +721,12 @@ export default function StudioClientShell({ id }: { id: string }) {
   const [dreamingArtifact, setDreamingArtifact] = useState<DreamingArtifactData | null>(null);
   // AT-026 (Post / Attribution): the run-oracle verdict from the complete event.
   const [runVerdict, setRunVerdict] = useState<RunVerdict | null>(null);
+  // Platform pillars reachable mid-run WITHOUT leaving the Studio route — the SSE
+  // stream and all run state stay mounted, so opening/closing a pillar overlay
+  // never disconnects, stops, or restarts the running execution.
+  const [platformView, setPlatformView] = useState<
+    null | 'build' | 'scale' | 'govern' | 'optimize'
+  >(null);
   // AT-026 (R13 interruption): the session id of THIS run (Stop control target),
   // captured from the plan/screen_start/complete events.
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -1582,6 +1592,42 @@ export default function StudioClientShell({ id }: { id: string }) {
   return (
     <LazyMotion features={domAnimation}>
       <div className="h-screen w-screen bg-[var(--g-bg)] text-[var(--g-text)] overflow-hidden flex flex-col font-sans stitch-grid-bg">
+        {/* Platform-view overlay — Build/Scale/Govern/Optimize reachable mid-run.
+            Rendered as a fixed drawer INSIDE the Studio route: the run's SSE stream
+            and React state stay mounted, so opening/closing a pillar never
+            disconnects, stops, or restarts the running execution. */}
+        {platformView && (
+          <div className="fixed inset-0 z-[60] flex justify-end" role="dialog" aria-modal="false">
+            <button
+              aria-label="Close platform view"
+              onClick={() => setPlatformView(null)}
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            />
+            <div className="relative z-10 h-full w-full max-w-3xl bg-[var(--g-bg)] border-l border-[var(--g-outline)] shadow-2xl flex flex-col">
+              <div className="h-12 shrink-0 flex items-center justify-between px-4 border-b border-[var(--g-outline)] bg-[var(--g-surface)]/80">
+                <span className="text-sm font-semibold capitalize text-white">
+                  {platformView} pillar
+                </span>
+                <span className="hidden sm:inline text-[11px] text-[var(--g-success)]">
+                  Live — the running generation is not interrupted
+                </span>
+                <button
+                  onClick={() => setPlatformView(null)}
+                  className="p-1.5 hover:bg-[var(--g-surface-hover)] rounded-md text-[var(--g-text-muted)] hover:text-white text-sm leading-none"
+                  aria-label="Close platform view"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4">
+                {platformView === 'build' && <PillarBuild />}
+                {platformView === 'scale' && <PillarScale />}
+                {platformView === 'govern' && <PillarGovern />}
+                {platformView === 'optimize' && <PillarOptimize />}
+              </div>
+            </div>
+          </div>
+        )}
         {/* Top Navbar */}
         <header className="h-14 flex items-center justify-between px-3 sm:px-4 gap-2 border-b border-[var(--g-outline)] bg-[var(--g-surface)]/80 backdrop-blur-md z-40">
           <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
@@ -1644,6 +1690,24 @@ export default function StudioClientShell({ id }: { id: string }) {
           )}
 
           <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+            {/* Platform-pillar switcher — opens an in-route overlay (no navigation),
+                so the live run is never interrupted. */}
+            <div className="hidden md:flex items-center gap-0.5 bg-black/20 p-0.5 rounded-md border border-[var(--g-outline)]">
+              {(['build', 'scale', 'govern', 'optimize'] as const).map((v) => (
+                <button
+                  key={v}
+                  onClick={() => setPlatformView((cur) => (cur === v ? null : v))}
+                  title={`${v} pillar — live, does not interrupt the run`}
+                  className={`px-2 py-1 rounded text-[11px] font-medium capitalize transition-colors ${
+                    platformView === v
+                      ? 'bg-[var(--g-outline)] text-white'
+                      : 'text-[var(--g-text-muted)] hover:text-white'
+                  }`}
+                >
+                  {v}
+                </button>
+              ))}
+            </div>
             <div className="relative flex items-center">
               <select
                 value={selectedModel}
