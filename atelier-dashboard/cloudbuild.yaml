@@ -40,5 +40,9 @@ substitutions:
   _FB_SENDER_ID: '537337457799'
   _FB_APP_ID: '1:537337457799:web:109c0fdfb86e780bc65c22'
 timeout: '1200s'
+# Least-privilege build SA (not the project-Editor Compute default). A custom SA
+# cannot use the default logs bucket, so logging is pinned to Cloud Logging.
+serviceAccount: 'projects/atelier-build-2026/serviceAccounts/atelier-cloudbuild@atelier-build-2026.iam.gserviceaccount.com'
 options:
   machineType: 'E2_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY

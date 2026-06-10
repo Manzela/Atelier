@@ -222,70 +222,70 @@
         {
           "source": "/health",
           "run": {
-            "serviceId": "atelier-api-staging",
+            "serviceId": "atelier-api-production",
             "region": "us-central1"
           }
         },
         {
           "source": "/.well-known/agent-card.json",
           "run": {
-            "serviceId": "atelier-api-staging",
+            "serviceId": "atelier-api-production",
             "region": "us-central1"
           }
         },
         {
           "source": "/api/**",
           "run": {
-            "serviceId": "atelier-api-staging",
+            "serviceId": "atelier-api-production",
             "region": "us-central1"
           }
         },
         {
           "source": "/v1/**",
           "run": {
-            "serviceId": "atelier-api-staging",
+            "serviceId": "atelier-api-production",
             "region": "us-central1"
           }
         },
         {
           "source": "/studio/**",
           "run": {
-            "serviceId": "atelier-dashboard",
+            "serviceId": "atelier-dashboard-production",
             "region": "us-central1"
           }
         },
         {
           "source": "/board",
           "run": {
-            "serviceId": "atelier-dashboard",
+            "serviceId": "atelier-dashboard-production",
             "region": "us-central1"
           }
         },
         {
           "source": "/board/**",
           "run": {
-            "serviceId": "atelier-dashboard",
+            "serviceId": "atelier-dashboard-production",
             "region": "us-central1"
           }
         },
         {
           "source": "/login",
           "run": {
-            "serviceId": "atelier-dashboard",
+            "serviceId": "atelier-dashboard-production",
             "region": "us-central1"
           }
         },
         {
           "source": "/_next/**",
           "run": {
-            "serviceId": "atelier-dashboard",
+            "serviceId": "atelier-dashboard-production",
             "region": "us-central1"
           }
         },
         {
           "source": "/",
           "run": {
-            "serviceId": "atelier-dashboard",
+            "serviceId": "atelier-dashboard-production",
             "region": "us-central1"
           }
         }

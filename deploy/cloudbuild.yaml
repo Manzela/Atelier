@@ -17,5 +17,12 @@ images:
 substitutions:
   _IMAGE_TAG: 'latest'
 timeout: '600s'
+# Run the build as a least-privilege SA (push images + read source + write logs)
+# instead of the default Compute Engine SA, which holds project Editor — a CI
+# build must not be able to run arbitrary steps with project-wide write. A
+# user-specified service account cannot use the default Google-owned logs
+# bucket, so logging is pinned to Cloud Logging.
+serviceAccount: 'projects/atelier-build-2026/serviceAccounts/atelier-cloudbuild@atelier-build-2026.iam.gserviceaccount.com'
 options:
   machineType: 'E2_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY
