@@ -7,7 +7,7 @@
 name = "atelier-workspace"
 version = "0.2.0-alpha"
 description = "Atelier — autonomous design agent (workspace root)"
-authors = [{ name = "Daniel Manzela", email = "hello@atelier.dev" }]
+authors = [{ name = "Daniel Manzela", email = "Manzela@users.noreply.github.com" }]
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.11,<3.13"
@@ -36,8 +36,8 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://atelier.dev"
-Documentation = "https://docs.atelier.dev"
+Homepage = "https://atelier.autonomous-agent.dev"
+Documentation = "https://atelier.autonomous-agent.dev/docs"
 Repository = "https://github.com/Manzela/atelier"
 Issues = "https://github.com/Manzela/atelier/issues"
 Changelog = "https://github.com/Manzela/atelier/blob/main/CHANGELOG.md"

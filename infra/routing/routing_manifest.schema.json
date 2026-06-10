@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://atelier.dev/schemas/routing-manifest-v1.0.json",
+  "$id": "https://atelier.autonomous-agent.dev/schemas/routing-manifest-v1.0.json",
   "title": "Atelier Routing Manifest",
   "description": "Schema for infra/routing/manifest.yaml — validates the phase-aware MoE router configuration (ADR 0027, §13.1 gate g10).",
   "type": "object",

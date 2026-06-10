@@ -7,7 +7,7 @@ name = "atelier-core"
 dynamic = ["version"]
 description = "Atelier engine — autonomous design agent for Google for Startups AI Agents Challenge 2026"
 readme = "README.md"
-authors = [{ name = "Daniel Manzela", email = "hello@atelier.dev" }]
+authors = [{ name = "Daniel Manzela", email = "Manzela@users.noreply.github.com" }]
 license = { file = "../LICENSE" }
 requires-python = ">=3.11,<3.13"
 keywords = [

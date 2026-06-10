@@ -6,15 +6,15 @@ contact_links:
   - name: 🔒 Security Vulnerability
     url: https://github.com/Manzela/atelier/security/advisories/new
     about: Privately report a security vulnerability. Do NOT file public issues for security concerns.
-  - name: 🌐 atelier.dev
-    url: https://atelier.dev
+  - name: 🌐 Atelier
+    url: https://atelier.autonomous-agent.dev
     about: Product home, sign-up, and live demos.
   - name: 📖 Documentation
-    url: https://docs.atelier.dev
+    url: https://atelier.autonomous-agent.dev/docs
     about: User guides, API reference, and architecture documentation.
   - name: 📊 Public Benchmark Scoreboard
-    url: https://bench.atelier.dev
+    url: https://atelier.autonomous-agent.dev/bench
     about: Submit your own agent for benchmarking.
   - name: 📈 Calibration Drift Dashboard
-    url: https://calibration.atelier.dev
+    url: https://atelier.autonomous-agent.dev/calibration
     about: Live judge calibration transparency.
