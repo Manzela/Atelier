@@ -947,7 +947,7 @@ class AtelierRunner:
                 extra={"task_id": task_id, "target_column": column.value},
             )
 
-    def _run_n3c_n3d_n4(  # noqa: C901, PLR0915 — the N3c gate / N3d judge / N4 select convergence core
+    def _run_n3c_n3d_n4(  # noqa: C901, PLR0912, PLR0915 — the N3c gate / N3d judge / N4 select convergence core
         self,
         raw_candidates: list[Any],
         brief_text: str,  # noqa: ARG002
@@ -997,6 +997,7 @@ class AtelierRunner:
         # Researcher's markdown) as the "best candidate".
         best_partial_html: str | None = None
         best_partial_score: float = -1.0
+        best_partial_candidate_id: uuid.UUID | None = None
         # Candidates that cleared every N3c gate, paired with their normalized
         # HTML; judged concurrently after the (cheap, deterministic) gate pass.
         passing: list[tuple[CandidateUI, str]] = []
@@ -1048,6 +1049,7 @@ class AtelierRunner:
                 if mean_score > best_partial_score:
                     best_partial_score = mean_score
                     best_partial_html = html_content
+                    best_partial_candidate_id = candidate.candidate_id
 
             if not gate_result.all_passed:
                 failed_axes = [
@@ -1154,15 +1156,36 @@ class AtelierRunner:
         # score-descending `all_evaluations`. That positional mismatch silently
         # inverted the DPO chosen/rejected labels and mispaired per-candidate
         # scores. This list is self-describing, so its order does not matter.
-        scored_candidates = [
-            {
-                "candidate_id": str(ev.candidate_id),
-                "html": html,
-                "composite_score": ev.composite_score,
-                "votes": {axis.value: {"score": v.score} for axis, v in ev.votes.items()},
-            }
-            for ev, html in evaluations
-        ]
+        if evaluations:
+            scored_candidates = [
+                {
+                    "candidate_id": str(ev.candidate_id),
+                    "html": html,
+                    "composite_score": ev.composite_score,
+                    "votes": {axis.value: {"score": v.score} for axis, v in ev.votes.items()},
+                }
+                for ev, html in evaluations
+            ]
+        elif best_partial_html is not None:
+            scored_candidates = [
+                {
+                    "candidate_id": str(best_partial_candidate_id or uuid4()),
+                    "html": best_partial_html,
+                    "composite_score": best_partial_score / 100.0,
+                    "votes": {},
+                }
+            ]
+        elif raw_candidates:
+            scored_candidates = [
+                {
+                    "candidate_id": str(uuid4()),
+                    "html": best_candidate,
+                    "composite_score": 0.0,
+                    "votes": {},
+                }
+            ]
+        else:
+            scored_candidates = []
 
         # AT-097: total N3d (D-O-R-A-V judge) token spend across every evaluated
         # candidate this iteration. 0 in heuristic mode (no LLM call); > 0 when
