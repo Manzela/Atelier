@@ -1189,10 +1189,12 @@
       const b = ab.baseline || {};
       const n = ab.n_briefs;
 
-      // Data-driven, honest framing. The local Atelier arm in this harness runs
-      // in a DEGRADED configuration (Stitch design system disabled) and is NOT
-      // representative of production — the Production results above are Atelier's
-      // real signal. Never assert a result the numbers do not support.
+      // Data-driven, honest framing. This is a LOCAL controlled A/B (not the
+      // production fleet): both arms run on the same briefs through the identical
+      // gate + D-O-R-A-V consensus path, with Atelier in its standard
+      // configuration. The Production results above (the live Vertex-judged fleet)
+      // are Atelier's headline signal. Never assert a result the numbers do not
+      // support.
       const baselineConv = b.convergence_rate || 0;
       const reachClause =
         baselineConv <= 0
@@ -1209,11 +1211,12 @@
             same briefs. The single-shot baseline produces structurally valid HTML, but its
             designs ${reachClause} the 0.70 convergence bar on the quality consensus &mdash;
             single-shot output does not meet the bar Atelier ships against.</p>
-            <p class="footnote" style="margin-top:8px"><strong>Methodology:</strong> the Atelier
-            arm in this local harness runs with the Stitch design system disabled (a degraded
-            configuration) and is <em>not</em> representative of production. Atelier&rsquo;s
-            representative performance is the Production results above. This A/B is shown for
-            transparency, not as a production benchmark.</p>
+            <p class="footnote" style="margin-top:8px"><strong>Methodology:</strong> this is a
+            local controlled A/B &mdash; both arms run on the same briefs through the identical
+            gate + D-O-R-A-V consensus path, differing only in generation strategy
+            (iterative-converged vs single-shot). Atelier&rsquo;s headline, production-grade
+            performance is the Production results above (the live Vertex-judged fleet); this A/B is
+            shown for transparency.</p>
           </div>
         </div>`;
 

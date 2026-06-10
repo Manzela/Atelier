@@ -2537,6 +2537,12 @@ class AtelierRunner:
                     {
                         "screen": screen,
                         "best_candidate": best_candidate,
+                        # ``html`` mirrors ``best_candidate`` for the frontend
+                        # ScreenConvergedData contract (api.ts): the Studio reads
+                        # ``data.html`` to populate the per-surface tab map, so a
+                        # multi-surface run lights up every surface tab live —
+                        # not just surfaces[0]. (A1)
+                        "html": best_candidate,
                         "converged": convergence_result.get("converged", False),
                         # Governed A2UI chrome (ADR-0024) is NOT threaded here: the
                         # frontend reads a2ui_payload only off the enriched

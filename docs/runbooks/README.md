@@ -28,8 +28,8 @@ Every runbook:
 
 ## Phase acceptance runbooks (sprint-specific)
 
-| Runbook                | When                | Acceptance criteria                                                                        |
-| ---------------------- | ------------------- | ------------------------------------------------------------------------------------------ |
-| `phase1-acceptance.md` | End of D7 (May 21)  | 1-surface end-to-end + Cloud Run staging deploy + CI green + 50/484 WebGen-Bench passing   |
-| `phase2-acceptance.md` | End of D14 (May 28) | 12-surface autonomous campaign + WebGen-Bench full ≥ 51 + 5 beta tenants signed in         |
-| `phase3-acceptance.md` | End of D20 (Jun 3)  | All 13 novel contributions evidenced + 32 pre-launch artifacts live + G4S submission filed |
+| Runbook                | When                | Acceptance criteria                                                                      |
+| ---------------------- | ------------------- | ---------------------------------------------------------------------------------------- |
+| `phase1-acceptance.md` | End of D7 (May 21)  | 1-surface end-to-end + Cloud Run staging deploy + CI green + 50/101 WebGen-Bench passing |
+| `phase2-acceptance.md` | End of D14 (May 28) | 12-surface autonomous campaign + WebGen-Bench full ≥ 51 + 5 beta tenants signed in       |
+| `phase3-acceptance.md` | End of D20 (Jun 3)  | All novel contributions evidenced + 32 pre-launch artifacts live + G4S submission filed  |

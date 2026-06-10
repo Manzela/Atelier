@@ -2,7 +2,7 @@
   "name": "Atelier",
   "description": "Autonomous Design Agent — generates, evaluates, and optimizes web UI assets through multi-judge Bayesian consensus with human-in-the-loop governance.",
   "url": "https://atelier.autonomous-agent.dev",
-  "version": "0.2.0-beta",
+  "version": "0.3.0",
   "capabilities": {
     "streaming": false,
     "pushNotifications": false,
@@ -22,7 +22,7 @@
     {
       "id": "evaluate-design",
       "name": "Evaluate Design",
-      "description": "Evaluates design candidates across 9 quality axes (brand, originality, relevance, accessibility, visual clarity, copy, motion, token efficiency, coherence) using multi-judge Bayesian consensus.",
+      "description": "Evaluates design candidates across the five D-O-R-A-V axes (Design, Originality, Relevance, Accessibility, Visual clarity) using multi-judge Bayesian consensus.",
       "tags": ["evaluation", "quality-assurance", "accessibility"]
     },
     {
