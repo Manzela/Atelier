@@ -152,7 +152,7 @@ def audit_rr04_sycophancy() -> bool:
 
     # Unjustified praise: should be penalised (result < base_score).
     unjustified = "This design looks spectacular and brilliant!"
-    penalised = apply_anti_sycophancy_reward(unjustified, base_score)
+    penalised = apply_anti_sycophancy_reward(chosen_response=unjustified, chosen_score=base_score)
     if penalised >= base_score:
         print(
             f"  FAIL: Unjustified praise was NOT penalised "
@@ -162,7 +162,7 @@ def audit_rr04_sycophancy() -> bool:
 
     # Justified praise: compliance/spec reference should preserve the score.
     justified = "This design is spectacular — it satisfies WCAG 2.1 AA compliance."
-    preserved = apply_anti_sycophancy_reward(justified, base_score)
+    preserved = apply_anti_sycophancy_reward(chosen_response=justified, chosen_score=base_score)
     if preserved < base_score:
         print(
             f"  FAIL: Justified praise was incorrectly penalised "
