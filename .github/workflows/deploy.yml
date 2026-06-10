@@ -98,6 +98,7 @@ jobs:
             --region=${{ env.REGION }} \
             --project=${{ env.PROJECT_ID }} \
             --concurrency=1 \
+            --timeout=3600 \
             --service-account=atelier-api-sa@${{ env.PROJECT_ID }}.iam.gserviceaccount.com
 
           # Get API URL
@@ -190,6 +191,7 @@ jobs:
             --region=${{ env.REGION }} \
             --project=${{ env.PROJECT_ID }} \
             --concurrency=1 \
+            --timeout=3600 \
             --service-account=atelier-api-sa@${{ env.PROJECT_ID }}.iam.gserviceaccount.com
 
           # Get API URL
