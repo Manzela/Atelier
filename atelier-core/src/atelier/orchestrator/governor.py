@@ -336,6 +336,23 @@ class GovernorState:
 T = TypeVar("T")
 
 
+def _is_rate_limit_error(exc: BaseException) -> bool:
+    """True when ``exc`` is a provider rate-limit / quota exhaustion (e.g. a Vertex
+    AI ``429 RESOURCE_EXHAUSTED``).
+
+    Used to surface a sustained, retry-exhausted rate limit as the graceful
+    :class:`GovernorRateLimitExceeded` instead of a raw provider error.
+    """
+    s = str(exc).lower()
+    return (
+        "429" in s
+        or "resource_exhausted" in s
+        or "resource exhausted" in s
+        or "too many requests" in s
+        or "rate limit" in s
+    )
+
+
 class MetacognitiveGovernor:
     """Wraps any async coroutine with MAPE-K failure management."""
 
@@ -411,6 +428,14 @@ class MetacognitiveGovernor:
                 if mode == FailureMode.SELF_HEAL:
                     if self._state.retry_count >= MAX_SELF_HEAL_RETRIES:
                         logger.exception("FAIL_LOUD: Max retries exceeded for SELF_HEAL error")
+                        # A sustained model-side rate limit (Vertex 429
+                        # RESOURCE_EXHAUSTED) that survives the self-heal budget is
+                        # surfaced as the graceful, domain GovernorRateLimitExceeded
+                        # so the API emits the honest "too many requests, retry
+                        # shortly" (HTTP 429) instead of a generic "Pipeline error".
+                        # Other transient classes (503, timeouts) keep raw propagation.
+                        if _is_rate_limit_error(e):
+                            raise GovernorRateLimitExceeded() from e
                         raise
 
                     self._state.retry_count += 1

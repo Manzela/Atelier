@@ -57,13 +57,9 @@ def test_calibrate_model_pro_tasks() -> None:
 def test_calibrate_model_flash_tasks() -> None:
     """Flash-tier tasks must resolve to the Flash model ID."""
     flash_tasks = (
-        TaskType.UX_RESEARCH,
-        TaskType.IA_FLOW,
         TaskType.WIREFRAME,
         TaskType.UI_DESIGN,
         TaskType.INTERACTION,
-        TaskType.WEB_RESEARCH,
-        TaskType.FIXER,
         TaskType.JUDGE_DESIGN,
         TaskType.JUDGE_RELEVANCE,
         TaskType.JUDGE_VISUAL,
@@ -79,6 +75,10 @@ def test_calibrate_model_flash_lite_tasks() -> None:
         TaskType.TOKEN_GEN,
         TaskType.COPY_EDITOR,
         TaskType.JUDGE_ACCESSIBILITY,
+        TaskType.UX_RESEARCH,
+        TaskType.IA_FLOW,
+        TaskType.WEB_RESEARCH,
+        TaskType.FIXER,
     ):
         assert calibrate_model(task) == GEMINI_FLASH_LITE_MODEL_ID, task
 

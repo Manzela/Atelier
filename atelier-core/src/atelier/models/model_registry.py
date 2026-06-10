@@ -144,16 +144,12 @@ TASK_MODEL_ROUTING: Final[dict[TaskType, str]] = {
     TaskType.JUDGE_ORIGINALITY: DEFAULT_GEMINI_MODEL_ID,
     TaskType.CLARIFY: DEFAULT_GEMINI_MODEL_ID,
     # --- gemini-2.5-flash (15M cap) ----------------------------------------
-    # Generation and visual: the bulk of token spend lives here.  Flash is
-    # 4x cheaper than Pro per output token and produces indistinguishable HTML
-    # quality for role-specialist tasks that have structured upstream context.
-    TaskType.UX_RESEARCH: GEMINI_FLASH_MODEL_ID,
-    TaskType.IA_FLOW: GEMINI_FLASH_MODEL_ID,
+    # Generation and judging: the win-critical HTML output and quality scoring
+    # stay on Flash. Flash is 4x cheaper than Pro per output token and produces
+    # indistinguishable HTML for role-specialist tasks with structured context.
     TaskType.WIREFRAME: GEMINI_FLASH_MODEL_ID,
     TaskType.UI_DESIGN: GEMINI_FLASH_MODEL_ID,
     TaskType.INTERACTION: GEMINI_FLASH_MODEL_ID,
-    TaskType.WEB_RESEARCH: GEMINI_FLASH_MODEL_ID,
-    TaskType.FIXER: GEMINI_FLASH_MODEL_ID,
     TaskType.JUDGE_DESIGN: GEMINI_FLASH_MODEL_ID,
     TaskType.JUDGE_RELEVANCE: GEMINI_FLASH_MODEL_ID,
     TaskType.JUDGE_VISUAL: GEMINI_FLASH_MODEL_ID,
@@ -165,6 +161,15 @@ TASK_MODEL_ROUTING: Final[dict[TaskType, str]] = {
     TaskType.TOKEN_GEN: GEMINI_FLASH_LITE_MODEL_ID,
     TaskType.COPY_EDITOR: GEMINI_FLASH_LITE_MODEL_ID,
     TaskType.JUDGE_ACCESSIBILITY: GEMINI_FLASH_LITE_MODEL_ID,
+    # Research / IA / web-research / fixer moved to Flash-Lite (60M cap, ~12x Pro
+    # / ~4x Flash QPM headroom) to spread load off Flash and eliminate the
+    # Vertex 429 RESOURCE_EXHAUSTED pressure under load — these reasoning,
+    # research and correction tasks tolerate Flash-Lite; generation + judging
+    # stay on Flash above. Tunable per-task via Firebase Remote Config.
+    TaskType.UX_RESEARCH: GEMINI_FLASH_LITE_MODEL_ID,
+    TaskType.IA_FLOW: GEMINI_FLASH_LITE_MODEL_ID,
+    TaskType.WEB_RESEARCH: GEMINI_FLASH_LITE_MODEL_ID,
+    TaskType.FIXER: GEMINI_FLASH_LITE_MODEL_ID,
 }
 
 
