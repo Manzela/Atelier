@@ -251,9 +251,12 @@ jobs:
             --region=${{ env.REGION }} --project=${{ env.PROJECT_ID }} --to-tags="${TAG}=100"
 
       # ── Canonical hosting: idempotent (site 21a9e → production services) ──
+      # Use `--package firebase-tools` so npx resolves the `firebase` CLI on a
+      # clean runner — the bare `npx firebase` looks for a (non-existent) bin in
+      # the `firebase` SDK package and fails with "could not determine executable".
       - name: Deploy canonical hosting
         run: |
-          npx --yes firebase deploy --only hosting:dashboard --project=${{ env.PROJECT_ID }}
+          npx --yes --package firebase-tools firebase deploy --only hosting:dashboard --project=${{ env.PROJECT_ID }}
 
       # ── Integrated production smoke against the judged domain ──
       - name: Smoke test (production / canonical)
