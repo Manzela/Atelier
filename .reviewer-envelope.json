@@ -29,7 +29,7 @@
     "atelier-core/src/atelier/optimize/dreaming_module.py": "b56763ab32a237f4882ccd4233d04bec57bf29cabaf40f8ad895de9f406d0e1f",
     "atelier-core/src/atelier/oracle/verify_run.py": "cf8c9f9e1995afccb0e4f20aef7d40e2a0257102c98bc23b36499a06bc4d2e46",
     "atelier-core/src/atelier/orchestrator/planner.py": "5781cf4ffd9c2b1dc6163a6086d11f234fb391f637110ad1ac5fa1cfa5c2cac9",
-    "atelier-core/src/atelier/orchestrator/runner.py": "f412b6189535f4bec8643fff98d6571915ae52a1ba78beecdd4934cd0aa4700f",
+    "atelier-core/src/atelier/orchestrator/runner.py": "32e1deed3a7f2a3e0db0bc48bda49e7caf026de6e7abe7d0d760666b6f6cdacc",
     "atelier-core/src/atelier/orchestrator/stop_controller.py": "dedaf34e4f742ab8548099c0aabce0d69e9cfc7b21e9040b829426dae218f090",
     "atelier-core/src/atelier/orchestrator/stop_reason.py": "fa26661698b19f2a45dcfa74482071cd437165604b8e21949e11d6e88d0c46cc",
     "atelier-core/tests/integration/test_design_system_enforcement.py": "1930f95b86d00d451d00d38c1df20e965fbd84c1bd1f138f181e528e71f556c4",

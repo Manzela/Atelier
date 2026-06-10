@@ -15,9 +15,18 @@ from atelier.orchestrator.runner import (
     _N3C_GATE_AXES,
     _complete_accessibility,
     _complete_color_token_palette,
+    _ensure_renderable_document,
     _extract_html_document,
     _looks_like_html,
 )
+
+
+def _normalize(raw: str) -> str:
+    """The exact gate-prep chain the runner applies to each raw candidate."""
+    return _complete_accessibility(
+        _complete_color_token_palette(_ensure_renderable_document(_extract_html_document(raw)))
+    )
+
 
 _DOC = (
     '<!DOCTYPE html>\n<html lang="en"><head><style>'
@@ -242,3 +251,113 @@ class TestLooksLikeHtml:
 
     def test_case_insensitive(self) -> None:
         assert _looks_like_html("<MAIN>X</MAIN>")
+
+
+@pytest.mark.unit
+class TestEnsureRenderableDocument:
+    """A scaffold-less but renderable fragment (e.g. a Fixer's 'corrected
+    section', or a UI Designer disrupted mid-run by a Stitch MCP failure) must be
+    wrapped into a minimal HTML document BEFORE the completion passes run.
+
+    Live regression (2026-06-10 E2E): a fixer-style fragment passed
+    ``_looks_like_html`` (so it was eligible as ``best_partial_html``) but the
+    completion passes could not anchor ``lang``/``<title>`` onto an ``<html>``/
+    ``<head>`` that did not exist, so axe rejected it (html-has-lang,
+    document-title) and the run reported INCOMPLETE at composite 0.600 despite
+    the design content being sound.
+    """
+
+    def test_full_document_is_unchanged(self) -> None:
+        assert _ensure_renderable_document(_DOC) == _DOC
+
+    def test_document_with_html_tag_is_unchanged(self) -> None:
+        doc = "<html><body><main>x</main></body></html>"
+        assert _ensure_renderable_document(doc) == doc
+
+    def test_prose_is_not_wrapped(self) -> None:
+        # Markdown narration must stay unwrapped so _looks_like_html still
+        # rejects it as a non-design (never serve prose as a wrapped "document").
+        prose = "Here is the layout. The `<main>` region holds the content."
+        out = _ensure_renderable_document(prose)
+        assert "<html" not in out.lower()
+
+    def test_renderable_fragment_is_wrapped_into_a_document(self) -> None:
+        frag = '<section class="hero"><h1>Aurora</h1><p>Analytics</p></section>'
+        out = _ensure_renderable_document(frag)
+        low = out.lower()
+        assert "<html" in low
+        assert "lang=" in low
+        assert frag in out  # fragment content preserved verbatim in the body
+
+    def test_wrap_flips_the_scaffold_caused_gate_failures(self) -> None:
+        # The decisive assertion, scoped to exactly what the missing scaffold
+        # broke: the live run's Acceptance Verdict failed on axe (html-has-lang,
+        # document-title) and token-fidelity (:root). After the wrap step both
+        # flip to PASS for a renderable fixer-style fragment. (semantic-html /
+        # visual-diff are out of scope: a bare section legitimately lacks the
+        # page landmarks — that is correct gate behavior, not this bug.)
+        # Contrast-safe palette (white on deep indigo ≈ 12:1, white on dark red
+        # ≈ 7:1, both clear WCAG AA) so the ONLY thing under test is the
+        # scaffold flip — not a genuine contrast violation.
+        fragment = (
+            "Here is the corrected hero section with improved contrast:\n\n"
+            '<section class="hero" style="background:#2A2F4F;color:#ffffff;padding:64px">\n'
+            "  <h1>Aurora — B2B Analytics for Retail</h1>\n"
+            "  <p>Real-time dashboards, anomaly alerts, forecast accuracy.</p>\n"
+            '  <a href="#demo" style="background:#A01010;color:#ffffff">Request a demo</a>\n'
+            "</section>"
+        )
+        html = _normalize(fragment)
+        low = html.lower()
+        assert "<html" in low
+        assert "lang=" in low
+        assert "<title" in low
+        assert ":root" in low
+        candidate = CandidateUI(
+            candidate_id=__import__("uuid").uuid4(),
+            surface_id=__import__("uuid").uuid4(),
+            iteration=0,
+            artifacts={"index.html": html},
+        )
+        outcomes = {o.axis.value: o for o in run_gates(candidate, _N3C_GATE_AXES).outcomes}
+        assert outcomes["axe"].decision.name == "PASS", outcomes["axe"].diagnostic
+        assert outcomes["token-fidelity"].decision.name == "PASS", outcomes[
+            "token-fidelity"
+        ].diagnostic
+
+    def test_unwrapped_fragment_fails_the_same_gates(self) -> None:
+        # Red-state guard: WITHOUT the wrap step, the identical fragment fails the
+        # exact two gates the wrap fixes — proving the wrap is load-bearing.
+        fragment = (
+            '<section class="hero" style="background:#2A2F4F;color:#ffffff">'
+            "<h1>Aurora</h1><p>x</p></section>"
+        )
+        unwrapped = _complete_accessibility(
+            _complete_color_token_palette(_extract_html_document(fragment))
+        )
+        candidate = CandidateUI(
+            candidate_id=__import__("uuid").uuid4(),
+            surface_id=__import__("uuid").uuid4(),
+            iteration=0,
+            artifacts={"index.html": unwrapped},
+        )
+        outcomes = {o.axis.value: o for o in run_gates(candidate, _N3C_GATE_AXES).outcomes}
+        assert outcomes["axe"].decision.name != "PASS"
+
+    def test_full_document_still_converges_through_the_chain(self) -> None:
+        # Guard: wrapping must not regress the full-document path.
+        full = (
+            '```html\n<!DOCTYPE html>\n<html lang="en">\n<head><meta charset="utf-8">'
+            "<title>Aurora</title>\n<style>:root{--c-primary:#2A2F4F;--c-bg:#F8F7F4}"
+            "body{background:var(--c-bg);color:var(--c-primary)}</style></head>\n"
+            '<body><header><h1>Aurora</h1></header><nav><a href="#m">Skip</a></nav>'
+            '<main id="m"><section><article><h2>Hi</h2><p>x</p></article></section></main>'
+            "<footer><small>f</small></footer></body>\n</html>\n```"
+        )
+        candidate = CandidateUI(
+            candidate_id=__import__("uuid").uuid4(),
+            surface_id=__import__("uuid").uuid4(),
+            iteration=0,
+            artifacts={"index.html": _normalize(full)},
+        )
+        assert run_gates(candidate, _N3C_GATE_AXES).all_passed

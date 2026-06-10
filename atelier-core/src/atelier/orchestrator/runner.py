@@ -213,6 +213,47 @@ def _extract_html_document(raw: str) -> str:
     return text
 
 
+def _ensure_renderable_document(html: str) -> str:
+    """Wrap a scaffold-less but renderable fragment in a minimal HTML document.
+
+    A Fixer reliably returns a "corrected section" (e.g. a bare ``<section>`` or
+    ``<div>``), and a UI Designer disrupted mid-run (a Stitch MCP drop) can emit a
+    body fragment instead of a full document. Such a fragment passes
+    :func:`_looks_like_html` — so it is eligible to be the non-convergence
+    ``best_partial_html`` — yet has no ``<html>``/``<head>`` for the completion
+    passes to anchor ``lang`` / ``<title>`` onto. The result fails the zero-
+    tolerance axe gate (``html-has-lang``, ``document-title``) even though the
+    design content is sound, and the run reports INCOMPLETE on a perfectly
+    renderable screen (live E2E, 2026-06-10: composite 0.600).
+
+    This closes that gap at the same normalization choke point as the token /
+    accessibility completion: a fragment that is real, renderable UI (a structural
+    opening tag plus a matching close — the :func:`_looks_like_html` bar, so prose
+    that merely *names* tags is never wrapped) is hoisted into a minimal valid
+    document. The downstream ``_complete_color_token_palette`` then hoists its
+    colors into ``:root`` and ``_complete_accessibility`` derives the ``<title>``
+    from the fragment's first ``<h1>`` — so the wrapped fragment clears the gates.
+    A document that already carries ``<!doctype>``/``<html>`` is returned
+    unchanged; non-renderable prose is returned unchanged (and stays filtered out
+    by :func:`_looks_like_html` downstream).
+    """
+    text = html.strip()
+    if not text:
+        return text
+    lower = text.lower()
+    if "<!doctype" in lower or "<html" in lower:
+        return text
+    has_structural = any(tag in lower for tag in _HTML_STRUCTURE_TAGS)
+    if not (has_structural and _HTML_CLOSING_TAG.search(lower)):
+        return text
+    return (
+        '<!DOCTYPE html>\n<html lang="en">\n<head>\n'
+        '<meta charset="utf-8" />\n'
+        '<meta name="viewport" content="width=device-width, initial-scale=1" />\n'
+        f"</head>\n<body>\n{text}\n</body>\n</html>\n"
+    )
+
+
 #: Structural/container tags that mark a candidate as renderable HTML rather than
 #: a specialist's markdown narration (e.g. the Wireframer's prose description).
 _HTML_STRUCTURE_TAGS: Final[tuple[str, ...]] = (
@@ -965,13 +1006,20 @@ class AtelierRunner:
             # otherwise reject every one and the run never converges:
             #   1. extract the bare HTML document (drop prose + ```html fence) so
             #      semantic-HTML / axe see a valid page, not preamble;
-            #   2. complete the color-token palette so stray literals pass the
+            #   2. wrap a scaffold-less-but-renderable fragment (a Fixer's
+            #      "corrected section", or a Stitch-disrupted UI Designer) into a
+            #      minimal document so the completion passes below have an
+            #      <html>/<head> to anchor lang/title onto — otherwise a sound
+            #      design fails axe on html-has-lang/document-title;
+            #   3. complete the color-token palette so stray literals pass the
             #      token-fidelity gate;
-            #   3. remediate the mechanically-fixable axe violations (lang, title,
+            #   4. remediate the mechanically-fixable axe violations (lang, title,
             #      progressbar name, img alt) so the a11y gate passes.
             html_content = _complete_accessibility(
                 _complete_color_token_palette(
-                    _extract_html_document(raw if isinstance(raw, str) else str(raw))
+                    _ensure_renderable_document(
+                        _extract_html_document(raw if isinstance(raw, str) else str(raw))
+                    )
                 )
             )
             if not html_content.strip():
