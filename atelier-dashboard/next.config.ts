@@ -108,6 +108,17 @@ const nextConfig: NextConfig = {
       ],
     },
   ],
+  // A7: the API's 401 body points users to /auth/signin to obtain an ID token,
+  // but the dashboard's sign-in surface is the home gate ("/"), so /auth/signin
+  // on the canonical (dashboard) domain previously 404'd. Redirect it to the gate
+  // so the remediation path in the 401 message resolves to a real sign-in screen.
+  redirects: async () => [
+    {
+      source: '/auth/signin',
+      destination: '/',
+      permanent: false,
+    },
+  ],
 };
 
 export default nextConfig;

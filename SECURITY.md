@@ -16,9 +16,7 @@ Atelier follows semantic versioning. Security fixes are backported to:
 
 Use one of the following private channels:
 
-1. **GitHub Security Advisory** (preferred) — [Open a private security advisory](https://github.com/Manzela/atelier/security/advisories/new). This routes directly to the maintainers with full encryption.
-2. **Email** — `security@atelier.dev` (PGP key fingerprint published below)
-3. **Encrypted form** — [atelier.dev/security/report](https://atelier.dev/security/report)
+1. **GitHub Security Advisory** (private) — [report a vulnerability privately](https://github.com/Manzela/Atelier/security/advisories/new). This routes directly to the maintainers, encrypted, with no third-party channel.
 
 Include in your report:
 
@@ -38,7 +36,7 @@ We follow **coordinated disclosure**:
 - We will work with you on a fix and disclosure timeline.
 - We will request a 90-day embargo for High/Critical severity issues to allow downstream consumers to update.
 - We will credit you in the security advisory and the release notes (with your permission).
-- We do not currently offer monetary bounties but will publicly acknowledge significant contributions in our [Hall of Fame](https://atelier.dev/security/hall-of-fame).
+- We do not currently offer monetary bounties but will publicly acknowledge significant contributions in the GitHub security advisory and the release notes.
 
 ## Severity definitions
 
@@ -83,16 +81,9 @@ These require explicit written permission (request via the channels above):
 - Testing IAM Conditions cross-tenant boundaries — not permitted without prior approval
 - Testing Model Armor bypass attempts — not permitted (we have automated detection; spurious attempts may trigger account suspension)
 
-## PGP key
+## Encryption
 
-Email reports may be encrypted with the following key:
-
-```
-Fingerprint: [TO-BE-PUBLISHED-AT-LAUNCH]
-Key URL:     https://atelier.dev/security/pgp.asc
-```
-
-The PGP key will be published before the v1.0.0 release.
+Reports filed through the [GitHub Security Advisory](https://github.com/Manzela/Atelier/security/advisories/new) channel are encrypted in transit and visible only to the maintainers — no separate PGP key or email channel is needed.
 
 ## Past security advisories
 

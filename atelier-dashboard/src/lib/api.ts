@@ -244,6 +244,12 @@ export interface NielsenHeuristic {
 export interface CompleteData {
   status: string;
   best_html?: string;
+  /**
+   * A1: flat {surface: html} map over EVERY converged surface, so the Studio
+   * renders the whole multi-surface product, not just surfaces[0]. Belt-and-
+   * suspenders with the streaming ``screen_converged`` events.
+   */
+  screens_html?: Record<string, string>;
   converged?: boolean;
   composite_score?: number;
   dorav?: DoravScores;

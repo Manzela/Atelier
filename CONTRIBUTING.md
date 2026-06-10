@@ -209,12 +209,12 @@ All contributors are acknowledged in:
 
 - The release notes (auto-generated from Conventional Commits)
 - `docs/CONTRIBUTORS.md` (rebuilt periodically)
-- The Atelier "thank you" page at atelier.dev/credits
+- The repository [contributors page](https://github.com/Manzela/Atelier/graphs/contributors)
 
 ## Questions?
 
 - General questions → [GitHub Discussions](https://github.com/Manzela/atelier/discussions)
 - Real-time chat → Discord (post-launch)
-- Email → `hello@atelier.dev`
+- GitHub → [open an issue](https://github.com/Manzela/Atelier/issues) or a [discussion](https://github.com/Manzela/Atelier/discussions)
 
 We're happy you're here.

@@ -4,8 +4,8 @@
   "description": "Atelier — autonomous design agent (workspace root, npm workspaces config)",
   "private": true,
   "license": "Apache-2.0",
-  "author": "Daniel Manzela <hello@atelier.dev>",
-  "homepage": "https://atelier.dev",
+  "author": "Daniel Manzela <Manzela@users.noreply.github.com>",
+  "homepage": "https://atelier.autonomous-agent.dev",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Manzela/atelier.git"

@@ -24,7 +24,7 @@ The script wires all gates from the spec (§4.3 + §13.1):
 | 02   | §4.3 #2 | Cloud Run deployment working           | Infrastructure |
 | 03   | §4.3 #3 | OTel + Cloud Trace functional          | Infrastructure |
 | 04   | §4.3 #4 | BigQuery trajectory ingest             | Infrastructure |
-| 05   | §4.3 #5 | 50/484 WebGen-Bench subset             | Test           |
+| 05   | §4.3 #5 | 50/101 WebGen-Bench subset             | Test           |
 | 06   | §4.3 #6 | README + ROADMAP + first 5 ADRs        | Documentation  |
 | 07   | §4.3 #7 | Cost ≤ $1,200                          | Financial      |
 | 08   | §13.1   | Orphan-zero (05_verify_no_orphans.py)  | Migration      |

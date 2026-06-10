@@ -27,6 +27,9 @@
     }
   ],
   "networkAccess": {
-    "allowedDomains": ["https://api.atelier.dev", "https://atelier.dev"]
+    "allowedDomains": [
+      "https://api.atelier.autonomous-agent.dev",
+      "https://atelier.autonomous-agent.dev"
+    ]
   }
 }

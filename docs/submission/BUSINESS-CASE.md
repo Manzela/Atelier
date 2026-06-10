@@ -68,6 +68,24 @@ Atelier is not a silo: its agents register alongside the rest of the organizatio
 fleet, speak A2A, and are governed by the same platform controls. The moat is
 interoperability plus governance, not a prompt.
 
+## Market
+
+The directly comparable category — generative AI applied to design — is a **~$1.0B
+market in 2025 growing to ~$16.9B by 2035 (~32.8% CAGR)** ([Precedence Research, Jan
+2026](https://www.precedenceresearch.com/generative-ai-in-design-market)), riding the
+broader enterprise shift to agent platforms that Gartner projects will reach **~30% of
+enterprise application-software revenue by 2035**, up from ~2% in 2025 (Gartner, Aug
+2025, via [Process Excellence Network](https://www.processexcellencenetwork.com/ai/news/gartner-40-percent-of-enterprise-apps-will-feature-task-specific-ai-agents-by-2026)).
+
+Atelier's serviceable wedge is bottom-up. Of the **~24,400 US firms with 1,000+
+employees** ([NAICS, 2024](https://www.naics.com/business-lists/counts-by-company-size/)),
+roughly **57% run a dedicated design-system team** ([Forrester for Adobe, 2021](https://blog.adobe.com/en/publish/2021/05/26/best-practices-to-scale-design-with-design-systems);
+directional, vendor-sponsored) — on the order of **~13,900 enterprise buyer accounts in
+the US alone**, a serviceable market of roughly a billion dollars per year at enterprise
+ACVs before any global expansion. The binding constraint is category maturity and
+willingness-to-pay, not the size of the addressable base. (The per-account ACV and the
+global extension are our estimates, not sourced figures.)
+
 ## Business model
 
 Pricing is **usage-based** — per converged design (or per metered token-operation
@@ -76,10 +94,12 @@ for high-volume API use). Two properties make this the right model:
 - It aligns price to delivered value. A converged design is a reviewed,
   gate-passing, on-brand surface plus its design tokens — a unit of work that
   otherwise consumes designer and reviewer hours.
-- The unit economics are measured, not estimated. The product already meters every
-  run's token consumption end to end, so cost of goods is observable per design and
-  margin is transparent — the same metering that powers the live cost meter is the
-  basis for billing.
+- The unit economics are metered, not guessed. Every run is metered end to end by the
+  same server-side counter that enforces the token cap and powers the live meter, so
+  cost of goods per converged design is computed from measured token consumption at the
+  published Vertex serving rate — and it is bounded, because every run terminates at a
+  deterministic stop (converged, max-iterations, or per-user cap). Quality is reported
+  on the public bench; the per-design cost ledger is computed from that same metering.
 
 A platform tier (self-host / VPC plus the embedding API) serves the largest
 enterprise accounts where the registration-and-governance story is the buying

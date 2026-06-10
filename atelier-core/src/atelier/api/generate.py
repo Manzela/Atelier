@@ -599,6 +599,41 @@ def _extract_persisted_design_tokens(payload: dict[str, Any]) -> dict[str, Any] 
     return persisted if isinstance(persisted, dict) else None
 
 
+def _screens_html_map(payload: dict[str, Any]) -> dict[str, str]:
+    """Flat ``{surface_name: best_candidate_html}`` over every produced surface (A1).
+
+    The runner threads the full per-surface result set as ``payload["screens"]``;
+    this projection lets the Studio render every converged surface, not just
+    surfaces[0]. Surfaces with no/empty HTML are omitted (never a blank tab).
+    """
+    screens = payload.get("screens")
+    if not isinstance(screens, dict):
+        return {}
+    out: dict[str, str] = {}
+    for name, res in screens.items():
+        html = res.get("best_candidate") if isinstance(res, dict) else None
+        if isinstance(html, str) and html.strip():
+            out[str(name)] = html
+    return out
+
+
+def _required_surfaces_from_plan(payload: dict[str, Any], produced: dict[str, Any]) -> list[str]:
+    """Plan-seeded completeness set (A2): the surfaces the APPROVED PLAN required.
+
+    Seeding ``required_surfaces`` from the plan (not the produced ``screens``) means
+    a planned-but-dropped surface fails ``surface:exists``. Falls back to the produced
+    keys when no plan surfaces are available (legacy/degraded paths).
+    """
+    plan = payload.get("plan")
+    if isinstance(plan, dict):
+        raw = plan.get("surfaces")
+        if isinstance(raw, list):
+            planned = [str(s) for s in raw if str(s).strip()]
+            if planned:
+                return planned
+    return list(produced.keys())
+
+
 def _enrich_complete_payload(payload: dict[str, Any]) -> dict[str, Any]:
     """Enrich the SSE ``complete`` event payload for Studio frontend consumption.
 
@@ -704,6 +739,13 @@ def _enrich_complete_payload(payload: dict[str, Any]) -> dict[str, Any]:
     best_candidate_raw = payload.get("best_candidate")
     best_html: str = best_candidate_raw if isinstance(best_candidate_raw, str) else ""
     enriched["best_html"] = best_html
+
+    # screens_html: the DELIVERED multi-surface product — a flat
+    # {surface_name: best_candidate_html} map over EVERY converged surface, so the
+    # Studio renders the whole product, not just surfaces[0] (A1).
+    screens_html = _screens_html_map(payload)
+    if screens_html:
+        enriched["screens_html"] = screens_html
 
     # ------------------------------------------------------------------
     # dorav: per-axis scores from the first (best) evaluation entry.
@@ -821,7 +863,10 @@ def _build_run_verdict(payload: dict[str, Any]) -> dict[str, Any] | None:
                 return None
             screens = {"design": {"best_candidate": best_html}}
 
-        required_surfaces = list(screens.keys())
+        # Plan-seeded completeness (A2): require EVERY surface the APPROVED PLAN
+        # named, not just the produced set, so a planned-but-dropped surface fails
+        # ``surface:NAME:exists`` (honest about completeness, not self-satisfying).
+        required_surfaces = _required_surfaces_from_plan(payload, screens)
         surfaces: dict[str, CandidateUI] = {}
         for name, res in screens.items():
             html = res.get("best_candidate") if isinstance(res, dict) else None

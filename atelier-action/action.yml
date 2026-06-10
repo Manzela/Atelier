@@ -7,7 +7,7 @@ branding:
 
 inputs:
   api-key:
-    description: 'Atelier API key (get one at atelier.dev/settings/api-keys)'
+    description: 'Atelier API key (get one at atelier.autonomous-agent.dev)'
     required: true
   paths:
     description: 'Glob patterns for UI files to evaluate (default: HTML/JSX/TSX/CSS/Vue/Svelte)'
@@ -34,7 +34,7 @@ outputs:
   composite-score:
     description: 'Aggregate D-O-R-A-V composite score across all surfaces'
   report-url:
-    description: 'URL to full report on atelier.dev'
+    description: 'URL to full report on atelier.autonomous-agent.dev'
 
 runs:
   using: 'node20'

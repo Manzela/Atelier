@@ -11,7 +11,7 @@ body:
     attributes:
       label: Documentation location
       description: Path or URL of the doc with the issue
-      placeholder: e.g., docs/superpowers/specs/2026-05-14-atelier-prd.md §6.3 OR docs.atelier.dev/getting-started
+      placeholder: e.g., docs/superpowers/specs/2026-05-14-atelier-prd.md §6.3 OR atelier.autonomous-agent.dev/docs
     validations:
       required: true
 

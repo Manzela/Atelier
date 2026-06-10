@@ -1,7 +1,7 @@
 """Web2Code adapter — 1,198 real-world website screenshots (NeurIPS 2024).
 
 Dataset: https://github.com/zekun-li/Web2Code
-Paper: arXiv 2406.16104 (NeurIPS 2024)
+Paper: arXiv 2406.20098 (NeurIPS 2024)
 
 Metric: Visual similarity (SSIM) between rendered HTML and original screenshot.
 """

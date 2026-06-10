@@ -1012,6 +1012,14 @@ export default function StudioClientShell({ id }: { id: string }) {
       },
       onComplete: (data) => {
         if (data.best_html) setConvergedHtml(data.best_html);
+        // A1: seed EVERY converged surface so all surface tabs are selectable,
+        // not just surfaces[0]. Belt-and-suspenders with onScreenConverged
+        // (streaming) for judges whose connection drops a streaming event.
+        if (data.screens_html && Object.keys(data.screens_html).length > 0) {
+          const screensHtml = data.screens_html;
+          setSurfaces((prev) => ({ ...prev, ...screensHtml }));
+          setSelectedSurface((prev) => prev ?? Object.keys(screensHtml)[0]);
+        }
         if (data.dorav) setDorav(data.dorav);
         if (data.nielsen) setNielsen(data.nielsen);
         // AT-026 (Post): the run-oracle verdict (criterion -> verdict + evidence).

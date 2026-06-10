@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "description": "Right-click any web page → 'Redesign with Atelier'. Side-by-side comparison of original vs converged design.",
   "author": "Daniel Manzela",
-  "homepage_url": "https://atelier.dev",
+  "homepage_url": "https://atelier.autonomous-agent.dev",
   "icons": {
     "16": "icons/icon-16.png",
     "48": "icons/icon-48.png",
@@ -19,6 +19,9 @@
     "type": "module"
   },
   "permissions": ["activeTab", "contextMenus", "storage"],
-  "host_permissions": ["https://api.atelier.dev/*", "https://atelier.dev/*"],
+  "host_permissions": [
+    "https://api.atelier.autonomous-agent.dev/*",
+    "https://atelier.autonomous-agent.dev/*"
+  ],
   "options_page": "src/options.html"
 }

@@ -7,7 +7,7 @@ name = "atelier-eval"
 version = "0.2.0a0"
 description = "Atelier evaluation suite — benchmark adapters and public scoreboard"
 readme = "README.md"
-authors = [{ name = "Daniel Manzela", email = "hello@atelier.dev" }]
+authors = [{ name = "Daniel Manzela", email = "Manzela@users.noreply.github.com" }]
 license = { file = "../LICENSE" }
 requires-python = ">=3.11,<3.13"
 

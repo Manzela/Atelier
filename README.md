@@ -171,7 +171,17 @@ Atelier is built on Google ADK 2.0 across five integration surfaces:
 
 ---
 
-## 15 Novel Contributions
+## Novel contributions
+
+Atelier's contribution is an architecture, not a longer prompt. Four mechanics carry the
+system and are the ones to evaluate first: **deterministic-gate-first convergence** (every
+node is a deterministic gate in front of a probabilistic agent, never the reverse — N1); a
+**completeness oracle seeded from the approved plan, not the produced output**, so the
+run-acceptance check cannot rubber-stamp itself; **governed autonomy** (a server-side token
+cap enforced before any model call, a Model Armor callback, and honest degradation — N15);
+and a **DPO preference flywheel** that mines accepted-vs-rejected pairs into training signal
+(N3). The full index below is independently verifiable — clone the repo and open the cited
+file.
 
 | #   | Contribution                                                             | Status       |
 | --- | ------------------------------------------------------------------------ | ------------ |
