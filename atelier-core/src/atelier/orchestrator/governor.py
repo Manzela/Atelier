@@ -215,7 +215,13 @@ class GovernorState:
     # AT-095 per-user lifetime token cap.  ``user_id`` identifies whose cap this
     # is; ``cumulative_user_tokens`` is seeded at run start from the persisted
     # Firestore counter (so it spans runs) and grows as tokens are consumed.
-    # ``token_cap`` is the legacy single-cap used only when no tier data exists.
+    # ``token_cap`` (== the Pro-tier cap) is the ACTIVE aggregate ceiling on a
+    # user's TOTAL cross-tier usage — ``is_over_token_cap`` checks it unconditionally
+    # (L11). This is the conservative cost policy: a user is capped at the aggregate
+    # regardless of which tier the tokens came from; the per-tier caps below are
+    # ADDITIONAL enforcement layered on top, not a replacement. (To switch to a
+    # per-tier-only policy — letting Flash/Flash-Lite users spend up to their higher
+    # tier caps — see L11 in the audit ledger; that is a cost-policy change.)
     user_id: str | None = None
     cumulative_user_tokens: int = 0
     token_cap: int = TOKEN_CAP_DEFAULT
@@ -276,6 +282,21 @@ class GovernorState:
             tier = model_tier_for_id(model_id)
             self.per_tier_tokens[tier] = self.per_tier_tokens.get(tier, 0) + delta
         return self.cumulative_user_tokens
+
+    def reconcile_cumulative(self, shared_total: int) -> None:
+        """L12: raise the in-memory cumulative to the durable store's atomic total.
+
+        Each run builds a private ``GovernorState`` seeded once at run start, so two
+        CONCURRENT runs for the SAME user would each only count their OWN tokens and
+        both pass the cap check — a TOCTOU that lets N parallel runs each spend the
+        full remaining cap. After every persisted charge, the runner feeds the
+        ``UsageCounterStore.add`` return (the atomic post-write cumulative shared
+        across instances) here, so this state reflects the user's TRUE total and the
+        next cap check sees concurrent spend. Only ever RAISES the count (usage grows
+        monotonically); ``max`` also guards the L52 degraded-read floor, where
+        ``add`` may return the delta rather than the true total.
+        """
+        self.cumulative_user_tokens = max(self.cumulative_user_tokens, shared_total)
 
     def exceeded_tier(self) -> str | None:
         """Return the first tier that has reached its cap, or None if all are under.

@@ -88,7 +88,7 @@ from atelier.orchestrator.governor import (
 )
 from atelier.orchestrator.planner import PlanStep
 from atelier.orchestrator.specialists import create_specialist_pipeline, get_specialist_specs
-from atelier.orchestrator.stop_controller import clear_stop, is_stop_requested
+from atelier.orchestrator.stop_controller import clear_stop, is_stop_requested, stop_key
 from atelier.orchestrator.stop_reason import (
     StopReason,
     StopSignals,
@@ -743,14 +743,39 @@ _TRACE_SUMMARY_CHARS: int = 200
 
 
 def _trace_summary(texts: list[Any]) -> str:
-    """A formatted, full trace of a specialist's output (AT-026 trace).
+    """A bounded preview of a specialist's output for the legibility trace (AT-026).
 
-    Joins the event's text parts with newlines, preserving all code formatting
-    and newlines, without collapsing or truncating, so the legibility trace shows
-    the complete output.
+    Joins the event's text parts with newlines, then truncates to
+    ``_TRACE_SUMMARY_CHARS`` (L49). The cap exists for two reasons: the trace panel
+    only renders a preview (the full surface HTML reaches the client via the
+    ``screen_converged``/``complete`` events, not this field), and an untruncated
+    summary — a full HTML document for the UIDesigner — produces a very large SSE
+    ``data:`` frame that is far more likely to straddle a TCP/proxy chunk boundary
+    (the L07 parser hazard). Bounding it keeps the trace honest and the wire small.
     """
     joined = "\n".join(str(t) for t in texts if t).strip()
-    return joined or "(no output)"
+    if not joined:
+        return "(no output)"
+    if len(joined) > _TRACE_SUMMARY_CHARS:
+        return joined[:_TRACE_SUMMARY_CHARS] + "…"
+    return joined
+
+
+def _aggregate_convergence(screens_results: dict[str, Any]) -> tuple[bool, float]:
+    """L10: product-level convergence + composite across ALL surfaces.
+
+    The top-level ``converged`` / ``composite_score`` must describe the whole
+    multi-surface product, not just ``surfaces[0]``. The product converged only if
+    EVERY surface converged; the composite is the weakest surface (``min``) so a
+    single non-converged surface can never be masked by a strong first surface
+    (``generate.py`` derives the user-facing ``degraded`` flag from this). An empty
+    result set is, conservatively, not converged.
+    """
+    if not screens_results:
+        return (False, 0.0)
+    converged = all(bool(res["converged"]) for res in screens_results.values())
+    composite = min(float(res["composite_score"]) for res in screens_results.values())
+    return (converged, composite)
 
 
 def _default_session_service() -> BaseSessionService:
@@ -947,7 +972,7 @@ class AtelierRunner:
                 extra={"task_id": task_id, "target_column": column.value},
             )
 
-    def _run_n3c_n3d_n4(  # noqa: C901, PLR0915 — the N3c gate / N3d judge / N4 select convergence core
+    def _run_n3c_n3d_n4(  # noqa: C901, PLR0912, PLR0915 — the N3c gate / N3d judge / N4 select convergence core
         self,
         raw_candidates: list[Any],
         brief_text: str,  # noqa: ARG002
@@ -997,6 +1022,7 @@ class AtelierRunner:
         # Researcher's markdown) as the "best candidate".
         best_partial_html: str | None = None
         best_partial_score: float = -1.0
+        best_partial_candidate_id: uuid.UUID | None = None
         # Candidates that cleared every N3c gate, paired with their normalized
         # HTML; judged concurrently after the (cheap, deterministic) gate pass.
         passing: list[tuple[CandidateUI, str]] = []
@@ -1048,6 +1074,7 @@ class AtelierRunner:
                 if mean_score > best_partial_score:
                     best_partial_score = mean_score
                     best_partial_html = html_content
+                    best_partial_candidate_id = candidate.candidate_id
 
             if not gate_result.all_passed:
                 failed_axes = [
@@ -1154,15 +1181,36 @@ class AtelierRunner:
         # score-descending `all_evaluations`. That positional mismatch silently
         # inverted the DPO chosen/rejected labels and mispaired per-candidate
         # scores. This list is self-describing, so its order does not matter.
-        scored_candidates = [
-            {
-                "candidate_id": str(ev.candidate_id),
-                "html": html,
-                "composite_score": ev.composite_score,
-                "votes": {axis.value: {"score": v.score} for axis, v in ev.votes.items()},
-            }
-            for ev, html in evaluations
-        ]
+        if evaluations:
+            scored_candidates = [
+                {
+                    "candidate_id": str(ev.candidate_id),
+                    "html": html,
+                    "composite_score": ev.composite_score,
+                    "votes": {axis.value: {"score": v.score} for axis, v in ev.votes.items()},
+                }
+                for ev, html in evaluations
+            ]
+        elif best_partial_html is not None:
+            scored_candidates = [
+                {
+                    "candidate_id": str(best_partial_candidate_id or uuid4()),
+                    "html": best_partial_html,
+                    "composite_score": best_partial_score / 100.0,
+                    "votes": {},
+                }
+            ]
+        elif raw_candidates:
+            scored_candidates = [
+                {
+                    "candidate_id": str(uuid4()),
+                    "html": best_candidate,
+                    "composite_score": 0.0,
+                    "votes": {},
+                }
+            ]
+        else:
+            scored_candidates = []
 
         # AT-097: total N3d (D-O-R-A-V judge) token spend across every evaluated
         # candidate this iteration. 0 in heuristic mode (no LLM call); > 0 when
@@ -1920,6 +1968,9 @@ class AtelierRunner:
         # intentionally NOT built here; a2ui_payload / a2ui_governance are threaded
         # solely from the canonical enrich site.
 
+        total_run_input_tokens = 0
+        total_run_output_tokens = 0
+
         for idx, screen in enumerate(surfaces):
             if progress_callback:
                 await progress_callback(
@@ -1963,7 +2014,8 @@ class AtelierRunner:
                 # calls after Stop). On Stop we persist a durable checkpoint (so a
                 # resume continues from N1/N2 without re-running them), emit a `stop`
                 # event so the UI acknowledges the halt, and break the loop.
-                if is_stop_requested(session_id):
+                # L04: poll the per-OWNER key so only THIS run's owner can halt it.
+                if is_stop_requested(stop_key(user_id, session_id)):
                     await self._persist_stop_checkpoint(
                         brief=brief,
                         project_ctx=project_ctx,
@@ -1974,7 +2026,7 @@ class AtelierRunner:
                         brief_text=brief_text,
                         user_id=user_id,
                     )
-                    clear_stop(session_id)
+                    clear_stop(stop_key(user_id, session_id))
                     exit_reason = StopReason.STOPPED
                     user_message = (
                         "Generation was stopped at your request. Progress up to this "
@@ -2121,13 +2173,16 @@ class AtelierRunner:
                                 thinking_tokens=ethink,
                                 model_id=event_model_id,
                             )
-                            self._usage_store.add(
+                            _shared_total = self._usage_store.add(
                                 user_id,
                                 input_tokens=ein,
                                 output_tokens=eout,
                                 thinking_tokens=ethink,
                                 model_id=event_model_id,
                             )
+                            # L12: reconcile to the shared atomic total so a concurrent
+                            # same-user run's spend is seen by this run's cap checks.
+                            self._governor._state.reconcile_cumulative(_shared_total)
                             if progress_callback:
                                 await progress_callback(
                                     "token_delta",
@@ -2207,13 +2262,14 @@ class AtelierRunner:
                             thinking_tokens=rem_think,
                             model_id=fallback_model_id,
                         )
-                        self._usage_store.add(
+                        _shared_total = self._usage_store.add(
                             user_id,
                             input_tokens=rem_in,
                             output_tokens=rem_out,
                             thinking_tokens=rem_think,
                             model_id=fallback_model_id,
                         )
+                        self._governor._state.reconcile_cumulative(_shared_total)  # L12
                         if progress_callback:
                             await progress_callback(
                                 "token_delta",
@@ -2257,6 +2313,9 @@ class AtelierRunner:
                     exit_reason = StopReason.GOVERNOR_FAIL_SOFT
                     break
                 raw_candidates, stitch_degraded, _token_usage = governed_result
+                if _token_usage:
+                    total_run_input_tokens += int(_token_usage[0])
+                    total_run_output_tokens += int(_token_usage[1])
                 # AT-031: record the N3a post-signoff stage call on a stable id. This is
                 # the "post-signoff stages" side of the resume oracle — its token count
                 # must be > 0 after approval, while N1/N2 remain frozen at their
@@ -2319,6 +2378,8 @@ class AtelierRunner:
                 judge_in = int(convergence_result.get("judge_input_tokens", 0))
                 judge_out = int(convergence_result.get("judge_output_tokens", 0))
                 judge_think = int(convergence_result.get("judge_thinking_tokens", 0))
+                total_run_input_tokens += judge_in
+                total_run_output_tokens += judge_out
                 if judge_in or judge_out or judge_think:
                     # N3d judge mix: Originality=Pro, Design/Relevance/Visual=Flash,
                     # Accessibility=Flash-Lite. Attribute to Pro (most restrictive cap)
@@ -2330,13 +2391,14 @@ class AtelierRunner:
                         thinking_tokens=judge_think,
                         model_id=n3d_model_id,
                     )
-                    self._usage_store.add(
+                    _shared_total = self._usage_store.add(
                         user_id,
                         input_tokens=judge_in,
                         output_tokens=judge_out,
                         thinking_tokens=judge_think,
                         model_id=n3d_model_id,
                     )
+                    self._governor._state.reconcile_cumulative(_shared_total)  # L12
                     if progress_callback:
                         await progress_callback(
                             "token_delta",
@@ -2601,6 +2663,11 @@ class AtelierRunner:
             TOKEN_CAP_MESSAGE if cap_hit_any_surface else first_screen_res["user_message"]
         )
 
+        # L10: the honesty signals (converged / composite) aggregate across every
+        # surface; the display fields (best_candidate / candidates / evaluations)
+        # remain the primary surface — that is the canvas the user sees.
+        top_converged, top_composite = _aggregate_convergence(screens_results)
+
         response_payload = {
             "brief": brief,
             "project_context": project_ctx,
@@ -2608,8 +2675,8 @@ class AtelierRunner:
             "best_candidate": first_screen_res["best_candidate"],
             "convergence_iteration": first_screen_res["convergence_iteration"],
             "exit_reason": top_exit_reason,
-            "converged": first_screen_res["converged"],
-            "composite_score": first_screen_res["composite_score"],
+            "converged": top_converged,
+            "composite_score": top_composite,
             "candidates_evaluated": first_screen_res["candidates_evaluated"],
             "candidates_passed_gates": first_screen_res["candidates_passed_gates"],
             "gate_results": first_screen_res["gate_results"],
@@ -2623,6 +2690,8 @@ class AtelierRunner:
             # rides this + the per-iteration token_delta events.
             "tokens_used": self._governor._state.cumulative_user_tokens,
             "token_cap": self._governor._state.token_cap,
+            "total_input_tokens": total_run_input_tokens,
+            "total_output_tokens": total_run_output_tokens,
             "web_research": wrai_report,
             "session_id": session_id,
             "plan": plan.model_dump() if hasattr(plan, "model_dump") else {},

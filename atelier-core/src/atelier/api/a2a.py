@@ -222,6 +222,7 @@ async def _handle_send_message(
         project_id=os.environ.get("GOOGLE_CLOUD_PROJECT", "atelier-build-2026"),
     )
 
+    from atelier.models.model_armor_callbacks import ModelArmorInputBlocked  # noqa: PLC0415
     from atelier.orchestrator.governor import (  # noqa: PLC0415
         GovernorCircuitBreakerOpen,
         GovernorRateLimitExceeded,
@@ -269,6 +270,12 @@ async def _handle_send_message(
         # A2A surface is not an unmonitored quota-bypass entry point (the
         # AT-095/AT-097 controls bind here too).
         return _governor_error_response(exc, uid=user.uid, task_id=task_id, request_id=request_id)
+    except ModelArmorInputBlocked as exc:
+        # L15: a Model Armor safety block is a CLIENT input rejection (prompt
+        # injection / unsafe content), NOT a server fault. Map it to _INVALID_PARAMS
+        # with the branded user message, mirroring the POST /v1/generate 422 handler
+        # — never the generic -32603 that would imply the server broke.
+        return _error_response(_INVALID_PARAMS, exc.user_message, request_id)
     except Exception as exc:
         logger.exception("a2a.pipeline.error", extra={"task_id": task_id})
         return _error_response(
@@ -329,10 +336,15 @@ async def a2a_rpc(
     try:
         return await handler(request.params, request.id, user)
     except Exception as exc:
+        # L42 (CWE-117): request.method is attacker-controlled JSON-RPC input;
+        # sanitize it before logging so a crafted method name cannot forge or split
+        # log lines (the same guard this module already applies to uid).
+        from atelier.utils.log_sanitizer import sanitize  # noqa: PLC0415
+
         logger.exception(
             "a2a.rpc.error",
             extra={
-                "method": request.method,
+                "method": sanitize(request.method),
                 "error": str(exc)[:200],
             },
         )

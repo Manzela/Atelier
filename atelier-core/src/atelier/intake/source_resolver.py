@@ -111,6 +111,28 @@ def _parse_design_md_tokens(design_md_text: str) -> dict[str, Any]:
     return tokens
 
 
+def _confine_design_source(source: str) -> "Any":
+    """L06: confine an untrusted ``design_system_source`` to the working tree.
+
+    ``source`` originates from the LLM-emitted ``BriefSpec`` (and the API request
+    field), so a poisoned brief can emit ``"../../../etc/passwd"`` or an absolute
+    path. Reject absolute paths and any ``..`` component, then resolve against the
+    process working directory and verify containment, so an arbitrary-file read on
+    the production service-account container is structurally impossible. Returns the
+    confined ``Path`` when safe, else ``None`` (caller falls back to auto-discovery).
+    """
+    import pathlib  # noqa: PLC0415
+
+    candidate = pathlib.Path(source)
+    if candidate.is_absolute() or ".." in candidate.parts:
+        return None
+    base = pathlib.Path.cwd().resolve()
+    resolved = (base / candidate).resolve()
+    if not resolved.is_relative_to(base):
+        return None
+    return resolved
+
+
 async def pull_design_tokens(design_system_source: str | None = None) -> dict[str, Any]:
     """Pull design tokens from DESIGN.md using pure-Python parsing (no dmd subprocess).
 
@@ -131,7 +153,11 @@ async def pull_design_tokens(design_system_source: str | None = None) -> dict[st
 
     candidate_paths = []
     if design_system_source and design_system_source != "infer":
-        candidate_paths.append(pathlib.Path(design_system_source))
+        # L06: only append the caller-supplied path if it stays inside the working
+        # tree; a traversal/absolute path is dropped (falls through to discovery).
+        confined = _confine_design_source(design_system_source)
+        if confined is not None:
+            candidate_paths.append(confined)
     candidate_paths.extend(
         [
             pathlib.Path("DESIGN.md"),

@@ -59,6 +59,38 @@ def test_enrich_complete_payload_skips_empty_surface_candidates() -> None:
     assert enriched["screens_html"] == {"landing page": _HTML_L}
 
 
+def test_enrich_marks_nonconverged_complete_as_degraded() -> None:
+    """L28: every `complete` carries an explicit `degraded` flag. A non-converged
+    run must enrich to degraded=True so the Studio cannot take the success branch
+    and report convergence over a sub-bar product. (With L10, `converged` reflects
+    ALL surfaces, so a partially-converged product also lands here.)"""
+    payload = {
+        "screens": {"landing page": {"best_candidate": _HTML_L}},
+        "best_candidate": _HTML_L,
+        "evaluations": [],
+        "converged": False,
+    }
+
+    enriched = _enrich_complete_payload(payload)
+
+    assert enriched["degraded"] is True
+    assert enriched.get("degradation_reason")
+
+
+def test_enrich_does_not_force_degraded_on_a_converged_run() -> None:
+    """A converged run must NOT be spuriously marked degraded."""
+    payload = {
+        "screens": {"landing page": {"best_candidate": _HTML_L}},
+        "best_candidate": _HTML_L,
+        "evaluations": [],
+        "converged": True,
+    }
+
+    enriched = _enrich_complete_payload(payload)
+
+    assert enriched.get("degraded", False) is False
+
+
 def test_run_verdict_flags_a_planned_but_unproduced_surface() -> None:
     """The acceptance oracle is plan-seeded (A2): it requires EVERY surface the
     approved plan named, so a surface the run failed to produce fails

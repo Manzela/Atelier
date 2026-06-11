@@ -29,7 +29,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from atelier.auth.firebase import FirebaseUser, require_auth, require_auth_strict
 from atelier.orchestrator.governor import TOKEN_CAP_DEFAULT
@@ -84,9 +84,12 @@ async def stop_run(
 
         raise HTTPException(status_code=400, detail="Invalid session_id format.")
 
-    from atelier.orchestrator.stop_controller import request_stop  # noqa: PLC0415
+    from atelier.orchestrator.stop_controller import request_stop, stop_key  # noqa: PLC0415
 
-    request_stop(session_id)
+    # L04: arm the per-REQUESTER key. A non-owner's Stop arms a key the target run
+    # never polls (the runner reads only its own owner key), so a cross-tenant Stop
+    # is a structural no-op with no session-owner lookup and no existence oracle.
+    request_stop(stop_key(user.uid, session_id))
     logger.info(
         "atelier.generate.stop_requested",
         extra={"session_id": sanitize(session_id), "uid": sanitize(user.uid)},
@@ -125,20 +128,55 @@ class GenerateRequest(BaseModel):
         default=None,
         description="Custom model override for the UI Generator.",
     )
+    # L47: bound the sampling knobs at the trust boundary. An unbounded
+    # temperature/top_k/max_tokens is a cost- and latency-amplification vector
+    # (the body crosses straight into GenerateContentConfig). Rejecting out-of-range
+    # values here returns a 422 at the edge instead of forwarding abuse to Vertex.
     temperature: float | None = Field(
         default=None,
-        description="Sampling temperature parameter.",
+        ge=0.0,
+        le=2.0,
+        description="Sampling temperature parameter (0.0-2.0).",
     )
     top_k: int | None = Field(
         default=None,
-        description="Top-k sampling parameter.",
+        ge=1,
+        le=200,
+        description="Top-k sampling parameter (1-200).",
     )
     max_tokens: int | None = Field(
         default=None,
-        description="Maximum tokens to generate.",
+        ge=1,
+        le=8192,
+        description="Maximum tokens to generate (1-8192).",
     )
     # AT-095: the per-request USD budget knob is removed. Usage is governed solely
     # by the per-user lifetime 5M-token cap (server-side); there is no dollar budget.
+
+    @field_validator("model")
+    @classmethod
+    def _validate_model(cls, value: str | None) -> str | None:
+        """L05: constrain ``model`` to the served catalog (allow-list).
+
+        Without this, a request body could pin any string as the UI Generator
+        model, bypassing operator-pin and tiered cost routing (e.g. forcing the
+        Pro tier on the paid service account). Reject anything not in the live
+        ``get_model_catalog()`` allow-list with a 422 at the boundary.
+        """
+        if value is None:
+            return None
+        from atelier.models.model_registry import (  # noqa: PLC0415
+            get_model_catalog,
+            normalize_model_id,
+        )
+
+        normalized = normalize_model_id(value.strip())
+        allowed = {entry.model_id for entry in get_model_catalog()}
+        if normalized not in allowed:
+            raise ValueError(
+                f"model must be one of {sorted(allowed)} (operator-served catalog); got {value!r}"
+            )
+        return normalized
 
 
 class GateOutcomeSummary(BaseModel):
@@ -263,6 +301,9 @@ async def _record_trajectory(
             outcome = "accepted" if is_best and converged else "rejected"
             candidate_score = float(scored.get("composite_score", 0.0))
 
+            total_input_tokens = int(result.get("total_input_tokens") or 0) if i == 0 else 0
+            total_output_tokens = int(result.get("total_output_tokens") or 0) if i == 0 else 0
+
             record = TrajectoryRecord(
                 trajectory_id=uuid4(),
                 tenant_id=user.tenant_id,
@@ -277,6 +318,8 @@ async def _record_trajectory(
                 outcome=outcome,
                 composite_score=candidate_score,
                 total_cost_usd=0.0,  # AT-095: USD telemetry retired; usage is token-based
+                total_input_tokens=total_input_tokens,
+                total_output_tokens=total_output_tokens,
             )
             records.append(record)
 
@@ -1160,9 +1203,11 @@ async def generate_stream(  # noqa: C901, PLR0915 — SSE orchestrator: nested p
                 if _session_id_holder:
                     from atelier.orchestrator.stop_controller import (  # noqa: PLC0415
                         request_stop,
+                        stop_key,
                     )
 
-                    request_stop(_session_id_holder[0])
+                    # L04: the owner's own client disconnect arms the owner key.
+                    request_stop(stop_key(user.uid, _session_id_holder[0]))
                 task.cancel()
                 break
 
@@ -1186,4 +1231,18 @@ async def generate_stream(  # noqa: C901, PLR0915 — SSE orchestrator: nested p
 
         await task
 
-    return StreamingResponse(sse_generator(), media_type="text/event-stream")
+    return StreamingResponse(
+        sse_generator(),
+        media_type="text/event-stream",
+        # L48: keep the event stream un-buffered end-to-end. Without these,
+        # intermediary proxies / the Cloud Run front end may buffer or chunk the
+        # response in ways that enlarge and re-split SSE frames (compounding the
+        # L07 chunk-straddle hazard) or delay live events. `X-Accel-Buffering: no`
+        # disables proxy buffering; `Cache-Control: no-cache` forbids caching the
+        # stream; keep-alive holds the connection open for the run's duration.
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
+    )

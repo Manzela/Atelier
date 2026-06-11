@@ -28,6 +28,7 @@ env:
   PROJECT_NUMBER: '537337457799'
   REGION: 'us-central1'
   NODE_VERSION: '22.13.0'
+  PYTHON_VERSION: '3.11'
   AR_REPO: 'us-central1-docker.pkg.dev/atelier-build-2026/atelier-images'
   RUN_SA: 'atelier-api-sa@atelier-build-2026.iam.gserviceaccount.com'
 
@@ -57,6 +58,37 @@ jobs:
         run: echo "short_sha=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
 
   # ───────────────────────────────────────────────────────────────────────────
+  # Verify gate (L02/L03): NO image is built or deployed until the hermetic test
+  # suite passes on THIS commit. Runs the unit suite AND the integration suite
+  # (excluding the live `-m external` golden-path probe), so the unmocked
+  # real-Runner end-to-end convergence proof — the test written to catch the
+  # bug-class that previously shipped to production — actually gates the deploy.
+  # Always runs (independent of WIF) so a fork still verifies; `build` needs it.
+  # ───────────────────────────────────────────────────────────────────────────
+  verify:
+    name: Verify (tests gate the deploy)
+    needs: preflight
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - name: Install atelier-core
+        working-directory: atelier-core
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f "../requirements.lock" ]; then pip install -r ../requirements.lock; fi
+          pip install -e ".[dev]" || pip install -e .
+      - name: Install chromium (real axe-core a11y gate, AT-011)
+        working-directory: atelier-core
+        run: python -m playwright install --with-deps chromium
+      - name: Hermetic test suite (unit + integration, excludes live -m external)
+        working-directory: atelier-core
+        run: pytest tests/unit tests/integration -m "not external" -q --tb=short
+
+  # ───────────────────────────────────────────────────────────────────────────
   # Build immutable, commit-SHA-tagged images ONCE.
   #   * The API image is environment-agnostic (all config is injected as runtime
   #     env), so it is built once and promoted to BOTH tiers — the exact bytes
@@ -66,7 +98,7 @@ jobs:
   # ───────────────────────────────────────────────────────────────────────────
   build:
     name: Build images
-    needs: preflight
+    needs: [preflight, verify] # L02: tests must pass before any image is built
     if: needs.preflight.outputs.deploy_enabled == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -146,7 +178,7 @@ jobs:
             --image=${{ env.AR_REPO }}/atelier-api:${{ github.sha }} \
             --region=${{ env.REGION }} --project=${{ env.PROJECT_ID }} \
             --env-vars-file=deploy/api.staging.env.yaml \
-            --timeout=3600 --concurrency=1 --memory=1Gi --cpu=1 \
+            --timeout=3600 --concurrency=10 --min-instances=1 --max-instances=10 --memory=4Gi --cpu=2 \
             --service-account=${{ env.RUN_SA }}
 
       - name: Deploy dashboard to Cloud Run (staging)
@@ -212,7 +244,8 @@ jobs:
             --image=${{ env.AR_REPO }}/atelier-api:${{ github.sha }} \
             --region=${{ env.REGION }} --project=${{ env.PROJECT_ID }} \
             --env-vars-file=deploy/api.production.env.yaml \
-            --timeout=3600 --concurrency=1 --memory=1Gi --cpu=1 \
+            --timeout=3600 --concurrency=10 --min-instances=1 --max-instances=10 --memory=4Gi --cpu=2 \
+            --ingress=all \
             --service-account=${{ env.RUN_SA }} \
             --no-traffic --tag="${TAG}"
           url=$(gcloud run services describe atelier-api-production \

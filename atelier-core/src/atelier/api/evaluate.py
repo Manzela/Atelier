@@ -134,7 +134,15 @@ class DreamingArtifactSchema(BaseModel):
 
 
 class EvaluateResponse(BaseModel):
-    """Response body for POST /v1/evaluate."""
+    """Response body for POST /v1/evaluate.
+
+    L27: ``dreaming_artifact`` is DISPLAY-ONLY telemetry — the optimize asset this
+    SIMULATION surfaces in the trace/replay so an operator can SEE what a DPO pair
+    would look like. It is deliberately NOT written to the ``dpo_pairs`` training
+    table: ``/v1/evaluate`` runs the simulation library, not real user traffic, so
+    feeding its synthetic pairs into the live DPO flywheel would poison training
+    data. Real DPO pairs come only from production runs via the dreaming module.
+    """
 
     session_id: str
     results: list[SimulationResultSchema]
@@ -250,6 +258,54 @@ def _extract_dreaming_artifact(
     )
 
 
+def _build_trajectory_row(
+    *,
+    session_id: str,
+    tenant_id: str,
+    started_at: datetime,
+    ended_at: datetime,
+    results_count: int,
+    matched_count: int,
+    route: RouteDecisionSchema,
+    artifact: DreamingArtifactSchema | None,
+) -> dict[str, Any]:
+    """L14: build the ``trajectory_records`` row in the DEPLOYED narrow schema.
+
+    The deployed table is ``(session_id, tenant_id, node_name, phase, expert_id,
+    occurred_at, payload JSON, embedding)``. The previous wide row named columns the
+    table does not have (``ts``, ``ended_at``, ``outcome``, ``composite_score`` …)
+    AND omitted the REQUIRED ``phase`` + ``occurred_at``, so every
+    ``insert_rows_json`` failed 'no such field' — swallowed as a WARNING — and
+    nothing was ever replayable. All per-run detail (including the AT-027 route
+    decision + dreaming artifact that ``GET /v1/replay`` surfaces) now rides the
+    JSON ``payload``; ``api.replay._unpack_event_row`` flattens it and maps
+    ``occurred_at`` -> ``ts`` and ``route_decisions`` -> ``route_decisions_json``,
+    so the row round-trips through replay.
+    """
+    return {
+        "session_id": session_id,
+        "tenant_id": tenant_id,
+        "node_name": "evaluate.simulation",
+        "phase": "completed",
+        "expert_id": None,
+        "occurred_at": ended_at.isoformat(),
+        "payload": json.dumps(
+            {
+                "trajectory_id": str(uuid4()),
+                "project_id": tenant_id,
+                "started_at": started_at.isoformat(),
+                "ended_at": ended_at.isoformat(),
+                "outcome": "completed",
+                "composite_score": (matched_count / results_count) if results_count else 0.0,
+                "candidate_id": session_id,
+                "iteration": 0,
+                "route_decisions": [route.model_dump()],
+                "dreaming_artifacts": [artifact.model_dump()] if artifact else [],
+            }
+        ),
+    }
+
+
 async def _persist_trace(
     *,
     session_id: str,
@@ -263,10 +319,10 @@ async def _persist_trace(
 ) -> None:
     """Persist ONE trajectory row carrying the optimize assets (fail-soft).
 
-    The row uses the wide replay schema that ``atelier.api.replay`` reads, plus
-    two AT-027 JSON columns (``route_decisions_json``, ``dreaming_artifacts_json``)
-    so ``GET /v1/replay/{session_id}`` surfaces both arrays. A BQ failure is
-    logged and swallowed (PRD §21) — telemetry must never fail the eval response.
+    The row uses the deployed NARROW ``trajectory_records`` schema (L14); the
+    optimize detail rides the JSON ``payload`` that ``GET /v1/replay/{session_id}``
+    unpacks. A BQ failure is logged and swallowed (PRD §21) — telemetry must never
+    fail the eval response.
     """
     client = bq_client if bq_client is not None else _make_bq_client()
     if client is None:
@@ -274,25 +330,16 @@ async def _persist_trace(
         return
 
     ended_at = datetime.now(tz=UTC)
-    row: dict[str, Any] = {
-        "session_id": session_id,
-        "tenant_id": tenant_id,
-        "trajectory_id": str(uuid4()),
-        "project_id": tenant_id,
-        "node_name": "evaluate.simulation",
-        "ts": started_at.isoformat(),
-        "ended_at": ended_at.isoformat(),
-        "outcome": "completed",
-        "composite_score": (matched_count / results_count) if results_count else 0.0,
-        "candidate_id": session_id,
-        "iteration": 0,
-        "total_cost_usd": 0.0,
-        "total_input_tokens": 0,
-        "total_output_tokens": 0,
-        "judge_votes_json": "[]",
-        "route_decisions_json": json.dumps([route.model_dump()]),
-        "dreaming_artifacts_json": json.dumps([artifact.model_dump()] if artifact else []),
-    }
+    row: dict[str, Any] = _build_trajectory_row(
+        session_id=session_id,
+        tenant_id=tenant_id,
+        started_at=started_at,
+        ended_at=ended_at,
+        results_count=results_count,
+        matched_count=matched_count,
+        route=route,
+        artifact=artifact,
+    )
 
     try:
         loop = asyncio.get_running_loop()

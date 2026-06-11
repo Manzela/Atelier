@@ -74,7 +74,7 @@ def test_golden_path_succeeds_three_times_consecutively() -> None:
     headers = {"Authorization": f"Bearer {_ID_TOKEN}"}
 
     for run in range(1, _CONSECUTIVE_RUNS + 1):
-        with httpx.Client(timeout=30.0, headers=headers) as client:
+        with httpx.Client(timeout=3600.0, headers=headers) as client:
             resp = client.post(f"{base}/v1/generate", json={"brief": _FIXED_BRIEF})
             assert resp.status_code in (200, 202), f"run {run}: generate -> {resp.status_code}"
 

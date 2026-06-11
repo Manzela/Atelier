@@ -345,6 +345,34 @@ def _build_gate_scores(judge_votes_json_raw: str) -> list[GateScore]:
 # ---------------------------------------------------------------------------
 
 
+def _unpack_bq_row(row: dict[str, Any]) -> dict[str, Any]:
+    """Unpack event-level BQ row payload into a flat dictionary matching wide schema."""
+    unpacked = dict(row)
+    raw_payload = row.get("payload")
+    if raw_payload:
+        try:
+            payload_dict = json.loads(raw_payload) if isinstance(raw_payload, str) else raw_payload
+            if isinstance(payload_dict, dict):
+                unpacked.update(payload_dict)
+        except Exception:  # noqa: BLE001, S110
+            pass
+    # Normalize keys
+    if "occurred_at" in row:
+        unpacked["ts"] = row["occurred_at"]
+    elif "ts" in row:
+        unpacked["ts"] = row["ts"]
+    elif "started_at" in unpacked:
+        unpacked["ts"] = unpacked["started_at"]
+
+    if "route_decisions" in unpacked and "route_decisions_json" not in unpacked:
+        unpacked["route_decisions_json"] = json.dumps(unpacked["route_decisions"])
+    if "dreaming_artifacts" in unpacked and "dreaming_artifacts_json" not in unpacked:
+        unpacked["dreaming_artifacts_json"] = json.dumps(unpacked["dreaming_artifacts"])
+    if "judge_votes" in unpacked and "judge_votes_json" not in unpacked:
+        unpacked["judge_votes_json"] = json.dumps(unpacked["judge_votes"])
+    return unpacked
+
+
 async def _load_session_replay(
     session_id: str,
     tenant_id: str | None = None,
@@ -397,13 +425,13 @@ async def _load_session_replay(
         fqn = _TRAJECTORY_TABLE
         query = (
             f"SELECT * FROM `{fqn}` "  # noqa: S608
-            f"{where} ORDER BY ts ASC"
+            f"{where} ORDER BY occurred_at ASC"
         )
         job_config = bigquery.QueryJobConfig(query_parameters=params)
         query_job = client.query(query, job_config=job_config)
         loop = asyncio.get_running_loop()
         result_rows = await loop.run_in_executor(None, query_job.result)
-        rows = [dict(r) for r in result_rows]
+        rows = [_unpack_bq_row(dict(r)) for r in result_rows]
 
         if not rows:
             logger.info(
@@ -552,17 +580,17 @@ async def list_recent_runs(
 
     capped = max(1, min(int(limit), 100))
     try:
-        # One row per session: the latest trajectory record (by ts) per
+        # One row per session: the latest trajectory record (by occurred_at) per
         # session_id, scoped to the tenant. Parameterised throughout.
         fqn = _TRAJECTORY_TABLE
         query = (
             "SELECT t.* FROM ("  # noqa: S608
             f"  SELECT *, ROW_NUMBER() OVER ("
-            "    PARTITION BY session_id ORDER BY ts DESC"
+            "    PARTITION BY session_id ORDER BY occurred_at DESC"
             "  ) AS _rn"
             f"  FROM `{fqn}` WHERE tenant_id = @tenant_id"
             ") AS t WHERE t._rn = 1 "
-            "ORDER BY t.ts DESC LIMIT @limit"
+            "ORDER BY t.occurred_at DESC LIMIT @limit"
         )
         params: list[Any] = [
             bigquery.ScalarQueryParameter("tenant_id", "STRING", tenant_id),
@@ -572,7 +600,7 @@ async def list_recent_runs(
         query_job = client.query(query, job_config=job_config)
         loop = asyncio.get_running_loop()
         result_rows = await loop.run_in_executor(None, query_job.result)
-        rows = [dict(r) for r in result_rows]
+        rows = [_unpack_bq_row(dict(r)) for r in result_rows]
     except Exception as exc:  # noqa: BLE001
         logger.warning(
             "Failed to list recent runs from BQ (fail-soft): %s: %s",
