@@ -743,14 +743,22 @@ _TRACE_SUMMARY_CHARS: int = 200
 
 
 def _trace_summary(texts: list[Any]) -> str:
-    """A formatted, full trace of a specialist's output (AT-026 trace).
+    """A bounded preview of a specialist's output for the legibility trace (AT-026).
 
-    Joins the event's text parts with newlines, preserving all code formatting
-    and newlines, without collapsing or truncating, so the legibility trace shows
-    the complete output.
+    Joins the event's text parts with newlines, then truncates to
+    ``_TRACE_SUMMARY_CHARS`` (L49). The cap exists for two reasons: the trace panel
+    only renders a preview (the full surface HTML reaches the client via the
+    ``screen_converged``/``complete`` events, not this field), and an untruncated
+    summary — a full HTML document for the UIDesigner — produces a very large SSE
+    ``data:`` frame that is far more likely to straddle a TCP/proxy chunk boundary
+    (the L07 parser hazard). Bounding it keeps the trace honest and the wire small.
     """
     joined = "\n".join(str(t) for t in texts if t).strip()
-    return joined or "(no output)"
+    if not joined:
+        return "(no output)"
+    if len(joined) > _TRACE_SUMMARY_CHARS:
+        return joined[:_TRACE_SUMMARY_CHARS] + "…"
+    return joined
 
 
 def _default_session_service() -> BaseSessionService:

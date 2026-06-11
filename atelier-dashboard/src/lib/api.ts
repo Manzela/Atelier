@@ -1,4 +1,5 @@
 import type { DesignSystem } from './design-system';
+import { SSEStreamParser } from './sse-parser';
 
 /**
  * AT-030 / AT-025: a domain Tier-1 standard the planner proposes applying by
@@ -366,6 +367,29 @@ export const getApiUrl = () => {
   return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 };
 
+/**
+ * Read an error response body EXACTLY ONCE (L16). A `Response` body is a
+ * single-use stream: the prior pattern called `response.json()` and then
+ * `response.text()` in the catch, which throws "body stream already read" and
+ * masks the real HTTP status with that TypeError. We read the text once, then try
+ * to parse it as JSON, falling back to the raw text — so a non-JSON 4xx/5xx still
+ * surfaces its true status and detail.
+ */
+async function readErrorDetail(response: Response): Promise<string> {
+  let text = '';
+  try {
+    text = await response.text();
+  } catch {
+    return '';
+  }
+  try {
+    const body = JSON.parse(text) as Record<string, unknown>;
+    return typeof body.detail === 'string' ? body.detail : JSON.stringify(body);
+  } catch {
+    return text;
+  }
+}
+
 export async function runGenerationStream(
   brief: string,
   token: string | null,
@@ -398,31 +422,17 @@ export async function runGenerationStream(
 
     if (!response.ok) {
       if (response.status === 429) {
-        let detail = '';
-        try {
-          const body = await response.json();
-          detail = typeof body.detail === 'string' ? body.detail : JSON.stringify(body);
-        } catch {
-          detail = await response.text();
-        }
         // AT-094 (R9): pass the server's branded stop through verbatim; when the
         // body carries none, leave detail empty so the UI renders the SPEC-EXACT
         // TOKEN_CAP_MESSAGE fallback (PRD §13.2) rather than a paraphrase.
+        const detail = await readErrorDetail(response);
         callbacks.onCapReached?.({ detail });
         return;
       }
-      let errorDetail = '';
-      try {
-        const errorJson = await response.json();
-        // FastAPI returns `detail` as a string for HTTPException, but as an OBJECT
-        // (or array) for request-validation errors and some auth failures. A bare
-        // `errorJson.detail` then renders "HTTP 401: [object Object]" via template
-        // coercion — stringify any non-string detail so the user sees real text.
-        errorDetail =
-          typeof errorJson.detail === 'string' ? errorJson.detail : JSON.stringify(errorJson);
-      } catch {
-        errorDetail = await response.text();
-      }
+      // readErrorDetail stringifies a non-string FastAPI `detail` (object/array for
+      // request-validation / some auth failures) so the user sees real text rather
+      // than "HTTP 401: [object Object]".
+      const errorDetail = await readErrorDetail(response);
       callbacks.onError?.(`HTTP ${response.status}: ${errorDetail}`);
       return;
     }
@@ -434,7 +444,10 @@ export async function runGenerationStream(
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder('utf-8');
-    let buffer = '';
+    // L07: a single stateful parser owns the line buffer AND the pending event
+    // name across chunk boundaries, so a frame whose event:/data: lines straddle a
+    // network chunk is reassembled with its name intact (see sse-parser.ts).
+    const parser = new SSEStreamParser();
 
     // A run ends with exactly one terminal event (complete / error / cap_reached
     // / stop). If the stream closes WITHOUT one AFTER generation has started
@@ -468,27 +481,25 @@ export async function runGenerationStream(
       const { done, value } = await reader.read();
       if (done) break;
 
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
-
-      let currentEvent = '';
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (trimmed.startsWith('event:')) {
-          currentEvent = trimmed.slice(6).trim();
-        } else if (trimmed.startsWith('data:')) {
-          const dataStr = trimmed.slice(5).trim();
-          try {
-            const parsedData = JSON.parse(dataStr);
-            triggerCallback(currentEvent, parsedData, callbacks);
-          } catch (e) {
-            console.error('Failed to parse SSE data JSON:', e, dataStr);
-          }
-          if (TERMINAL_EVENTS.has(currentEvent)) sawTerminalEvent = true;
-          if (PROGRESS_EVENTS.has(currentEvent)) sawGenerationProgress = true;
-          currentEvent = '';
+      for (const frame of parser.push(decoder.decode(value, { stream: true }))) {
+        // L18: parse and dispatch are separate try-blocks. A throw from a render
+        // callback must not be mislabeled as (and silently swallowed by) the JSON
+        // parse-error path — it surfaces a distinct, honest onError instead.
+        let parsedData: Record<string, unknown>;
+        try {
+          parsedData = JSON.parse(frame.data);
+        } catch (e) {
+          console.error('Failed to parse SSE data JSON:', e, frame.data);
+          continue;
         }
+        try {
+          triggerCallback(frame.event, parsedData, callbacks);
+        } catch (e) {
+          console.error(`Failed to handle SSE ${frame.event} event:`, e);
+          callbacks.onError?.(`Failed to handle ${frame.event} event`);
+        }
+        if (TERMINAL_EVENTS.has(frame.event)) sawTerminalEvent = true;
+        if (PROGRESS_EVENTS.has(frame.event)) sawGenerationProgress = true;
       }
     }
 
@@ -574,9 +585,28 @@ function triggerCallback(event: string, data: Record<string, unknown>, callbacks
       // handler — swallow it explicitly rather than logging a misleading
       // "Unhandled SSE event" warning during an otherwise-honest degraded run.
       break;
-    default:
+    default: {
+      // L07 defense-in-depth: if a frame ever reaches here with a recoverable
+      // shape (e.g. a future straddle the parser can't name, or a renamed event),
+      // route it by payload shape so user-visible HTML is never silently lost,
+      // rather than dropping it with only a warning.
+      const d = data as Record<string, unknown>;
+      if (typeof d.screen === 'string' && d.iteration !== undefined && typeof d.html === 'string') {
+        callbacks.onScreenConverged?.(data as unknown as ScreenConvergedData);
+        break;
+      }
+      if (
+        typeof d.screen === 'string' &&
+        d.iteration !== undefined &&
+        typeof d.role === 'string' &&
+        d.summary !== undefined
+      ) {
+        callbacks.onSpecialistTrace?.(data as unknown as SpecialistTraceData);
+        break;
+      }
       // nosemgrep: javascript.lang.security.audit.unsafe-formatstring.unsafe-formatstring -- template literal, not a printf-style format string; no format-specifier injection is possible.
       console.warn(`Unhandled SSE event: ${event}`, data);
+    }
   }
 }
 
@@ -642,13 +672,7 @@ export async function authedGet<T>(path: string, token: string, signal?: AbortSi
     signal,
   });
   if (!response.ok) {
-    let detail = '';
-    try {
-      const body = (await response.json()) as Record<string, unknown>;
-      detail = typeof body.detail === 'string' ? body.detail : JSON.stringify(body);
-    } catch {
-      detail = await response.text();
-    }
+    const detail = await readErrorDetail(response); // L16: read body once
     throw new Error(`HTTP ${response.status}: ${detail}`);
   }
   return response.json() as Promise<T>;

@@ -31,8 +31,12 @@ resource "google_cloud_run_v2_service" "atelier_api" {
       }
       resources {
         limits = {
-          cpu    = "1"
-          memory = "512Mi"
+          # L22: the in-request axe a11y gate (the convergence-determiner) runs a
+          # headless Chromium per candidate; <~2Gi OOMs it and every candidate then
+          # fails the gate. 4Gi/2vCPU matches the gcloud-deploy flags so IaC and CD
+          # agree on the floor.
+          cpu    = "2"
+          memory = "4Gi"
         }
       }
       startup_probe {
@@ -117,9 +121,17 @@ resource "google_cloud_run_v2_service" "atelier_api" {
       }
     }
     scaling {
-      min_instance_count = 0
-      max_instance_count = 3
+      # L09 / JAM-BUG-2: min=0 + max=3 + per-instance concurrency=1 gave a
+      # 3-request hard ceiling, so a view-mount burst of /v1/platform/* preflights
+      # raced cold starts and Google Frontend shed one with a CORS-less 429. A warm
+      # baseline + headroom removes the capacity cliff.
+      min_instance_count = 1
+      max_instance_count = 10
     }
+    # L09: lift per-instance request concurrency so one warm instance absorbs the
+    # whole platform-read burst instead of forcing a scale-up race (kept in sync
+    # with the --concurrency flag on the gcloud deploy in .github/workflows/deploy.yml).
+    max_instance_request_concurrency = 10
   }
 
   depends_on = [
