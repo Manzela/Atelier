@@ -761,6 +761,23 @@ def _trace_summary(texts: list[Any]) -> str:
     return joined
 
 
+def _aggregate_convergence(screens_results: dict[str, Any]) -> tuple[bool, float]:
+    """L10: product-level convergence + composite across ALL surfaces.
+
+    The top-level ``converged`` / ``composite_score`` must describe the whole
+    multi-surface product, not just ``surfaces[0]``. The product converged only if
+    EVERY surface converged; the composite is the weakest surface (``min``) so a
+    single non-converged surface can never be masked by a strong first surface
+    (``generate.py`` derives the user-facing ``degraded`` flag from this). An empty
+    result set is, conservatively, not converged.
+    """
+    if not screens_results:
+        return (False, 0.0)
+    converged = all(bool(res["converged"]) for res in screens_results.values())
+    composite = min(float(res["composite_score"]) for res in screens_results.values())
+    return (converged, composite)
+
+
 def _default_session_service() -> BaseSessionService:
     """Create the default session service from ``SESSION_BACKEND`` (B4, AT-080).
 
@@ -2641,6 +2658,11 @@ class AtelierRunner:
             TOKEN_CAP_MESSAGE if cap_hit_any_surface else first_screen_res["user_message"]
         )
 
+        # L10: the honesty signals (converged / composite) aggregate across every
+        # surface; the display fields (best_candidate / candidates / evaluations)
+        # remain the primary surface — that is the canvas the user sees.
+        top_converged, top_composite = _aggregate_convergence(screens_results)
+
         response_payload = {
             "brief": brief,
             "project_context": project_ctx,
@@ -2648,8 +2670,8 @@ class AtelierRunner:
             "best_candidate": first_screen_res["best_candidate"],
             "convergence_iteration": first_screen_res["convergence_iteration"],
             "exit_reason": top_exit_reason,
-            "converged": first_screen_res["converged"],
-            "composite_score": first_screen_res["composite_score"],
+            "converged": top_converged,
+            "composite_score": top_composite,
             "candidates_evaluated": first_screen_res["candidates_evaluated"],
             "candidates_passed_gates": first_screen_res["candidates_passed_gates"],
             "gate_results": first_screen_res["gate_results"],

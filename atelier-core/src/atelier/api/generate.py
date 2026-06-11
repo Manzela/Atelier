@@ -1231,4 +1231,18 @@ async def generate_stream(  # noqa: C901, PLR0915 — SSE orchestrator: nested p
 
         await task
 
-    return StreamingResponse(sse_generator(), media_type="text/event-stream")
+    return StreamingResponse(
+        sse_generator(),
+        media_type="text/event-stream",
+        # L48: keep the event stream un-buffered end-to-end. Without these,
+        # intermediary proxies / the Cloud Run front end may buffer or chunk the
+        # response in ways that enlarge and re-split SSE frames (compounding the
+        # L07 chunk-straddle hazard) or delay live events. `X-Accel-Buffering: no`
+        # disables proxy buffering; `Cache-Control: no-cache` forbids caching the
+        # stream; keep-alive holds the connection open for the run's duration.
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
+    )

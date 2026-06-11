@@ -336,10 +336,15 @@ async def a2a_rpc(
     try:
         return await handler(request.params, request.id, user)
     except Exception as exc:
+        # L42 (CWE-117): request.method is attacker-controlled JSON-RPC input;
+        # sanitize it before logging so a crafted method name cannot forge or split
+        # log lines (the same guard this module already applies to uid).
+        from atelier.utils.log_sanitizer import sanitize  # noqa: PLC0415
+
         logger.exception(
             "a2a.rpc.error",
             extra={
-                "method": request.method,
+                "method": sanitize(request.method),
                 "error": str(exc)[:200],
             },
         )

@@ -343,6 +343,15 @@ class UsageCounterStore:
 
         Negative deltas are rejected (a counter only grows) — defends against a
         bug or tampered delta silently lowering usage below the cap.
+
+        L52: the return is the new cumulative total in the normal case. The one
+        exception is the Firestore backend when the post-write read-back degrades
+        (the write COMMITTED but the confirming read raised): there the method
+        returns ``delta`` as a floor and logs ``postwrite_read_degraded``, because
+        the true cumulative is momentarily unreadable. Callers needing an exact
+        cumulative after a possible degrade must re-``snapshot``; today every caller
+        discards the return, so the floor is harmless — but a future consumer (e.g.
+        re-seeding the governor for L12) must account for it.
         """
         if input_tokens < 0 or output_tokens < 0 or thinking_tokens < 0:
             raise ValueError("token deltas must be non-negative")

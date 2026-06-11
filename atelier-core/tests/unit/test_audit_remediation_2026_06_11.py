@@ -141,3 +141,81 @@ def test_stop_by_one_user_cannot_halt_another_users_run() -> None:
     finally:
         clear_stop(owner_key)
         clear_stop(attacker_key)
+
+
+# --- L10: top-level convergence must aggregate across ALL surfaces ---------------
+
+
+def test_aggregate_convergence_requires_every_surface() -> None:
+    from atelier.orchestrator.runner import _aggregate_convergence
+
+    # surfaces[0] converged strongly, a later surface did NOT — the product must
+    # report NOT converged, and the composite must be the weakest surface (not 0.9).
+    screens = {
+        "home": {"converged": True, "composite_score": 0.9},
+        "settings": {"converged": False, "composite_score": 0.4},
+    }
+    converged, composite = _aggregate_convergence(screens)
+    assert converged is False
+    assert composite == 0.4
+
+
+def test_aggregate_convergence_all_converged() -> None:
+    from atelier.orchestrator.runner import _aggregate_convergence
+
+    screens = {
+        "a": {"converged": True, "composite_score": 0.8},
+        "b": {"converged": True, "composite_score": 0.95},
+    }
+    converged, composite = _aggregate_convergence(screens)
+    assert converged is True
+    assert composite == 0.8
+
+
+def test_aggregate_convergence_empty_is_not_converged() -> None:
+    from atelier.orchestrator.runner import _aggregate_convergence
+
+    assert _aggregate_convergence({}) == (False, 0.0)
+
+
+# --- L14: evaluate trajectory row must match the DEPLOYED narrow BQ schema --------
+
+
+def test_evaluate_trajectory_row_matches_deployed_narrow_schema() -> None:
+    import json as _json
+    from datetime import UTC, datetime
+
+    from atelier.api.evaluate import _build_trajectory_row
+
+    class _Fake:
+        def model_dump(self) -> dict[str, object]:
+            return {"k": "v"}
+
+    now = datetime(2026, 6, 11, tzinfo=UTC)
+    row = _build_trajectory_row(
+        session_id="s1",
+        tenant_id="t1",
+        started_at=now,
+        ended_at=now,
+        results_count=10,
+        matched_count=7,
+        route=_Fake(),  # type: ignore[arg-type]
+        artifact=_Fake(),  # type: ignore[arg-type]
+    )
+    # Exactly the deployed trajectory_records writable columns (embedding omitted).
+    assert set(row.keys()) == {
+        "session_id",
+        "tenant_id",
+        "node_name",
+        "phase",
+        "expert_id",
+        "occurred_at",
+        "payload",
+    }
+    # Every REQUIRED column is present and non-None (the old row omitted phase + occurred_at).
+    for required in ("session_id", "tenant_id", "node_name", "phase", "occurred_at"):
+        assert row[required] is not None
+    # The optimize detail rides the JSON payload so GET /v1/replay can surface it.
+    payload = _json.loads(row["payload"])
+    assert payload["composite_score"] == 0.7
+    assert payload["route_decisions"] == [{"k": "v"}]
