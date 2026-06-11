@@ -52,7 +52,7 @@
     "atelier-core/tests/integration/test_design_system_enforcement.py": "1930f95b86d00d451d00d38c1df20e965fbd84c1bd1f138f181e528e71f556c4",
     "atelier-core/tests/integration/test_evaluate_endpoint.py": "5fa232b640f5a54059f034da531a51ff20e26d863a5b74b9f2c22d0149df84c2",
     "atelier-core/tests/integration/test_pipeline_n1_n2_n3a.py": "85858bd799ea5f7b54189df1d772c43dda3f65696da101c24f1db7f64d04c2c2",
-    "atelier-core/tests/unit/test_a2a_error_mapping.py": "544607739781bc47b5c1ab1610fe2ccf768740e71b6ebd997e5679b7ae9265a3",
+    "atelier-core/tests/unit/test_a2a_error_mapping.py": "c9ce48e1532bfe165e2ceb6843fa19c20ac42c4e0dd6df73779498493b89da93",
     "atelier-core/tests/unit/test_audit_remediation_2026_06_11.py": "b36c95d14415822365fc9085f7ed66e9e7f2bb73a3099c6f7efad1d0dff23fcd",
     "atelier-core/tests/unit/test_board_emitter.py": "adef32000d4fc9bc2a0b63c645968353412c1ea532ba1e3fcbdaed6e9e6c0d4f",
     "atelier-core/tests/unit/test_clarify.py": "69026cc18387e5867faf58258d634b6305433b73f5b3681a3fec70f8e5a913f8",
