@@ -538,7 +538,7 @@ export default function StudioClientShell({ id }: { id: string }) {
     router.push('/login');
   };
 
-  const [selectedModel, setSelectedModel] = useState('gemini-2.5-pro');
+  const [selectedModel, setSelectedModel] = useState('gemini-3.5-flash');
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   React.useEffect(() => {
@@ -1715,6 +1715,9 @@ export default function StudioClientShell({ id }: { id: string }) {
                 className="appearance-none bg-black/20 border border-[var(--g-outline)] rounded-md pl-2 pr-7 sm:px-3 sm:pr-8 py-1.5 text-xs text-white font-medium focus:outline-none focus:ring-1 focus:ring-[var(--g-primary-blue)] cursor-pointer max-w-[104px] sm:max-w-none truncate"
                 aria-label="Select Model"
               >
+                <option value="gemini-3.5-flash" className="bg-[var(--g-surface)] text-white">
+                  Gemini 3.5 Flash (High)
+                </option>
                 <option value="gemini-2.5-pro" className="bg-[var(--g-surface)] text-white">
                   Gemini 2.5 Pro
                 </option>

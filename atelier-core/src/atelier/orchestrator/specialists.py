@@ -55,7 +55,11 @@ from atelier.models.model_armor_callbacks import (
     model_armor_after_callback,
     model_armor_before_callback,
 )
-from atelier.models.model_registry import TaskType, calibrate_model
+from atelier.models.model_registry import (
+    HIGH_THINKING_MODEL_IDS,
+    TaskType,
+    calibrate_model,
+)
 from atelier.models.safety import default_model_armor_config
 
 logger = structlog.get_logger(__name__)
@@ -307,6 +311,13 @@ def _build_instruction(spec: _SpecialistSpec) -> InstructionProvider:
     return _provider
 
 
+#: Output-token ceiling for high-thinking models. Thinking tokens are drawn from
+#: the output budget, so a normal 4-8K ceiling is exhausted by reasoning before
+#: any HTML is emitted (finish_reason=MAX_TOKENS, content=None). 32K leaves room
+#: for the thinking budget plus a full inlined-CSS document (verified live).
+_HIGH_THINKING_MAX_OUTPUT_TOKENS: Final[int] = 32768
+
+
 def create_specialist_pipeline(
     *,
     model: str | BaseLlm | None = None,
@@ -364,6 +375,17 @@ def create_specialist_pipeline(
             config_args["top_k"] = top_k
         if max_tokens is not None:
             config_args["max_output_tokens"] = max_tokens
+        # Gemini 3.5 Flash is a thinking model — run it at high reasoning effort
+        # ("Gemini 3.5 Flash (High)"), the configured generation tier for it.
+        if isinstance(resolved_model, str) and resolved_model in HIGH_THINKING_MODEL_IDS:
+            config_args["thinking_config"] = genai_types.ThinkingConfig(thinking_level="high")
+            # High thinking spends the OUTPUT-token budget on reasoning first; with
+            # the default ceiling the model hits MAX_TOKENS mid-thought and returns
+            # empty content (the design never renders). Raise it so there is room
+            # for BOTH the thinking budget and the full HTML document.
+            config_args["max_output_tokens"] = max(
+                int(config_args.get("max_output_tokens") or 0), _HIGH_THINKING_MAX_OUTPUT_TOKENS
+            )
 
         sub_agents.append(
             LlmAgent(

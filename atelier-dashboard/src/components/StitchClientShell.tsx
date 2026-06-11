@@ -342,7 +342,7 @@ export default function StitchClientShell() {
     setTimeout(() => setCopiedField(null), 2000);
   };
 
-  const [selectedModel, setSelectedModel] = useState('gemini-2.5-pro');
+  const [selectedModel, setSelectedModel] = useState('gemini-3.5-flash');
   const [projects, setProjects] = useState<Project[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [voiceUnsupported, setVoiceUnsupported] = useState(false);
@@ -826,6 +826,12 @@ export default function StitchClientShell() {
                             className="appearance-none h-8 px-3 pr-8 rounded-full border border-[var(--g-outline)] bg-transparent text-xs sm:text-sm text-[var(--g-text)] hover:bg-[var(--g-surface-hover)] focus:outline-none focus:ring-1 focus:ring-[var(--g-primary-blue)] cursor-pointer transition-colors"
                             aria-label="Select Model"
                           >
+                            <option
+                              value="gemini-3.5-flash"
+                              className="bg-[var(--g-surface)] text-white"
+                            >
+                              Gemini 3.5 Flash (High)
+                            </option>
                             <option
                               value="gemini-2.5-pro"
                               className="bg-[var(--g-surface)] text-white"
