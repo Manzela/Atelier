@@ -84,9 +84,12 @@ async def stop_run(
 
         raise HTTPException(status_code=400, detail="Invalid session_id format.")
 
-    from atelier.orchestrator.stop_controller import request_stop  # noqa: PLC0415
+    from atelier.orchestrator.stop_controller import request_stop, stop_key  # noqa: PLC0415
 
-    request_stop(session_id)
+    # L04: arm the per-REQUESTER key. A non-owner's Stop arms a key the target run
+    # never polls (the runner reads only its own owner key), so a cross-tenant Stop
+    # is a structural no-op with no session-owner lookup and no existence oracle.
+    request_stop(stop_key(user.uid, session_id))
     logger.info(
         "atelier.generate.stop_requested",
         extra={"session_id": sanitize(session_id), "uid": sanitize(user.uid)},
@@ -1200,9 +1203,11 @@ async def generate_stream(  # noqa: C901, PLR0915 — SSE orchestrator: nested p
                 if _session_id_holder:
                     from atelier.orchestrator.stop_controller import (  # noqa: PLC0415
                         request_stop,
+                        stop_key,
                     )
 
-                    request_stop(_session_id_holder[0])
+                    # L04: the owner's own client disconnect arms the owner key.
+                    request_stop(stop_key(user.uid, _session_id_holder[0]))
                 task.cancel()
                 break
 

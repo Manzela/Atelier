@@ -61,6 +61,24 @@ def _evict_expired_locked(now: float) -> None:
         del _STOP_REQUESTED[sid]
 
 
+def stop_key(user_id: str, session_id: str) -> str:
+    """Compose the per-OWNER stop-registry key (L04 — cross-tenant IDOR fix).
+
+    The registry is keyed on (owner uid, session_id), NOT a bare ``session_id``, so
+    a Stop armed by one user can never halt another user's in-flight run: the
+    convergence loop only ever polls the key built from ITS OWN owner uid, and the
+    ``POST /v1/stop`` handler arms the key built from the REQUESTER's uid. A cross-
+    user stop therefore arms a key the victim's run never reads (and leaks no
+    existence oracle — the handler still returns the same 200 regardless).
+
+    An empty uid or session yields the empty key, preserving the existing
+    "empty session is a harmless no-op" contract of :func:`request_stop`.
+    """
+    if not user_id or not session_id:
+        return ""
+    return f"{user_id}\x1f{session_id}"
+
+
 def request_stop(session_id: str) -> None:
     """Arm a Stop for ``session_id`` (idempotent). The loop halts within one iteration.
 

@@ -21,10 +21,12 @@
 import React, { useState } from 'react';
 import { Workflow, Search, ExternalLink, Info } from 'lucide-react';
 import type { SpecialistTraceData, ResearchQueryData } from '@/lib/api';
+import { stageIndex } from '@/lib/agent-ordering';
 import { DORAV_AXIS_META } from './dorav';
 
 export interface TracePanelProps {
-  /** AT-026: one entry per DDLC specialist hand-off, in arrival order. */
+  /** AT-026: one entry per DDLC specialist hand-off (sorted to canonical stage
+   * order at render time via the shared agent-ordering module, L08). */
   specialistTraces: SpecialistTraceData[];
   /** AT-026: one entry per WRAI research query, in arrival order. */
   researchQueries: ResearchQueryData[];
@@ -146,25 +148,33 @@ export default function TracePanel({ specialistTraces, researchQueries }: TraceP
       {/* Specialist hand-offs — one row per DDLC role as it completes. */}
       {specialistTraces.length > 0 ? (
         <dl data-testid="trace-specialists" className="space-y-1">
-          {specialistTraces.map((t, i) => (
-            <div
-              key={`${t.role}-${t.iteration}-${i}`}
-              data-testid={`trace-specialist-row-${t.role}`}
-              className="rounded bg-black/20 border border-[var(--g-outline)] px-2 py-1.5"
-            >
-              <dt className="flex items-center justify-between gap-2">
-                <span className="text-[10px] font-semibold text-[var(--g-success)]">
-                  {roleLabel(t.role)}
-                </span>
-                <span className="text-[9px] font-mono text-[var(--g-text-muted)]">
-                  iter {t.iteration + 1}
-                </span>
-              </dt>
-              <dd className="mt-0.5 text-[10px] text-[var(--g-text-muted)] whitespace-pre-wrap">
-                {t.summary}
-              </dd>
-            </div>
-          ))}
+          {/* L08: render in canonical stage order (grouped by iteration), not SSE
+              arrival order, so the trace reads top-to-bottom and matches the
+              topology graph + Build roster. Sort is stable for equal keys. */}
+          {[...specialistTraces]
+            .sort(
+              (a, b) =>
+                (a.iteration ?? 0) - (b.iteration ?? 0) || stageIndex(a.role) - stageIndex(b.role)
+            )
+            .map((t, i) => (
+              <div
+                key={`${t.role}-${t.iteration}-${i}`}
+                data-testid={`trace-specialist-row-${t.role}`}
+                className="rounded bg-black/20 border border-[var(--g-outline)] px-2 py-1.5"
+              >
+                <dt className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-semibold text-[var(--g-success)]">
+                    {roleLabel(t.role)}
+                  </span>
+                  <span className="text-[9px] font-mono text-[var(--g-text-muted)]">
+                    iter {t.iteration + 1}
+                  </span>
+                </dt>
+                <dd className="mt-0.5 text-[10px] text-[var(--g-text-muted)] whitespace-pre-wrap">
+                  {t.summary}
+                </dd>
+              </div>
+            ))}
         </dl>
       ) : (
         <p className="text-[10px] text-[var(--g-text-muted)] italic">No specialist activity yet.</p>

@@ -107,3 +107,37 @@ def test_trace_summary_truncates_to_cap() -> None:
 
 def test_trace_summary_short_text_is_unchanged() -> None:
     assert _trace_summary(["hello"]) == "hello"
+
+
+# --- L04: the cooperative Stop is namespaced per owner (cross-tenant IDOR) --------
+
+
+def test_stop_key_is_namespaced_per_user() -> None:
+    from atelier.orchestrator.stop_controller import stop_key
+
+    assert stop_key("userA", "sess-1") != stop_key("userB", "sess-1")
+    # An empty owner or session yields the empty (no-op) key.
+    assert stop_key("", "sess-1") == ""
+    assert stop_key("userA", "") == ""
+
+
+def test_stop_by_one_user_cannot_halt_another_users_run() -> None:
+    from atelier.orchestrator.stop_controller import (
+        clear_stop,
+        is_stop_requested,
+        request_stop,
+        stop_key,
+    )
+
+    owner_key = stop_key("owner-uid", "sess-shared")
+    attacker_key = stop_key("attacker-uid", "sess-shared")
+    request_stop(attacker_key)  # attacker tries to stop a session they do not own
+    try:
+        # The victim's run only ever polls ITS OWN owner key — which is not armed.
+        assert is_stop_requested(owner_key) is False
+        # The owner's own Stop is honored.
+        request_stop(owner_key)
+        assert is_stop_requested(owner_key) is True
+    finally:
+        clear_stop(owner_key)
+        clear_stop(attacker_key)

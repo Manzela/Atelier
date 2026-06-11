@@ -88,7 +88,7 @@ from atelier.orchestrator.governor import (
 )
 from atelier.orchestrator.planner import PlanStep
 from atelier.orchestrator.specialists import create_specialist_pipeline, get_specialist_specs
-from atelier.orchestrator.stop_controller import clear_stop, is_stop_requested
+from atelier.orchestrator.stop_controller import clear_stop, is_stop_requested, stop_key
 from atelier.orchestrator.stop_reason import (
     StopReason,
     StopSignals,
@@ -1997,7 +1997,8 @@ class AtelierRunner:
                 # calls after Stop). On Stop we persist a durable checkpoint (so a
                 # resume continues from N1/N2 without re-running them), emit a `stop`
                 # event so the UI acknowledges the halt, and break the loop.
-                if is_stop_requested(session_id):
+                # L04: poll the per-OWNER key so only THIS run's owner can halt it.
+                if is_stop_requested(stop_key(user_id, session_id)):
                     await self._persist_stop_checkpoint(
                         brief=brief,
                         project_ctx=project_ctx,
@@ -2008,7 +2009,7 @@ class AtelierRunner:
                         brief_text=brief_text,
                         user_id=user_id,
                     )
-                    clear_stop(session_id)
+                    clear_stop(stop_key(user_id, session_id))
                     exit_reason = StopReason.STOPPED
                     user_message = (
                         "Generation was stopped at your request. Progress up to this "

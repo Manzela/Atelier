@@ -13,6 +13,7 @@ import type {
   TopologyGraphSpec,
 } from '@/lib/api';
 import { getAgent } from '@/lib/api';
+import { stageIndex } from '@/lib/agent-ordering';
 
 // ---------------------------------------------------------------------------
 // Internal helpers
@@ -338,8 +339,15 @@ export default function PillarBuild() {
 
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
 
-  // The /agents endpoint returns an envelope; the roster lives on `.agents`.
-  const agents = agentsData?.available ? agentsData.agents : null;
+  // The /agents endpoint returns an envelope; the roster lives on `.agents`. L08:
+  // sort it into canonical pipeline order (shared agent-ordering module) so the
+  // Build roster matches the run trace and topology graph instead of raw endpoint
+  // order — and so the agents[0] auto-select below is the canonical-first agent.
+  const agents = agentsData?.available
+    ? [...agentsData.agents].sort(
+        (a, b) => stageIndex(a.task_type ?? a.id) - stageIndex(b.task_type ?? b.id)
+      )
+    : null;
 
   // Auto-select the first agent when the list loads. Deriving the effective
   // selection here (rather than committing it in an effect) keeps the render

@@ -45,6 +45,7 @@ from atelier.orchestrator.stop_controller import (
     clear_stop,
     is_stop_requested,
     request_stop,
+    stop_key,
 )
 from atelier.orchestrator.stop_reason import StopReason
 from google.adk.sessions.in_memory_session_service import InMemorySessionService
@@ -315,7 +316,8 @@ async def test_stop_halts_within_one_iteration_no_model_call_after() -> None:
         if event_type == "screen_start":
             sid = payload.get("session_id") or captured_session.get("id", "")
             if sid:
-                request_stop(sid)
+                # L04: the runner now polls the per-owner key; arm it the same way.
+                request_stop(stop_key(_USER, sid))
 
     # We need the session id; capture it from the plan event the runner emits.
     async def progress_with_capture(event_type: str, payload: dict[str, Any]) -> None:
@@ -330,7 +332,7 @@ async def test_stop_halts_within_one_iteration_no_model_call_after() -> None:
             calls_after = _FakeSpecialistRunner.model_calls
     finally:
         for sid in list(captured_session.values()):
-            clear_stop(sid)
+            clear_stop(stop_key(_USER, sid))
 
     # The stop event fired and the run reported the STOPPED exit reason.
     assert any(t == "stop" for t, _ in events), "a stop event must be emitted on halt"
@@ -378,7 +380,7 @@ async def test_resume_after_stop_continues() -> None:
         if event_type == "plan" and payload.get("session_id"):
             captured["id"] = str(payload["session_id"])
         if event_type == "screen_start" and captured.get("id"):
-            request_stop(captured["id"])
+            request_stop(stop_key(_USER, captured["id"]))
 
     try:
         with _PatchStack(_offline_patches()):
