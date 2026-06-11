@@ -166,12 +166,18 @@ class GenerateRequest(BaseModel):
         if value is None:
             return None
         from atelier.models.model_registry import (  # noqa: PLC0415
+            SELECTABLE_MODEL_OVERRIDES,
             get_model_catalog,
             normalize_model_id,
         )
 
         normalized = normalize_model_id(value.strip())
-        allowed = {entry.model_id for entry in get_model_catalog()}
+        # The allow-list is the routing-derived catalog PLUS the explicit
+        # user-selectable overrides (e.g. gemini-3.5-flash) — overrides are
+        # offered in the picker but are not production routing targets.
+        allowed = {entry.model_id for entry in get_model_catalog()} | set(
+            SELECTABLE_MODEL_OVERRIDES
+        )
         if normalized not in allowed:
             raise ValueError(
                 f"model must be one of {sorted(allowed)} (operator-served catalog); got {value!r}"

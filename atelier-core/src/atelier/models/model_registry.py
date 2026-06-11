@@ -56,6 +56,27 @@ GEMINI_FLASH_MODEL_ID: Final[str] = "gemini-2.5-flash"
 #: stable alias is the correct production string.
 GEMINI_FLASH_LITE_MODEL_ID: Final[str] = "gemini-2.5-flash-lite"
 
+#: Gemini 3.5 Flash — served ONLY on the Vertex ``global`` endpoint (404 on
+#: regional). A user-selectable generation model offered in the UI as
+#: "Gemini 3.5 Flash (High)"; the specialist pipeline runs it with
+#: ``thinking_level="high"``. Not a routing target — production task routing is
+#: unchanged; this is an explicit override (see SELECTABLE_MODEL_OVERRIDES).
+GEMINI_3_5_FLASH_MODEL_ID: Final[str] = "gemini-3.5-flash"
+
+#: Gemini-3 model ids that the specialist pipeline drives at high thinking level.
+HIGH_THINKING_MODEL_IDS: Final[frozenset[str]] = frozenset({GEMINI_3_5_FLASH_MODEL_ID})
+
+#: Models served ONLY on the Vertex ``global`` endpoint (regional endpoints 404).
+#: The specialist pipeline pins these to a global-located client regardless of the
+#: deploy region (``GOOGLE_CLOUD_LOCATION``), so they work in production
+#: (us-central1) — not just where the operator happens to run ``global``.
+GLOBAL_ENDPOINT_MODEL_IDS: Final[frozenset[str]] = frozenset({GEMINI_3_5_FLASH_MODEL_ID})
+
+#: Models a user may pin via the request ``model`` override beyond the
+#: routing-derived ``get_model_catalog()``. Accepted by the L05 GenerateRequest
+#: gate and surfaced in the model picker, without rerouting any production task.
+SELECTABLE_MODEL_OVERRIDES: Final[frozenset[str]] = frozenset({GEMINI_3_5_FLASH_MODEL_ID})
+
 # ---------------------------------------------------------------------------
 # Per-tier lifetime token caps (user.spec: Pro 5M, Flash 15M, Flash-Lite 60M)
 # ---------------------------------------------------------------------------
@@ -507,6 +528,7 @@ _MODEL_DISPLAY_NAMES: Final[dict[str, str]] = {
     DEFAULT_GEMINI_MODEL_ID: "Gemini 2.5 Pro",
     GEMINI_FLASH_MODEL_ID: "Gemini 2.5 Flash",
     GEMINI_FLASH_LITE_MODEL_ID: "Gemini 2.5 Flash-Lite",
+    GEMINI_3_5_FLASH_MODEL_ID: "Gemini 3.5 Flash (High)",
 }
 
 

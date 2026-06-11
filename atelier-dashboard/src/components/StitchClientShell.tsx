@@ -827,6 +827,12 @@ export default function StitchClientShell() {
                             aria-label="Select Model"
                           >
                             <option
+                              value="gemini-3.5-flash"
+                              className="bg-[var(--g-surface)] text-white"
+                            >
+                              Gemini 3.5 Flash (High)
+                            </option>
+                            <option
                               value="gemini-2.5-pro"
                               className="bg-[var(--g-surface)] text-white"
                             >
