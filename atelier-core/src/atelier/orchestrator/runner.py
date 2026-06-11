@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import asyncio
 import dataclasses
+import html as html_lib
 import json
 import logging
 import os
@@ -327,6 +328,39 @@ def _non_convergence_message(iteration: int) -> str:
     )
 
 
+def _unrenderable_acknowledgment_document(raw: str) -> str:
+    """A minimal, valid, honest document for the no-renderable-candidate last resort.
+
+    RC-4 (never-blank): when not one N3a event produced gradable HTML — every
+    candidate was prose / markdown narration — the prior code served
+    ``raw_candidates[0]`` verbatim, which renders as a blank, non-responsive
+    canvas (the staging symptom the operator flagged). Serving raw prose as
+    "the design" is both broken (nothing renders) and dishonest (it was never a
+    screen). This instead wraps the raw output in a real document that states
+    plainly the surface could not be rendered and preserves the raw text
+    (HTML-escaped) for reference — the fail-soft credibility stance (R9): the
+    canvas is never blank, and Atelier never presents a non-design as a design.
+    """
+    escaped = html_lib.escape(raw.strip()) or "No output was produced for this surface."
+    return (
+        '<!DOCTYPE html>\n<html lang="en">\n<head>\n'
+        '<meta charset="utf-8" />\n'
+        '<meta name="viewport" content="width=device-width, initial-scale=1" />\n'
+        "<title>Screen could not be rendered</title>\n</head>\n<body>\n"
+        '<main style="font-family:system-ui,-apple-system,sans-serif;'
+        'max-width:42rem;margin:4rem auto;padding:0 1.5rem;line-height:1.6">\n'
+        "<h1>This screen could not be rendered</h1>\n"
+        "<p>Atelier explored the brief but did not produce a renderable design for "
+        "this surface within its iteration budget. The strongest available output "
+        "was non-visual; it is preserved below for reference. Retry to generate "
+        "this surface again.</p>\n"
+        '<section aria-label="Raw specialist output">\n'
+        '<pre style="white-space:pre-wrap;word-break:break-word;background:#f5f5f5;'
+        'padding:1rem;border-radius:8px;overflow:auto">'
+        f"{escaped}</pre>\n</section>\n</main>\n</body>\n</html>\n"
+    )
+
+
 #: Color literals in a style context: ``#rgb[a]``/``#rrggbb[aa]`` hex and the
 #: functional ``rgb()/rgba()/hsl()/hsla()`` forms. Named colors are intentionally
 #: out of scope (the N3c token gate flags numeric literals, which these cover).
@@ -334,7 +368,11 @@ _COLOR_LITERAL_PATTERN = re.compile(r"#[0-9a-fA-F]{3,8}\b|\brgba?\([^)]*\)|\bhsl
 #: A CSS custom-property declaration and its value (``--name: value;``).
 _CSS_DECL_VALUE_PATTERN = re.compile(r"--[\w-]+\s*:\s*([^;{}]+?)\s*[;}]")
 _STYLE_BLOCK_PATTERN = re.compile(r"(<style[^>]*>)(.*?)(</style>)", re.DOTALL | re.IGNORECASE)
-_INLINE_STYLE_PATTERN = re.compile(r"style\s*=\s*\"([^\"]*)\"", re.IGNORECASE)
+#: Inline ``style=`` attribute value, double- OR single-quoted. The N3c token
+#: gate (deterministic._HTML_INLINE_STYLE_PATTERN) scans both quote styles; this
+#: completer must too, else a single-quoted ``style='...#hex'`` color leaks past
+#: un-hoisted and the design fails the zero-tolerance token gate (RC-2/RC-1c).
+_INLINE_STYLE_PATTERN = re.compile(r"""style\s*=\s*(?:"([^"]*)"|'([^']*)')""", re.IGNORECASE)
 
 
 def _complete_color_token_palette(html: str) -> str:
@@ -357,7 +395,8 @@ def _complete_color_token_palette(html: str) -> str:
     style_match = _STYLE_BLOCK_PATTERN.search(html)
     # Collect style text from every <style> block plus inline style="" attributes.
     style_text = " ".join(m[1] for m in _STYLE_BLOCK_PATTERN.findall(html))
-    style_text += " " + " ".join(_INLINE_STYLE_PATTERN.findall(html))
+    # findall yields (double, single) group tuples — coalesce to the matched quote.
+    style_text += " " + " ".join(dq or sq for dq, sq in _INLINE_STYLE_PATTERN.findall(html))
 
     declared = {value.strip().lower() for value in _CSS_DECL_VALUE_PATTERN.findall(style_text)}
     new_literals: list[str] = []
@@ -1154,6 +1193,14 @@ class AtelierRunner:
             # HTML design, not the first raw event (which may be a non-design
             # specialist output). The user still gets a real, cleaned-up screen.
             best_candidate = best_partial_html
+            # RC-2: report the partial mean as the composite (matching the
+            # scored_candidates entry built below), NOT a pinned 0.0. The loop
+            # feeds this scalar into is_no_improvement; a hard 0.0 made every
+            # post-fallback iteration read 0.0 -> 0.0 and stop on no_improvement
+            # at iteration 1, euthanizing the Fixer self-heal regardless of the
+            # design's real quality. `converged` stays False (a fallback cleared
+            # no gate), so this only makes the degradation signal honest.
+            best_score = best_partial_score / 100.0
             logger.warning(
                 "N4: all candidates failed N3c gates; falling back to best-scoring HTML "
                 "candidate (mean gate score %.1f/100 across %d candidates)",
@@ -1161,13 +1208,18 @@ class AtelierRunner:
                 len(raw_candidates),
             )
         elif raw_candidates:
-            # Last resort: nothing was gradable (no HTML at all) — return the
-            # first raw candidate so the response is never empty.
-            best_candidate = (
+            # Last resort: nothing was gradable (no HTML at all). Every raw event
+            # was prose/markdown narration, which renders as a BLANK, non-responsive
+            # canvas if served verbatim. RC-4: wrap it in a valid, honest "could not
+            # render" document so the canvas is never blank and Atelier never
+            # presents a non-design as a design.
+            raw_first = (
                 raw_candidates[0] if isinstance(raw_candidates[0], str) else str(raw_candidates[0])
             )
+            best_candidate = _unrenderable_acknowledgment_document(raw_first)
             logger.warning(
-                "N4: no HTML candidate available; falling back to raw candidate 1/%d",
+                "N4: no HTML candidate available; serving honest unrenderable "
+                "acknowledgment for raw candidate 1/%d (never a blank canvas)",
                 len(raw_candidates),
             )
 

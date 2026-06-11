@@ -122,6 +122,45 @@ class TestCompleteColorTokenPalette:
         assert "<style>" in out
         assert "#abcdef" in out.replace(" ", "")
 
+    def test_declares_single_quoted_inline_literal_as_token(self) -> None:
+        # RC-1c: the N3c token gate scans BOTH quote styles for inline-style color
+        # literals, but the palette completer's _INLINE_STYLE_PATTERN matched only
+        # double-quoted style="" — so a single-quoted style='' color leaked past
+        # un-hoisted and the design failed the zero-tolerance token gate even
+        # after normalization (one recurring N3c convergence-trap contributor).
+        doc = (
+            "<!DOCTYPE html><html lang='en'><head></head>"
+            "<body><div style='border:1px solid #13a7c2'>x</div></body></html>"
+        )
+        out = _complete_color_token_palette(doc)
+        assert "--c-auto-0:#13a7c2" in out.replace(" ", "")
+
+    def test_single_quoted_inline_literal_flips_token_gate(self) -> None:
+        from uuid import uuid4
+
+        def token_gate(html: str) -> str:
+            candidate = CandidateUI(
+                candidate_id=uuid4(),
+                surface_id=uuid4(),
+                iteration=0,
+                artifacts={"index.html": html},
+            )
+            outcome = next(
+                o
+                for o in run_gates(candidate, _N3C_GATE_AXES).outcomes
+                if o.axis.value == "token-fidelity"
+            )
+            return str(outcome.decision.value)
+
+        raw = (
+            "<!DOCTYPE html><html lang='en'><head><title>t</title></head>"
+            "<body><div style='border:1px solid #13a7c2'>x</div></body></html>"
+        )
+        # The single-quoted inline literal is off-token -> zero-tolerance reject ...
+        assert token_gate(_extract_html_document(raw)) == "reject"
+        # ... and palette completion now hoists it to a declared token -> pass.
+        assert token_gate(_complete_color_token_palette(_extract_html_document(raw))) == "pass"
+
     def test_normalization_flips_token_gate_reject_to_pass(self) -> None:
         """The precise contract: the leaked literal rejects, normalization fixes it.
 

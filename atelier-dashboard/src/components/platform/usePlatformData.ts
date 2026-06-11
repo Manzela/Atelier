@@ -1,20 +1,27 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { onIdTokenChanged } from 'firebase/auth';
+import { useState, useEffect, useCallback, useRef } from 'react';
+
 import { authedGet } from '@/lib/api';
+import { auth } from '@/lib/firebase';
 
 /**
  * Generic fetch hook for authenticated /v1/platform/* endpoints.
  *
- * Resolves the Bearer token from localStorage (`user.token`) using the same
- * pattern established by the existing `useClientAuth` hook in StitchClientShell.
- * Returns a typed `{ loading, error, data }` triple; callers never touch the
- * HTTP layer directly.
+ * Token freshness (RC-5): a Firebase ID token expires after ~1h. The previous
+ * version read ONLY the login-time snapshot from localStorage, so a dashboard
+ * left open longer hit HTTP 401 on its next platform GET — the Build-pillar 401
+ * the operator saw. This hook now (a) sources a LIVE token from the Firebase SDK
+ * (`getIdToken()` auto-refreshes when expired), (b) forwards a force-refresh
+ * retry to `authedGet` so a 401 recovers in-flight, and (c) re-fetches whenever
+ * the SDK rotates the token (`onIdTokenChanged`). It falls back to the cached
+ * localStorage token before the SDK has restored auth state (and mirrors any
+ * refreshed token back into localStorage so other readers stay current).
  *
- * A stable `refetch` callback is exposed so pillar components can retry on user
- * request without remounting. The hook threads an `AbortController` signal
- * through `authedGet`, so an in-flight request is genuinely cancelled on unmount
- * or refetch (the signal both aborts `fetch` and gates the state updates).
+ * Returns a typed `{ loading, error, data }` triple plus a stable `refetch`.
+ * The hook threads an `AbortController` signal through `authedGet`, so an
+ * in-flight request is genuinely cancelled on unmount or refetch.
  *
  * The optional `enabled` flag (default `true`) lets a caller mount the hook
  * without issuing the request (hooks cannot be conditional); when disabled the
@@ -41,6 +48,43 @@ function getStoredToken(): string | null {
   }
 }
 
+/** Persist a refreshed token back onto the stored `user` so other readers
+ * (e.g. StudioClientShell's session) do not keep using the stale one. */
+function syncStoredToken(token: string): void {
+  try {
+    if (typeof window === 'undefined') return;
+    const raw = localStorage.getItem('user');
+    if (!raw) return;
+    const user = JSON.parse(raw) as Record<string, unknown>;
+    if (user.token === token) return;
+    localStorage.setItem('user', JSON.stringify({ ...user, token }));
+  } catch {
+    /* non-fatal: the in-memory token is still used for this request */
+  }
+}
+
+/**
+ * Resolve a usable bearer token. Prefers a live Firebase token — `getIdToken()`
+ * transparently refreshes an expired one; `getIdToken(true)` forces a refresh
+ * after a 401 — and falls back to the localStorage snapshot before the SDK has
+ * restored the signed-in user (or when Firebase is not configured).
+ */
+async function getFreshToken(forceRefresh = false): Promise<string | null> {
+  try {
+    const user = auth?.currentUser;
+    if (user) {
+      const fresh = await user.getIdToken(forceRefresh);
+      if (fresh) {
+        syncStoredToken(fresh);
+        return fresh;
+      }
+    }
+  } catch {
+    /* fall through to the cached token */
+  }
+  return getStoredToken();
+}
+
 export function usePlatformData<T>(path: string, enabled = true): UsePlatformDataResult<T> {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +92,23 @@ export function usePlatformData<T>(path: string, enabled = true): UsePlatformDat
   const [tick, setTick] = useState(0);
 
   const refetch = useCallback(() => setTick((n) => n + 1), []);
+
+  // Re-fetch when the Firebase SDK rotates the ID token (hourly refresh, or a
+  // sign-in completing after mount). The first onIdTokenChanged callback fires
+  // synchronously with the current auth state, which the main effect already
+  // covers — skip it so mount does not double-fetch.
+  const sawFirstTokenEvent = useRef(false);
+  useEffect(() => {
+    if (!auth) return;
+    const unsub = onIdTokenChanged(auth, () => {
+      if (!sawFirstTokenEvent.current) {
+        sawFirstTokenEvent.current = true;
+        return;
+      }
+      setTick((n) => n + 1);
+    });
+    return unsub;
+  }, []);
 
   useEffect(() => {
     // `enabled: false` callers (e.g. the board shell when a `?project=`
@@ -63,20 +124,19 @@ export function usePlatformData<T>(path: string, enabled = true): UsePlatformDat
     // never synchronously in the effect body — and each is gated on the abort
     // signal so an unmounted/superseded request can never update state.
     const run = async () => {
-      const token = getStoredToken();
+      const token = await getFreshToken();
+      if (signal.aborted) return;
       if (!token) {
-        if (signal.aborted) return;
         setError('Authentication token unavailable. Please sign in.');
         setLoading(false);
         return;
       }
 
-      if (signal.aborted) return;
       setLoading(true);
       setError(null);
 
       try {
-        const result = await authedGet<T>(path, token, signal);
+        const result = await authedGet<T>(path, token, signal, () => getFreshToken(true));
         if (signal.aborted) return;
         setData(result);
         setLoading(false);

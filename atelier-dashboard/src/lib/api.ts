@@ -1,3 +1,4 @@
+import { authedGetJson } from './authed-fetch';
 import type { DesignSystem } from './design-system';
 import { SSEStreamParser } from './sse-parser';
 
@@ -662,22 +663,23 @@ export async function requestStopRun(sessionId: string, token: string | null): P
  *
  * Type parameter T is the expected JSON response shape — the caller supplies
  * the matching interface so the return is narrowed at the call site.
+ *
+ * RC-5: an optional `refreshToken` is forwarded to the transport — on a 401
+ * (an expired Firebase ID token, which all platform GETs carry) it mints a fresh
+ * bearer and retries once, so a dashboard left open past the ~1h token lifetime
+ * recovers transparently instead of surfacing the Build-pillar 401.
  */
-export async function authedGet<T>(path: string, token: string, signal?: AbortSignal): Promise<T> {
-  const url = `${getApiUrl()}${path}`;
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: 'application/json',
-    },
+export async function authedGet<T>(
+  path: string,
+  token: string,
+  signal?: AbortSignal,
+  refreshToken?: () => Promise<string | null>
+): Promise<T> {
+  return authedGetJson<T>(`${getApiUrl()}${path}`, token, {
     signal,
+    refreshToken,
+    readErrorDetail, // L16: read body once
   });
-  if (!response.ok) {
-    const detail = await readErrorDetail(response); // L16: read body once
-    throw new Error(`HTTP ${response.status}: ${detail}`);
-  }
-  return response.json() as Promise<T>;
 }
 
 // ---------------------------------------------------------------------------
