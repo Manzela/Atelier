@@ -495,7 +495,9 @@ export async function runGenerationStream(
         try {
           triggerCallback(frame.event, parsedData, callbacks);
         } catch (e) {
-          console.error(`Failed to handle SSE ${frame.event} event:`, e);
+          // Constant format string (event name passed as a separate arg) so the
+          // log cannot be format-string-forged — avoids semgrep unsafe-formatstring.
+          console.error('Failed to handle SSE event:', frame.event, e);
           callbacks.onError?.(`Failed to handle ${frame.event} event`);
         }
         if (TERMINAL_EVENTS.has(frame.event)) sawTerminalEvent = true;
