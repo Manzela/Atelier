@@ -191,6 +191,19 @@ jobs:
           else
             echo "No unit tests yet — skipping"
           fi
+      - name: Integration tests (hermetic; excludes live -m external)
+        # L03: the unmocked real-Runner E2E convergence proof + the other hermetic
+        # integration tests previously ran in NO gate. Run them here (core suite)
+        # so a PR that breaks end-to-end convergence is caught before merge; the
+        # deploy workflow re-runs the same gate before shipping.
+        if: steps.check.outputs.ready == 'true' && matrix.suite == 'core'
+        working-directory: atelier-core
+        run: |
+          if [ -d tests/integration ] && [ "$(find tests/integration -name 'test_*.py' | wc -l)" -gt 0 ]; then
+            pytest tests/integration -m "not external" -v --tb=short
+          else
+            echo "No integration tests yet — skipping"
+          fi
 
   # ─── Hygiene gate (always runs; rejects emoji + AI-authorship tells) ────
   hygiene:
