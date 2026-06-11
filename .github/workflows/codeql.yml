@@ -27,10 +27,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: ['python']
-        # javascript-typescript removed: this is a Python-only repo.
-        # No substantive JS/TS source exists; scanning it causes CodeQL to
-        # error with "no source code seen during build" on every run.
+        # L25: the dashboard is ~15k LOC of TS/TSX — previously EXCLUDED on a false
+        # "no substantive JS/TS source" justification, so DOM-XSS / taint /
+        # postMessage queries never ran. `build-mode: none` extracts source without
+        # a build, which is correct for both the interpreted Python tree and TS.
+        include:
+          - language: python
+            build-mode: none
+          - language: javascript-typescript
+            build-mode: none
 
     steps:
       - name: Checkout repository
@@ -40,11 +45,9 @@ jobs:
         uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
           # Use extended security queries for deeper analysis
           queries: security-extended,security-and-quality
-
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v4
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4

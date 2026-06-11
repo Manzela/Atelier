@@ -17,7 +17,13 @@ resource "google_cloud_run_v2_service" "atelier_api" {
 
   # Production: restrict to internal+load-balancer traffic only;
   # staging: allow all traffic for easier developer testing.
-  ingress = var.env == "production" ? "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER" : "INGRESS_TRAFFIC_ALL"
+  # L23: production must be INGRESS_TRAFFIC_ALL, not INTERNAL_LOAD_BALANCER. The
+  # canonical path is a Firebase Hosting CNAME whose /v1/** rewrite reaches Cloud
+  # Run as ordinary internet traffic (NOT internal-LB traffic), so an internal-only
+  # ingress would 404 the live product. This matches the deployed reality and the
+  # explicit --ingress=all on the gcloud deploy; the security boundary is app-layer
+  # require_auth on /v1/*, not network ingress. (Reconciled IaC<->CD drift.)
+  ingress = "INGRESS_TRAFFIC_ALL"
 
   template {
     service_account = "atelier-api-sa@${var.project_id}.iam.gserviceaccount.com"

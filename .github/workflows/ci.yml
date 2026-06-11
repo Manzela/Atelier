@@ -516,7 +516,10 @@ jobs:
     name: Security audit (Hardening)
     runs-on: ubuntu-latest
     needs: [changes, precommit]
-    if: needs.changes.outputs.core == 'true' || needs.changes.outputs.ci_config == 'true'
+    # L46: run UNCONDITIONALLY. Gating on core||ci_config let a dashboard-only or
+    # firestore.rules-only change ship with NO SAST, and ci-success treats a SKIPPED
+    # security job as a pass — so the skip was a silent security hole. Security scans
+    # are cheap; always run them so frontend/rules changes are covered too.
     # security-events: write lets the SARIF upload reach the code-scanning API
     # where it is enabled. The uploads are also continue-on-error below, so a
     # repo without code-scanning (upload returns "Resource not accessible by

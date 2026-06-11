@@ -4,18 +4,16 @@ steps:
       - 'build'
       - '-t'
       - 'us-central1-docker.pkg.dev/$PROJECT_ID/atelier-images/atelier-api:${_IMAGE_TAG}'
-      - '-t'
-      - 'us-central1-docker.pkg.dev/$PROJECT_ID/atelier-images/atelier-api:latest'
       - '-f'
       - 'deploy/Dockerfile.api'
       - '.'
 images:
-  # Deploy by the immutable ${_IMAGE_TAG} (the commit SHA, supplied by the deploy
-  # workflow); :latest is kept only as a convenience pointer, never deployed.
+  # L51: build/push ONLY the immutable ${_IMAGE_TAG} (the commit SHA, supplied by
+  # the deploy workflow). The mutable :latest tag is no longer produced — it was a
+  # latent foot-gun (a manual deploy could pin a moving target). _IMAGE_TAG has no
+  # default, so a build that forgets to supply it fails loudly rather than tagging
+  # :latest.
   - 'us-central1-docker.pkg.dev/$PROJECT_ID/atelier-images/atelier-api:${_IMAGE_TAG}'
-  - 'us-central1-docker.pkg.dev/$PROJECT_ID/atelier-images/atelier-api:latest'
-substitutions:
-  _IMAGE_TAG: 'latest'
 timeout: '600s'
 # Run the build as a least-privilege SA (push images + read source + write logs)
 # instead of the default Compute Engine SA, which holds project Editor — a CI

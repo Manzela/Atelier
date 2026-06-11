@@ -245,6 +245,7 @@ jobs:
             --region=${{ env.REGION }} --project=${{ env.PROJECT_ID }} \
             --env-vars-file=deploy/api.production.env.yaml \
             --timeout=3600 --concurrency=10 --min-instances=1 --max-instances=10 --memory=4Gi --cpu=2 \
+            --ingress=all \
             --service-account=${{ env.RUN_SA }} \
             --no-traffic --tag="${TAG}"
           url=$(gcloud run services describe atelier-api-production \
