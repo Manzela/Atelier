@@ -538,7 +538,7 @@ export default function StudioClientShell({ id }: { id: string }) {
     router.push('/login');
   };
 
-  const [selectedModel, setSelectedModel] = useState('gemini-3.5-flash');
+  const [selectedModel, setSelectedModel] = useState('gemini-2.5-pro');
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   React.useEffect(() => {

@@ -66,6 +66,12 @@ GEMINI_3_5_FLASH_MODEL_ID: Final[str] = "gemini-3.5-flash"
 #: Gemini-3 model ids that the specialist pipeline drives at high thinking level.
 HIGH_THINKING_MODEL_IDS: Final[frozenset[str]] = frozenset({GEMINI_3_5_FLASH_MODEL_ID})
 
+#: Models served ONLY on the Vertex ``global`` endpoint (regional endpoints 404).
+#: The specialist pipeline pins these to a global-located client regardless of the
+#: deploy region (``GOOGLE_CLOUD_LOCATION``), so they work in production
+#: (us-central1) — not just where the operator happens to run ``global``.
+GLOBAL_ENDPOINT_MODEL_IDS: Final[frozenset[str]] = frozenset({GEMINI_3_5_FLASH_MODEL_ID})
+
 #: Models a user may pin via the request ``model`` override beyond the
 #: routing-derived ``get_model_catalog()``. Accepted by the L05 GenerateRequest
 #: gate and surfaced in the model picker, without rerouting any production task.

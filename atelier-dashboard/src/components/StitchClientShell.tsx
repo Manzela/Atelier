@@ -342,7 +342,7 @@ export default function StitchClientShell() {
     setTimeout(() => setCopiedField(null), 2000);
   };
 
-  const [selectedModel, setSelectedModel] = useState('gemini-3.5-flash');
+  const [selectedModel, setSelectedModel] = useState('gemini-2.5-pro');
   const [projects, setProjects] = useState<Project[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [voiceUnsupported, setVoiceUnsupported] = useState(false);

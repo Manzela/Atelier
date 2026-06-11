@@ -64,3 +64,47 @@ def test_2_5_flash_does_not_get_high_thinking() -> None:
     pipe, _ = create_specialist_pipeline(model="gemini-2.5-flash")
     for agent in pipe.sub_agents:
         assert agent.generate_content_config.thinking_config is None
+
+
+def test_global_only_model_pinned_to_global_endpoint_in_prod_region(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Production deploys to us-central1, where gemini-3.5-flash returns 404 on the
+    # regional endpoint. The pipeline must pin it to the Vertex `global` endpoint
+    # regardless of GOOGLE_CLOUD_LOCATION, so production works without changing the
+    # deploy region or rerouting every other model. The genai Client is mocked so
+    # the assertion is hermetic (no ADC, no network, no leaked global state).
+    monkeypatch.setenv("GOOGLE_CLOUD_LOCATION", "us-central1")
+    monkeypatch.setenv("GOOGLE_CLOUD_PROJECT", "atelier-build-2026")
+    monkeypatch.setenv("ATELIER_STITCH_ENABLED", "false")
+
+    captured: dict[str, object] = {}
+
+    class _FakeClient:
+        def __init__(self, **kwargs: object) -> None:
+            captured.update(kwargs)
+            self.vertexai = kwargs.get("vertexai")
+
+    monkeypatch.setattr("google.genai.Client", _FakeClient)
+    from atelier.orchestrator.specialists import _GlobalEndpointGemini, create_specialist_pipeline
+
+    pipe, _ = create_specialist_pipeline(model="gemini-3.5-flash")
+    for agent in pipe.sub_agents:
+        assert isinstance(agent.model, _GlobalEndpointGemini), agent.name
+        _ = agent.model.api_client  # constructs the (mocked) Client
+    # The pin is the whole point: location forced to global, Vertex backend on.
+    assert captured.get("location") == "global"
+    assert captured.get("vertexai") is True
+
+
+def test_regional_model_stays_a_plain_id_using_ambient_location(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("ATELIER_STITCH_ENABLED", "false")
+    from atelier.orchestrator.specialists import create_specialist_pipeline
+
+    pipe, _ = create_specialist_pipeline(model="gemini-2.5-flash")
+    for agent in pipe.sub_agents:
+        # A regional model is left as a bare id so it uses the ambient
+        # GOOGLE_CLOUD_LOCATION (no global pin, no per-agent client).
+        assert agent.model == "gemini-2.5-flash"

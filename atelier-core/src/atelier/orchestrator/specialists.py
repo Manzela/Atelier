@@ -36,15 +36,18 @@ and Model Armor is attached via ``generate_content_config`` on every model call.
 
 from __future__ import annotations
 
+import os
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Final
+from functools import cached_property
+from typing import TYPE_CHECKING, Any, Final
 
 import structlog
 from google.adk.agents.llm_agent import InstructionProvider, LlmAgent
 from google.adk.agents.sequential_agent import (
     SequentialAgent,  # Deprecated: Workflow (public node-graph DSL, not a sub_agents container) — rewrite deferred per ADR-0001
 )
+from google.adk.models import Gemini
 from google.genai import types as genai_types
 
 from atelier.integrations.stitch_mcp import (
@@ -56,6 +59,7 @@ from atelier.models.model_armor_callbacks import (
     model_armor_before_callback,
 )
 from atelier.models.model_registry import (
+    GLOBAL_ENDPOINT_MODEL_IDS,
     HIGH_THINKING_MODEL_IDS,
     TaskType,
     calibrate_model,
@@ -318,6 +322,38 @@ def _build_instruction(spec: _SpecialistSpec) -> InstructionProvider:
 _HIGH_THINKING_MAX_OUTPUT_TOKENS: Final[int] = 32768
 
 
+class _GlobalEndpointGemini(Gemini):
+    """ADK Gemini pinned to the Vertex ``global`` endpoint.
+
+    ``gemini-3.5-flash`` is served ONLY on ``global`` (regional endpoints return
+    404), so this overrides ``api_client`` to force ``location="global"``
+    regardless of the deploy region (``GOOGLE_CLOUD_LOCATION``). Production runs
+    ``us-central1``; without this pin a 3.5-flash generation would 404 there. The
+    override mirrors ADK's own ``api_client`` (tracking headers, retry options,
+    api version) and only changes the location/project, per ADK's documented
+    subclassing seam.
+    """
+
+    @cached_property
+    def api_client(self) -> Any:  # google.genai.Client
+        from google.genai import Client  # noqa: PLC0415
+
+        base_url, api_version = self._base_url_and_api_version
+        http_kwargs: dict[str, Any] = {
+            "headers": self._tracking_headers(),
+            "retry_options": self.retry_options,
+            "base_url": base_url,
+        }
+        if api_version:
+            http_kwargs["api_version"] = api_version
+        return Client(
+            vertexai=True,
+            location="global",
+            project=os.environ.get("GOOGLE_CLOUD_PROJECT"),
+            http_options=genai_types.HttpOptions(**http_kwargs),
+        )
+
+
 def create_specialist_pipeline(
     *,
     model: str | BaseLlm | None = None,
@@ -361,6 +397,9 @@ def create_specialist_pipeline(
             resolved_model: str | BaseLlm = calibrate_model(spec.task_type)
         else:
             resolved_model = model
+        # Routing decisions key off the model ID string (a hermetic-test BaseLlm
+        # override is left untouched).
+        model_id = resolved_model if isinstance(resolved_model, str) else None
 
         toolsets: Sequence[BaseToolset] = (
             [stitch_toolset] if spec.uses_stitch and stitch_toolset is not None else []
@@ -377,7 +416,7 @@ def create_specialist_pipeline(
             config_args["max_output_tokens"] = max_tokens
         # Gemini 3.5 Flash is a thinking model — run it at high reasoning effort
         # ("Gemini 3.5 Flash (High)"), the configured generation tier for it.
-        if isinstance(resolved_model, str) and resolved_model in HIGH_THINKING_MODEL_IDS:
+        if model_id in HIGH_THINKING_MODEL_IDS:
             config_args["thinking_config"] = genai_types.ThinkingConfig(thinking_level="high")
             # High thinking spends the OUTPUT-token budget on reasoning first; with
             # the default ceiling the model hits MAX_TOKENS mid-thought and returns
@@ -386,6 +425,13 @@ def create_specialist_pipeline(
             config_args["max_output_tokens"] = max(
                 int(config_args.get("max_output_tokens") or 0), _HIGH_THINKING_MAX_OUTPUT_TOKENS
             )
+
+        # Global-only models (gemini-3.5-flash) must hit the Vertex `global`
+        # endpoint regardless of the deploy region (regional 404s), so wrap them in
+        # a location-pinned Gemini. Every other model stays a plain id and uses the
+        # ambient GOOGLE_CLOUD_LOCATION.
+        if model_id in GLOBAL_ENDPOINT_MODEL_IDS:
+            resolved_model = _GlobalEndpointGemini(model=model_id)
 
         sub_agents.append(
             LlmAgent(
