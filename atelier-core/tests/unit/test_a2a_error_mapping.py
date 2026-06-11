@@ -136,6 +136,31 @@ async def test_circuit_breaker_maps_to_service_unavailable(monkeypatch: pytest.M
     assert resp.error["code"] == a2a._SERVICE_UNAVAILABLE
 
 
+async def test_model_armor_block_maps_to_invalid_params(monkeypatch: pytest.MonkeyPatch) -> None:
+    # L15: a Model Armor safety block on the brief is a CLIENT input rejection, not
+    # a server fault — it must map to _INVALID_PARAMS (with the branded message),
+    # never the generic -32603, mirroring POST /v1/generate's 422.
+    from atelier.models.model_armor_callbacks import ModelArmorInputBlocked
+    from atelier.orchestrator import runner as runner_mod
+
+    class _ArmorRunner:
+        def __init__(self, *args: object, **kwargs: object) -> None: ...
+
+        async def run(self, *args: object, **kwargs: object) -> dict[str, object]:
+            raise ModelArmorInputBlocked()
+
+    monkeypatch.setattr(runner_mod, "AtelierRunner", _ArmorRunner)
+
+    resp = await a2a._handle_send_message(
+        _message("build me a clean marketing landing page with a hero and a footer"),
+        "req-armor",
+        _user(),
+    )
+    assert resp.error is not None
+    assert resp.error["code"] == a2a._INVALID_PARAMS
+    assert resp.error["code"] != a2a._INTERNAL_ERROR
+
+
 async def test_unexpected_error_still_maps_to_internal_error(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
