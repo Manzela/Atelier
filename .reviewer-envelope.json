@@ -1,25 +1,8 @@
 {
   "eval_delta_vs_head1": null,
   "files_touched_sha": {
-    "atelier-core/src/atelier/api/a2a.py": "8ccebe2080c63f7b8660b7b4e8b4ce6a9a9b0119c8ad9233ae947f461ad868c1",
-    "atelier-core/src/atelier/api/evaluate.py": "dfad63de9e5f2c32b44653bb8287a9baa9faab444c4ee8ae32fa60c1915ab73f",
-    "atelier-core/src/atelier/api/generate.py": "6ccfe45ae0f80e1ef65591ec2f37807df729d6541b3e320abfc7b35b7d080330",
-    "atelier-core/src/atelier/durability/usage_counter.py": "5445524d196b2e8e7832b44d02ee21b038fbd5fac60b779d4d9eb06afd200f85",
-    "atelier-core/src/atelier/intake/source_resolver.py": "640fca2d356ac61d975290d236ce24942ab187858792e9f6ec7364cf87a17baf",
-    "atelier-core/src/atelier/orchestrator/governor.py": "cb547fa2cc3acc487b21c8216fd2d096f53dde22cda4d4fc49a9cb2a9b8d7815",
-    "atelier-core/src/atelier/orchestrator/runner.py": "7ff0655aa88a8b9f55792123fbbafe5136ab3b1e6521af60b67a4c3f4de9fe19",
-    "atelier-core/src/atelier/orchestrator/stop_controller.py": "69b3783629c62f7bca39782f28e9d7d0fba9b2265370abcbfe3818612bfc79c3",
-    "atelier-core/tests/unit/test_a2a_error_mapping.py": "c9ce48e1532bfe165e2ceb6843fa19c20ac42c4e0dd6df73779498493b89da93",
-    "atelier-core/tests/unit/test_audit_remediation_2026_06_11.py": "b36c95d14415822365fc9085f7ed66e9e7f2bb73a3099c6f7efad1d0dff23fcd",
-    "atelier-core/tests/unit/test_legibility_at026.py": "bed48c4916445b8c64ceced9400cb34d622a08ee9f11c4b42687bb183781eaa4",
-    "atelier-core/tests/unit/test_multisurface_delivery.py": "bb3304b410e82aeea2c0b2ec97feb27b203a927e24c893ba9c50322a33c97b1b",
-    "atelier-dashboard/src/components/legibility/TracePanel.tsx": "fd18baddcb9bceb78ce1c07cd724ec214a083352c3911b59b0a4fee1a86a980b",
-    "atelier-dashboard/src/components/platform/PillarBuild.tsx": "e222ec7208ec4ae47c73a4b9014acedb36849bed1544e97aa208cbbad15b312b",
-    "atelier-dashboard/src/lib/agent-ordering.test.mts": "27965e4d8fee8aeca02e87855f825f42f2e3ced243f33d0c011544d378121cf8",
-    "atelier-dashboard/src/lib/agent-ordering.ts": "ad292cf3a4131e5064d0fe8573df6a2bd4a38496693e2b9ae43cb8ac4c668a52",
-    "atelier-dashboard/src/lib/api.ts": "0ed49f9ce4602550e351408962bf2b2522b8e829a75066f557a2cb27633de08a",
-    "atelier-dashboard/src/lib/sse-parser.test.mts": "5a80922692be097ecd66d4ec8df39c45768b124de8e2eecf97e975e012a23770",
-    "atelier-dashboard/src/lib/sse-parser.ts": "8e436583b8f2b0ec51c7ccea421fe6e670a51b4257391192a54b88568964425a"
+    "atelier-dashboard/src/lib/agent-ordering.test.mts": "4fec2444a1b7b078fc2a1df5dd7331361c5f372f8a5ce4e1bc69c134b0ff9d82",
+    "atelier-dashboard/src/lib/agent-ordering.ts": "f21f298477c6c1d88413304a04b9d3f7d29c1babb3502101808d7c35075ef92a"
   },
   "mypy_exit": 0,
   "pytest_exit": 0,

@@ -46,14 +46,30 @@ const PIPELINE_PREFIX = ['planner', 'intake_brief_parser'];
 const PIPELINE_SUFFIX = ['fixer'];
 
 /**
+ * The Build-pillar roster sorts by an agent's `task_type` (the model-routing
+ * TaskType enum), which DIVERGES from the specialist `output_key` for three stages:
+ * `ia_flow`≠`ia_flows`, `interaction`≠`interaction_spec`, `token_gen`≠`tokens`.
+ * Without these aliases those three fall to the unknown bucket and sort AFTER the
+ * fixer, so the roster disagrees with the trace/topology (which key off output_key
+ * / camelCase role) — the exact cross-view inconsistency this module exists to kill
+ * (observed live in Jam d32cc59c after the L08 fix).
+ */
+const TASK_TYPE_ALIASES: Record<string, string> = {
+  ia_flow: 'ia_flows',
+  interaction: 'interaction_spec',
+  token_gen: 'tokens',
+};
+
+/**
  * Normalize any agent identifier to its canonical specialist `output_key`, or ''
  * if it is not one of the 6 specialists. Accepts the snake `output_key`
- * (`ui_design`), the camelCase trace role (`UIDesigner`), and the roster id form
- * (`specialist_uidesigner`).
+ * (`ui_design`), the camelCase trace role (`UIDesigner`), the roster id form
+ * (`specialist_uidesigner`), and the model-routing `task_type` (`ia_flow`).
  */
 export function normalizeRole(role: string | null | undefined): string {
   if (!role) return '';
   if ((CANONICAL_STAGE_ORDER as readonly string[]).includes(role)) return role;
+  if (role in TASK_TYPE_ALIASES) return TASK_TYPE_ALIASES[role];
   if (role in ROLE_NAME_MAP) return ROLE_NAME_MAP[role];
   const stripped = role.replace(/^specialist_/, '').toLowerCase();
   for (const [camel, snake] of Object.entries(ROLE_NAME_MAP)) {

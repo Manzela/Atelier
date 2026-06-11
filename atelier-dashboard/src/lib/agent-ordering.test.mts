@@ -44,4 +44,33 @@ test('the reporter symptom: UXResearcher sorts before UIDesigner', () => {
   assert.ok(stageIndex('UXResearcher') < stageIndex('UIDesigner'));
 });
 
+test('Build-pillar roster task_type values order canonically (Jam d32cc59c)', () => {
+  // The roster sorts by TaskType strings (ia_flow/interaction/token_gen), which
+  // differ from the output_keys. Without the aliases these sorted AFTER the fixer,
+  // making the roster disagree with the trace/topology.
+  const roster = [
+    'planner',
+    'intake_brief_parser',
+    'ux_research',
+    'wireframe',
+    'ui_design',
+    'fixer',
+    'ia_flow',
+    'interaction',
+    'token_gen',
+  ];
+  const sorted = [...roster].sort((a, b) => stageIndex(a) - stageIndex(b));
+  assert.deepEqual(sorted, [
+    'planner',
+    'intake_brief_parser',
+    'ux_research',
+    'ia_flow',
+    'wireframe',
+    'ui_design',
+    'interaction',
+    'token_gen',
+    'fixer',
+  ]);
+});
+
 console.log(`\n${passed} passed`);
