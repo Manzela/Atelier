@@ -73,7 +73,9 @@ export function stageIndex(role: string | null | undefined): number {
   const prefixIdx = PIPELINE_PREFIX.indexOf(role);
   if (prefixIdx !== -1) return prefixIdx;
   const snake = normalizeRole(role);
-  if (snake) return PIPELINE_PREFIX.length + CANONICAL_STAGE_ORDER.indexOf(snake);
+  if (snake) {
+    return PIPELINE_PREFIX.length + (CANONICAL_STAGE_ORDER as readonly string[]).indexOf(snake);
+  }
   const suffixIdx = PIPELINE_SUFFIX.indexOf(role);
   if (suffixIdx !== -1) return PIPELINE_PREFIX.length + CANONICAL_STAGE_ORDER.length + suffixIdx;
   return Number.MAX_SAFE_INTEGER;
