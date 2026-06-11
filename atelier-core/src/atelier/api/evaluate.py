@@ -134,7 +134,15 @@ class DreamingArtifactSchema(BaseModel):
 
 
 class EvaluateResponse(BaseModel):
-    """Response body for POST /v1/evaluate."""
+    """Response body for POST /v1/evaluate.
+
+    L27: ``dreaming_artifact`` is DISPLAY-ONLY telemetry — the optimize asset this
+    SIMULATION surfaces in the trace/replay so an operator can SEE what a DPO pair
+    would look like. It is deliberately NOT written to the ``dpo_pairs`` training
+    table: ``/v1/evaluate`` runs the simulation library, not real user traffic, so
+    feeding its synthetic pairs into the live DPO flywheel would poison training
+    data. Real DPO pairs come only from production runs via the dreaming module.
+    """
 
     session_id: str
     results: list[SimulationResultSchema]

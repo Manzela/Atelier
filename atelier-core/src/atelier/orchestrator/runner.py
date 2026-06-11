@@ -2173,13 +2173,16 @@ class AtelierRunner:
                                 thinking_tokens=ethink,
                                 model_id=event_model_id,
                             )
-                            self._usage_store.add(
+                            _shared_total = self._usage_store.add(
                                 user_id,
                                 input_tokens=ein,
                                 output_tokens=eout,
                                 thinking_tokens=ethink,
                                 model_id=event_model_id,
                             )
+                            # L12: reconcile to the shared atomic total so a concurrent
+                            # same-user run's spend is seen by this run's cap checks.
+                            self._governor._state.reconcile_cumulative(_shared_total)
                             if progress_callback:
                                 await progress_callback(
                                     "token_delta",
@@ -2259,13 +2262,14 @@ class AtelierRunner:
                             thinking_tokens=rem_think,
                             model_id=fallback_model_id,
                         )
-                        self._usage_store.add(
+                        _shared_total = self._usage_store.add(
                             user_id,
                             input_tokens=rem_in,
                             output_tokens=rem_out,
                             thinking_tokens=rem_think,
                             model_id=fallback_model_id,
                         )
+                        self._governor._state.reconcile_cumulative(_shared_total)  # L12
                         if progress_callback:
                             await progress_callback(
                                 "token_delta",
@@ -2387,13 +2391,14 @@ class AtelierRunner:
                         thinking_tokens=judge_think,
                         model_id=n3d_model_id,
                     )
-                    self._usage_store.add(
+                    _shared_total = self._usage_store.add(
                         user_id,
                         input_tokens=judge_in,
                         output_tokens=judge_out,
                         thinking_tokens=judge_think,
                         model_id=n3d_model_id,
                     )
+                    self._governor._state.reconcile_cumulative(_shared_total)  # L12
                     if progress_callback:
                         await progress_callback(
                             "token_delta",

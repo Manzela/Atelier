@@ -178,6 +178,43 @@ def test_aggregate_convergence_empty_is_not_converged() -> None:
     assert _aggregate_convergence({}) == (False, 0.0)
 
 
+# --- L12: concurrent same-user runs must not each spend the full cap (TOCTOU) -----
+
+
+def test_reconcile_cumulative_only_ever_raises() -> None:
+    from atelier.orchestrator.governor import GovernorState
+
+    state = GovernorState(cumulative_user_tokens=100)
+    state.reconcile_cumulative(50)  # a lower (degraded-read floor) value is ignored
+    assert state.cumulative_user_tokens == 100
+    state.reconcile_cumulative(300)  # the shared atomic total raises it
+    assert state.cumulative_user_tokens == 300
+
+
+def test_concurrent_runs_see_shared_spend_via_store() -> None:
+    from atelier.durability.usage_counter import UsageCounterStore
+    from atelier.orchestrator.governor import GovernorState
+
+    store = UsageCounterStore(backend="memory")
+    store.reset()
+    uid = "u-concurrent"
+    cap = 1000
+    run_a = GovernorState(user_id=uid, token_cap=cap)
+    run_b = GovernorState(user_id=uid, token_cap=cap)
+
+    # Run A charges 600 of the 1000 cap and reconciles from the shared store.
+    run_a.add_user_tokens(input_tokens=600)
+    run_a.reconcile_cumulative(store.add(uid, input_tokens=600))
+    assert run_a.is_over_token_cap() is False
+
+    # Run B charges another 600 CONCURRENTLY. Without the reconcile it would see only
+    # its own 600 and pass; with it, B reflects the shared 1200 total and is over cap.
+    run_b.add_user_tokens(input_tokens=600)
+    run_b.reconcile_cumulative(store.add(uid, input_tokens=600))
+    assert run_b.cumulative_user_tokens == 1200
+    assert run_b.is_over_token_cap() is True
+
+
 # --- L14: evaluate trajectory row must match the DEPLOYED narrow BQ schema --------
 
 
