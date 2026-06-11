@@ -1,10 +1,12 @@
 {
   "eval_delta_vs_head1": null,
   "files_touched_sha": {
+    ".reviewer-envelope.json": "1aedd165abeda8f549d5b30e1b12d9bf125d84b1cbd46051aeebc71530b2b45b",
     "atelier-core/src/atelier/api/generate.py": "f32393766d110ffd28076495386421b28fd8de1d58e9f715f4e39d956085cbdf",
     "atelier-core/src/atelier/models/model_registry.py": "0d8a06f2bd840175521f6cabd1502223394f447ff9b47cd3650bda73a51752a8",
     "atelier-core/src/atelier/orchestrator/runner.py": "e3d84f5f189c8c720d0438a16ae433d0dbddd12df7ab515101eb3e028ad144e6",
     "atelier-core/src/atelier/orchestrator/specialists.py": "681c25c3b88d142c3f151ffd1c067030e7920ec2974290d5b8ea3d7a850ab7c5",
+    "atelier-core/tests/conftest.py": "55a277202950202068c7840a12b301e4ab0f4d6dc3684adc34fa9deebc7507eb",
     "atelier-core/tests/unit/test_candidate_normalization.py": "43b552557e5b8a8fff24ea687011850048f3c7cd97e51b33fc97d62209a965dd",
     "atelier-core/tests/unit/test_convergence_fallback_score_2026_06_11.py": "735b0203923f3f35f26c66db67219caf5e74724eae14ef4ae8c14de5df29ef62",
     "atelier-core/tests/unit/test_gemini_3_5_flash_model.py": "2a18962b42d88eaae5a9a4668f6801f9372a03854575336999b4e9e51de0a715",
