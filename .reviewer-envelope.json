@@ -1,7 +1,6 @@
 {
   "eval_delta_vs_head1": null,
   "files_touched_sha": {
-    ".reviewer-envelope.json": "1aedd165abeda8f549d5b30e1b12d9bf125d84b1cbd46051aeebc71530b2b45b",
     "atelier-core/src/atelier/api/generate.py": "f32393766d110ffd28076495386421b28fd8de1d58e9f715f4e39d956085cbdf",
     "atelier-core/src/atelier/models/model_registry.py": "0d8a06f2bd840175521f6cabd1502223394f447ff9b47cd3650bda73a51752a8",
     "atelier-core/src/atelier/orchestrator/runner.py": "e3d84f5f189c8c720d0438a16ae433d0dbddd12df7ab515101eb3e028ad144e6",
