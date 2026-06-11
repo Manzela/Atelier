@@ -144,8 +144,6 @@ async def test_model_armor_block_maps_to_invalid_params(monkeypatch: pytest.Monk
     from atelier.orchestrator import runner as runner_mod
 
     class _ArmorRunner:
-        def __init__(self, *args: object, **kwargs: object) -> None: ...
-
         async def run(self, *args: object, **kwargs: object) -> dict[str, object]:
             raise ModelArmorInputBlocked()
 
